@@ -1,0 +1,145 @@
+[p] br.com.emitesimples
+    @
+        [e] title
+            [e] pt
+                [v] Emite Simples
+            [e] en
+                [v] Emite Simples
+        [e] description
+            [e] pt
+                [v] Emissor de NFS-e que usa o gateway IntegraNotas (API v2). Namespace raiz do modelo de negócio.
+            [e] en
+                [v] NFS-e issuer that uses the IntegraNotas gateway (API v2). Root namespace of the business model.
+    config
+        structVersion
+            2
+        [e] mapperidea
+            [e] maps
+                [e] mapNativeTypes
+                    [e] String
+                        [v] Texto
+                    [e] BigString
+                        [v] TextoLongo
+                    [e] Integer
+                        [v] Inteiro
+                    [e] Long
+                        [v] InteiroLongo
+                    [e] Double
+                        [v] Double
+                    [e] BigDecimal
+                        [v] ValorMonetario
+                        [v] Decimal
+                    [e] Boolean
+                        [v] Boolean
+                    [e] Date
+                        [v] Data
+                    [e] DateTime
+                        [v] DataHora
+                    [e] Binary
+                        [v] Binario
+                [e] toSwaggerTypes
+                    [e] Texto
+                        [v] string
+                    [e] TextoLongo
+                        [v] string
+                    [e] Inteiro
+                        [v] integer
+                    [e] InteiroLongo
+                        [v] integer
+                    [e] ValorMonetario
+                        [v] number
+                    [e] Decimal
+                        [v] number
+                    [e] Double
+                        [v] number
+                    [e] Boolean
+                        [v] boolean
+                    [e] Data
+                        [v] string
+                    [e] DataHora
+                        [v] string
+                    [e] Binario
+                        [v] string
+                [e] bigDecimalDefaults
+                    [e] precision
+                        [v] 15
+                    [e] scale
+                        [v] 2
+                    [e] scaleByType
+                        [e] Decimal
+                            [v] 4
+                [e] nondeterministicSearchField
+                    [v] nome
+            [e] generators
+                [e] struct
+                    #
+                        generators/struct.mi
+                [e] quarkus
+                    [e] domain
+                        #
+                            generators/quarkus/quarkus-domain.mi
+                    [e] entity
+                        #
+                            generators/quarkus/quarkus-entity.mi
+                    [e] builder
+                        #
+                            generators/quarkus/quarkus-builder.mi
+                    [e] repository
+                        #
+                            generators/quarkus/quarkus-repository.mi
+                    [e] mapper
+                        #
+                            generators/quarkus/quarkus-mapper.mi
+                    [e] resource
+                        #
+                            generators/quarkus/quarkus-resource.mi
+                [e] swagger
+                    [e] restAPI
+                        #
+                            generators/quarkus/swagger-restAPI.mi
+    [b] CurrentSchema
+        @
+            [e] title
+                [e] pt
+                    [v] Esquema corrente
+                [e] en
+                    [v] Current schema
+            [e] description
+                [e] pt
+                    [v] Parâmetros do contrato OpenAPI gerado. Os valores de host e tokenUrl são provisórios, de preenchimento, apontam para a máquina local. A decisão de como emitir os tokens JWT ainda não foi tomada.
+                [e] en
+                    [v] Parameters of the generated OpenAPI contract. The host and tokenUrl values are provisional placeholders pointing to the local machine. The decision on how to issue the JWT tokens has not been made yet.
+            [e] projectNames
+                [e] projectName
+                    [v] Emitesimples
+                [e] host
+                    [v] localhost:8080
+                [e] tokenUrl
+                    [v] http://localhost:8080/token
+    [p] domain
+        @
+            [e] title
+                [e] pt
+                    [v] Domínio
+                [e] en
+                    [v] Domain
+            [e] description
+                [e] pt
+                    [v] Modelo de domínio do emissor, organizado por contexto delimitado.
+                [e] en
+                    [v] Domain model of the issuer, organized by bounded context.
+        [p] cadastro
+            @
+                [e] title
+                    [e] pt
+                        [v] Cadastro
+                    [e] en
+                        [v] Registry
+                [e] description
+                    [e] pt
+                        [v] Contexto raiz, sem dependências, com Emitente, Tomador, Servico e Municipio.
+                    [e] en
+                        [v] Root context, with no dependencies, holding Emitente, Tomador, Servico and Municipio.
+            [b] Municipio
+                #
+                    Cadastro/Municipio.mi

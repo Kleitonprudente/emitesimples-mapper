@@ -1,0 +1,118 @@
+[b] Municipio
+    @
+        [e] title
+            [e] pt
+                [v] Município
+            [e] en
+                [v] Municipality
+        [e] description
+            [e] pt
+                [v] Município brasileiro identificado pelo código IBGE de 7 dígitos. Dado de referência compartilhado:
+                  | endereço de Emitente e Tomador aponta para ele. Nenhum município existe sem código IBGE.
+            [e] en
+                [v] Brazilian municipality identified by its 7-digit IBGE code. Shared reference data:
+                  | the address of Emitente and Tomador points to it. No municipality exists without an IBGE code.
+    [g] identificacao
+        [d] codigoIbge: Texto(7)
+            @
+                [e] cn
+                    [v] codigo_ibge
+                [e] title
+                    [e] pt
+                        [v] Código IBGE
+                    [e] en
+                        [v] IBGE Code
+                [e] description
+                    [e] pt
+                        [v] Código do município no IBGE, exatamente 7 dígitos numéricos (inclui o dígito verificador).
+                          | É único: não há dois municípios com o mesmo código. Guardado como texto para preservar o formato.
+                    [e] en
+                        [v] Municipality code at IBGE, exactly 7 numeric digits (including the check digit).
+                          | It is unique: no two municipalities share a code. Stored as text to preserve the format.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+        [d] nome: Texto(100)
+            @
+                [e] cn
+                    [v] nome
+                [e] title
+                    [e] pt
+                        [v] Nome
+                    [e] en
+                        [v] Name
+                [e] description
+                    [e] pt
+                        [v] Nome oficial do município, como publicado pelo IBGE.
+                    [e] en
+                        [v] Official name of the municipality, as published by IBGE.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+        [d] uf: Texto(2)
+            @
+                [e] cn
+                    [v] uf
+                [e] title
+                    [e] pt
+                        [v] UF
+                    [e] en
+                        [v] State
+                [e] description
+                    [e] pt
+                        [v] Sigla da unidade federativa do município, com 2 letras maiúsculas (ex: SP).
+                    [e] en
+                        [v] Federative unit abbreviation of the municipality, 2 uppercase letters (e.g. SP).
+                [e] required
+                    [v] true
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno do registro (UUID). O código IBGE é a chave de negócio; este campo é a chave técnica.
+                    [e] en
+                        [v] Internal record identifier (UUID). The IBGE code is the business key; this field is the technical key.
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o município foi cadastrado no sistema.
+                    [e] en
+                        [v] Date and time the municipality was registered in the system.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true

@@ -2,7 +2,7 @@
 
 Tier B. Fatos verificados em 2026-11-20.
 
-- Projeto no CLI: `emitesimples`. Ainda **não inicializado** (`mi check emitesimples` respondeu "not initialized").
+- Projeto no CLI: `emitesimples`. **Inicializado e enviado em 2026-11-20**: `mi init` em `mapas/` (a home do projeto), `push` autorizado pelo usuário. A escada check, load, compile dos 8 sub-geradores, struct e generate passou para `Municipio` e `CurrentSchema`, sem `EMI`. Todo novo `push` ainda publica na nuvem: avise.
   Mapa principal previsto: `mapas/main.mi`, que ainda não existe — criá-lo é a primeira tarefa do `domain-mapper`.
 - CLI instalado em `C:\Program Files\mapperidea\mapperidea-cli-1.0.8\mi.exe` (reporta `mi version 1.0.9`).
   O Git Bash o encontra no PATH. Comandos: `authorize`, `check`, `compile`, `generate`, `init`, `load`, `push`.

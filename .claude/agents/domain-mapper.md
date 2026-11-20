@@ -98,6 +98,11 @@ se propaga para o schema, para a API e para as telas.
   Nota precisa comportar processando, **emitida offline (aceita, aguardando a prefeitura; sem XML nem protocolo)**,
   autorizada, cancelada, rejeitada e em conflito, com a `chave` gravada desde o primeiro retorno, inclusive em falha. Os
   erros de campo (`5001`, `5002`) trazem uma lista com campo, erro, descrição e detalhes. Guarde também a `identificacao` enviada, que é a chave de correlação do sistema.
+- **Banco de dados: PostgreSQL.** **Multi-tenant por emitente**: o sistema atende vários emitentes e cada emitente só
+  emite e só enxerga as próprias notas. O `Emitente` é o tenant. As entidades que pertencem a um emitente (Servico,
+  Nota, Cancelamento e Tomador) carregam um campo marcado com `tenantKey` que aponta para o Emitente. O
+  `Municipio` é dado de referência compartilhado e **não** tem `tenantKey`. O **Tomador é por emitente**
+  (decisão do usuário): o mesmo CNPJ ou CPF pode existir uma vez em cada emitente, e um emitente nunca vê o tomador do outro.
 - **Nunca armazenar segredo em entidade**: token, senha do certificado, chave de webhook. Use campo de referência
   apontando para o cofre.
 

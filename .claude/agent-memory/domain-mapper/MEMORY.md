@@ -47,6 +47,15 @@ e `rps_numero`/`rps_serie` (atributos opcionais da Nota, não entidade).
 - `/v1/certificado` recebe `certificado` (Base64) e `senha` (1 a 60; só letras e números; sem acento). Erros 5003, 5011, 5029.
   Mapa: só metadados do certificado (validade, situação); arquivo e senha são referência ao cofre.
 - Emitente por CNPJ **ou** CPF. `regime_cibs` e o bloco `ibs_cbs` do envio: opcionais por ora.
+- Banco PostgreSQL. Multi-tenant por emitente (decisão do usuário em 2026-11-20): "cada emissor só emite sua nota".
+  `Emitente` é o tenant; Servico, Nota e Cancelamento levam `tenantKey` para o Emitente; Municipio é compartilhado.
+  **Tomador é por emitente** (confirmado em 2026-11-20): leva `tenantKey`; o mesmo CNPJ/CPF pode se repetir entre emitentes.
+- Autenticação (decisão do usuário, revista em 2026-11-20): o back-end Quarkus **emite os próprios JWT**, para o front-end
+  e para o MCP de terceiros. Logo o mapa vai ter um **contexto de acesso**, que depende do Cadastro e vem depois dele:
+  usuário, vínculo do usuário com o Emitente e cliente OAuth. Senha só como hash, segredo de cliente só como hash ou
+  referência, e **token nunca em entidade**. Modelar quando o contexto chegar; não antecipar.
+- Pack Quarkus: pacote no padrão `<raiz>.domain.<contexto>`; `id: Texto(36)` em toda entidade; `cn` também nas
+  relações; `Inteiro(n)` com tamanho; sem `:` em description de pacote.
 
 ## Não confirmado
 Corpo da notificação do webhook, compactação do XML/PDF dele; rotas auxiliares da v2; quais blocos do envio são obrigatórios por si; prazos de cancelamento por município.

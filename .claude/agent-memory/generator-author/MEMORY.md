@@ -55,6 +55,29 @@ Tier B. Fontes: SDK Java oficial `cloud-dfe/sdk-java` (master, lido em 2026-11-2
   e o `signature` de exemplo é o começo do XML repetido; a doc diz 5 a 20 caracteres mas o valor real é longo. O código
   detecta o formato pelos primeiros bytes (`1f 8b` gzip, `PK` zip, senão texto) e não fixa tamanho de `signature`.
 
+## Decisões de arquitetura (2026-11-20)
+- Banco **PostgreSQL**: a busca com `unaccent()` do pack é compatível (exige a extensão `unaccent` no banco).
+- **Multi-tenant por emitente**: cada emitente só emite e vê as próprias notas. Logo o filtro multi-tenant do repositório
+  vale, e o `tenantKey` entra nas entidades de um emitente. O import `com.exemplo.tenant.EscopoTenant`
+  (`quarkus-repository.mi:531`, `:542`) é placeholder: **ao primeiro `tenantKey`, trocar pela classe do projeto**, que
+  precisa de `boolean irrestrito()` e `String exigir(String coluna)`. O `@Transactional` do Spring só sai com a
+  propriedade `transaction` no pacote: não a declare.
+- Dinheiro: o pack só tem a família `Double` (`ValorMonetario` e `Decimal` caíram nela). Para valor fiscal, avaliar uma
+  família `BigDecimal`. **Decidido pelo usuário em 2026-11-20: criar desde o início** (`ValorMonetario` e `Decimal` saem
+  de `Double`). O campo `@Version` que a entity gera por padrão **fica** (decisão do usuário: manter o controle de concorrência).
+- **Autenticação (decisão do usuário em 2026-11-20, revista)**: **o próprio back-end Quarkus emite e valida os JWT**, sem
+  servidor de autorização externo. Assinar com `smallrye-jwt-build` e validar com `smallrye-jwt`, que é o que o contrato
+  do pack já pede (todo resource injeta `JsonWebToken`). O `quarkus-oidc` valida, mas não emite token: não é a peça certa
+  para emitir. Usar o contrato padrão desde o início (rota de token, JWKS, claim do emitente que alimenta o
+  `EscopoTenant`, *scopes* por operação: consultar, preparar, emitir), para trocar por um servidor externo depois sem
+  mexer nos recursos. O front-end vem depois e haverá um servidor MCP aberto a **qualquer cliente MCP de terceiros**:
+  isso exige que o back-end ofereça os endpoints OAuth 2.1 (authorize com PKCE, token, metadados, registro de
+  clientes), em fases. **Fase 1 (decidida, é a atual)**: login e tokens para o front-end e
+  agentes próprios. **Fase 2 (adiada pelo usuário)**: endpoints OAuth do MCP de terceiros; não construir agora. É código crítico
+  de segurança, escrito à mão numa biblioteca de runtime (o pack não o gera), com revisão de segurança, hash de senha
+  padrão, rotação de chaves e **sem criptografia própria**. Emitir e cancelar exigem confirmação humana. `host` e
+  `tokenUrl` do `CurrentSchema` apontam para o próprio back-end e seguem provisórios.
+
 ## Regras do usuário
 - Nenhum agente emite nota, exceto para testar o emissor, **em homologação**. Código gerado nunca aponta
   para produção por padrão.

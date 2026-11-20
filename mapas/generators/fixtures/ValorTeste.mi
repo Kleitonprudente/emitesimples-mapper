@@ -1,0 +1,77 @@
+[b] ValorTeste
+    @
+        [e] title
+            [e] pt
+                [v] Valor de teste
+            [e] en
+                [v] Test value
+        [e] description
+            [e] pt
+                [v] Fixture de teste de gerador, nao e dominio. Exercita ValorMonetario, Decimal e Inteiro com tamanho.
+            [e] en
+                [v] Generator test fixture, not domain. Exercises ValorMonetario, Decimal and sized Inteiro.
+    [g] Atributos
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] ID
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador unico do registro.
+                    [e] en
+                        [v] Unique record identifier.
+                [e] required
+                    [v] true
+        [d] valor: ValorMonetario(15,2)
+            @
+                [e] cn
+                    [v] VALOR
+                [e] title
+                    [e] pt
+                        [v] Valor
+                    [e] en
+                        [v] Amount
+                [e] description
+                    [e] pt
+                        [v] Valor monetario com 15 digitos e 2 casas.
+                    [e] en
+                        [v] Monetary amount, 15 digits and 2 decimal places.
+                [e] required
+                    [v] true
+        [d] aliquota: Decimal(15,4)
+            @
+                [e] cn
+                    [v] ALIQUOTA
+                [e] title
+                    [e] pt
+                        [v] Aliquota
+                    [e] en
+                        [v] Rate
+                [e] description
+                    [e] pt
+                        [v] Decimal com 15 digitos e 4 casas.
+                    [e] en
+                        [v] Decimal, 15 digits and 4 decimal places.
+                [e] required
+                    [v] true
+        [d] quantidade: Inteiro(5)
+            @
+                [e] cn
+                    [v] QUANTIDADE
+                [e] title
+                    [e] pt
+                        [v] Quantidade
+                    [e] en
+                        [v] Quantity
+                [e] description
+                    [e] pt
+                        [v] Inteiro com tamanho 5.
+                    [e] en
+                        [v] Integer of size 5.
+                [e] required
+                    [v] true
