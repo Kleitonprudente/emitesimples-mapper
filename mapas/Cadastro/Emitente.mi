@@ -1,0 +1,562 @@
+[b] Emitente
+    @
+        [e] title
+            [e] pt
+                [v] Emitente
+            [e] en
+                [v] Issuer
+        [e] description
+            [e] pt
+                [v] Empresa usuária do sistema e tenant do modelo. Cada emitente só emite e só enxerga as próprias notas.
+                  | É identificado por CNPJ ou CPF, um ou outro. É cadastrado no gateway IntegraNotas, que devolve o token do emitente,
+                  | separado por ambiente. Token, credenciais da prefeitura e certificado ficam no cofre, aqui só há referência.
+            [e] en
+                [v] Company that uses the system and tenant of the model. Each issuer only issues and sees its own notes.
+                  | It is identified by CNPJ or CPF, one or the other. It is registered at the IntegraNotas gateway, which returns the issuer token,
+                  | separate per environment. Token, city hall credentials and certificate stay in the vault, only a reference is kept here.
+    [g] identificacao
+        [d] nomeFantasia: Texto(60)
+            @
+                [e] cn
+                    [v] nome_fantasia
+                [e] title
+                    [e] pt
+                        [v] Nome Fantasia
+                    [e] en
+                        [v] Trade Name
+                [e] description
+                    [e] pt
+                        [v] Nome fantasia da empresa, de 2 a 60 caracteres (campo nome do cadastro no gateway).
+                    [e] en
+                        [v] Trade name of the company, 2 to 60 characters (the nome field of the gateway registration).
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+        [d] razaoSocial: Texto(60)
+            @
+                [e] cn
+                    [v] razao_social
+                [e] title
+                    [e] pt
+                        [v] Razão Social
+                    [e] en
+                        [v] Legal Name
+                [e] description
+                    [e] pt
+                        [v] Razão social da empresa, de 2 a 60 caracteres (campo razao do cadastro no gateway).
+                    [e] en
+                        [v] Legal name of the company, 2 to 60 characters (the razao field of the gateway registration).
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+        [d] apelido: Texto(100)
+            @
+                [e] cn
+                    [v] apelido
+                [e] title
+                    [e] pt
+                        [v] Apelido
+                    [e] en
+                        [v] Nickname
+                [e] description
+                    [e] pt
+                        [v] Apelido opcional do emitente, de 1 a 100 caracteres, para reconhecê-lo em telas e listas.
+                    [e] en
+                        [v] Optional nickname of the issuer, 1 to 100 characters, to recognize it on screens and lists.
+        [d] cnpj: Texto(14)
+            @
+                [e] cn
+                    [v] cnpj
+                [e] title
+                    [e] pt
+                        [v] CNPJ
+                    [e] en
+                        [v] CNPJ
+                [e] description
+                    [e] pt
+                        [v] CNPJ do emitente, 14 dígitos sem formatação. Informe CNPJ ou CPF, um ou outro, nunca os dois e nunca nenhum.
+                          | Dado pessoal da empresa, tratado como identificador de negócio.
+                    [e] en
+                        [v] CNPJ of the issuer, 14 digits without formatting. Provide CNPJ or CPF, one or the other, never both and never neither.
+                          | Company identifier, treated as a business key.
+                [e] searchable
+                    [v] true
+        [d] cpf: Texto(11)
+            @
+                [e] cn
+                    [v] cpf
+                [e] title
+                    [e] pt
+                        [v] CPF
+                    [e] en
+                        [v] CPF
+                [e] description
+                    [e] pt
+                        [v] CPF do emitente pessoa física, 11 dígitos sem formatação. Informe CNPJ ou CPF, um ou outro.
+                          | Dado pessoal, sujeito a mascaramento nas respostas.
+                    [e] en
+                        [v] CPF of an individual issuer, 11 digits without formatting. Provide CNPJ or CPF, one or the other.
+                          | Personal data, subject to masking in responses.
+                [e] searchable
+                    [v] true
+        [d] inscricaoMunicipal: Texto(20)
+            @
+                [e] cn
+                    [v] inscricao_municipal
+                [e] title
+                    [e] pt
+                        [v] Inscrição Municipal
+                    [e] en
+                        [v] Municipal Registration
+                [e] description
+                    [e] pt
+                        [v] Inscrição municipal do emitente, de 1 a 20 caracteres (campo im do gateway). Opcional.
+                    [e] en
+                        [v] Municipal registration of the issuer, 1 to 20 characters (the im field of the gateway). Optional.
+    [g] contato
+        [d] email: Texto(60)
+            @
+                [e] cn
+                    [v] email
+                [e] title
+                    [e] pt
+                        [v] E-mail
+                    [e] en
+                        [v] Email
+                [e] description
+                    [e] pt
+                        [v] E-mail de contato do emitente, até 60 caracteres. Opcional.
+                    [e] en
+                        [v] Contact email of the issuer, up to 60 characters. Optional.
+        [d] telefone: Texto(14)
+            @
+                [e] cn
+                    [v] telefone
+                [e] title
+                    [e] pt
+                        [v] Telefone
+                    [e] en
+                        [v] Phone
+                [e] description
+                    [e] pt
+                        [v] Telefone do emitente, de 6 a 14 dígitos, só números.
+                    [e] en
+                        [v] Phone of the issuer, 6 to 14 digits, numbers only.
+                [e] required
+                    [v] true
+    [g] endereco
+        [d] logradouro: Texto(60)
+            @
+                [e] cn
+                    [v] logradouro
+                [e] title
+                    [e] pt
+                        [v] Logradouro
+                    [e] en
+                        [v] Street
+                [e] description
+                    [e] pt
+                        [v] Rua, avenida ou similar do endereço do emitente, de 1 a 60 caracteres (campo rua do gateway).
+                    [e] en
+                        [v] Street of the issuer address, 1 to 60 characters (the rua field of the gateway).
+                [e] required
+                    [v] true
+        [d] numeroEndereco: Texto(60)
+            @
+                [e] cn
+                    [v] numero_endereco
+                [e] title
+                    [e] pt
+                        [v] Número do Endereço
+                    [e] en
+                        [v] Address Number
+                [e] description
+                    [e] pt
+                        [v] Número do imóvel, de 1 a 60 caracteres, texto porque aceita S/N (campo numero do gateway).
+                    [e] en
+                        [v] Property number, 1 to 60 characters, text because it accepts S/N (the numero field of the gateway).
+                [e] required
+                    [v] true
+        [d] complemento: Texto(60)
+            @
+                [e] cn
+                    [v] complemento
+                [e] title
+                    [e] pt
+                        [v] Complemento
+                    [e] en
+                        [v] Complement
+                [e] description
+                    [e] pt
+                        [v] Complemento do endereço, até 60 caracteres. Opcional.
+                    [e] en
+                        [v] Address complement, up to 60 characters. Optional.
+        [d] bairro: Texto(60)
+            @
+                [e] cn
+                    [v] bairro
+                [e] title
+                    [e] pt
+                        [v] Bairro
+                    [e] en
+                        [v] Neighborhood
+                [e] description
+                    [e] pt
+                        [v] Bairro do endereço, de 2 a 60 caracteres.
+                    [e] en
+                        [v] Neighborhood of the address, 2 to 60 characters.
+                [e] required
+                    [v] true
+        [d] cep: Texto(8)
+            @
+                [e] cn
+                    [v] cep
+                [e] title
+                    [e] pt
+                        [v] CEP
+                    [e] en
+                        [v] Postal Code
+                [e] description
+                    [e] pt
+                        [v] CEP do endereço, exatamente 8 dígitos sem hífen. Guardado como texto para preservar zeros à esquerda.
+                    [e] en
+                        [v] Postal code of the address, exactly 8 digits without hyphen. Stored as text to preserve leading zeros.
+                [e] required
+                    [v] true
+    [g] tributacao
+        [d] regimeTributario: Inteiro(1)
+            @
+                [e] cn
+                    [v] regime_tributario
+                [e] title
+                    [e] pt
+                        [v] Regime Tributário
+                    [e] en
+                        [v] Tax Regime
+                [e] description
+                    [e] pt
+                        [v] Regime tributário da empresa (campo crt do gateway). Define o enquadramento usado na emissão.
+                    [e] en
+                        [v] Tax regime of the company (the crt field of the gateway). Defines the framework used on issuing.
+                [e] required
+                    [v] true
+                [e] values
+                    [e] simplesNacional
+                        [v] 1
+                        [v] Simples Nacional
+                    [e] simplesExcessoSublimite
+                        [v] 2
+                        [v] Simples Nacional com excesso de sublimite
+                    [e] regimeNormal
+                        [v] 3
+                        [v] Regime Normal
+                    [e] mei
+                        [v] 4
+                        [v] MEI
+        [d] regimeIbsCbs: Inteiro(1)
+            @
+                [e] cn
+                    [v] regime_ibs_cbs
+                [e] title
+                    [e] pt
+                        [v] Regime do IBS/CBS
+                    [e] en
+                        [v] IBS/CBS Regime
+                [e] description
+                    [e] pt
+                        [v] Regime de apuração do IBS e da CBS do emitente (campo regime_cibs do gateway), de 0 a 4. Opcional por decisão do usuário.
+                          | O valor 0 significa não informado e a tag não é enviada.
+                    [e] en
+                        [v] IBS and CBS assessment regime of the issuer (the regime_cibs field of the gateway), from 0 to 4. Optional by user decision.
+                          | Value 0 means not informed and the tag is not sent.
+                [e] values
+                    [e] naoInformado
+                        [v] 0
+                        [v] Não informado, padrão, a tag não é enviada
+                    [e] simplesOpcaoRegimeRegular
+                        [v] 1
+                        [v] Simples Nacional com opção pelo regime regular do IBS e da CBS (crt 1 ou 2)
+                    [e] normalOpcaoSimplesPendenteSemRegular
+                        [v] 2
+                        [v] Regime Normal com opção pendente pelo Simples Nacional, sem regime regular do IBS e da CBS (crt 3)
+                    [e] normalSublimitePendenteSemRegular
+                        [v] 3
+                        [v] Regime Normal com opção pendente pelo Simples Nacional com excesso de sublimite, sem regime regular do IBS e da CBS (crt 3)
+                    [e] normalOpcaoSimplesPendenteComRegular
+                        [v] 4
+                        [v] Regime Normal com opção pendente pelo Simples Nacional, com regime regular do IBS e da CBS (crt 3)
+    [g] marca
+        [d] logo: Binario()
+            @
+                [e] cn
+                    [v] logo
+                [e] title
+                    [e] pt
+                        [v] Logo
+                    [e] en
+                        [v] Logo
+                [e] description
+                    [e] pt
+                        [v] Logotipo do emitente, imagem JPG ou PNG proporcional (como 100x100) de até 1 MB. Opcional, enviado ao gateway em Base64.
+                    [e] en
+                        [v] Issuer logo, JPG or PNG image, proportional (like 100x100) up to 1 MB. Optional, sent to the gateway in Base64.
+    [g] webhook
+        [d] urlWebhook: Texto(200)
+            @
+                [e] cn
+                    [v] url_webhook
+                [e] title
+                    [e] pt
+                        [v] URL do Webhook
+                    [e] en
+                        [v] Webhook URL
+                [e] description
+                    [e] pt
+                        [v] URL pública, de 1 a 200 caracteres, que recebe as notificações do gateway. Registrada no cadastro do emitente
+                          | e só aceita se responder HTTP 200. Opcional.
+                    [e] en
+                        [v] Public URL, 1 to 200 characters, that receives gateway notifications. Registered in the issuer registration
+                          | and only accepted if it answers HTTP 200. Optional.
+    [g] gateway
+        [d] statusCadastro: Texto(20)
+            @
+                [e] cn
+                    [v] status_cadastro
+                [e] title
+                    [e] pt
+                        [v] Situação do Cadastro no Gateway
+                    [e] en
+                        [v] Gateway Registration Status
+                [e] description
+                    [e] pt
+                        [v] Situação do cadastro do emitente no gateway, no ambiente do registro. O emitente nasce nao_cadastrado,
+                          | vira cadastrado quando o gateway devolve o token, e erro quando o cadastro é recusado.
+                    [e] en
+                        [v] Status of the issuer registration at the gateway, in the record environment. The issuer starts as nao_cadastrado,
+                          | becomes cadastrado when the gateway returns the token, and erro when the registration is refused.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] nao_cadastrado
+                [e] values
+                    [e] naoCadastrado
+                        [v] nao_cadastrado
+                        [v] Ainda não cadastrado no gateway
+                    [e] cadastrado
+                        [v] cadastrado
+                        [v] Cadastrado no gateway, token do emitente guardado no cofre
+                    [e] erro
+                        [v] erro
+                        [v] Cadastro recusado pelo gateway
+        [d] dataCadastroGateway: DataHora()
+            @
+                [e] cn
+                    [v] data_cadastro_gateway
+                [e] title
+                    [e] pt
+                        [v] Data do Cadastro no Gateway
+                    [e] en
+                        [v] Gateway Registration Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o gateway aceitou o cadastro e devolveu o token. Vazia enquanto não cadastrado.
+                    [e] en
+                        [v] Date and time the gateway accepted the registration and returned the token. Empty while not registered.
+        [d] referenciaTokenEmitente: Texto(100)
+            @
+                [e] cn
+                    [v] referencia_token_emitente
+                [e] title
+                    [e] pt
+                        [v] Referência do Token do Emitente
+                    [e] en
+                        [v] Issuer Token Reference
+                [e] description
+                    [e] pt
+                        [v] Referência ao cofre onde está o token do emitente devolvido pelo cadastro. É só a referência, nunca o token.
+                    [e] en
+                        [v] Reference to the vault holding the issuer token returned by the registration. Only the reference, never the token.
+                [e] storageOnly
+                    [v] true
+        [d] referenciaCredenciaisPrefeitura: Texto(100)
+            @
+                [e] cn
+                    [v] referencia_credenciais_prefeitura
+                [e] title
+                    [e] pt
+                        [v] Referência das Credenciais da Prefeitura
+                    [e] en
+                        [v] City Hall Credentials Reference
+                [e] description
+                    [e] pt
+                        [v] Referência ao cofre onde estão login, senha, client id e client secret da prefeitura, exigidos em alguns municípios.
+                          | É só a referência, nunca os valores.
+                    [e] en
+                        [v] Reference to the vault holding the city hall login, password, client id and client secret, required in some municipalities.
+                          | Only the reference, never the values.
+                [e] storageOnly
+                    [v] true
+    [g] certificado
+        [d] referenciaCertificado: Texto(100)
+            @
+                [e] cn
+                    [v] referencia_certificado
+                [e] title
+                    [e] pt
+                        [v] Referência do Certificado
+                    [e] en
+                        [v] Certificate Reference
+                [e] description
+                    [e] pt
+                        [v] Referência ao cofre onde estão o arquivo do certificado digital e a senha dele. É só a referência.
+                    [e] en
+                        [v] Reference to the vault holding the digital certificate file and its password. Only the reference.
+                [e] storageOnly
+                    [v] true
+        [d] validadeCertificado: Data()
+            @
+                [e] cn
+                    [v] validade_certificado
+                [e] title
+                    [e] pt
+                        [v] Validade do Certificado
+                    [e] en
+                        [v] Certificate Expiry
+                [e] description
+                    [e] pt
+                        [v] Data de validade do certificado digital enviado ao gateway. Vazia enquanto não houver certificado.
+                    [e] en
+                        [v] Expiry date of the digital certificate sent to the gateway. Empty while there is no certificate.
+        [d] situacaoCertificado: Texto(20)
+            @
+                [e] cn
+                    [v] situacao_certificado
+                [e] title
+                    [e] pt
+                        [v] Situação do Certificado
+                    [e] en
+                        [v] Certificate Status
+                [e] description
+                    [e] pt
+                        [v] Situação do certificado digital do emitente no gateway, no ambiente do registro.
+                    [e] en
+                        [v] Status of the issuer digital certificate at the gateway, in the record environment.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] nao_enviado
+                [e] values
+                    [e] naoEnviado
+                        [v] nao_enviado
+                        [v] Nenhum certificado enviado
+                    [e] valido
+                        [v] valido
+                        [v] Certificado aceito e dentro da validade
+                    [e] vencido
+                        [v] vencido
+                        [v] Certificado vencido, erro 5011 do gateway
+                    [e] invalido
+                        [v] invalido
+                        [v] Corrompido ou senha errada, erro 5003 do gateway
+                    [e] naoPertence
+                        [v] nao_pertence
+                        [v] Não pertence ao CNPJ ou CPF do emitente, erro 5029 do gateway
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno do emitente (UUID). Também é o identificador do tenant, usado como chave de escopo
+                          | do próprio emitente (tenantKey) e referenciado pelo tenantKey das demais entidades.
+                    [e] en
+                        [v] Internal issuer identifier (UUID). It is also the tenant identifier, used as the scope key
+                          | of the issuer itself (tenantKey) and referenced by the tenantKey of the other entities.
+                [e] required
+                    [v] true
+                [e] tenantKey
+                    [v] true
+        [d] ambiente: Texto(15)
+            @
+                [e] cn
+                    [v] ambiente
+                [e] title
+                    [e] pt
+                        [v] Ambiente
+                    [e] en
+                        [v] Environment
+                [e] description
+                    [e] pt
+                        [v] Ambiente do gateway a que este registro pertence. Emitente e token são independentes por ambiente,
+                          | então o mesmo CNPJ ou CPF tem um registro por ambiente e uma nota de teste nunca se mistura com uma real.
+                    [e] en
+                        [v] Gateway environment this record belongs to. Issuer and token are independent per environment,
+                          | so the same CNPJ or CPF has one record per environment and a test note never mixes with a real one.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] homologacao
+                [e] values
+                    [e] homologacao
+                        [v] homologacao
+                        [v] Homologação, ambiente de testes
+                    [e] producao
+                        [v] producao
+                        [v] Produção, ambiente real
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o emitente foi cadastrado no sistema.
+                    [e] en
+                        [v] Date and time the issuer was registered in the system.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true
+    [g] relacionamentos
+        [r] municipio: Municipio()
+            @
+                [e] cn
+                    [v] municipio_id
+                [e] title
+                    [e] pt
+                        [v] Município
+                    [e] en
+                        [v] Municipality
+                [e] description
+                    [e] pt
+                        [v] Município do endereço do emitente. Traz código IBGE, nome e UF, que não se repetem aqui (campos cmun, municipio e uf do gateway).
+                    [e] en
+                        [v] Municipality of the issuer address. It carries IBGE code, name and state, which are not repeated here (the cmun, municipio and uf fields of the gateway).
+                [e] required
+                    [v] true

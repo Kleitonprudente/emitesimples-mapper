@@ -32,7 +32,7 @@
         [e] withEnd
             [v] mi:if-else(position() = last(), ';', '')
         [e] temDirectToFieldNaQuery
-            [v] attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and @mode = 'directToField']
+            [v] attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and not(@type = $mapNativeTypes/Binary/value) and @mode = 'directToField']
     [e] patterns
         [e] package
             [v] package {{ substring-before(@package,'.domain.') }}.{{ substring-after(@package,'.domain.') }}.resource;
@@ -754,14 +754,14 @@
                         [v] listAllStart
                     [e] apply-templates
                         [e] select
-                            [v] attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and @mode != 'oneToMany']
+                            [v] attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and not(@type = $mapNativeTypes/Binary/value) and @mode != 'oneToMany']
                         [e] mode
                             [v] attributeParametersWithTypeString
                     [e] write-pattern
                         [v] listAllBodyStart
                     [e] apply-templates
                         [e] select
-                            [v] attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and @mode != 'oneToMany']
+                            [v] attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and not(@type = $mapNativeTypes/Binary/value) and @mode != 'oneToMany']
                         [e] mode
                             [v] attributeParametersWithoutType
                     [e] write-pattern
@@ -780,7 +780,7 @@
                         [v] countStart
                     [e] apply-templates
                         [e] select
-                            [v] attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and @mode != 'oneToMany']
+                            [v] attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and not(@type = $mapNativeTypes/Binary/value) and @mode != 'oneToMany']
                         [e] mode
                             [v] attributeParametersWithTypeString
                     [e] write-pattern
@@ -790,7 +790,7 @@
                             [v] countBodyStart
                         [e] apply-templates
                             [e] select
-                                [v] attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and @mode != 'oneToMany']
+                                [v] attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and not(@type = $mapNativeTypes/Binary/value) and @mode != 'oneToMany']
                             [e] mode
                                 [v] attributeParametersWithoutType
                         [e] write-pattern
@@ -805,7 +805,7 @@
                                 [v] sumStart
                             [e] apply-templates
                                 [e] select
-                                    [v] attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and @mode != 'oneToMany']
+                                    [v] attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and not(@type = $mapNativeTypes/Binary/value) and @mode != 'oneToMany']
                                 [e] mode
                                     [v] attributeParametersWithTypeString
                             [e] write-pattern
@@ -815,7 +815,7 @@
                                     [v] sumBodyStart
                                 [e] apply-templates
                                     [e] select
-                                        [v] attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and @mode != 'oneToMany']
+                                        [v] attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and not(@type = $mapNativeTypes/Binary/value) and @mode != 'oneToMany']
                                     [e] mode
                                         [v] attributeParametersWithoutType
                                 [e] write-pattern
@@ -829,14 +829,14 @@
                         [v] declaraParametersFromTo
                     [e] apply-templates
                         [e] select
-                            [v] attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and @mode != 'oneToMany']
+                            [v] attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and not(@type = $mapNativeTypes/Binary/value) and @mode != 'oneToMany']
                         [e] mode
                             [v] attributeParametersWithTypeString
                     [e] write-pattern
                         [v] listRangeMiddle
                     [e] apply-templates
                         [e] select
-                            [v] attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and @mode != 'oneToMany']
+                            [v] attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and not(@type = $mapNativeTypes/Binary/value) and @mode != 'oneToMany']
                         [e] mode
                             [v] attributeParametersWithoutType
                     [e] write-pattern
@@ -955,7 +955,7 @@
                                 //
                                     [e] apply-templates
                                         [e] select
-                                            [v] attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and @mode != 'oneToMany']
+                                            [v] attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and not(@type = $mapNativeTypes/Binary/value) and @mode != 'oneToMany']
                                         [e] mode
                                             [v] descricaoExceptionCreate
                                 [e] write-pattern
@@ -982,7 +982,7 @@
                                 //
                                     [e] apply-templates
                                         [e] select
-                                            [v] attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and @mode != 'oneToMany']
+                                            [v] attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and not(@type = $mapNativeTypes/Binary/value) and @mode != 'oneToMany']
                                         [e] mode
                                             [v] descricaoExceptionCreate
                                 [e] write-pattern
@@ -1009,7 +1009,7 @@
                                 //
                                     [e] apply-templates
                                         [e] select
-                                            [v] attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and @mode != 'oneToMany']
+                                            [v] attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and not(@type = $mapNativeTypes/Binary/value) and @mode != 'oneToMany']
                                         [e] mode
                                             [v] descricaoExceptionCreate
                                 [e] write-pattern
@@ -1123,7 +1123,7 @@
                         [e] then
                             [e] apply-templates
                                 [e] select
-                                    [v] $class/attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and @mode = 'directToField' and (@name = $class/properties/sk/value/text() or properties/searchable)]
+                                    [v] $class/attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and not(@type = $mapNativeTypes/Binary/value) and @mode = 'directToField' and (@name = $class/properties/sk/value/text() or properties/searchable)]
                                 [e] parameters
                                     [e] attributeParent
                                         [e] expr
@@ -1275,7 +1275,7 @@
                             [e] then
                                 [e] apply-templates
                                     [e] select
-                                        [v] $class/attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and @mode = 'directToField' and (@name = $class/properties/sk/value/text() or properties/searchable)]
+                                        [v] $class/attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and not(@type = $mapNativeTypes/Binary/value) and @mode = 'directToField' and (@name = $class/properties/sk/value/text() or properties/searchable)]
                                     [e] parameters
                                         [e] attributeParent
                                             [e] expr
@@ -1501,7 +1501,7 @@
                                             [v] withExample-AnyType-open-start
                                         [e] apply-templates
                                             [e] select
-                                                [v] $class/attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and @mode = 'directToField' and (@name = $class/properties/sk/value/text() or properties/searchable)]
+                                                [v] $class/attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and not(@type = $mapNativeTypes/Binary/value) and @mode = 'directToField' and (@name = $class/properties/sk/value/text() or properties/searchable)]
                                             [e] parameters
                                                 [e] attributeParent
                                                     [e] expr
@@ -1523,7 +1523,7 @@
                                                     [v] withExample-AnyType-uuid
                                         [e] apply-templates
                                             [e] select
-                                                [v] $class/attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and @mode = 'directToField' and (@name = $class/properties/sk/value/text() or properties/searchable)]
+                                                [v] $class/attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and not(@type = $mapNativeTypes/Binary/value) and @mode = 'directToField' and (@name = $class/properties/sk/value/text() or properties/searchable)]
                                             [e] parameters
                                                 [e] attributeParent
                                                     [e] expr
@@ -1639,7 +1639,7 @@
                             [e] then
                                 [e] apply-templates
                                     [e] select
-                                        [v] $class/attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and @mode = 'directToField' and (@name = $class/properties/sk/value/text() or properties/searchable)]
+                                        [v] $class/attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and not(@type = $mapNativeTypes/Binary/value) and @mode = 'directToField' and (@name = $class/properties/sk/value/text() or properties/searchable)]
                                     [e] parameters
                                         [e] attributeParent
                                             [e] expr
@@ -2008,7 +2008,7 @@
                                             [v] withExample-AnyType-open-start
                                         [e] apply-templates
                                             [e] select
-                                                [v] $class/attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and @mode = 'directToField' and (@name = $class/properties/sk/value/text() or properties/searchable)]
+                                                [v] $class/attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and not(@type = $mapNativeTypes/Binary/value) and @mode = 'directToField' and (@name = $class/properties/sk/value/text() or properties/searchable)]
                                             [e] parameters
                                                 [e] attributeParent
                                                     [e] expr
@@ -2030,7 +2030,7 @@
                                                     [v] withExample-AnyType-uuid
                                         [e] apply-templates
                                             [e] select
-                                                [v] $class/attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and @mode = 'directToField' and (@name = $class/properties/sk/value/text() or properties/searchable)]
+                                                [v] $class/attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and not(@type = $mapNativeTypes/Binary/value) and @mode = 'directToField' and (@name = $class/properties/sk/value/text() or properties/searchable)]
                                             [e] parameters
                                                 [e] attributeParent
                                                     [e] expr
@@ -2128,7 +2128,7 @@
                                     [v] predicateFromEntityId
                                 [e] apply-templates
                                     [e] select
-                                        [v] $class/attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and @mode = 'directToField' and (@name = $class/properties/sk/value/text() or properties/searchable)]
+                                        [v] $class/attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and not(@type = $mapNativeTypes/Binary/value) and @mode = 'directToField' and (@name = $class/properties/sk/value/text() or properties/searchable)]
                                     [e] parameters
                                         [e] attributeParent
                                             [e] expr

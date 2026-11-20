@@ -678,14 +678,6 @@
                             [e] then
                                 [e] write-pattern
                                     [v] validateNotEmpty
-                        [e] if
-                            [v] @typeParameter != ''
-                            [e] then
-                                [e] write-pattern
-                                    [v] validateStringSize
-                            [e] else
-                                [e] write-pattern
-                                    [v] validateStringSizeBigString
                         [e] write-pattern
                             [v] attributeBinary
                 [e] template

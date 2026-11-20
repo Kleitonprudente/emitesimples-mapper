@@ -55,6 +55,18 @@ arquivo são segredos, passam pelo sistema sem serem gravados em claro nem em lo
 (validade, situação). Erros documentados: `5003` (corrompido ou senha errada), `5011` (vencido), `5029` (não pertence ao
 CNPJ/CPF do emitente).
 
+## `regime_cibs` — regime de apuração do IBS e da CBS (tpRegimeIBSCBS)
+
+Opcional. Valores do schema oficial:
+
+| Valor | Significado |
+|---|---|
+| `0` | Não informado (padrão; a tag não é enviada) |
+| `1` | Simples Nacional com opção pelo regime regular do IBS e da CBS (`crt` 1 ou 2) |
+| `2` | Regime Normal com opção pendente pelo Simples Nacional, sem regime regular do IBS e da CBS (`crt` 3) |
+| `3` | Regime Normal com opção pendente pelo Simples Nacional com excesso de sublimite, sem regime regular do IBS e da CBS (`crt` 3) |
+| `4` | Regime Normal com opção pendente pelo Simples Nacional, com regime regular do IBS e da CBS (`crt` 3) |
+
 ## Decisões do usuário
 
 - Emitente é a empresa usuária do sistema, identificada por CNPJ **ou** CPF.

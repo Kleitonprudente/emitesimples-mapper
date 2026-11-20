@@ -11,3 +11,5 @@ Tier B. Fatos verificados em 2026-11-20.
 - **`push` publica os mapas na conta em nuvem do usuário.** Avise antes do primeiro `push` e espere o aval.
   Nunca rode `authorize`.
 - Você não fala com a API do IntegraNotas e não emite nota.
+- Parâmetros do `generate` divergem por gerador: `struct` usa `className`+`packageName`; os `quarkus` usam `modelName`+`package` (pacote COMPLETO do DOM, ex.: `br.com.emitesimples.domain.cadastro`). Param errado = saída vazia, sem erro. `swagger restAPI` usa `packageName`.
+- Validação 4 (2026-11-20): segundo push feito (ValorTeste desregistrado, EMI9001 do swagger corrigido); escada e 8 compiles OK. Não há mais push autorizado sem novo aval.

@@ -732,6 +732,10 @@
                 [v]         maximum: {{ mi:if-else($decimals = 0, mi:replicate('9',$size), concat(mi:replicate('9',$size), '.', mi:replicate('9',$decimals))) }}
             [e] defineAttributeBigDecimal-todo
                 [v]       # @TODO BigDecimal: typeParameter invalido no atributo {{ @name }}
+            [e] defineAttributeBinary
+                [v]       {{ @name }}:
+                [v]         type: string
+                [v]         format: byte
             [e] defineAttributeBoolean
                 [v]       {{ @name }}:
                 [v]         type: boolean
@@ -765,7 +769,7 @@
                 [v]         format: date-time
                 [v]         description: "Data e hora da última alteração neste status."
         [e] debug
-            [v] # ERRO NO MODELO, classe referenciada não existe
+            [v] # @TODO EMI9001 ERRO NO MODELO, classe referenciada nao existe: {{ $nextClassQueue[1] }}. A saida abaixo esta TRUNCADA.
             [v] # package: {{ @package }}
             [v] # class: {{ @name }}
             [v] # processedClassQueue: {{ $processedClassQueue }}
@@ -847,7 +851,7 @@
                             [v] listAllStart
                         [e] apply-templates
                             [e] select
-                                [v] attributes/attribute[not(exists(properties/readOnly))]
+                                [v] attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly))]
                             [e] mode
                                 [v] queryParameters
                         [e] write-pattern
@@ -867,7 +871,7 @@
                             [v] sumStart
                         [e] apply-templates
                             [e] select
-                                [v] attributes/attribute[not(properties/readOnly)]
+                                [v] attributes/attribute[not(properties/readOnly) and not(exists(properties/storageOnly))]
                             [e] mode
                                 [v] queryParameters
                         [e] write-pattern
@@ -879,7 +883,7 @@
                             [v] countStart
                         [e] apply-templates
                             [e] select
-                                [v] attributes/attribute[not(properties/readOnly)]
+                                [v] attributes/attribute[not(properties/readOnly) and not(exists(properties/storageOnly))]
                             [e] mode
                                 [v] queryParameters
                         [e] write-pattern
@@ -891,7 +895,7 @@
                             [v] listRangeStart
                         [e] apply-templates
                             [e] select
-                                [v] attributes/attribute[not(properties/readOnly)]
+                                [v] attributes/attribute[not(properties/readOnly) and not(exists(properties/storageOnly))]
                             [e] mode
                                 [v] queryParameters
                         [e] write-pattern
@@ -1002,7 +1006,7 @@
                                         [v] /classes/class[@name = $tipo and ends-with(@package,$pacote)]
                             [e] apply-templates
                                 [e] select
-                                    [v] $class/attributes/attribute[not(exists(properties/readOnly)) and @mode = 'directToField' and (@name = $class/properties/sk/value/text() or properties/searchable)]
+                                    [v] $class/attributes/attribute[not(exists(properties/readOnly)) and not(exists(properties/storageOnly)) and @mode = 'directToField' and (@name = $class/properties/sk/value/text() or properties/searchable)]
                                 [e] parameters
                                     [e] attributeParent
                                         [e] expr
@@ -1057,7 +1061,7 @@
                         [e] var
                             [v] referencedClasses
                             [e] expr
-                                [v] distinct-values(attributes/attribute[functx:is-value-in-sequence(@mode,('oneToOne','oneToMany','oneToManyIndependent','manyToOneIndependent')) and not(functx:is-value-in-sequence(@type,$processedClassQueue))]/@type)
+                                [v] distinct-values((for $t in attributes/attribute[functx:is-value-in-sequence(@mode,('oneToOne','oneToMany','oneToManyIndependent','manyToOneIndependent'))]/@type return (/classes/class[@name = $t or concat(substring-after(@package,'.domain.'),'.',@name) = $t]/concat(substring-after(@package,'.domain.'),'.',@name), string($t))[1])[not(functx:is-value-in-sequence(.,$processedClassQueue))])
                             valor
                                 ()
                         [e] var
@@ -1082,20 +1086,20 @@
                     [e] write-pattern
                         [v] defineClass
                     [e] if
-                        [v] attributes/attribute/properties/required
+                        [v] attributes/attribute[not(exists(properties/storageOnly))]/properties/required
                         [e] then
                             [e] write-pattern
                                 [v] defineRequiredStart
                             [e] apply-templates
                                 [e] select
-                                    [v] attributes/attribute[properties/required]
+                                    [v] attributes/attribute[properties/required and not(exists(properties/storageOnly))]
                                 [e] mode
                                     [v] defineRequired
                     [e] write-pattern
                         [v] defineProperties
                     [e] apply-templates
                         [e] select
-                            [v] attributes/attribute[not(properties/readOnly)]
+                            [v] attributes/attribute[not(properties/readOnly) and not(exists(properties/storageOnly))]
                         [e] mode
                             [v] declaraCamposEntidade
                     [e] if
@@ -1138,7 +1142,7 @@
             [v] declaraCamposEntidade
             [e] template
                 [e] match
-                    [v] attribute[not(contains($nativeTypes,@type))]
+                    [v] attribute[not(contains($nativeTypes,@type)) and not(@type = $mapNativeTypes/Binary/value)]
                 [e] body
                     [e] vars
                         [e] var
@@ -1314,6 +1318,14 @@
                 [e] body
                     [e] write-pattern
                         [v] defineAttributeBoolean
+                    [e] write-pattern
+                        [v] defineDescription
+            [e] template
+                [e] match
+                    [v] attribute[@type=$mapNativeTypes/Binary/value]
+                [e] body
+                    [e] write-pattern
+                        [v] defineAttributeBinary
                     [e] write-pattern
                         [v] defineDescription
         [e] mode

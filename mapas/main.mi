@@ -70,6 +70,8 @@
                             [v] 4
                 [e] nondeterministicSearchField
                     [v] nome
+                    [v] nomeFantasia
+                    [v] razaoSocial
             [e] generators
                 [e] struct
                     #
@@ -143,3 +145,6 @@
             [b] Municipio
                 #
                     Cadastro/Municipio.mi
+            [b] Emitente
+                #
+                    Cadastro/Emitente.mi

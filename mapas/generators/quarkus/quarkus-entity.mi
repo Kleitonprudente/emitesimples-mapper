@@ -68,7 +68,7 @@
                         [y]     @ManyToOne(
                     [e] annotation-oneToOne-fim
                         [v] )
-                        [v]     @JoinColumn(name="{{ f#[column] }}", nullable = true)
+                        [v]     @JoinColumn(name="{{ f#[column] }}", nullable = {{ if (exists(properties/required)) then 'false' else 'true' }})
                     [e] annotation-fetch-eager
                         [y] fetch = FetchType.EAGER
                     [e] annotation-fetch-padrao
@@ -82,11 +82,11 @@
                         [y]     @ManyToOne(
                     [e] annotation-manyToOne-fim
                         [v] )
-                        [v]     @JoinColumn(name="{{ f#[column] }}", nullable = true)
+                        [v]     @JoinColumn(name="{{ f#[column] }}", nullable = {{ if (exists(properties/required)) then 'false' else 'true' }})
             [e] attributeComposite
                 [v] 
                 [v]     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-                [v]     @JoinColumn(name="{{ f#[column] }}", nullable = true)
+                [v]     @JoinColumn(name="{{ f#[column] }}", nullable = {{ if (exists(properties/required)) then 'false' else 'true' }})
                 [v]     private {{ $class/@name }}Entity {{ @name }};
             [e] attributeDate
                 [v] 
@@ -126,7 +126,9 @@
                 [v]     // upload de 300 bytes ja estoura. Postgres ignora tamanho em BYTEA, entao a
                 [v]     // anotacao so tem efeito onde o schema sai da anotacao -- que e o perfil de
                 [v]     // teste. Sem isto, o defeito e invisivel em producao e constante no teste.
-                [v]     @Column(name="{{ f#[column] }}"{{ if (@typeParameter != '') then concat(', length=', @typeParameter) else '' }})
+                [v]     // Tamanho: o parametro do mapa quando existe; sem ele, o padrao explicito e
+                [v]     // length = 1048576 (1 MiB). O @Column sempre sai com length, como o comentario exige.
+                [v]     @Column(name="{{ f#[column] }}", length = {{ if (normalize-space(@typeParameter) != '') then normalize-space(@typeParameter) else '1048576' }})
                 [v]     private byte[] {{ @name }};
             [e] attributeInteger
                 [v]     private Integer {{ @name }};

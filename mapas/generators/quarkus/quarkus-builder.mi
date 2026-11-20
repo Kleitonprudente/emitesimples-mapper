@@ -172,7 +172,7 @@
                 [e] withModel-start
                     [v] 
                     [v]     public {{ @name }}EntityBuilder withModel({{ @name }} {{ mi:first-lower(@name) }}) {
-                    [v]         return this.withVersion({{ mi:first-lower(@name) }}.getVersion())
+                    [v]         return this.withVersion({{ mi:first-lower(@name) }}.getVersion()){{ if (exists(attributes/attribute[not(exists(properties/storageOnly)) and (not(contains(@mode,'oneToMany')) or properties/apiRelation/value = 'EMBEDDED')])) then '' else ';' }}
                 [e] withModel-end
                     [v]     }
                 [g] attributes
