@@ -16,9 +16,6 @@ public final class Dtos {
             @Size(max = 36, message = "empresaId inválido.") String empresaId) {
     }
 
-    public record RefreshRequest(
-            @NotBlank(message = "O refreshToken é obrigatório.") @Size(max = 200, message = "refreshToken inválido.") String refreshToken) {
-    }
 
     public record SenhaRequest(
             @Size(max = 1000, message = "Senha longa demais.") String senhaAtual,
@@ -34,16 +31,19 @@ public final class Dtos {
     public record EmpresaOpcao(String id, String razaoSocial, String papel) {
     }
 
-    /** Resposta do login e do refresh. refreshToken é null só para o administrador da plataforma sem empresa. */
+    /** Resposta do login e do refresh. O refresh token NAO vai no corpo: vai em cookie httpOnly (AuthResource). */
     @JsonInclude(JsonInclude.Include.ALWAYS)
     public record Sessao(
             String accessToken,
-            String refreshToken,
             long expiresIn,
             UsuarioResumo usuario,
             EmpresaResumo empresa,
             String papel,
             boolean plataformaAdmin) {
+    }
+
+    /** Resultado interno do login/refresh: a sessao (corpo) e o refresh token (cookie; null para admin sem empresa). */
+    public record Emitida(Sessao sessao, String refreshToken) {
     }
 
     /** Resposta de GET /api/auth/me. */

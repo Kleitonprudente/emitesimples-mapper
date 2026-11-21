@@ -486,9 +486,9 @@ class RlsTest extends BaseApiTest {
         var u = dados.usuarioComPapel(empA, "operador");
         Response l = login(u.email(), SENHA);
         assertEquals(200, l.statusCode(), l.asString());
-        Response r = refresh(l.jsonPath().getString("refreshToken"));
+        Response r = refresh(refreshCookie(l));
         assertEquals(200, r.statusCode(), r.asString());
-        assertEquals(204, logout(r.jsonPath().getString("refreshToken")).statusCode());
+        assertEquals(204, logout(refreshCookie(r)).statusCode());
         assertEquals(200, comToken(r.jsonPath().getString("accessToken")).get("/api/auth/me").statusCode());
     }
 }

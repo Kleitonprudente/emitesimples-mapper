@@ -1,6 +1,7 @@
 package br.com.emitesimples.security;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -90,10 +91,14 @@ class PoliticaAcessoTest extends BaseApiTest {
     @Test
     void publico() {
         // login/refresh/logout são públicos (corpo vazio chega ao recurso: 400, não 401)
-        for (String c : List.of("/api/auth/login", "/api/auth/refresh", "/api/auth/logout")) {
-            int s = given().contentType(ContentType.JSON).body("{}").post(c).statusCode();
-            assertEquals(400, s, c + " deveria chegar ao recurso sem token");
+        int login = given().contentType(ContentType.JSON).body("{}").post("/api/auth/login").statusCode();
+        assertEquals(400, login, "login deveria chegar ao recurso sem token");
+        // refresh e logout sem o cabecalho anti-CSRF chegam ao recurso e levam 403 cabecalho_obrigatorio (nao 401)
+        for (String c : List.of("/api/auth/refresh", "/api/auth/logout")) {
+            given().post(c).then().statusCode(403).body("codigo", equalTo("cabecalho_obrigatorio"));
         }
+        assertEquals(401, given().header("X-Requested-With", "emitesimples").post("/api/auth/refresh").statusCode());
+        assertEquals(204, given().header("X-Requested-With", "emitesimples").post("/api/auth/logout").statusCode());
         assertEquals(200, given().get("/q/health").statusCode());
         assertEquals(200, given().get("/q/health/live").statusCode());
         assertEquals(200, given().get("/q/health/ready").statusCode());

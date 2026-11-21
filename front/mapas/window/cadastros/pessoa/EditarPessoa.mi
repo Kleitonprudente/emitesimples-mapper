@@ -1,0 +1,94 @@
+[Descriptor.window.editor] EditarPessoa
+    @
+        [e] title
+            [e] pt
+                [v] Editar pessoa
+        [e] route
+            [v] /pessoas/$id
+        [e] role
+            [v] operador
+        [e] icon
+            [v] user-pen
+    [g] source
+        [r] object: Pessoa()
+    [e] form
+        [e] rows
+            [e] row
+                [e] field
+                    [v] .tipoPessoa
+                [e] field
+                    [v] .documento
+            [e] row
+                [e] field
+                    [v] .nome
+                    @
+                        [e] width
+                            [v] 60
+                [e] field
+                    [v] .nomeFantasia
+                    @
+                        [e] width
+                            [v] 40
+            [e] row
+                [e] field
+                    [v] .inscricaoMunicipal
+                [e] field
+                    [v] .rgInscricaoEstadual
+            [e] row
+                [e] field
+                    [v] .tipoDestinatario
+                [e] field
+                    [v] .consumidorFinal
+            [e] row
+                [e] field
+                    [v] .email
+                [e] field
+                    [v] .telefone
+                    @
+                        [e] mask
+                            [v] phone
+            [e] row
+                [e] field
+                    [v] .cep
+                    @
+                        [e] mask
+                            [v] postalCode
+                        [e] width
+                            [v] 30
+                [e] field
+                    [v] .logradouro
+                    @
+                        [e] width
+                            [v] 70
+            [e] row
+                [e] field
+                    [v] .numeroEndereco
+                    @
+                        [e] width
+                            [v] 25
+                [e] field
+                    [v] .complemento
+                    @
+                        [e] width
+                            [v] 75
+            [e] field
+                [v] .bairro
+            [e] row
+                [e] field
+                    [v] .codigoPais
+                [e] field
+                    [v] .codigoPostal
+            [e] row
+                [e] field
+                    [v] .nomeMunicipioExterior
+                [e] field
+                    [v] .nomeProvincia
+    [e] actions
+        [e] action
+            [v] salvar
+            @
+                [e] type
+                    [v] primary
+                [e] label
+                    [e] pt
+                        [v] Salvar

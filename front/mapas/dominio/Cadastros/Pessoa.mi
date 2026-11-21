@@ -1,0 +1,432 @@
+[b] Pessoa
+    @
+        [e] title
+            [e] pt
+                [v] Pessoa
+            [e] en
+                [v] Person
+        [e] description
+            [e] pt
+                [v] Cadastro de cliente, física ou jurídica, reutilizável nas emissões, que na nota assume o papel de tomador do serviço. É por empresa: o mesmo documento pode existir
+                  | uma vez em cada empresa, e uma empresa nunca enxerga a pessoa de outra.
+                  | Tem um só documento (CNPJ ou CPF, um ou outro). Ao enviar a NFS-e, o sistema separa o documento em cnpj ou cpf, que no IntegraNotas são campos distintos.
+                  | A cidade é uma referência ao Municipio, que já traz a UF e o código IBGE: a tela mostra cidade e UF e esconde o IBGE.
+                  | Os contatos são uma lista (Contato), com vários por pessoa. Na exportação o endereço não tem município brasileiro e usa os campos de exterior.
+                  | Vive no contexto cadastros (domain.cadastros), que referencia a Empresa (configuracao) e tem dependência mútua com ele, pois a Empresa referencia o Municipio, que está em cadastros.
+            [e] en
+                [v] Registry of a customer, individual or legal entity, reusable across issues, who takes the role of service taker (tomador) on the note. It is per company: the same document may exist
+                  | once in each company, and a company never sees another company person.
+                  | It has a single document (CNPJ or CPF, one or the other). When sending the NFS-e, the system splits the document into cnpj or cpf, which are distinct fields in IntegraNotas.
+                  | The city is a reference to Municipio, which already carries the state and the IBGE code: the screen shows city and state and hides the IBGE.
+                  | Contacts are a list (Contato), several per person. On export the address has no Brazilian municipality and uses the foreign fields.
+                  | Lives in the cadastros context (domain.cadastros), which references Empresa (configuracao) and has a mutual dependency with it, since Empresa references Municipio, which is in cadastros.
+    [g] identificacao
+        [d] tipoPessoa: Texto(10)
+            @
+                [e] cn
+                    [v] tipo_pessoa
+                [e] title
+                    [e] pt
+                        [v] Tipo de Pessoa
+                    [e] en
+                        [v] Person Type
+                [e] description
+                    [e] pt
+                        [v] Física ou jurídica. Define como se lê o documento: jurídica tem CNPJ de 14 dígitos, física tem CPF de 11 dígitos. Obrigatório.
+                    [e] en
+                        [v] Individual or legal entity. It defines how the document is read: legal entity has a 14-digit CNPJ, individual has an 11-digit CPF. Required.
+                [e] values
+                    [e] fisica
+                        [v] fisica
+                        [v] Pessoa física (documento CPF, 11 dígitos)
+                    [e] juridica
+                        [v] juridica
+                        [v] Pessoa jurídica (documento CNPJ, 14 dígitos)
+                [e] required
+                    [v] true
+        [d] documento: Texto(14)
+            @
+                [e] cn
+                    [v] documento
+                [e] title
+                    [e] pt
+                        [v] CNPJ / CPF
+                    [e] en
+                        [v] CNPJ / CPF
+                [e] description
+                    [e] pt
+                        [v] Documento da pessoa, só dígitos, sem formatação: 14 dígitos é CNPJ (pessoa jurídica) e 11 dígitos é CPF (pessoa física), coerente com o tipo de pessoa.
+                          | É um ou outro, nunca os dois. Ao enviar a NFS-e vai como cnpj ou cpf conforme o tamanho. CPF é dado pessoal, sujeito a mascaramento nas respostas. Único dentro da empresa.
+                    [e] en
+                        [v] Document of the person, digits only, unformatted: 14 digits is a CNPJ (legal entity) and 11 digits is a CPF (individual), consistent with the person type.
+                          | One or the other, never both. When sending the NFS-e it goes as cnpj or cpf according to its length. CPF is personal data, subject to masking in responses. Unique within the company.
+                [e] searchable
+                    [v] true
+        [d] nome: Texto(300)
+            @
+                [e] cn
+                    [v] nome
+                [e] title
+                    [e] pt
+                        [v] Nome / Razão Social
+                    [e] en
+                        [v] Name / Legal Name
+                [e] description
+                    [e] pt
+                        [v] Nome da pessoa física ou razão social da pessoa jurídica (vai no campo razao_social do envio). Obrigatório.
+                    [e] en
+                        [v] Name of the individual or legal name of the legal entity (goes in the razao_social field of the submission). Required.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+        [d] nomeFantasia: Texto(300)
+            @
+                [e] cn
+                    [v] nome_fantasia
+                [e] title
+                    [e] pt
+                        [v] Nome Fantasia
+                    [e] en
+                        [v] Trade Name
+                [e] description
+                    [e] pt
+                        [v] Nome fantasia da pessoa jurídica. Opcional. O nome nomeFantasia é o que já consta na lista de busca do projeto (nondeterministicSearchField), por isso o campo é pesquisável.
+                    [e] en
+                        [v] Trade name of the legal entity. Optional. The name nomeFantasia is the one already in the project search list (nondeterministicSearchField), so the field is searchable.
+                [e] searchable
+                    [v] true
+        [d] inscricaoMunicipal: Texto(15)
+            @
+                [e] cn
+                    [v] inscricao_municipal
+                [e] title
+                    [e] pt
+                        [v] Inscrição Municipal
+                    [e] en
+                        [v] Municipal Registration
+                [e] description
+                    [e] pt
+                        [v] Inscrição municipal da pessoa (campo im do envio). Opcional.
+                    [e] en
+                        [v] Municipal registration of the person (the im field of the submission). Optional.
+        [d] rgInscricaoEstadual: Texto(20)
+            @
+                [e] cn
+                    [v] rg_inscricao_estadual
+                [e] title
+                    [e] pt
+                        [v] RG / Inscrição Estadual
+                    [e] en
+                        [v] RG / State Registration
+                [e] description
+                    [e] pt
+                        [v] Um só campo: RG quando a pessoa é física, inscrição estadual quando é jurídica. Opcional.
+                          | Regra de aplicação: pessoa jurídica com inscrição estadual preenchida marca consumidorFinal como não.
+                    [e] en
+                        [v] A single field: RG when the person is an individual, state registration when it is a legal entity. Optional.
+                          | Application rule: a legal entity with the state registration filled sets consumidorFinal to no.
+        [d] tipoDestinatario: Inteiro(1)
+            @
+                [e] cn
+                    [v] tipo_destinatario
+                [e] title
+                    [e] pt
+                        [v] Tipo do Destinatário
+                    [e] en
+                        [v] Recipient Type
+                [e] description
+                    [e] pt
+                        [v] Indica quem é o destinatário (campo tipo_destinatario do envio, indDest), valores 0 ou 1. Opcional, padrão 0.
+                    [e] en
+                        [v] Tells who the recipient is (the tipo_destinatario field of the submission, indDest), values 0 or 1. Optional, default 0.
+                [e] values
+                    [e] proprioTomador
+                        [v] 0
+                        [v] O destinatário é o próprio tomador/adquirente (padrão)
+                    [e] outroDestinatario
+                        [v] 1
+                        [v] O destinatário não é o próprio adquirente (outra pessoa ou outro estabelecimento)
+        [d] consumidorFinal: Boolean()
+            @
+                [e] cn
+                    [v] consumidor_final
+                [e] title
+                    [e] pt
+                        [v] Consumidor Final
+                    [e] en
+                        [v] End Consumer
+                [e] description
+                    [e] pt
+                        [v] Indica se a pessoa é consumidora final, sim ou não. Padrão sim (true), que é o da pessoa física.
+                          | Regra de aplicação, não do mapa: pessoa jurídica com inscrição estadual preenchida passa a não.
+                    [e] en
+                        [v] Tells whether the person is an end consumer, yes or no. Default yes (true), which is the individual default.
+                          | Application rule, not a map rule: a legal entity with the state registration filled becomes no.
+                [e] defaultValue
+                    [v] true
+    [g] contato
+        [d] telefone: Texto(20)
+            @
+                [e] cn
+                    [v] telefone
+                [e] title
+                    [e] pt
+                        [v] Telefone
+                    [e] en
+                        [v] Phone
+                [e] description
+                    [e] pt
+                        [v] Telefone principal da pessoa, só números. Opcional. Outros contatos ficam na lista de contatos.
+                    [e] en
+                        [v] Main phone of the person, numbers only. Optional. Other contacts go in the contact list.
+        [d] email: Texto(60)
+            @
+                [e] cn
+                    [v] email
+                [e] title
+                    [e] pt
+                        [v] E-mail
+                    [e] en
+                        [v] Email
+                [e] description
+                    [e] pt
+                        [v] E-mail principal da pessoa, até 60 caracteres. Opcional. Outros contatos ficam na lista de contatos.
+                    [e] en
+                        [v] Main email of the person, up to 60 characters. Optional. Other contacts go in the contact list.
+    [g] endereco
+        [d] logradouro: Texto(255)
+            @
+                [e] cn
+                    [v] logradouro
+                [e] title
+                    [e] pt
+                        [v] Logradouro
+                    [e] en
+                        [v] Street
+                [e] description
+                    [e] pt
+                        [v] Rua, avenida ou similar do endereço da pessoa. Obrigatório.
+                    [e] en
+                        [v] Street of the person address. Required.
+                [e] required
+                    [v] true
+        [d] numeroEndereco: Texto(60)
+            @
+                [e] cn
+                    [v] numero_endereco
+                [e] title
+                    [e] pt
+                        [v] Número do Endereço
+                    [e] en
+                        [v] Address Number
+                [e] description
+                    [e] pt
+                        [v] Número do imóvel, texto porque aceita S/N (campo numero do endereço do envio). Obrigatório.
+                    [e] en
+                        [v] Property number, text because it accepts S/N (the numero field of the submission address). Required.
+                [e] required
+                    [v] true
+        [d] complemento: Texto(256)
+            @
+                [e] cn
+                    [v] complemento
+                [e] title
+                    [e] pt
+                        [v] Complemento
+                    [e] en
+                        [v] Complement
+                [e] description
+                    [e] pt
+                        [v] Complemento do endereço. Opcional.
+                    [e] en
+                        [v] Address complement. Optional.
+        [d] bairro: Texto(60)
+            @
+                [e] cn
+                    [v] bairro
+                [e] title
+                    [e] pt
+                        [v] Bairro
+                    [e] en
+                        [v] Neighborhood
+                [e] description
+                    [e] pt
+                        [v] Bairro do endereço. Obrigatório.
+                    [e] en
+                        [v] Neighborhood of the address. Required.
+                [e] required
+                    [v] true
+        [d] cep: Texto(8)
+            @
+                [e] cn
+                    [v] cep
+                [e] title
+                    [e] pt
+                        [v] CEP
+                    [e] en
+                        [v] Postal Code
+                [e] description
+                    [e] pt
+                        [v] CEP de 8 dígitos sem hífen, texto para preservar zeros à esquerda. Opcional. A consulta de CEP (BrasilAPI) preenche o endereço e a cidade.
+                    [e] en
+                        [v] Postal code of 8 digits without hyphen, text to preserve leading zeros. Optional. The postal code lookup (BrasilAPI) fills in the address and the city.
+    [g] exterior
+        [d] codigoPais: Texto(4)
+            @
+                [e] cn
+                    [v] codigo_pais
+                [e] title
+                    [e] pt
+                        [v] Código do País
+                    [e] en
+                        [v] Country Code
+                [e] description
+                    [e] pt
+                        [v] Código do país do endereço no exterior, de 3 a 4 dígitos (campo codigo_pais do envio). Só na exportação. Quando preenchido e sem cidade,
+                          | o endereço é de exportação e a UF enviada ao gateway é EX, derivada pelo sistema na montagem do envio, sem atributo uf.
+                    [e] en
+                        [v] Country code of the foreign address (the codigo_pais field of the submission). Export only. When filled and with no city,
+                          | the address is an export address and the state sent to the gateway is EX, derived by the system when building the submission, with no uf attribute.
+        [d] codigoPostal: Texto(11)
+            @
+                [e] cn
+                    [v] codigo_postal
+                [e] title
+                    [e] pt
+                        [v] Código Postal do Exterior
+                    [e] en
+                        [v] Foreign Postal Code
+                [e] description
+                    [e] pt
+                        [v] Código postal do endereço no exterior (campo codigo_postal do envio). Opcional.
+                    [e] en
+                        [v] Postal code of the foreign address (the codigo_postal field of the submission). Optional.
+        [d] nomeMunicipioExterior: Texto(60)
+            @
+                [e] cn
+                    [v] nome_municipio_exterior
+                [e] title
+                    [e] pt
+                        [v] Município no Exterior
+                    [e] en
+                        [v] Foreign City
+                [e] description
+                    [e] pt
+                        [v] Nome da cidade no exterior (campo nome_municipio do envio). Opcional.
+                    [e] en
+                        [v] Foreign city name (the nome_municipio field of the submission). Optional.
+        [d] nomeProvincia: Texto(60)
+            @
+                [e] cn
+                    [v] nome_provincia
+                [e] title
+                    [e] pt
+                        [v] Província no Exterior
+                    [e] en
+                        [v] Foreign Province
+                [e] description
+                    [e] pt
+                        [v] Nome da província ou estado no exterior (campo nome_provincia do envio). Opcional.
+                    [e] en
+                        [v] Foreign province or state name (the nome_provincia field of the submission). Optional.
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno da pessoa (UUID).
+                    [e] en
+                        [v] Internal person identifier (UUID).
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que a pessoa foi cadastrada.
+                    [e] en
+                        [v] Date and time the person was registered.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true
+    [g] relacionamentos
+        [r] empresa: Empresa()
+            @
+                [e] cn
+                    [v] empresa_id
+                [e] title
+                    [e] pt
+                        [v] Empresa
+                    [e] en
+                        [v] Company
+                [e] description
+                    [e] pt
+                        [v] Empresa dona desta pessoa e tenant do registro. Todo acesso é filtrado por ela.
+                    [e] en
+                        [v] Company that owns this person and tenant of the record. Every access is filtered by it.
+                [e] required
+                    [v] true
+                [e] tenantKey
+                    [v] true
+        [r] cidade: Municipio()
+            @
+                [e] cn
+                    [v] cidade_id
+                [e] title
+                    [e] pt
+                        [v] Cidade
+                    [e] en
+                        [v] City
+                [e] description
+                    [e] pt
+                        [v] Cidade do endereço, referência ao Municipio, que traz nome, UF e código IBGE (campos codigo_municipio e uf do envio).
+                          | A tela mostra cidade e UF e esconde o IBGE, que é obtido do Municipio buscado por nome e UF. Não há atributos uf nem IBGE na pessoa.
+                          | Opcional apenas porque na exportação o endereço não tem município brasileiro. Para pessoa estrangeira a cidade é o registro Exterior (UF EX), junto dos campos de exportação.
+                    [e] en
+                        [v] City of the address, a reference to Municipio, which carries name, state and IBGE code (the codigo_municipio and uf fields of the submission).
+                          | The screen shows city and state and hides the IBGE, which comes from the Municipio looked up by name and state. There are no uf or IBGE attributes on the person.
+                          | Optional only because on export the address has no Brazilian municipality. For a foreign person the city is the Exterior record (state EX), together with the export fields.
+        [o] contatos: Contato()
+            @
+                [e] cn
+                    [v] contatos
+                [e] title
+                    [e] pt
+                        [v] Contatos
+                    [e] en
+                        [v] Contacts
+                [e] description
+                    [e] pt
+                        [v] Lista de contatos da pessoa, com vários itens. Só existem dentro da pessoa, no mesmo contexto. Os sócios do QSA da consulta de CNPJ entram aqui.
+                    [e] en
+                        [v] List of contacts of the person, with several items. They only exist within the person, in the same context. The partners from the CNPJ lookup (QSA) go here.

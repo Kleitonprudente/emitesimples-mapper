@@ -1,0 +1,191 @@
+[b] HistoricoSituacaoEmpresa
+    @
+        [e] title
+            [e] pt
+                [v] Histórico de Situação da Empresa
+            [e] en
+                [v] Company Situation History
+        [e] description
+            [e] pt
+                [v] Auditoria de cada mudança da situação da conta da empresa. É IMUTÁVEL: o registro nunca é editado nem apagado (regra da aplicação). Responde quem mudou, quando e por quê. Não tem ambiente: herda a situação da empresa.
+                  | Quando a mudança é automática, por exemplo a confirmação pelo link do e-mail, o responsável fica vazio.
+            [e] en
+                [v] Audit of each change to the company account situation. It is IMMUTABLE: the record is never edited or deleted (application rule). It answers who changed it, when and why. It has no environment: it inherits the company situation.
+                  | When the change is automatic, for example confirmation by the e-mail link, the responsible user is empty.
+    [g] mudanca
+        [d] situacaoAnterior: Texto(20)
+            @
+                [e] cn
+                    [v] situacao_anterior
+                [e] title
+                    [e] pt
+                        [v] Situação Anterior
+                    [e] en
+                        [v] Previous Situation
+                [e] description
+                    [e] pt
+                        [v] Situação da conta antes da mudança. Mesmos valores de Empresa.situacao (pendente_confirmacao, ativa, desativada).
+                    [e] en
+                        [v] Account situation before the change. Same values as Empresa.situacao (pendente_confirmacao, ativa, desativada).
+                [e] required
+                    [v] true
+        [d] situacaoNova: Texto(20)
+            @
+                [e] cn
+                    [v] situacao_nova
+                [e] title
+                    [e] pt
+                        [v] Situação Nova
+                    [e] en
+                        [v] New Situation
+                [e] description
+                    [e] pt
+                        [v] Situação da conta depois da mudança. Mesmos valores de Empresa.situacao (pendente_confirmacao, ativa, desativada).
+                    [e] en
+                        [v] Account situation after the change. Same values as Empresa.situacao (pendente_confirmacao, ativa, desativada).
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+        [d] motivo: Texto(500)
+            @
+                [e] cn
+                    [v] motivo
+                [e] title
+                    [e] pt
+                        [v] Motivo
+                    [e] en
+                        [v] Reason
+                [e] description
+                    [e] pt
+                        [v] Motivo da mudança. É OBRIGATÓRIO ao desativar (regra da aplicação, o mapa não a expressa).
+                    [e] en
+                        [v] Reason for the change. It is REQUIRED when deactivating (application rule, the map does not express it).
+        [d] origem: Texto(20)
+            @
+                [e] cn
+                    [v] origem
+                [e] title
+                    [e] pt
+                        [v] Origem
+                    [e] en
+                        [v] Origin
+                [e] description
+                    [e] pt
+                        [v] O que causou a mudança.
+                    [e] en
+                        [v] What caused the change.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+                [e] values
+                    [e] confirmacaoEmail
+                        [v] confirmacao_email
+                        [v] Clique no link de confirmação do e-mail
+                    [e] suporte
+                        [v] suporte
+                        [v] Ação manual do suporte
+                    [e] sistema
+                        [v] sistema
+                        [v] Ação automática do sistema
+        [d] dataHora: DataHora()
+            @
+                [e] cn
+                    [v] data_hora
+                [e] title
+                    [e] pt
+                        [v] Data e Hora
+                    [e] en
+                        [v] Date and Time
+                [e] description
+                    [e] pt
+                        [v] Data e hora da mudança.
+                    [e] en
+                        [v] Date and time of the change.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno do registro (UUID).
+                    [e] en
+                        [v] Internal record identifier (UUID).
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o registro foi gravado.
+                    [e] en
+                        [v] Date and time the record was stored.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro. Como o registro é imutável, igual à data de criação.
+                    [e] en
+                        [v] Date and time of the last change to the record. Since the record is immutable, equal to the creation date.
+                [e] required
+                    [v] true
+    [g] relacionamentos
+        [r] empresa: Empresa()
+            @
+                [e] cn
+                    [v] empresa_id
+                [e] title
+                    [e] pt
+                        [v] Empresa
+                    [e] en
+                        [v] Company
+                [e] description
+                    [e] pt
+                        [v] Empresa cuja situação mudou e tenant do registro. Todo acesso é filtrado por ela.
+                    [e] en
+                        [v] Company whose situation changed and tenant of the record. Every access is filtered by it.
+                [e] required
+                    [v] true
+                [e] tenantKey
+                    [v] true
+        [r] responsavel: Usuario()
+            @
+                [e] cn
+                    [v] responsavel_id
+                [e] title
+                    [e] pt
+                        [v] Responsável
+                    [e] en
+                        [v] Responsible
+                [e] description
+                    [e] pt
+                        [v] Usuário que fez a mudança. Vazio quando a mudança foi automática.
+                    [e] en
+                        [v] User who made the change. Empty when the change was automatic.

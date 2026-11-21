@@ -1,0 +1,147 @@
+[b] QsaEmpresa
+    @
+        [e] title
+            [e] pt
+                [v] Sócio ou Administrador da Empresa
+            [e] en
+                [v] Company Partner or Administrator
+        [e] description
+            [e] pt
+                [v] Item do quadro de sócios e administradores (QSA) de uma Empresa, com nome, CPF, qualificação e data de entrada na sociedade. Uma empresa tem vários.
+                  | Existe só dentro da empresa e no mesmo contexto, por isso é detalhe da Empresa ([m]/[o]). O tenant é a própria empresa. Não tem ambiente: herda o da Empresa.
+                  | Vive no contexto configuracao (domain.configuracao).
+            [e] en
+                [v] Item of the partners and administrators board (QSA) of a Company, with name, CPF, qualification and partnership entry date. A company has several.
+                  | It exists only within the company and in the same context, so it is a detail of Empresa ([m]/[o]). The tenant is the company itself. It has no environment: it inherits the Empresa one.
+                  | Lives in the configuracao context (domain.configuracao).
+    [g] identificacao
+        [d] nome: Texto(300)
+            @
+                [e] cn
+                    [v] nome
+                [e] title
+                    [e] pt
+                        [v] Nome do Sócio
+                    [e] en
+                        [v] Partner Name
+                [e] description
+                    [e] pt
+                        [v] Nome do sócio ou administrador. Obrigatório.
+                    [e] en
+                        [v] Name of the partner or administrator. Required.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+        [d] cpf: Texto(14)
+            @
+                [e] cn
+                    [v] cpf
+                [e] title
+                    [e] pt
+                        [v] CPF
+                    [e] en
+                        [v] CPF
+                [e] description
+                    [e] pt
+                        [v] CPF do sócio, opcional. NÃO se valida como 11 dígitos: a consulta pública de CNPJ pode devolver o CPF do sócio mascarado (a confirmar ao ler a API), então o valor é guardado como veio, até 14 caracteres.
+                          | Dado pessoal, sujeito a mascaramento nas respostas.
+                    [e] en
+                        [v] CPF of the partner, optional. It is NOT validated as 11 digits: the public CNPJ lookup may return the partner CPF masked (to be confirmed when reading the API), so the value is stored as received, up to 14 characters.
+                          | Personal data, subject to masking in responses.
+        [d] qualificacao: Texto(100)
+            @
+                [e] cn
+                    [v] qualificacao
+                [e] title
+                    [e] pt
+                        [v] Qualificação
+                    [e] en
+                        [v] Qualification
+                [e] description
+                    [e] pt
+                        [v] Qualificação do sócio na sociedade, como Sócio-Administrador, até 100 caracteres. Opcional.
+                    [e] en
+                        [v] Qualification of the partner in the company, such as Partner-Administrator, up to 100 characters. Optional.
+        [d] dataEntradaSociedade: Data()
+            @
+                [e] cn
+                    [v] data_entrada_sociedade
+                [e] title
+                    [e] pt
+                        [v] Data de Entrada na Sociedade
+                    [e] en
+                        [v] Partnership Entry Date
+                [e] description
+                    [e] pt
+                        [v] Data em que o sócio entrou na sociedade. Opcional.
+                    [e] en
+                        [v] Date the partner joined the company. Optional.
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno do item do QSA (UUID).
+                    [e] en
+                        [v] Internal QSA item identifier (UUID).
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o item foi cadastrado.
+                    [e] en
+                        [v] Date and time the item was registered.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true
+    [g] relacionamentos
+        [m] empresa: Empresa()
+            @
+                [e] cn
+                    [v] empresa_id
+                [e] title
+                    [e] pt
+                        [v] Empresa
+                    [e] en
+                        [v] Company
+                [e] description
+                    [e] pt
+                        [v] Empresa a quem o sócio pertence e tenant do registro. Apagar a empresa apaga seu QSA. Todo acesso é filtrado por ela.
+                    [e] en
+                        [v] Company the partner belongs to and tenant of the record. Deleting the company deletes its QSA. Every access is filtered by it.
+                [e] required
+                    [v] true
+                [e] tenantKey
+                    [v] true

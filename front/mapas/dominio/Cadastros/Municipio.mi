@@ -1,0 +1,130 @@
+[b] Municipio
+    @
+        [e] title
+            [e] pt
+                [v] Município
+            [e] en
+                [v] Municipality
+        [e] description
+            [e] pt
+                [v] Município brasileiro identificado pelo código IBGE de 7 dígitos, exceto o registro especial Exterior (UF EX), que não tem IBGE e carrega o código 0 da tabela oficial; esse 0 nunca é enviado ao IntegraNotas (para pessoa no exterior o envio manda uf = EX e omite o código do município). Dado de referência compartilhado:
+                  | endereço de Empresa aponta para ele, e a Pessoa o referencia por cidade e UF (relação cidade): a tela mostra cidade e UF e esconde o IBGE, que está direto aqui.
+                  | O par (nome, UF) é único, regra documentada e não expressa no mapa. O Municipio é buscado por nome e UF. Todo registro tem código: o IBGE de 7 dígitos ou, no Exterior, o 0.
+                  | Vive no contexto cadastros (domain.cadastros). Há dependência mútua entre os contextos configuracao e cadastros:
+                  | a Empresa (configuracao) referencia o Municipio, e Pessoa e Servico (cadastros) referenciam a Empresa.
+                  | Municipio e Empresa devem ser modelados juntos.
+            [e] en
+                [v] Brazilian municipality identified by its 7-digit IBGE code, except the special Exterior record (state EX), which has no IBGE and carries code 0 from the official table; that 0 is never sent to IntegraNotas (for a person abroad the submission sends uf = EX and omits the municipality code). Shared reference data:
+                  | the address of Empresa points to it, and Pessoa references it by city and state (city relation): the screen shows city and state and hides the IBGE, which lives right here.
+                  | The pair (name, state) is unique, a documented rule not expressed in the map. Municipio is looked up by name and state. Every record has a code: the 7-digit IBGE or, for Exterior, 0.
+                  | Lives in the cadastros context (domain.cadastros). There is a mutual dependency between the configuracao and cadastros contexts:
+                  | Empresa (configuracao) references Municipio, and Pessoa and Servico (cadastros) reference Empresa.
+                  | Municipio and Empresa must be modeled together.
+    [g] identificacao
+        [d] codigoIbge: Texto(7)
+            @
+                [e] cn
+                    [v] codigo_ibge
+                [e] title
+                    [e] pt
+                        [v] Código IBGE
+                    [e] en
+                        [v] IBGE Code
+                [e] description
+                    [e] pt
+                        [v] Código do município no IBGE, 7 dígitos numéricos (inclui o dígito verificador), exceto o registro especial Exterior (UF EX),
+                          | que não tem IBGE e carrega o código 0 da tabela oficial. Esse 0 nunca é enviado ao IntegraNotas (para pessoa no exterior o envio manda uf = EX e omite o código do município).
+                          | É único: não há dois municípios com o mesmo código. Guardado como texto para preservar o formato.
+                    [e] en
+                        [v] Municipality code at IBGE, 7 numeric digits (including the check digit), except the special Exterior record (state EX),
+                          | which has no IBGE and carries code 0 from the official table. That 0 is never sent to IntegraNotas (for a person abroad the submission sends uf = EX and omits the municipality code).
+                          | It is unique: no two municipalities share a code. Stored as text to preserve the format.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+        [d] nome: Texto(100)
+            @
+                [e] cn
+                    [v] nome
+                [e] title
+                    [e] pt
+                        [v] Nome
+                    [e] en
+                        [v] Name
+                [e] description
+                    [e] pt
+                        [v] Nome oficial do município, como publicado pelo IBGE. O registro Exterior tem o nome Exterior (o nome do IBGE vem vazio no arquivo; decisão provisória do usuário, a confirmar).
+                    [e] en
+                        [v] Official name of the municipality, as published by IBGE. The Exterior record is named Exterior (the IBGE name comes empty in the file; provisional user decision, to be confirmed).
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+        [d] uf: Texto(2)
+            @
+                [e] cn
+                    [v] uf
+                [e] title
+                    [e] pt
+                        [v] UF
+                    [e] en
+                        [v] State
+                [e] description
+                    [e] pt
+                        [v] Sigla da unidade federativa do município, com 2 letras maiúsculas (ex: SP). Valem as 27 UFs do Brasil mais EX (exterior).
+                    [e] en
+                        [v] Federative unit abbreviation of the municipality, 2 uppercase letters (e.g. SP). Valid values are the 27 Brazilian states plus EX (abroad).
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno do registro (UUID). O código IBGE é a chave de negócio; este campo é a chave técnica.
+                    [e] en
+                        [v] Internal record identifier (UUID). The IBGE code is the business key; this field is the technical key.
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o município foi cadastrado no sistema.
+                    [e] en
+                        [v] Date and time the municipality was registered in the system.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true

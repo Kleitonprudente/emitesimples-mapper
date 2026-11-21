@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import br.com.emitesimples.apoio.BaseApiTest;
@@ -43,7 +44,8 @@ class LoginTest extends BaseApiTest {
                 .body("papel", equalTo("administrador"))
                 .body("plataformaAdmin", equalTo(false))
                 .body("accessToken", notNullValue())
-                .body("refreshToken", notNullValue());
+                .body("refreshToken", nullValue());
+        assertNotNull(r.getCookie("refresh_token"), "refresh vai em cookie");
 
         String jwt = r.jsonPath().getString("accessToken");
         Map<String, Object> c = claims(jwt);
@@ -59,7 +61,7 @@ class LoginTest extends BaseApiTest {
         assertNotNull(dados.usuarioPorId(u.id()).getDataUltimoAcesso(), "dataUltimoAcesso deve ser atualizada");
 
         // o refresh token só existe como SHA-256 no banco, nunca em claro; validade de 7 dias
-        String refresh = r.jsonPath().getString("refreshToken");
+        String refresh = refreshCookie(r);
         assertEquals(43, refresh.length(), "32 bytes em Base64URL sem padding");
         List<TokenRenovacaoEntity> tokens = dados.tokensDe(u.id(), empresa);
         assertEquals(1, tokens.size());
@@ -177,6 +179,8 @@ class LoginTest extends BaseApiTest {
                 .body("papel", nullValue())
                 .body("refreshToken", nullValue())
                 .body("accessToken", notNullValue());
+        assertNull(r.getCookie("refresh_token"), "admin sem empresa nao recebe cookie de refresh");
+        assertNull(r.getHeader("Set-Cookie"));
         Map<String, Object> c = claims(r.jsonPath().getString("accessToken"));
         assertEquals(List.of("plataforma_admin"), c.get("groups"));
         assertEquals(true, c.get("plataforma_admin"));
@@ -192,7 +196,8 @@ class LoginTest extends BaseApiTest {
         Usr u = dados.usuario(true, true);
         dados.vincular(u.id(), e, "operador", true);
         Response r = login(u.email(), SENHA);
-        r.then().statusCode(200).body("empresa.id", equalTo(e)).body("refreshToken", notNullValue());
+        r.then().statusCode(200).body("empresa.id", equalTo(e)).body("refreshToken", nullValue());
+        assertNotNull(r.getCookie("refresh_token"));
         Map<String, Object> c = claims(r.jsonPath().getString("accessToken"));
         assertEquals(List.of("operador", "plataforma_admin"), c.get("groups"));
         assertEquals(true, c.get("plataforma_admin"));

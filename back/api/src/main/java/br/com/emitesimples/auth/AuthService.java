@@ -1,5 +1,6 @@
 package br.com.emitesimples.auth;
 
+import br.com.emitesimples.auth.Dtos.Emitida;
 import br.com.emitesimples.auth.Dtos.EmpresaOpcao;
 import br.com.emitesimples.auth.Dtos.EmpresaResumo;
 import br.com.emitesimples.auth.Dtos.LoginRequest;
@@ -96,11 +97,11 @@ public class AuthService {
 
     // ------------------------------------------------------------------------------------------------ login
 
-    public Sessao login(LoginRequest req) {
+    public Emitida login(LoginRequest req) {
         String email = normalizarEmail(req.email());
         forcaBruta.verificar(email);
         try {
-            Sessao s = contexto.comoSistema(() -> QuarkusTransaction.requiringNew().call(() -> loginNaTransacao(email, req)));
+            Emitida s = contexto.comoSistema(() -> QuarkusTransaction.requiringNew().call(() -> loginNaTransacao(email, req)));
             forcaBruta.registrarSucesso(email);
             return s;
         } catch (ApiException e) {
@@ -111,7 +112,7 @@ public class AuthService {
         }
     }
 
-    private Sessao loginNaTransacao(String email, LoginRequest req) {
+    private Emitida loginNaTransacao(String email, LoginRequest req) {
         UsuarioEntity u = buscarUsuarioPorEmail(email);
         String hash = (u == null || u.getSenhaHash() == null) ? HASH_DE_MENTIRA : u.getSenhaHash();
         boolean senhaConfere = SenhaPolitica.bytes(req.senha()) <= SenhaPolitica.MAX_BYTES
@@ -148,12 +149,12 @@ public class AuthService {
 
     // ---------------------------------------------------------------------------------------------- refresh
 
-    public Sessao refresh(String refreshToken) {
+    public Emitida refresh(String refreshToken) {
         String hash = hashDoToken(refreshToken);
         return contexto.comoSistema(() -> QuarkusTransaction.requiringNew().call(() -> refreshNaTransacao(hash))).obter();
     }
 
-    private Tx<Sessao> refreshNaTransacao(String hash) {
+    private Tx<Emitida> refreshNaTransacao(String hash) {
         TokenRenovacaoEntity t = buscarTokenComTrava(hash);
         if (t == null) {
             return Tx.falha(sessaoInvalida());
@@ -274,10 +275,10 @@ public class AuthService {
 
     // ------------------------------------------------------------------------------------------- internos
 
-    private Sessao montarSessao(UsuarioEntity u, EmpresaEntity e, String papel, boolean admin) {
+    private Emitida montarSessao(UsuarioEntity u, EmpresaEntity e, String papel, boolean admin) {
         String access = jwt.emitir(u, e, papel, admin);
         String refresh = e == null ? null : criarRefreshToken(u, e);
-        return new Sessao(access, refresh, jwt.expiresInSegundos(), resumo(u), resumo(e), papel, admin);
+        return new Emitida(new Sessao(access, jwt.expiresInSegundos(), resumo(u), resumo(e), papel, admin), refresh);
     }
 
     private String criarRefreshToken(UsuarioEntity u, EmpresaEntity e) {

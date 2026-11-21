@@ -62,12 +62,18 @@ public abstract class BaseApiTest {
         return chamar(metodo, caminho, token, corpo).statusCode();
     }
 
+    /** Refresh como o front: sem corpo, cookie + cabecalho anti-CSRF. */
     protected static Response refresh(String refreshToken) {
-        return given().contentType(ContentType.JSON).body(Map.of("refreshToken", refreshToken)).post("/api/auth/refresh");
+        return given().header("X-Requested-With", "emitesimples").cookie("refresh_token", refreshToken).post("/api/auth/refresh");
     }
 
     protected static Response logout(String refreshToken) {
-        return given().contentType(ContentType.JSON).body(Map.of("refreshToken", refreshToken)).post("/api/auth/logout");
+        return given().header("X-Requested-With", "emitesimples").cookie("refresh_token", refreshToken).post("/api/auth/logout");
+    }
+
+    /** Valor do cookie refresh_token da resposta (null se a resposta nao o definiu). */
+    protected static String refreshCookie(Response r) {
+        return r.getCookie("refresh_token");
     }
 
     /** Claims do payload do JWT (sem verificar assinatura: a verificação é feita pelo servidor nas chamadas). */

@@ -51,12 +51,12 @@ Tudo abaixo é escrito à mão (`auth/`, `security/` e `application.properties`)
 | Método e caminho | Acesso | O que faz |
 |---|---|---|
 | `POST /api/auth/login` `{email, senha, empresaId?}` | público | e-mail + senha. 401 genérico para qualquer falha de credencial. Um vínculo ativo em empresa ativa: usa essa. Vários: exige `empresaId` (409 `empresa_obrigatoria` com `detalhes.empresas` = `[{id, razaoSocial, papel}]`). Administrador da plataforma pode entrar sem empresa. |
-| `POST /api/auth/refresh` `{refreshToken}` | público | novo par (rotação). Token já usado ou revogado reapresentado = **reuso**: revoga todos os tokens ativos do usuário naquela empresa e responde 401. |
-| `POST /api/auth/logout` `{refreshToken}` | público | revoga o token (204, idempotente). |
+| `POST /api/auth/refresh` (sem corpo; cookie `refresh_token` + cabeçalho `X-Requested-With: emitesimples`) | público | novo accessToken e **rotação do cookie**. Sem cookie, token inválido/expirado ou **reuso** (token já usado ou revogado reapresentado: revoga todos os tokens ativos do usuário naquela empresa) = 401 `sessao_invalida` e o cookie é apagado. Sem o cabeçalho: 403 `cabecalho_obrigatorio`. |
+| `POST /api/auth/logout` (sem corpo; cookie + cabeçalho `X-Requested-With: emitesimples`) | público | revoga o token do cookie e apaga o cookie (204, idempotente; sem cookie também 204). Sem o cabeçalho: 403. |
 | `GET /api/auth/me` | autenticado | perfil, empresa, papel, `plataformaAdmin`. |
 | `POST /api/auth/senha` `{senhaAtual?, novaSenha}` | autenticado | troca de senha; exige `senhaAtual` correta (403 `senha_atual_invalida`), exceto se o usuário ainda não tem senha. Revoga todos os refresh tokens do usuário. |
 
-Resposta do login/refresh: `{accessToken, refreshToken, expiresIn, usuario{id,nome,email}, empresa{id,razaoSocial,nomeFantasia}|null, papel|null, plataformaAdmin}`.
+Resposta do login/refresh: `{accessToken, expiresIn, usuario{id,nome,email}, empresa{id,razaoSocial,nomeFantasia}|null, papel|null, plataformaAdmin}`.
 Outros códigos: 400 `requisicao_invalida` (com `detalhes.campos[{campo,mensagem}]`) ou `senha_invalida`, 401 `credenciais_invalidas` / `sessao_invalida` / `nao_autenticado`, 403 `acesso_negado`, 404 `nao_encontrado`, 429 `muitas_tentativas` (com `Retry-After`), 500 `erro_interno` (sem pilha nem SQL).
 
 - **Senha:** bcrypt (`BcryptUtil`), de **8 a 72 bytes** em UTF-8 (o bcrypt trunca em 72, então se recusa acima). Nunca vai a log.
@@ -72,8 +72,29 @@ Outros códigos: 400 `requisicao_invalida` (com `detalhes.campos[{campo,mensagem
   O `EscopoTenant` lê `empresa_id` e `plataforma_admin`: não renomeie.
 - **Refresh token:** opaco, 32 bytes aleatórios em Base64URL; no banco só o SHA-256 (hex). Vale 7 dias. Cada token pertence a
   (usuário, empresa). Troca de senha e logout revogam; o access token já emitido continua válido até expirar (até 15 min).
-- **Administrador da plataforma sem empresa não recebe refresh token** (`refreshToken: null`): `TokenRenovacao.empresa` é
+- **Administrador da plataforma sem empresa não recebe refresh token** (sem `Set-Cookie`): `TokenRenovacao.empresa` é
   `not null` na V1 e não se inventa empresa. Ele renova entrando de novo (login). PENDENTE de decisão do usuário.
+
+### Refresh token em cookie httpOnly
+
+O refresh token **nunca** vai no corpo (resposta nem requisição): só em cookie, inacessível ao JavaScript (some o roubo por XSS).
+
+- **Cookie:** `refresh_token=<token opaco>; HttpOnly; SameSite=Strict; Path=/api/auth; Max-Age=604800` (7 dias, `emitesimples.auth.refresh-token-dias`) e
+  `Secure` (padrão ligado; `emitesimples.auth.cookie-secure` / `EMITESIMPLES_COOKIE_SECURE`; desligado nos perfis dev e test, que usam http).
+  Login e refresh definem o cookie (o refresh **rotaciona**: novo valor a cada uso). Logout, troca de senha e todo 401 `sessao_invalida` do refresh
+  o apagam (`Max-Age=0`, mesmos Path/SameSite/HttpOnly/Secure para o navegador aceitar a remoção). Admin da plataforma sem empresa: sem cookie.
+- **Path restrito:** o navegador só envia o cookie para `/api/auth/*` (login, refresh, logout, me, senha); as demais chamadas usam só o Bearer.
+- **CSRF (três camadas):** (1) `SameSite=Strict` (o navegador não envia o cookie em requisição vinda de outro site); (2) refresh e logout só
+  aceitam `POST` e o cookie tem Path restrito; (3) cabeçalho obrigatório `X-Requested-With: emitesimples` em refresh e logout (403
+  `cabecalho_obrigatorio` sem ele, antes de qualquer efeito): um formulário ou `<img>` cross-site não consegue enviá-lo, e um `fetch` cross-site
+  com cabeçalho custom exige preflight CORS, que só passa para as origens configuradas. O front envia o cabeçalho em todas as chamadas.
+- **CORS:** `X-Requested-With` entra em `Access-Control-Allow-Headers` e `Access-Control-Allow-Credentials: true` só vale para as origens
+  explícitas de `EMITESIMPLES_CORS_ORIGINS` (nunca `*`). Com o proxy do Vite (mesma origem) nada disso é exercitado; o front cross-origin
+  precisaria de `credentials: 'include'`.
+- **Riscos que restam:** XSS ainda pode usar a sessão enquanto a aba estiver aberta (chamar o refresh com o cookie do próprio navegador);
+  só deixa de poder **ler/exfiltrar** o token. Em produção o front e a API devem ficar no mesmo site (mesmo domínio registrável) e em HTTPS,
+  senão `SameSite=Strict` e `Secure` quebram o fluxo ou perdem o sentido. Atrás de proxy TLS o `Secure` é só atributo do cookie (o Quarkus não
+  precisa saber que é https), mas o proxy deve repassar o `Set-Cookie` sem alterar. Cookie sem o atributo `Secure` nunca deve existir em produção.
 
 ### Chaves de desenvolvimento
 
@@ -95,6 +116,7 @@ sem administrador, registra um WARN (sem a senha). Depois de criado, troque a se
 | Variável | Padrão | Uso |
 |---|---|---|
 | `EMITESIMPLES_CORS_ORIGINS` | `http://localhost:5173,http://localhost:3000` | origens do front permitidas (CORS) |
+| `EMITESIMPLES_COOKIE_SECURE` | `true` (e `false` em dev e test) | atributo `Secure` do cookie do refresh; só desligue em http puro de desenvolvimento |
 | `EMITESIMPLES_ADMIN_EMAIL`, `EMITESIMPLES_ADMIN_SENHA` | vazias | administrador inicial |
 | `EMITESIMPLES_JWT_PRIVATE_KEY`, `EMITESIMPLES_JWT_PUBLIC_KEY` | `keys/private.pem`, `keys/public.pem` | caminhos das chaves (dev e prod) |
 | `QUARKUS_DATASOURCE_JDBC_URL`, `..._USERNAME`, `..._PASSWORD` | sem padrão | banco (fora de dev/test); usuário = role comum `emitesimples_app` (RLS) |
@@ -108,7 +130,7 @@ tudo é negado (`padrao-negar`), e um endpoint novo sob `/api` nasce **fechado p
 
 | Recurso | GET | POST, PUT, PATCH | DELETE |
 |---|---|---|---|
-| `/api/auth/login`, `refresh`, `logout` | público (só POST) | | |
+| `/api/auth/login`, `refresh`, `logout` | público (só POST; refresh e logout exigem `X-Requested-With: emitesimples`) | | |
 | `/q/health*`, `/q/openapi` | público | | |
 | `Nota`, `Cancelamento`, `ChamadaGateway`, `EventoWebhook`, `FaturaCrm`, `HistoricoSituacaoEmpresa`, `ImportacaoMunicipio` | autenticado (filtrado por empresa) | **negado a todos**, inclusive plat. | negado |
 | `Usuario` (global, sem filtro de empresa) | só plat. | só plat. | negado |

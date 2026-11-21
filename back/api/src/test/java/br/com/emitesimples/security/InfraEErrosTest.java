@@ -62,6 +62,11 @@ class InfraEErrosTest extends BaseApiTest {
         String headers = ok.getHeader("Access-Control-Allow-Headers").toLowerCase();
         assertTrue(headers.contains("authorization") && headers.contains("content-type"), headers);
         assertTrue(ok.getHeader("Access-Control-Allow-Methods").contains("POST"));
+        // o cookie do refresh pode ir em chamada cross-origin das origens configuradas, com o cabecalho anti-CSRF
+        assertEquals("true", ok.getHeader("Access-Control-Allow-Credentials"));
+        Response pre = given().header("Origin", "http://localhost:5173").header("Access-Control-Request-Method", "POST")
+                .header("Access-Control-Request-Headers", "x-requested-with").options("/api/auth/refresh");
+        assertTrue(pre.getHeader("Access-Control-Allow-Headers").toLowerCase().contains("x-requested-with"), pre.getHeaders().toString());
 
         assertEquals("http://localhost:3000", given().header("Origin", "http://localhost:3000")
                 .header("Access-Control-Request-Method", "GET").options("/api/Pessoa").getHeader("Access-Control-Allow-Origin"));
@@ -69,6 +74,7 @@ class InfraEErrosTest extends BaseApiTest {
         Response ruim = given().header("Origin", "http://evil.example")
                 .header("Access-Control-Request-Method", "POST").options("/api/auth/login");
         assertEquals(null, ruim.getHeader("Access-Control-Allow-Origin"), "origem não configurada não pode ser liberada");
+        assertEquals(null, ruim.getHeader("Access-Control-Allow-Credentials"), "origem desconhecida nunca recebe credenciais");
         assertTrue(ruim.statusCode() >= 400, "preflight de origem desconhecida deve falhar; veio " + ruim.statusCode());
     }
 

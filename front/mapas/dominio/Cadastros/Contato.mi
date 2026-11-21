@@ -1,0 +1,180 @@
+[b] Contato
+    @
+        [e] title
+            [e] pt
+                [v] Contato
+            [e] en
+                [v] Contact
+        [e] description
+            [e] pt
+                [v] Contato de uma Pessoa, com tipo, nome, WhatsApp e e-mail. Uma pessoa tem vários. Existe só dentro da pessoa e no mesmo contexto, por isso é detalhe da Pessoa ([m]/[o]).
+                  | Os sócios do QSA da consulta de CNPJ entram como contatos do tipo sócio. O e-mail e o telefone principais ficam na própria Pessoa.
+                  | Vive no contexto cadastros (domain.cadastros) e referencia a Empresa (configuracao) como tenant.
+            [e] en
+                [v] Contact of a Pessoa, with type, name, WhatsApp and email. A person has several. It exists only within the person and in the same context, so it is a detail of Pessoa ([m]/[o]).
+                  | The partners from the CNPJ lookup (QSA) enter as contacts of the partner type. The main email and phone stay on the Pessoa itself.
+                  | Lives in the cadastros context (domain.cadastros) and references Empresa (configuracao) as tenant.
+    [g] identificacao
+        [d] tipoContato: Texto(10)
+            @
+                [e] cn
+                    [v] tipo_contato
+                [e] title
+                    [e] pt
+                        [v] Tipo de Contato
+                    [e] en
+                        [v] Contact Type
+                [e] description
+                    [e] pt
+                        [v] Papel do contato perante a pessoa. Valores propostos pelo modelador (o usuário não os definiu, a confirmar): socio, financeiro, comercial, fiscal e outro. Obrigatório.
+                    [e] en
+                        [v] Role of the contact toward the person. Values proposed by the modeler (the user did not define them, to be confirmed): socio, financeiro, comercial, fiscal and outro. Required.
+                [e] values
+                    [e] socio
+                        [v] socio
+                        [v] Sócio ou administrador (vindo do QSA do CNPJ)
+                    [e] financeiro
+                        [v] financeiro
+                        [v] Contato do financeiro
+                    [e] comercial
+                        [v] comercial
+                        [v] Contato comercial
+                    [e] fiscal
+                        [v] fiscal
+                        [v] Contato fiscal ou contábil
+                    [e] outro
+                        [v] outro
+                        [v] Outro tipo de contato
+                [e] required
+                    [v] true
+        [d] nome: Texto(300)
+            @
+                [e] cn
+                    [v] nome
+                [e] title
+                    [e] pt
+                        [v] Nome do Contato
+                    [e] en
+                        [v] Contact Name
+                [e] description
+                    [e] pt
+                        [v] Nome da pessoa de contato. Acréscimo do modelador, não listado pelo usuário: os sócios do QSA entram como contatos e um contato sem nome não se identifica. Obrigatório.
+                    [e] en
+                        [v] Name of the contact person. Added by the modeler, not listed by the user: QSA partners enter as contacts and a contact without a name cannot be identified. Required.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+    [g] contato
+        [d] whatsapp: Texto(20)
+            @
+                [e] cn
+                    [v] whatsapp
+                [e] title
+                    [e] pt
+                        [v] WhatsApp
+                    [e] en
+                        [v] WhatsApp
+                [e] description
+                    [e] pt
+                        [v] Número de WhatsApp do contato, só números. Opcional.
+                    [e] en
+                        [v] WhatsApp number of the contact, numbers only. Optional.
+        [d] email: Texto(60)
+            @
+                [e] cn
+                    [v] email
+                [e] title
+                    [e] pt
+                        [v] E-mail
+                    [e] en
+                        [v] Email
+                [e] description
+                    [e] pt
+                        [v] E-mail do contato, até 60 caracteres. Opcional.
+                    [e] en
+                        [v] Email of the contact, up to 60 characters. Optional.
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno do contato (UUID).
+                    [e] en
+                        [v] Internal contact identifier (UUID).
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o contato foi cadastrado.
+                    [e] en
+                        [v] Date and time the contact was registered.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true
+    [g] relacionamentos
+        [m] pessoa: Pessoa()
+            @
+                [e] cn
+                    [v] pessoa_id
+                [e] title
+                    [e] pt
+                        [v] Pessoa
+                    [e] en
+                        [v] Person
+                [e] description
+                    [e] pt
+                        [v] Pessoa a quem o contato pertence. Apagar a pessoa apaga seus contatos.
+                    [e] en
+                        [v] Person the contact belongs to. Deleting the person deletes its contacts.
+                [e] required
+                    [v] true
+        [r] empresa: Empresa()
+            @
+                [e] cn
+                    [v] empresa_id
+                [e] title
+                    [e] pt
+                        [v] Empresa
+                    [e] en
+                        [v] Company
+                [e] description
+                    [e] pt
+                        [v] Empresa dona deste contato e tenant do registro. Todo acesso é filtrado por ela.
+                    [e] en
+                        [v] Company that owns this contact and tenant of the record. Every access is filtered by it.
+                [e] required
+                    [v] true
+                [e] tenantKey
+                    [v] true

@@ -98,10 +98,12 @@ class SenhaTest extends BaseApiTest {
         Usr u = dados.usuarioComPapel(empresa, "operador");
         var l1 = login(u.email(), SENHA);
         String access = l1.jsonPath().getString("accessToken");
-        String refreshAntigo = l1.jsonPath().getString("refreshToken");
-        String refreshOutraSessao = login(u.email(), SENHA).jsonPath().getString("refreshToken");
+        String refreshAntigo = refreshCookie(l1);
+        String refreshOutraSessao = refreshCookie(login(u.email(), SENHA));
 
-        chamar("POST", "/api/auth/senha", access, corpo(SENHA, "Nova-Senha-456")).then().statusCode(204);
+        var trocada = chamar("POST", "/api/auth/senha", access, corpo(SENHA, "Nova-Senha-456"));
+        trocada.then().statusCode(204);
+        assertTrue(trocada.getHeader("Set-Cookie").contains("Max-Age=0"), "a troca apaga o cookie do refresh");
 
         login(u.email(), SENHA).then().statusCode(401);
         login(u.email(), "Nova-Senha-456").then().statusCode(200);

@@ -1,0 +1,298 @@
+[b] ImportacaoMunicipio
+    @
+        [e] title
+            [e] pt
+                [v] Importação de municípios
+            [e] en
+                [v] Municipality import
+        [e] description
+            [e] pt
+                [v] Histórico dos envios do arquivo de cidades (CSV do IBGE) feitos pelo administrador da plataforma. É o rastro de quem alterou a tabela de municípios e quando, e guarda o relatório de cada importação (totais e resumo das linhas rejeitadas). Regra da importação, detalhada em docs/carga-municipios.md: atualiza ou insere pelo código IBGE e nunca apaga cidades, pois Pessoa e Empresa as referenciam; linhas inválidas são rejeitadas e relatadas, sem adivinhar.
+                  | Registro da plataforma, não de uma empresa: não tem empresa, não tem tenantKey e não tem ambiente (não depende do gateway). Só o administrador da plataforma envia; essa regra é da aplicação e o mapa não a expressa.
+                  | Vive no contexto cadastros (domain.cadastros) e referencia o Usuario do contexto usuarios, que já referencia configuracao, que por sua vez referencia cadastros. É mais uma volta no ciclo de dependência entre contextos, como a dependência mútua entre configuracao e cadastros: não é erro, pois entre contextos a relação é sempre referência, mas quebra o princípio de modelar do mais independente para o mais dependente.
+            [e] en
+                [v] History of the uploads of the city file (IBGE CSV) made by the platform administrator. It is the trail of who changed the municipality table and when, and holds the report of each import (totals and summary of the rejected lines). Import rule, detailed in docs/carga-municipios.md: it updates or inserts by IBGE code and never deletes cities, since Pessoa and Empresa reference them; invalid lines are rejected and reported, without guessing.
+                  | Platform record, not a company record: it has no company, no tenantKey and no environment (it does not depend on the gateway). Only the platform administrator uploads; that rule belongs to the application and the map does not express it.
+                  | Lives in the cadastros context (domain.cadastros) and references the Usuario of the usuarios context, which already references configuracao, which in turn references cadastros. It is one more turn in the dependency cycle between contexts, like the mutual dependency between configuracao and cadastros: not an error, since between contexts the relation is always a reference, but it breaks the principle of modeling from the most independent to the most dependent.
+    [g] arquivo
+        [d] nomeArquivo: Texto(255)
+            @
+                [e] cn
+                    [v] nome_arquivo
+                [e] title
+                    [e] pt
+                        [v] Nome do arquivo
+                    [e] en
+                        [v] File name
+                [e] description
+                    [e] pt
+                        [v] Nome do arquivo enviado pelo administrador.
+                    [e] en
+                        [v] Name of the file uploaded by the administrator.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+        [d] codificacaoDetectada: Texto(20)
+            @
+                [e] cn
+                    [v] codificacao_detectada
+                [e] title
+                    [e] pt
+                        [v] Codificação detectada
+                    [e] en
+                        [v] Detected encoding
+                [e] description
+                    [e] pt
+                        [v] Codificação que a importação detectou no arquivo, UTF-8 ou Windows-1252. Útil para depurar. Vazia se a importação falhou antes de ler o arquivo.
+                    [e] en
+                        [v] Encoding the import detected in the file, UTF-8 or Windows-1252. Useful for debugging. Empty if the import failed before reading the file.
+        [d] separadorDetectado: Texto(5)
+            @
+                [e] cn
+                    [v] separador_detectado
+                [e] title
+                    [e] pt
+                        [v] Separador detectado
+                    [e] en
+                        [v] Detected separator
+                [e] description
+                    [e] pt
+                        [v] Separador de colunas que a importação detectou no arquivo (ponto e vírgula, vírgula ou tabulação). Útil para depurar. Vazio se a importação falhou antes de ler o arquivo.
+                    [e] en
+                        [v] Column separator the import detected in the file (semicolon, comma or tab). Useful for debugging. Empty if the import failed before reading the file.
+    [g] execucao
+        [d] estado: Texto(23)
+            @
+                [e] cn
+                    [v] estado
+                [e] title
+                    [e] pt
+                        [v] Estado
+                    [e] en
+                        [v] State
+                [e] description
+                    [e] pt
+                        [v] Estado da importação. Ciclo: nasce em em_andamento; termina em concluida (nenhuma linha rejeitada), concluida_com_rejeicoes (terminou, mas ao menos uma linha foi rejeitada) ou falhou (não conseguiu processar o arquivo). Os três últimos são finais e preenchem dataHoraFim.
+                    [e] en
+                        [v] Import state. Cycle: starts at em_andamento; ends at concluida (no rejected line), concluida_com_rejeicoes (finished, but at least one line was rejected) or falhou (could not process the file). The last three are final and fill dataHoraFim.
+                [e] values
+                    [e] em_andamento
+                        [v] em_andamento
+                        [v] Em andamento (estado inicial)
+                    [e] concluida
+                        [v] concluida
+                        [v] Concluída, sem linhas rejeitadas
+                    [e] concluida_com_rejeicoes
+                        [v] concluida_com_rejeicoes
+                        [v] Concluída com linhas rejeitadas
+                    [e] falhou
+                        [v] falhou
+                        [v] Falhou, o arquivo não pôde ser processado
+                [e] defaultValue
+                    [v] em_andamento
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+        [d] dataHoraInicio: DataHora()
+            @
+                [e] cn
+                    [v] data_hora_inicio
+                [e] title
+                    [e] pt
+                        [v] Início
+                    [e] en
+                        [v] Start
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que a importação começou.
+                    [e] en
+                        [v] Date and time the import started.
+                [e] required
+                    [v] true
+        [d] dataHoraFim: DataHora()
+            @
+                [e] cn
+                    [v] data_hora_fim
+                [e] title
+                    [e] pt
+                        [v] Fim
+                    [e] en
+                        [v] End
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que a importação terminou, com sucesso ou falha. Vazia enquanto em_andamento.
+                    [e] en
+                        [v] Date and time the import ended, in success or failure. Empty while em_andamento.
+    [g] relatorio
+        [d] linhasLidas: Inteiro(9)
+            @
+                [e] cn
+                    [v] linhas_lidas
+                [e] title
+                    [e] pt
+                        [v] Linhas lidas
+                    [e] en
+                        [v] Lines read
+                [e] description
+                    [e] pt
+                        [v] Total de linhas de dados lidas do arquivo (sem o cabeçalho). Deve ser igual à soma de inseridas, atualizadas, iguais e rejeitadas.
+                    [e] en
+                        [v] Total data lines read from the file (without the header). Must equal the sum of inserted, updated, same and rejected.
+                [e] defaultValue
+                    [v] 0
+                [e] required
+                    [v] true
+        [d] linhasInseridas: Inteiro(9)
+            @
+                [e] cn
+                    [v] linhas_inseridas
+                [e] title
+                    [e] pt
+                        [v] Linhas inseridas
+                    [e] en
+                        [v] Lines inserted
+                [e] description
+                    [e] pt
+                        [v] Quantidade de cidades novas, cujo código IBGE ainda não existia na tabela.
+                    [e] en
+                        [v] Number of new cities, whose IBGE code did not yet exist in the table.
+                [e] defaultValue
+                    [v] 0
+                [e] required
+                    [v] true
+        [d] linhasAtualizadas: Inteiro(9)
+            @
+                [e] cn
+                    [v] linhas_atualizadas
+                [e] title
+                    [e] pt
+                        [v] Linhas atualizadas
+                    [e] en
+                        [v] Lines updated
+                [e] description
+                    [e] pt
+                        [v] Quantidade de cidades existentes cujo nome ou UF mudou.
+                    [e] en
+                        [v] Number of existing cities whose name or state changed.
+                [e] defaultValue
+                    [v] 0
+                [e] required
+                    [v] true
+        [d] linhasIguais: Inteiro(9)
+            @
+                [e] cn
+                    [v] linhas_iguais
+                [e] title
+                    [e] pt
+                        [v] Linhas iguais
+                    [e] en
+                        [v] Unchanged lines
+                [e] description
+                    [e] pt
+                        [v] Quantidade de cidades existentes que já estavam idênticas ao arquivo, sem alteração.
+                    [e] en
+                        [v] Number of existing cities already identical to the file, left unchanged.
+                [e] defaultValue
+                    [v] 0
+                [e] required
+                    [v] true
+        [d] linhasRejeitadas: Inteiro(9)
+            @
+                [e] cn
+                    [v] linhas_rejeitadas
+                [e] title
+                    [e] pt
+                        [v] Linhas rejeitadas
+                    [e] en
+                        [v] Rejected lines
+                [e] description
+                    [e] pt
+                        [v] Quantidade de linhas rejeitadas (código fora do padrão, UF inválida, nome vazio ou código repetido no arquivo).
+                    [e] en
+                        [v] Number of rejected lines (code out of pattern, invalid state, empty name or code repeated in the file).
+                [e] defaultValue
+                    [v] 0
+                [e] required
+                    [v] true
+        [d] resumoRejeicoes: Texto(4000)
+            @
+                [e] cn
+                    [v] resumo_rejeicoes
+                [e] title
+                    [e] pt
+                        [v] Resumo das rejeições
+                    [e] en
+                        [v] Rejection summary
+                [e] description
+                    [e] pt
+                        [v] Resumo em texto das linhas rejeitadas, com o número da linha e o motivo de cada uma. O detalhe completo pode ser truncado para caber no limite; os totais ficam sempre exatos em linhasRejeitadas.
+                    [e] en
+                        [v] Text summary of the rejected lines, with the line number and reason of each. The full detail may be truncated to fit the limit; the totals always stay exact in linhasRejeitadas.
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno da importação (UUID).
+                    [e] en
+                        [v] Internal import identifier (UUID).
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o registro foi criado no sistema.
+                    [e] en
+                        [v] Date and time the record was created in the system.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true
+    [g] relacionamentos
+        [r] usuario: Usuario()
+            @
+                [e] cn
+                    [v] usuario_id
+                [e] title
+                    [e] pt
+                        [v] Usuário
+                    [e] en
+                        [v] User
+                [e] description
+                    [e] pt
+                        [v] Administrador da plataforma que enviou o arquivo. O Usuario é global, sem tenant. Só o administrador da plataforma envia; a regra é da aplicação e o mapa não a expressa.
+                    [e] en
+                        [v] Platform administrator who uploaded the file. Usuario is global, with no tenant. Only the platform administrator uploads; the rule belongs to the application and the map does not express it.
+                [e] required
+                    [v] true

@@ -31,7 +31,7 @@ class RefreshTest extends BaseApiTest {
     EntityManager em;
 
     private String refreshDoLogin(Usr u) {
-        return login(u.email(), SENHA).jsonPath().getString("refreshToken");
+        return refreshCookie(login(u.email(), SENHA));
     }
 
     @Test
@@ -44,7 +44,7 @@ class RefreshTest extends BaseApiTest {
         resp.then().statusCode(200)
                 .body("accessToken", notNullValue()).body("expiresIn", equalTo(900))
                 .body("empresa.id", equalTo(empresa)).body("papel", equalTo("operador"));
-        String r2 = resp.jsonPath().getString("refreshToken");
+        String r2 = refreshCookie(resp);
         assertNotEquals(r1, r2);
 
         // o novo access token funciona
@@ -67,7 +67,7 @@ class RefreshTest extends BaseApiTest {
         String empresa = dados.empresaAtiva();
         Usr u = dados.usuarioComPapel(empresa, "operador");
         String r1 = refreshDoLogin(u);
-        String r2 = refresh(r1).jsonPath().getString("refreshToken");
+        String r2 = refreshCookie(refresh(r1));
         String outraSessao = refreshDoLogin(u); // segunda sessão do MESMO usuário e empresa, também ativa
 
         // o atacante reapresenta r1 (já usado)
@@ -91,8 +91,8 @@ class RefreshTest extends BaseApiTest {
         Usr u = dados.usuario(true, false);
         dados.vincular(u.id(), a, "operador", true);
         dados.vincular(u.id(), b, "operador", true);
-        String ra = login(u.email(), SENHA, a).jsonPath().getString("refreshToken");
-        String rb = login(u.email(), SENHA, b).jsonPath().getString("refreshToken");
+        String ra = refreshCookie(login(u.email(), SENHA, a));
+        String rb = refreshCookie(login(u.email(), SENHA, b));
         refresh(ra).then().statusCode(200);
         refresh(ra).then().statusCode(401); // reuso na empresa A
         refresh(rb).then().statusCode(200); // a sessão da empresa B segue válida (revoga "usuário e empresa")
@@ -120,8 +120,9 @@ class RefreshTest extends BaseApiTest {
     void tokenInexistenteOuLixoDa401() {
         refresh("token-que-nao-existe-" + System.nanoTime()).then().statusCode(401).body("codigo", equalTo("sessao_invalida"));
         refresh("a".repeat(43)).then().statusCode(401);
-        io.restassured.RestAssured.given().contentType("application/json").body("{}").post("/api/auth/refresh")
-                .then().statusCode(400);
+        // sem cookie: 401 sessao_invalida (e o cookie e apagado)
+        io.restassured.RestAssured.given().header("X-Requested-With", "emitesimples").post("/api/auth/refresh")
+                .then().statusCode(401).body("codigo", equalTo("sessao_invalida"));
     }
 
     @Test

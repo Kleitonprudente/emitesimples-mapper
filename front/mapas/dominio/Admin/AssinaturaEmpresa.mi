@@ -1,0 +1,189 @@
+[b] AssinaturaEmpresa
+    @
+        [e] title
+            [e] pt
+                [v] Assinatura da Empresa
+            [e] en
+                [v] Company Subscription
+        [e] description
+            [e] pt
+                [v] Vínculo de uma empresa a um plano, feito pelo suporte. Não tem ambiente: herda a situação da empresa.
+                  | Regra da aplicação (o mapa não a expressa, e o banco a reforça com índice parcial): no máximo UMA assinatura ativa por empresa. Trocar de plano encerra a assinatura anterior (preenche dataFim) e cria outra; nada é apagado.
+                  | A cobrança é do CRM: a assinatura é enviada ao CRM, e a referenciaCrm guarda o id dela lá.
+            [e] en
+                [v] Link of a company to a plan, made by support. It has no environment: it inherits the company situation.
+                  | Application rule (the map does not express it, and the database enforces it with a partial index): at most ONE active subscription per company. Changing plan ends the previous subscription (fills dataFim) and creates another; nothing is deleted.
+                  | Billing is done by the CRM: the subscription is sent to the CRM, and referenciaCrm keeps its id there.
+    [g] assinatura
+        [d] estado: Texto(10)
+            @
+                [e] cn
+                    [v] estado
+                [e] title
+                    [e] pt
+                        [v] Estado
+                    [e] en
+                        [v] State
+                [e] description
+                    [e] pt
+                        [v] Estado da assinatura. Só uma pode estar ativa por empresa.
+                    [e] en
+                        [v] Subscription state. Only one may be active per company.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+                [e] defaultValue
+                    [v] ativa
+                [e] values
+                    [e] ativa
+                        [v] ativa
+                        [v] Em vigor, padrão
+                    [e] suspensa
+                        [v] suspensa
+                        [v] Suspensa temporariamente
+                    [e] cancelada
+                        [v] cancelada
+                        [v] Encerrada
+        [d] dataInicio: Data()
+            @
+                [e] cn
+                    [v] data_inicio
+                [e] title
+                    [e] pt
+                        [v] Data de Início
+                    [e] en
+                        [v] Start Date
+                [e] description
+                    [e] pt
+                        [v] Data em que a assinatura passa a valer.
+                    [e] en
+                        [v] Date the subscription takes effect.
+                [e] required
+                    [v] true
+        [d] dataFim: Data()
+            @
+                [e] cn
+                    [v] data_fim
+                [e] title
+                    [e] pt
+                        [v] Data de Fim
+                    [e] en
+                        [v] End Date
+                [e] description
+                    [e] pt
+                        [v] Data em que a assinatura foi encerrada, por exemplo na troca de plano. Vazia enquanto em vigor.
+                    [e] en
+                        [v] Date the subscription ended, for example on a plan change. Empty while in force.
+        [d] referenciaCrm: Texto(50)
+            @
+                [e] cn
+                    [v] referencia_crm
+                [e] title
+                    [e] pt
+                        [v] Referência no CRM
+                    [e] en
+                        [v] CRM Reference
+                [e] description
+                    [e] pt
+                        [v] Identificador desta assinatura no CRM. Opcional, preenchido depois do envio ao CRM.
+                    [e] en
+                        [v] Identifier of this subscription in the CRM. Optional, filled after it is sent to the CRM.
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno do registro (UUID).
+                    [e] en
+                        [v] Internal record identifier (UUID).
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o registro foi gravado.
+                    [e] en
+                        [v] Date and time the record was stored.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true
+    [g] relacionamentos
+        [r] empresa: Empresa()
+            @
+                [e] cn
+                    [v] empresa_id
+                [e] title
+                    [e] pt
+                        [v] Empresa
+                    [e] en
+                        [v] Company
+                [e] description
+                    [e] pt
+                        [v] Empresa assinante e tenant do registro. Todo acesso é filtrado por ela.
+                    [e] en
+                        [v] Subscribing company and tenant of the record. Every access is filtered by it.
+                [e] required
+                    [v] true
+                [e] tenantKey
+                    [v] true
+        [r] plano: Plano()
+            @
+                [e] cn
+                    [v] plano_id
+                [e] title
+                    [e] pt
+                        [v] Plano
+                    [e] en
+                        [v] Plan
+                [e] description
+                    [e] pt
+                        [v] Plano contratado.
+                    [e] en
+                        [v] Contracted plan.
+                [e] required
+                    [v] true
+        [r] vinculadaPor: Usuario()
+            @
+                [e] cn
+                    [v] vinculada_por_id
+                [e] title
+                    [e] pt
+                        [v] Vinculada por
+                    [e] en
+                        [v] Linked by
+                [e] description
+                    [e] pt
+                        [v] Usuário do suporte que vinculou o plano à empresa. Opcional.
+                    [e] en
+                        [v] Support user who linked the plan to the company. Optional.

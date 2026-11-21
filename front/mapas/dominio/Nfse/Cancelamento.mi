@@ -1,0 +1,374 @@
+[b] Cancelamento
+    @
+        [e] title
+            [e] pt
+                [v] Cancelamento
+            [e] en
+                [v] Cancellation
+        [e] description
+            [e] pt
+                [v] Pedido de cancelamento de uma Nota, com o evento e o retorno do gateway (XML e PDF). Só se cancela nota autorizada,
+                  | caso contrário o gateway devolve 5013. Nota já cancelada devolve 5015, tratado como sucesso idempotente.
+                  | Existe só dentro de uma nota e no mesmo contexto, por isso é detalhe da Nota ([m]/[o]).
+                  | Prazos e regras de cancelamento por município não estão documentados e não são validados no modelo.
+                  | Cancelar exige confirmação humana: um agente só PEDE (aguardando_aprovacao) e uma pessoa com o scope de cancelar (papel administrador) aprova, e só então o sistema envia ao gateway.
+                  | Vive no contexto nfse (domain.nfse). Depende do contexto usuarios (Usuario e ClienteAcesso) para o rastro; usuarios depende só de cadastros e configuracao, não há ciclo.
+            [e] en
+                [v] Cancellation request of a Nota, with the event and the gateway return (XML and PDF). Only an authorized note can be canceled,
+                  | otherwise the gateway returns 5013. An already canceled note returns 5015, treated as idempotent success.
+                  | It exists only within a note and in the same context, so it is a detail of Nota ([m]/[o]).
+                  | Deadlines and rules per municipality are not documented and are not validated in the model.
+                  | Cancelling requires human confirmation: an agent only REQUESTS (aguardando_aprovacao) and a person with the cancel scope (role administrador) approves, and only then does the system send it to the gateway.
+                  | Lives in the nfse context (domain.nfse). Depends on the usuarios context (Usuario and ClienteAcesso) for the trail; usuarios depends only on cadastros and configuracao, so there is no cycle.
+    [g] pedido
+        [d] codigoMotivo: Inteiro(1)
+            @
+                [e] cn
+                    [v] codigo_motivo
+                [e] title
+                    [e] pt
+                        [v] Código do Motivo
+                    [e] en
+                        [v] Reason Code
+                [e] description
+                    [e] pt
+                        [v] Código do motivo do cancelamento (campo codigo_cancelamento do envio).
+                    [e] en
+                        [v] Cancellation reason code (the codigo_cancelamento field of the submission).
+                [e] required
+                    [v] true
+                [e] values
+                    [e] erroEmissao
+                        [v] 1
+                        [v] Erro de Emissão
+                    [e] servicoNaoConcluido
+                        [v] 2
+                        [v] Serviço não concluído
+                    [e] outros
+                        [v] 9
+                        [v] Outros
+        [d] motivo: Texto(255)
+            @
+                [e] cn
+                    [v] motivo
+                [e] title
+                    [e] pt
+                        [v] Motivo
+                    [e] en
+                        [v] Reason
+                [e] description
+                    [e] pt
+                        [v] Motivo do cancelamento em texto, de 15 a 255 caracteres (campo motivo_cancelamento do envio).
+                    [e] en
+                        [v] Cancellation reason in text, 15 to 255 characters (the motivo_cancelamento field of the submission).
+                [e] required
+                    [v] true
+    [g] aprovacao
+        [d] dataHoraAprovacao: DataHora()
+            @
+                [e] cn
+                    [v] data_hora_aprovacao
+                [e] title
+                    [e] pt
+                        [v] Data e Hora da Aprovação
+                    [e] en
+                        [v] Approval Date and Time
+                [e] description
+                    [e] pt
+                        [v] Momento em que uma pessoa aprovou o pedido e o sistema o enviou ao gateway. Vazia enquanto aguarda aprovação e em pedido recusado.
+                    [e] en
+                        [v] Moment a person approved the request and the system sent it to the gateway. Empty while awaiting approval and on a refused request.
+        [d] dataHoraRecusa: DataHora()
+            @
+                [e] cn
+                    [v] data_hora_recusa
+                [e] title
+                    [e] pt
+                        [v] Data e Hora da Recusa
+                    [e] en
+                        [v] Refusal Date and Time
+                [e] description
+                    [e] pt
+                        [v] Momento em que uma pessoa recusou o pedido. Preenchida só no estado recusado.
+                    [e] en
+                        [v] Moment a person refused the request. Filled only in the refused state.
+    [g] retorno
+        [d] estado: Texto(25)
+            @
+                [e] cn
+                    [v] estado
+                [e] title
+                    [e] pt
+                        [v] Estado do Pedido
+                    [e] en
+                        [v] Request State
+                [e] description
+                    [e] pt
+                        [v] Estado do pedido, na ordem: aguardando_aprovacao, recusado, solicitado, cancelado, rejeitado.
+                          | Nasce aguardando_aprovacao: o pedido foi preparado e ainda não foi ao gateway. Só nesse estado pode ser aprovado ou recusado, e só a aprovação de um usuário o envia ao gateway (vira solicitado).
+                          | Recusado é o pedido recusado por uma pessoa; nunca foi enviado. Solicitado é o pedido aprovado e enviado, aguardando o retorno.
+                          | Vira cancelado com o código 101 (ou 5015) e rejeitado nas falhas. Quando cancelado, a Nota passa ao estado cancelada. Só se cancela nota autorizada.
+                    [e] en
+                        [v] Request state, in order: aguardando_aprovacao, recusado, solicitado, cancelado, rejeitado.
+                          | Born aguardando_aprovacao: the request was prepared and has not gone to the gateway. Only in this state can it be approved or refused, and only a user's approval sends it to the gateway (becomes solicitado).
+                          | Recusado is the request refused by a person; it was never sent. Solicitado is the request approved and sent, awaiting the return.
+                          | Becomes cancelado with code 101 (or 5015) and rejeitado on failures. When canceled, the Nota moves to the canceled state. Only an authorized note can be canceled.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+                [e] defaultValue
+                    [v] aguardando_aprovacao
+                [e] values
+                    [e] aguardando_aprovacao
+                        [v] aguardando_aprovacao
+                        [v] Aguardando aprovação
+                    [e] recusado
+                        [v] recusado
+                        [v] Recusado
+                    [e] solicitado
+                        [v] solicitado
+                        [v] Solicitado
+                    [e] cancelado
+                        [v] cancelado
+                        [v] Cancelado
+                    [e] rejeitado
+                        [v] rejeitado
+                        [v] Rejeitado
+        [d] codigoRetorno: Inteiro(4)
+            @
+                [e] cn
+                    [v] codigo_retorno
+                [e] title
+                    [e] pt
+                        [v] Código de Retorno
+                    [e] en
+                        [v] Return Code
+                [e] description
+                    [e] pt
+                        [v] Código de retorno do gateway (101 homologado, 5013, 5015...).
+                    [e] en
+                        [v] Gateway return code (101 approved, 5013, 5015...).
+        [d] mensagemRetorno: Texto(500)
+            @
+                [e] cn
+                    [v] mensagem_retorno
+                [e] title
+                    [e] pt
+                        [v] Mensagem de Retorno
+                    [e] en
+                        [v] Return Message
+                [e] description
+                    [e] pt
+                        [v] Mensagem de retorno do gateway. Informativa, não se decide por ela.
+                    [e] en
+                        [v] Gateway return message. Informative, never decide by it.
+        [d] dataHoraEvento: DataHora()
+            @
+                [e] cn
+                    [v] data_hora_evento
+                [e] title
+                    [e] pt
+                        [v] Data e Hora do Evento
+                    [e] en
+                        [v] Event Date and Time
+                [e] description
+                    [e] pt
+                        [v] Data e hora do evento de cancelamento devolvida pelo gateway, formato AAAA-MM-DD HH:MM:SS sem fuso. Nula até o retorno.
+                    [e] en
+                        [v] Date and time of the cancellation event returned by the gateway, format YYYY-MM-DD HH:MM:SS without time zone. Null until the return.
+        [d] xml: Binario(2097152)
+            @
+                [e] cn
+                    [v] xml
+                [e] title
+                    [e] pt
+                        [v] XML
+                    [e] en
+                        [v] XML
+                [e] description
+                    [e] pt
+                        [v] XML do evento de cancelamento, decodificado do Base64, com limite explícito de 2 MiB. Documento fiscal, precisa ser retido.
+                    [e] en
+                        [v] Cancellation event XML, decoded from Base64, with an explicit 2 MiB limit. Tax document, must be retained.
+        [d] pdf: Binario(2097152)
+            @
+                [e] cn
+                    [v] pdf
+                [e] title
+                    [e] pt
+                        [v] PDF
+                    [e] en
+                        [v] PDF
+                [e] description
+                    [e] pt
+                        [v] PDF do cancelamento, decodificado do Base64, com limite explícito de 2 MiB.
+                    [e] en
+                        [v] Cancellation PDF, decoded from Base64, with an explicit 2 MiB limit.
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno do cancelamento (UUID).
+                    [e] en
+                        [v] Internal cancellation identifier (UUID).
+                [e] required
+                    [v] true
+        [d] ambiente: Texto(15)
+            @
+                [e] cn
+                    [v] ambiente
+                [e] title
+                    [e] pt
+                        [v] Ambiente
+                    [e] en
+                        [v] Environment
+                [e] description
+                    [e] pt
+                        [v] Ambiente do gateway, o mesmo da nota cancelada.
+                    [e] en
+                        [v] Gateway environment, the same as the canceled note.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+                [e] defaultValue
+                    [v] homologacao
+                [e] values
+                    [e] homologacao
+                        [v] homologacao
+                        [v] Homologação, ambiente de testes
+                    [e] producao
+                        [v] producao
+                        [v] Produção, ambiente real
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o pedido foi registrado.
+                    [e] en
+                        [v] Date and time the request was registered.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true
+    [g] relacionamentos
+        [r] empresa: Empresa()
+            @
+                [e] cn
+                    [v] empresa_id
+                [e] title
+                    [e] pt
+                        [v] Empresa
+                    [e] en
+                        [v] Company
+                [e] description
+                    [e] pt
+                        [v] Empresa dona deste cancelamento e tenant do registro. Todo acesso é filtrado por ela.
+                    [e] en
+                        [v] Company that owns this cancellation and tenant of the record. Every access is filtered by it.
+                [e] required
+                    [v] true
+                [e] tenantKey
+                    [v] true
+        [r] preparadoPorUsuario: Usuario()
+            @
+                [e] cn
+                    [v] preparado_por_usuario_id
+                [e] title
+                    [e] pt
+                        [v] Preparado por Usuário
+                    [e] en
+                        [v] Prepared by User
+                [e] description
+                    [e] pt
+                        [v] Pessoa que preparou o pedido. Regra que o mapa não expressa: preencher este campo OU preparadoPorCliente, no máximo um dos dois, e exatamente um deles na criação.
+                    [e] en
+                        [v] Person who prepared the request. Rule the map cannot express: fill this field OR preparadoPorCliente, at most one of the two, and exactly one at creation.
+        [r] preparadoPorCliente: ClienteAcesso()
+            @
+                [e] cn
+                    [v] preparado_por_cliente_id
+                [e] title
+                    [e] pt
+                        [v] Preparado por Cliente de Acesso
+                    [e] en
+                        [v] Prepared by Access Client
+                [e] description
+                    [e] pt
+                        [v] Agente (credencial de máquina, por exemplo o MCP) que preparou o pedido. Regra que o mapa não expressa: preencher este campo OU preparadoPorUsuario, no máximo um dos dois.
+                    [e] en
+                        [v] Agent (machine credential, for example the MCP) that prepared the request. Rule the map cannot express: fill this field OR preparadoPorUsuario, at most one of the two.
+        [r] aprovadoPor: Usuario()
+            @
+                [e] cn
+                    [v] aprovado_por_id
+                [e] title
+                    [e] pt
+                        [v] Aprovado por
+                    [e] en
+                        [v] Approved by
+                [e] description
+                    [e] pt
+                        [v] Pessoa que aprovou o envio do cancelamento ao gateway. Só uma PESSOA aprova, nunca um ClienteAcesso, e só quem tem o scope de cancelar na empresa (vínculo ativo com papel administrador; o operador emite mas não cancela). Vazio enquanto aguarda aprovação e em pedido recusado.
+                    [e] en
+                        [v] Person who approved sending the cancellation to the gateway. Only a PERSON approves, never a ClienteAcesso, and only someone with the cancel scope on the company (active link with role administrador; operador issues but cannot cancel). Empty while awaiting approval and on a refused request.
+        [r] recusadoPor: Usuario()
+            @
+                [e] cn
+                    [v] recusado_por_id
+                [e] title
+                    [e] pt
+                        [v] Recusado por
+                    [e] en
+                        [v] Refused by
+                [e] description
+                    [e] pt
+                        [v] Pessoa que recusou o pedido, com o mesmo scope de cancelar exigido para aprovar. Preenchido só no estado recusado.
+                    [e] en
+                        [v] Person who refused the request, with the same cancel scope required to approve. Filled only in the refused state.
+        [m] nota: Nota()
+            @
+                [e] cn
+                    [v] nota_id
+                [e] title
+                    [e] pt
+                        [v] Nota
+                    [e] en
+                        [v] Invoice
+                [e] description
+                    [e] pt
+                        [v] Nota cancelada, que deve estar autorizada. A chave do pedido é a da nota.
+                    [e] en
+                        [v] Canceled note, which must be authorized. The request key is the note key.
+                [e] required
+                    [v] true
