@@ -4,7 +4,7 @@ Tier B. Fontes principais: `docs/integranotas-nfse-v2.md` (NFS-e: envio v2, cons
 `docs/integranotas-softhouse.md` (cadastro de emitente e certificado digital), colados pelo usuário em 2026-11-20.
 
 ## Decisões do usuário (2026-11-20)
-- Pacote base `br.com.emitesimples`. Nome do projeto no CLI: `emitesimples`. Pasta dos mapas: `mapas/`.
+- Pacote base `br.com.emitesimples`. Nome do projeto no CLI: `emitesimples`. Pasta dos mapas: `back/mapas/`.
 - **Renomeado em 2026-11-20 (pedido do usuário)**: `Emitente` → `Empresa` (no novo contexto `configuracao`), `Tomador` →
   `Pessoa`; contextos `cadastro` → `cadastros`, `acesso` → `usuarios`, `emissao` → `nfse`, `integracao` → `integranotas`. O IntegraNotas continua
   dizendo "emitente" nas rotas e na documentação: no mapa o termo é `Empresa`; nos docs e neste resumo da API, "emitente" é

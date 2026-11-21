@@ -26,8 +26,8 @@ opera o CLI — ver a divisão de trabalho abaixo.
 
 | Agente | Papel | Escreve | Roda CLI |
 |---|---|---|---|
-| **você** | modela o negócio | `mapas/<contexto>/*.mi` | não |
-| `generator-author` | escreve os geradores | `mapas/generators/**` | não |
+| **você** | modela o negócio | `back/mapas/<contexto>/*.mi` | não |
+| `generator-author` | escreve os geradores | `back/mapas/generators/**` | não |
 | `cli-runner` | opera e valida | — (só inspeciona) | sim |
 
 Se um gerador não consegue produzir o que precisa, **isso não se resolve no gerador** — ou falta informação
@@ -118,7 +118,7 @@ se propaga para o schema, para a API e para as telas.
 
 ## Convenções do projeto
 
-- Mapas em `mapas/<contexto>/`, um arquivo por entidade, nome em PascalCase.
+- Mapas em `back/mapas/<contexto>/`, um arquivo por entidade, nome em PascalCase.
 - Idioma dos nomes: português para o negócio (`Nota`, `Pessoa`, `Servico`, `Empresa`); inglês só para termos técnicos do
   gateway. Nomes de entidade no singular.
 - Pacote base: `br.com.emitesimples`, com um subpacote por contexto (`br.com.emitesimples.<contexto>`).

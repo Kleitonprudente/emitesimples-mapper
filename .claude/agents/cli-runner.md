@@ -104,4 +104,4 @@ reporte:
 
 ## Referência do projeto
 
-Projeto `emitesimples`, mapa principal `mapas/main.mi`, pacotes `br.com.emitesimples.<contexto>`.
+Projeto `emitesimples`, mapa principal `back/mapas/main.mi`, pacotes `br.com.emitesimples.<contexto>`.

@@ -2,8 +2,8 @@
 
 Tier B. Fatos verificados em 2026-11-20.
 
-- Projeto no CLI: `emitesimples`. **Inicializado e enviado em 2026-11-20**: `mi init` em `mapas/` (a home do projeto), `push` autorizado pelo usuário. A escada check, load, compile dos 8 sub-geradores, struct e generate passou para `Municipio` e `CurrentSchema`, sem `EMI`. Todo novo `push` ainda publica na nuvem: avise.
-  Mapa principal: `mapas/main.mi` (existe). 12 entidades em 5 contextos sob `domain`: configuracao (Empresa),
+- Projeto no CLI: `emitesimples`. **Inicializado e enviado em 2026-11-20**: `mi init` em `back/mapas/` (a home do projeto), `push` autorizado pelo usuário. A escada check, load, compile dos 8 sub-geradores, struct e generate passou para `Municipio` e `CurrentSchema`, sem `EMI`. Todo novo `push` ainda publica na nuvem: avise.
+  Mapa principal: `back/mapas/main.mi` (existe). 12 entidades em 5 contextos sob `domain`: configuracao (Empresa),
   cadastros (Municipio, Pessoa, Servico), usuarios (Usuario, VinculoUsuario, ClienteAcesso, TokenRenovacao), nfse (Nota,
   Cancelamento), integranotas (ChamadaGateway, EventoWebhook). Renomeado em 2026-11-20 (era Emitente/Tomador e os
   contextos cadastro/emissao/integracao/acesso); a nuvem só reflete o renome depois de um novo `push`.
@@ -22,6 +22,11 @@ Tier B. Fatos verificados em 2026-11-20.
   `generate` não pegam (ex.: parâmetros duplicados `<relação><Campo>`). Para rodar o Maven sem mexer no PATH do Windows:
   `export JAVA_HOME="/c/Program Files/Java/jdk-25.0.5.1"; export PATH="$JAVA_HOME/bin:/c/Program Files/apache-maven/apache-maven-3.10.1/bin:$PATH"`.
   Se o `clean` falhar com "Failed to delete target\classes", é lock de processo: apague `target/` e rode sem `clean`.
+- **Mover a pasta do projeto (2026-11-21)**: `mapas/` foi movida para `back/mapas/` (a home do projeto `emitesimples` no CLI;
+  o front virá em `front/mapas/`, projeto separado). O config guarda a home como caminho ABSOLUTO. O `mi init emitesimples
+  main.mi` rodado na nova pasta atualiza `mainMindMapHome`, mas **APAGA `lastPush`** (a ligação com a nuvem): depois dele
+  `struct` e `generate` falham com "not pushed to mapperidea cloud", e `check` e `load` ainda imprimem sucesso (não provam
+  nada). A volta exige um `mi push` (precisa de autorização do usuário). Antes de re-registrar qualquer projeto, avise isso.
 - **Banco de teste (2026-11-21)**: o Flyway é o dono do esquema do `emitesimples-api` (V1 emitida pelo Hibernate e congelada, V2
   com unicidades e índices; o Hibernate só valida, `quarkus.hibernate-orm.schema-management.strategy=validate`). Para provar,
   suba um PostgreSQL descartável: `docker run -d --name emitesimples-pg-test -e POSTGRES_USER=emitesimples -e

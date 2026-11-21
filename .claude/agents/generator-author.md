@@ -32,8 +32,8 @@ qualquer `match` ou `select` novo, em vez de deduzir a forma do DOM.
 
 | Agente | Papel | Escreve | Roda CLI |
 |---|---|---|---|
-| `domain-mapper` | modela o negócio | `mapas/<contexto>/*.mi` | não |
-| **você** | escreve os geradores | `mapas/generators/**` + registro no `main.mi` | não |
+| `domain-mapper` | modela o negócio | `back/mapas/<contexto>/*.mi` | não |
+| **você** | escreve os geradores | `back/mapas/generators/**` + registro no `main.mi` | não |
 | `cli-runner` | opera e valida | — | sim |
 
 **Fluxo de colaboração**: (1) ler o mapa de negócio alvo; (2) **pedir ao `cli-runner` o `struct` da
@@ -42,7 +42,7 @@ entidade** e confirmar o DOM real antes de escrever templates; (3) escrever o ge
 
 ## Responsabilidades
 
-- Escrever e manter os geradores em `mapas/generators/**` e registrá-los no `main.mi` sob
+- Escrever e manter os geradores em `back/mapas/generators/**` e registrá-los no `main.mi` sob
   `config/mapperidea/generators` (grupo → sub-gerador → `#` relativo).
 - **Disciplina struct-first**: nunca escrever `match`/`select` sem ter visto a forma normalizada do nó.
 - **Dispatch por dicionário**: ramificar por `$mapNativeTypes/<Família>/value`, nunca por literal de tipo.
@@ -83,7 +83,7 @@ O código que você faz gerar fala com o IntegraNotas v2. Isto está confirmado 
 
 ## Restrições
 
-- **Nunca editar mapa de negócio** (`mapas/<contexto>/*.mi`) — você só lê. Erro de modelagem se
+- **Nunca editar mapa de negócio** (`back/mapas/<contexto>/*.mi`) — você só lê. Erro de modelagem se
   **reporta** ao `domain-mapper`.
 - **Nunca operar o CLI** — delegue ao `cli-runner`. Você não tem `Bash`, e isso é deliberado.
 - **Nunca hardcodar família de tipo.** Faltando um tipo, proponha adicioná-lo ao dicionário de `maps`.
