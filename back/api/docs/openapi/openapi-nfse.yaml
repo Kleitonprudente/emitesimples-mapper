@@ -1,0 +1,4499 @@
+swagger: '2.0'
+info:
+  version: v1
+  title: Emitesimples API NFS-e
+  description: Contexto que depende de configuracao, cadastros e usuarios, com Nota e Cancelamento. Entre contextos a relação é sempre referência.
+host: localhost:8080
+securityDefinitions:
+  nfse_auth:
+    type: oauth2
+    tokenUrl: http://localhost:8080/token
+    flow: application
+    scopes:
+      write: Permite modificar entidades na sua conta.
+      read: Permite ler entidades na sua conta.
+security:
+  - nfse_auth:
+    - write
+    - read
+schemes:
+  - https
+basePath: /nfse
+tags:
+- name: Nota
+  description: |
+            NFS-e da empresa e o seu ciclo de vida. Nasce como rascunho, preparado por um 
+            agente ou por uma pessoa, e só vai ao gateway depois da aprovação de uma pessoa. 
+            Aprovada e enviada, fica em processamento: o envio devolve o código 5023 com a 
+            chave e só depois vem a autorização.
+             Vive no contexto nfse (domain.nfse). Depende de configuracao (Empresa), de 
+            cadastros (Pessoa e Servico) e de usuarios (Usuario e ClienteAcesso) para o 
+            rastro de quem preparou, aprovou e descartou. Usuarios depende só de cadastros e 
+            configuracao, então não há ciclo.
+             Guarda uma CÓPIA dos dados do SERVIÇO enviados (código, discriminação, valores, 
+            tributos), porque alterar o cadastro de Servico depois não pode mudar uma nota 
+            já emitida.
+             Da PESSOA guarda só o vínculo: o sistema monta o envio lendo a Pessoa no momento 
+            do envio (aprovação). O registro do que de fato foi enviado e autorizado é o XML 
+            (e o PDF) que a nota guarda; consultas por nome ou documento da pessoa usam a 
+            relação. Custo: se a Pessoa for alterada depois, a nota passa a mostrar o dado 
+            novo nas telas e nos relatórios, mas o XML e o PDF guardados preservam o que foi 
+            emitido.
+             Chave única: a nota só tem a chave de 50 caracteres devolvida pelo gateway, 
+            única por NFS-e (índice no banco). O campo identificacao do envio (1 a 40 
+            caracteres) é preenchido com o id da nota (UUID de 36 caracteres, cabe nos 40 do 
+            gateway, que não aceita mais que isso), então a nota não guarda atributo de 
+            correlação à parte.
+             A numeração da DPS (numero e serie) é atributo da nota, não existe entidade RPS. 
+            O prestador não vai no envio, vem do token da empresa (emitente no 
+            IntegraNotas).
+             Regra de unicidade para a camada de banco: a combinação (empresa, ambiente, 
+            serie, numero) deve ser única.
+             O mapa não expressa unicidade composta, ela precisa virar constraint no banco.
+             Fora do modelo por ora, a modelar sob demanda: obra, evento, locação, exterior, 
+            intermediário, deduções, contingência, emissão pelo tomador e o bloco ibs_cbs.
+
+- name: Cancelamento
+  description: |
+            Pedido de cancelamento de uma Nota, com o evento e o retorno do gateway (XML e 
+            PDF). Só se cancela nota autorizada,
+             caso contrário o gateway devolve 5013. Nota já cancelada devolve 5015, tratado 
+            como sucesso idempotente.
+             Existe só dentro de uma nota e no mesmo contexto, por isso é detalhe da Nota 
+            ([m]/[o]).
+             Prazos e regras de cancelamento por município não estão documentados e não são 
+            validados no modelo.
+             Cancelar exige confirmação humana: um agente só PEDE (aguardando_aprovacao) e 
+            uma pessoa com o scope de cancelar (papel administrador) aprova, e só então o 
+            sistema envia ao gateway.
+             Vive no contexto nfse (domain.nfse). Depende do contexto usuarios (Usuario e 
+            ClienteAcesso) para o rastro; usuarios depende só de cadastros e configuracao, 
+            não há ciclo.
+
+paths:
+  /Nota:
+    get:
+      operationId: "Nota_listAll"
+      summary: Lista todos os registros de Nota.
+      description: |
+          Limitado a 100 registros, para mais resultados usar o listRange em conjunto com count.
+      tags:
+        - Nota
+      parameters:
+      - name: "sortBy"
+        in: "query"
+        description: "Campo para ordenação"
+        type: string
+      - name: "sortDirection"
+        in: "query"
+        description: "Direção da ordenação (asc ou desc)"
+        type: string
+        enum:
+          - asc
+          - desc
+        default: "asc"
+      - name: "numero"
+        in: "query"
+        description: "Filtra registros por numero"
+        type: string
+      - name: "serie"
+        in: "query"
+        description: "Filtra registros por serie"
+        type: string
+      - name: "dataCompetencia"
+        in: "query"
+        description: "Filtra registros por dataCompetencia"
+        type: string
+      - name: "informacoesComplementares"
+        in: "query"
+        description: "Filtra registros por informacoesComplementares"
+        type: string
+      - name: "regimeApuracao"
+        in: "query"
+        description: "Filtra registros por regimeApuracao"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "regimeTributacao"
+        in: "query"
+        description: "Filtra registros por regimeTributacao"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "codigoServico"
+        in: "query"
+        description: "Filtra registros por codigoServico"
+        type: string
+      - name: "codigoTributacaoMunicipio"
+        in: "query"
+        description: "Filtra registros por codigoTributacaoMunicipio"
+        type: string
+      - name: "codigoNbs"
+        in: "query"
+        description: "Filtra registros por codigoNbs"
+        type: string
+      - name: "discriminacao"
+        in: "query"
+        description: "Filtra registros por discriminacao"
+        type: string
+      - name: "descricao"
+        in: "query"
+        description: "Filtra registros por descricao"
+        type: string
+      - name: "tipoOperacaoIss"
+        in: "query"
+        description: "Filtra registros por tipoOperacaoIss"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "issRetido"
+        in: "query"
+        description: "Filtra registros por issRetido"
+        type: boolean
+      - name: "responsavelRetencao"
+        in: "query"
+        description: "Filtra registros por responsavelRetencao"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "cstPisCofins"
+        in: "query"
+        description: "Filtra registros por cstPisCofins"
+        type: string
+      - name: "tipoRetencao"
+        in: "query"
+        description: "Filtra registros por tipoRetencao"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "estado"
+        in: "query"
+        description: "Filtra registros por estado"
+        type: string
+      - name: "codigoRetorno"
+        in: "query"
+        description: "Filtra registros por codigoRetorno"
+        type: integer
+        minimum: 0
+        maximum: 9999
+      - name: "mensagemRetorno"
+        in: "query"
+        description: "Filtra registros por mensagemRetorno"
+        type: string
+      - name: "errosRetorno"
+        in: "query"
+        description: "Filtra registros por errosRetorno"
+        type: string
+      - name: "chave"
+        in: "query"
+        description: "Filtra registros por chave"
+        type: string
+      - name: "numeroNfse"
+        in: "query"
+        description: "Filtra registros por numeroNfse"
+        type: string
+      - name: "rpsNumero"
+        in: "query"
+        description: "Filtra registros por rpsNumero"
+        type: string
+      - name: "rpsSerie"
+        in: "query"
+        description: "Filtra registros por rpsSerie"
+        type: string
+      - name: "codigoVerificacao"
+        in: "query"
+        description: "Filtra registros por codigoVerificacao"
+        type: string
+      - name: "linkPdf"
+        in: "query"
+        description: "Filtra registros por linkPdf"
+        type: string
+      - name: "id"
+        in: "query"
+        description: "Filtra registros por id"
+        type: string
+      - name: "version"
+        in: "query"
+        description: "Filtra registros por versão"
+        type: integer
+      - name: "ambiente"
+        in: "query"
+        description: "Filtra registros por ambiente"
+        type: string
+      - name: "empresa.id"
+        in: "query"
+        description: "Filtra registros por empresa usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "pessoa.id"
+        in: "query"
+        description: "Filtra registros por pessoa usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "servico.id"
+        in: "query"
+        description: "Filtra registros por servico usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "preparadoPorUsuario.id"
+        in: "query"
+        description: "Filtra registros por preparadoPorUsuario usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "preparadoPorCliente.id"
+        in: "query"
+        description: "Filtra registros por preparadoPorCliente usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "aprovadoPor.id"
+        in: "query"
+        description: "Filtra registros por aprovadoPor usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "descartadoPor.id"
+        in: "query"
+        description: "Filtra registros por descartadoPor usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      produces:
+      - "application/json"
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/nfse.Nota'
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    post:
+      operationId: "Nota_create"
+      summary: Cria um registro de Nota.
+      tags:
+        - Nota
+      consumes:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "Request body"
+        required: true
+        schema:
+              $ref: '#/definitions/nfse.Nota'
+      responses:
+        '200':
+          description: OK
+          schema:
+              $ref: '#/definitions/nfse.Nota'
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  /Nota/sum/{fieldName}:
+    get:
+      operationId: "Nota_sum"
+      summary: Retorna a soma do campo especificado no path de Nota.
+      tags:
+        - Nota
+      parameters:
+      - name: "fieldName"
+        in: "path"
+        required: true
+        type: "string"
+      - name: "numero"
+        in: "query"
+        description: "Filtra registros por numero"
+        type: string
+      - name: "serie"
+        in: "query"
+        description: "Filtra registros por serie"
+        type: string
+      - name: "dataCompetencia"
+        in: "query"
+        description: "Filtra registros por dataCompetencia"
+        type: string
+      - name: "informacoesComplementares"
+        in: "query"
+        description: "Filtra registros por informacoesComplementares"
+        type: string
+      - name: "regimeApuracao"
+        in: "query"
+        description: "Filtra registros por regimeApuracao"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "regimeTributacao"
+        in: "query"
+        description: "Filtra registros por regimeTributacao"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "codigoServico"
+        in: "query"
+        description: "Filtra registros por codigoServico"
+        type: string
+      - name: "codigoTributacaoMunicipio"
+        in: "query"
+        description: "Filtra registros por codigoTributacaoMunicipio"
+        type: string
+      - name: "codigoNbs"
+        in: "query"
+        description: "Filtra registros por codigoNbs"
+        type: string
+      - name: "discriminacao"
+        in: "query"
+        description: "Filtra registros por discriminacao"
+        type: string
+      - name: "descricao"
+        in: "query"
+        description: "Filtra registros por descricao"
+        type: string
+      - name: "tipoOperacaoIss"
+        in: "query"
+        description: "Filtra registros por tipoOperacaoIss"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "issRetido"
+        in: "query"
+        description: "Filtra registros por issRetido"
+        type: boolean
+      - name: "responsavelRetencao"
+        in: "query"
+        description: "Filtra registros por responsavelRetencao"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "cstPisCofins"
+        in: "query"
+        description: "Filtra registros por cstPisCofins"
+        type: string
+      - name: "tipoRetencao"
+        in: "query"
+        description: "Filtra registros por tipoRetencao"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "estado"
+        in: "query"
+        description: "Filtra registros por estado"
+        type: string
+      - name: "codigoRetorno"
+        in: "query"
+        description: "Filtra registros por codigoRetorno"
+        type: integer
+        minimum: 0
+        maximum: 9999
+      - name: "mensagemRetorno"
+        in: "query"
+        description: "Filtra registros por mensagemRetorno"
+        type: string
+      - name: "errosRetorno"
+        in: "query"
+        description: "Filtra registros por errosRetorno"
+        type: string
+      - name: "chave"
+        in: "query"
+        description: "Filtra registros por chave"
+        type: string
+      - name: "numeroNfse"
+        in: "query"
+        description: "Filtra registros por numeroNfse"
+        type: string
+      - name: "rpsNumero"
+        in: "query"
+        description: "Filtra registros por rpsNumero"
+        type: string
+      - name: "rpsSerie"
+        in: "query"
+        description: "Filtra registros por rpsSerie"
+        type: string
+      - name: "codigoVerificacao"
+        in: "query"
+        description: "Filtra registros por codigoVerificacao"
+        type: string
+      - name: "linkPdf"
+        in: "query"
+        description: "Filtra registros por linkPdf"
+        type: string
+      - name: "id"
+        in: "query"
+        description: "Filtra registros por id"
+        type: string
+      - name: "version"
+        in: "query"
+        description: "Filtra registros por versão"
+        type: integer
+      - name: "ambiente"
+        in: "query"
+        description: "Filtra registros por ambiente"
+        type: string
+      - name: "empresa.id"
+        in: "query"
+        description: "Filtra registros por empresa usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "pessoa.id"
+        in: "query"
+        description: "Filtra registros por pessoa usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "servico.id"
+        in: "query"
+        description: "Filtra registros por servico usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "preparadoPorUsuario.id"
+        in: "query"
+        description: "Filtra registros por preparadoPorUsuario usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "preparadoPorCliente.id"
+        in: "query"
+        description: "Filtra registros por preparadoPorCliente usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "aprovadoPor.id"
+        in: "query"
+        description: "Filtra registros por aprovadoPor usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "descartadoPor.id"
+        in: "query"
+        description: "Filtra registros por descartadoPor usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      produces:
+      - "application/json"
+      responses: 
+        '200': 
+          description: OK 
+          schema: 
+              $ref: '#/definitions/SumResult' 
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  /Nota/count:
+    get:
+      operationId: "Nota_count"
+      summary: Retorna contagem dos registros de Nota.
+      tags:
+        - Nota
+      parameters:
+      - name: "numero"
+        in: "query"
+        description: "Filtra registros por numero"
+        type: string
+      - name: "serie"
+        in: "query"
+        description: "Filtra registros por serie"
+        type: string
+      - name: "dataCompetencia"
+        in: "query"
+        description: "Filtra registros por dataCompetencia"
+        type: string
+      - name: "informacoesComplementares"
+        in: "query"
+        description: "Filtra registros por informacoesComplementares"
+        type: string
+      - name: "regimeApuracao"
+        in: "query"
+        description: "Filtra registros por regimeApuracao"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "regimeTributacao"
+        in: "query"
+        description: "Filtra registros por regimeTributacao"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "codigoServico"
+        in: "query"
+        description: "Filtra registros por codigoServico"
+        type: string
+      - name: "codigoTributacaoMunicipio"
+        in: "query"
+        description: "Filtra registros por codigoTributacaoMunicipio"
+        type: string
+      - name: "codigoNbs"
+        in: "query"
+        description: "Filtra registros por codigoNbs"
+        type: string
+      - name: "discriminacao"
+        in: "query"
+        description: "Filtra registros por discriminacao"
+        type: string
+      - name: "descricao"
+        in: "query"
+        description: "Filtra registros por descricao"
+        type: string
+      - name: "tipoOperacaoIss"
+        in: "query"
+        description: "Filtra registros por tipoOperacaoIss"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "issRetido"
+        in: "query"
+        description: "Filtra registros por issRetido"
+        type: boolean
+      - name: "responsavelRetencao"
+        in: "query"
+        description: "Filtra registros por responsavelRetencao"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "cstPisCofins"
+        in: "query"
+        description: "Filtra registros por cstPisCofins"
+        type: string
+      - name: "tipoRetencao"
+        in: "query"
+        description: "Filtra registros por tipoRetencao"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "estado"
+        in: "query"
+        description: "Filtra registros por estado"
+        type: string
+      - name: "codigoRetorno"
+        in: "query"
+        description: "Filtra registros por codigoRetorno"
+        type: integer
+        minimum: 0
+        maximum: 9999
+      - name: "mensagemRetorno"
+        in: "query"
+        description: "Filtra registros por mensagemRetorno"
+        type: string
+      - name: "errosRetorno"
+        in: "query"
+        description: "Filtra registros por errosRetorno"
+        type: string
+      - name: "chave"
+        in: "query"
+        description: "Filtra registros por chave"
+        type: string
+      - name: "numeroNfse"
+        in: "query"
+        description: "Filtra registros por numeroNfse"
+        type: string
+      - name: "rpsNumero"
+        in: "query"
+        description: "Filtra registros por rpsNumero"
+        type: string
+      - name: "rpsSerie"
+        in: "query"
+        description: "Filtra registros por rpsSerie"
+        type: string
+      - name: "codigoVerificacao"
+        in: "query"
+        description: "Filtra registros por codigoVerificacao"
+        type: string
+      - name: "linkPdf"
+        in: "query"
+        description: "Filtra registros por linkPdf"
+        type: string
+      - name: "id"
+        in: "query"
+        description: "Filtra registros por id"
+        type: string
+      - name: "version"
+        in: "query"
+        description: "Filtra registros por versão"
+        type: integer
+      - name: "ambiente"
+        in: "query"
+        description: "Filtra registros por ambiente"
+        type: string
+      - name: "empresa.id"
+        in: "query"
+        description: "Filtra registros por empresa usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "pessoa.id"
+        in: "query"
+        description: "Filtra registros por pessoa usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "servico.id"
+        in: "query"
+        description: "Filtra registros por servico usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "preparadoPorUsuario.id"
+        in: "query"
+        description: "Filtra registros por preparadoPorUsuario usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "preparadoPorCliente.id"
+        in: "query"
+        description: "Filtra registros por preparadoPorCliente usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "aprovadoPor.id"
+        in: "query"
+        description: "Filtra registros por aprovadoPor usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "descartadoPor.id"
+        in: "query"
+        description: "Filtra registros por descartadoPor usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      produces:
+      - "application/json"
+      responses: 
+        '200': 
+          description: OK 
+          schema: 
+              $ref: '#/definitions/CountResult' 
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  /Nota/{from}/{to}:
+    get:
+      operationId: "Nota_listRange"
+      summary: Lista os registros de Nota por faixa de posição.
+      description: |
+          Observar que a faixa inicia em 0 e o limite máximo é de 100 itens retornados total.
+          Deve ser usado em conjunto com o count para determinar qtos itens tem no total, e no seu aplicativo fazer o controle de paginas.
+          Por exemplo, ao usar um determinado filtro o count retorna o valor de 240 itens, e no seu aplicativo usa 20 itens por pagina:
+          A primeira pagina vai ser from = 0 e o to = 19
+          A segunda pagina vai ser from = 20 e o to = 39
+          e assim sucessivamente até ler toda a lista.
+          ATENÇÃO para usar o mesmo filtro (query parameters) no count e no listRange para evitar divergencia no tamanho da lista, lembrando que a lista pode aumentar caso novos registros sejam inseridos no banco, durante a leitura paginada.
+      tags:
+        - Nota
+      parameters:
+      - name: "from"
+        in: "path"
+        required: true
+        type: "integer"
+      - name: "to"
+        in: "path"
+        required: true
+        type: "integer"
+      - name: "sortBy"
+        in: "query"
+        description: "Campo para ordenação"
+        type: string
+      - name: "sortDirection"
+        in: "query"
+        description: "Direção da ordenação (asc ou desc)"
+        type: string
+        enum:
+          - asc
+          - desc
+        default: "asc"
+      - name: "numero"
+        in: "query"
+        description: "Filtra registros por numero"
+        type: string
+      - name: "serie"
+        in: "query"
+        description: "Filtra registros por serie"
+        type: string
+      - name: "dataCompetencia"
+        in: "query"
+        description: "Filtra registros por dataCompetencia"
+        type: string
+      - name: "informacoesComplementares"
+        in: "query"
+        description: "Filtra registros por informacoesComplementares"
+        type: string
+      - name: "regimeApuracao"
+        in: "query"
+        description: "Filtra registros por regimeApuracao"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "regimeTributacao"
+        in: "query"
+        description: "Filtra registros por regimeTributacao"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "codigoServico"
+        in: "query"
+        description: "Filtra registros por codigoServico"
+        type: string
+      - name: "codigoTributacaoMunicipio"
+        in: "query"
+        description: "Filtra registros por codigoTributacaoMunicipio"
+        type: string
+      - name: "codigoNbs"
+        in: "query"
+        description: "Filtra registros por codigoNbs"
+        type: string
+      - name: "discriminacao"
+        in: "query"
+        description: "Filtra registros por discriminacao"
+        type: string
+      - name: "descricao"
+        in: "query"
+        description: "Filtra registros por descricao"
+        type: string
+      - name: "tipoOperacaoIss"
+        in: "query"
+        description: "Filtra registros por tipoOperacaoIss"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "issRetido"
+        in: "query"
+        description: "Filtra registros por issRetido"
+        type: boolean
+      - name: "responsavelRetencao"
+        in: "query"
+        description: "Filtra registros por responsavelRetencao"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "cstPisCofins"
+        in: "query"
+        description: "Filtra registros por cstPisCofins"
+        type: string
+      - name: "tipoRetencao"
+        in: "query"
+        description: "Filtra registros por tipoRetencao"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "estado"
+        in: "query"
+        description: "Filtra registros por estado"
+        type: string
+      - name: "codigoRetorno"
+        in: "query"
+        description: "Filtra registros por codigoRetorno"
+        type: integer
+        minimum: 0
+        maximum: 9999
+      - name: "mensagemRetorno"
+        in: "query"
+        description: "Filtra registros por mensagemRetorno"
+        type: string
+      - name: "errosRetorno"
+        in: "query"
+        description: "Filtra registros por errosRetorno"
+        type: string
+      - name: "chave"
+        in: "query"
+        description: "Filtra registros por chave"
+        type: string
+      - name: "numeroNfse"
+        in: "query"
+        description: "Filtra registros por numeroNfse"
+        type: string
+      - name: "rpsNumero"
+        in: "query"
+        description: "Filtra registros por rpsNumero"
+        type: string
+      - name: "rpsSerie"
+        in: "query"
+        description: "Filtra registros por rpsSerie"
+        type: string
+      - name: "codigoVerificacao"
+        in: "query"
+        description: "Filtra registros por codigoVerificacao"
+        type: string
+      - name: "linkPdf"
+        in: "query"
+        description: "Filtra registros por linkPdf"
+        type: string
+      - name: "id"
+        in: "query"
+        description: "Filtra registros por id"
+        type: string
+      - name: "version"
+        in: "query"
+        description: "Filtra registros por versão"
+        type: integer
+      - name: "ambiente"
+        in: "query"
+        description: "Filtra registros por ambiente"
+        type: string
+      - name: "empresa.id"
+        in: "query"
+        description: "Filtra registros por empresa usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "pessoa.id"
+        in: "query"
+        description: "Filtra registros por pessoa usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "servico.id"
+        in: "query"
+        description: "Filtra registros por servico usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "preparadoPorUsuario.id"
+        in: "query"
+        description: "Filtra registros por preparadoPorUsuario usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "preparadoPorCliente.id"
+        in: "query"
+        description: "Filtra registros por preparadoPorCliente usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "aprovadoPor.id"
+        in: "query"
+        description: "Filtra registros por aprovadoPor usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "descartadoPor.id"
+        in: "query"
+        description: "Filtra registros por descartadoPor usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      produces:
+      - "application/json"
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/nfse.Nota'
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  /Nota/id/{value}:
+    get:
+      operationId: "Nota_byId_read"
+      summary: Retorna o respectivo registro de Nota usando o ID da API.
+      tags:
+        - Nota
+      parameters:
+      - name: "value"
+        in: "path"
+        required: true
+        type: "integer"
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      produces:
+      - "application/json"
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/nfse.Nota'
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    put:
+      operationId: "Nota_update" 
+      summary: Altera o respectivo registro de Nota.
+      tags:
+        - Nota
+      consumes:
+      - "application/json"
+      parameters:
+      - name: "value"
+        in: "path"
+        required: true
+        type: "integer"
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - in: "body"
+        name: "body"
+        description: "Request body"
+        required: true
+        schema:
+          $ref: '#/definitions/nfse.Nota'
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    delete:
+      operationId: "Nota_delete"
+      summary: Remove um registro de Nota.
+      tags:
+        - Nota
+      consumes:
+      - "application/json"
+      parameters:
+      - name: "value"
+        in: "path"
+        description: "ID do Nota a ser removido"
+        required: true
+        type: integer
+        minimum: 0
+        format: int32
+      responses:
+        '204':
+          description: "Registro removido com sucesso."
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    patch:
+      operationId: "Nota_patch" 
+      summary: Altera parcialmente o respectivo registro de Nota.
+      tags:
+        - Nota
+      consumes:
+      - "application/json"
+      parameters:
+      - name: "value"
+        in: "path"
+        required: true
+        type: "integer"
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - in: "body"
+        name: "body"
+        description: "Request body"
+        required: true
+        schema:
+          $ref: '#/definitions/nfse.Nota'
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  /Cancelamento:
+    get:
+      operationId: "Cancelamento_listAll"
+      summary: Lista todos os registros de Cancelamento.
+      description: |
+          Limitado a 100 registros, para mais resultados usar o listRange em conjunto com count.
+      tags:
+        - Cancelamento
+      parameters:
+      - name: "sortBy"
+        in: "query"
+        description: "Campo para ordenação"
+        type: string
+      - name: "sortDirection"
+        in: "query"
+        description: "Direção da ordenação (asc ou desc)"
+        type: string
+        enum:
+          - asc
+          - desc
+        default: "asc"
+      - name: "codigoMotivo"
+        in: "query"
+        description: "Filtra registros por codigoMotivo"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "motivo"
+        in: "query"
+        description: "Filtra registros por motivo"
+        type: string
+      - name: "estado"
+        in: "query"
+        description: "Filtra registros por estado"
+        type: string
+      - name: "codigoRetorno"
+        in: "query"
+        description: "Filtra registros por codigoRetorno"
+        type: integer
+        minimum: 0
+        maximum: 9999
+      - name: "mensagemRetorno"
+        in: "query"
+        description: "Filtra registros por mensagemRetorno"
+        type: string
+      - name: "id"
+        in: "query"
+        description: "Filtra registros por id"
+        type: string
+      - name: "version"
+        in: "query"
+        description: "Filtra registros por versão"
+        type: integer
+      - name: "ambiente"
+        in: "query"
+        description: "Filtra registros por ambiente"
+        type: string
+      - name: "empresa.id"
+        in: "query"
+        description: "Filtra registros por empresa usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "preparadoPorUsuario.id"
+        in: "query"
+        description: "Filtra registros por preparadoPorUsuario usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "preparadoPorCliente.id"
+        in: "query"
+        description: "Filtra registros por preparadoPorCliente usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "aprovadoPor.id"
+        in: "query"
+        description: "Filtra registros por aprovadoPor usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "recusadoPor.id"
+        in: "query"
+        description: "Filtra registros por recusadoPor usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      produces:
+      - "application/json"
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/nfse.Cancelamento'
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    post:
+      operationId: "Cancelamento_create"
+      summary: Cria um registro de Cancelamento.
+      tags:
+        - Cancelamento
+      consumes:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "Request body"
+        required: true
+        schema:
+              $ref: '#/definitions/nfse.Cancelamento'
+      responses:
+        '200':
+          description: OK
+          schema:
+              $ref: '#/definitions/nfse.Cancelamento'
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  /Cancelamento/sum/{fieldName}:
+    get:
+      operationId: "Cancelamento_sum"
+      summary: Retorna a soma do campo especificado no path de Cancelamento.
+      tags:
+        - Cancelamento
+      parameters:
+      - name: "fieldName"
+        in: "path"
+        required: true
+        type: "string"
+      - name: "codigoMotivo"
+        in: "query"
+        description: "Filtra registros por codigoMotivo"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "motivo"
+        in: "query"
+        description: "Filtra registros por motivo"
+        type: string
+      - name: "estado"
+        in: "query"
+        description: "Filtra registros por estado"
+        type: string
+      - name: "codigoRetorno"
+        in: "query"
+        description: "Filtra registros por codigoRetorno"
+        type: integer
+        minimum: 0
+        maximum: 9999
+      - name: "mensagemRetorno"
+        in: "query"
+        description: "Filtra registros por mensagemRetorno"
+        type: string
+      - name: "id"
+        in: "query"
+        description: "Filtra registros por id"
+        type: string
+      - name: "version"
+        in: "query"
+        description: "Filtra registros por versão"
+        type: integer
+      - name: "ambiente"
+        in: "query"
+        description: "Filtra registros por ambiente"
+        type: string
+      - name: "empresa.id"
+        in: "query"
+        description: "Filtra registros por empresa usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "preparadoPorUsuario.id"
+        in: "query"
+        description: "Filtra registros por preparadoPorUsuario usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "preparadoPorCliente.id"
+        in: "query"
+        description: "Filtra registros por preparadoPorCliente usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "aprovadoPor.id"
+        in: "query"
+        description: "Filtra registros por aprovadoPor usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "recusadoPor.id"
+        in: "query"
+        description: "Filtra registros por recusadoPor usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      produces:
+      - "application/json"
+      responses: 
+        '200': 
+          description: OK 
+          schema: 
+              $ref: '#/definitions/SumResult' 
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  /Cancelamento/count:
+    get:
+      operationId: "Cancelamento_count"
+      summary: Retorna contagem dos registros de Cancelamento.
+      tags:
+        - Cancelamento
+      parameters:
+      - name: "codigoMotivo"
+        in: "query"
+        description: "Filtra registros por codigoMotivo"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "motivo"
+        in: "query"
+        description: "Filtra registros por motivo"
+        type: string
+      - name: "estado"
+        in: "query"
+        description: "Filtra registros por estado"
+        type: string
+      - name: "codigoRetorno"
+        in: "query"
+        description: "Filtra registros por codigoRetorno"
+        type: integer
+        minimum: 0
+        maximum: 9999
+      - name: "mensagemRetorno"
+        in: "query"
+        description: "Filtra registros por mensagemRetorno"
+        type: string
+      - name: "id"
+        in: "query"
+        description: "Filtra registros por id"
+        type: string
+      - name: "version"
+        in: "query"
+        description: "Filtra registros por versão"
+        type: integer
+      - name: "ambiente"
+        in: "query"
+        description: "Filtra registros por ambiente"
+        type: string
+      - name: "empresa.id"
+        in: "query"
+        description: "Filtra registros por empresa usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "preparadoPorUsuario.id"
+        in: "query"
+        description: "Filtra registros por preparadoPorUsuario usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "preparadoPorCliente.id"
+        in: "query"
+        description: "Filtra registros por preparadoPorCliente usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "aprovadoPor.id"
+        in: "query"
+        description: "Filtra registros por aprovadoPor usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "recusadoPor.id"
+        in: "query"
+        description: "Filtra registros por recusadoPor usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      produces:
+      - "application/json"
+      responses: 
+        '200': 
+          description: OK 
+          schema: 
+              $ref: '#/definitions/CountResult' 
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  /Cancelamento/{from}/{to}:
+    get:
+      operationId: "Cancelamento_listRange"
+      summary: Lista os registros de Cancelamento por faixa de posição.
+      description: |
+          Observar que a faixa inicia em 0 e o limite máximo é de 100 itens retornados total.
+          Deve ser usado em conjunto com o count para determinar qtos itens tem no total, e no seu aplicativo fazer o controle de paginas.
+          Por exemplo, ao usar um determinado filtro o count retorna o valor de 240 itens, e no seu aplicativo usa 20 itens por pagina:
+          A primeira pagina vai ser from = 0 e o to = 19
+          A segunda pagina vai ser from = 20 e o to = 39
+          e assim sucessivamente até ler toda a lista.
+          ATENÇÃO para usar o mesmo filtro (query parameters) no count e no listRange para evitar divergencia no tamanho da lista, lembrando que a lista pode aumentar caso novos registros sejam inseridos no banco, durante a leitura paginada.
+      tags:
+        - Cancelamento
+      parameters:
+      - name: "from"
+        in: "path"
+        required: true
+        type: "integer"
+      - name: "to"
+        in: "path"
+        required: true
+        type: "integer"
+      - name: "sortBy"
+        in: "query"
+        description: "Campo para ordenação"
+        type: string
+      - name: "sortDirection"
+        in: "query"
+        description: "Direção da ordenação (asc ou desc)"
+        type: string
+        enum:
+          - asc
+          - desc
+        default: "asc"
+      - name: "codigoMotivo"
+        in: "query"
+        description: "Filtra registros por codigoMotivo"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "motivo"
+        in: "query"
+        description: "Filtra registros por motivo"
+        type: string
+      - name: "estado"
+        in: "query"
+        description: "Filtra registros por estado"
+        type: string
+      - name: "codigoRetorno"
+        in: "query"
+        description: "Filtra registros por codigoRetorno"
+        type: integer
+        minimum: 0
+        maximum: 9999
+      - name: "mensagemRetorno"
+        in: "query"
+        description: "Filtra registros por mensagemRetorno"
+        type: string
+      - name: "id"
+        in: "query"
+        description: "Filtra registros por id"
+        type: string
+      - name: "version"
+        in: "query"
+        description: "Filtra registros por versão"
+        type: integer
+      - name: "ambiente"
+        in: "query"
+        description: "Filtra registros por ambiente"
+        type: string
+      - name: "empresa.id"
+        in: "query"
+        description: "Filtra registros por empresa usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "preparadoPorUsuario.id"
+        in: "query"
+        description: "Filtra registros por preparadoPorUsuario usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "preparadoPorCliente.id"
+        in: "query"
+        description: "Filtra registros por preparadoPorCliente usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "aprovadoPor.id"
+        in: "query"
+        description: "Filtra registros por aprovadoPor usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "recusadoPor.id"
+        in: "query"
+        description: "Filtra registros por recusadoPor usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      produces:
+      - "application/json"
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/nfse.Cancelamento'
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  /Cancelamento/id/{value}:
+    get:
+      operationId: "Cancelamento_byId_read"
+      summary: Retorna o respectivo registro de Cancelamento usando o ID da API.
+      tags:
+        - Cancelamento
+      parameters:
+      - name: "value"
+        in: "path"
+        required: true
+        type: "integer"
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      produces:
+      - "application/json"
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/nfse.Cancelamento'
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    put:
+      operationId: "Cancelamento_update" 
+      summary: Altera o respectivo registro de Cancelamento.
+      tags:
+        - Cancelamento
+      consumes:
+      - "application/json"
+      parameters:
+      - name: "value"
+        in: "path"
+        required: true
+        type: "integer"
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - in: "body"
+        name: "body"
+        description: "Request body"
+        required: true
+        schema:
+          $ref: '#/definitions/nfse.Cancelamento'
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    delete:
+      operationId: "Cancelamento_delete"
+      summary: Remove um registro de Cancelamento.
+      tags:
+        - Cancelamento
+      consumes:
+      - "application/json"
+      parameters:
+      - name: "value"
+        in: "path"
+        description: "ID do Cancelamento a ser removido"
+        required: true
+        type: integer
+        minimum: 0
+        format: int32
+      responses:
+        '204':
+          description: "Registro removido com sucesso."
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    patch:
+      operationId: "Cancelamento_patch" 
+      summary: Altera parcialmente o respectivo registro de Cancelamento.
+      tags:
+        - Cancelamento
+      consumes:
+      - "application/json"
+      parameters:
+      - name: "value"
+        in: "path"
+        required: true
+        type: "integer"
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - in: "body"
+        name: "body"
+        description: "Request body"
+        required: true
+        schema:
+          $ref: '#/definitions/nfse.Cancelamento'
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+definitions:
+  IdReference:
+    type: object
+    properties:
+      id:
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+  CountResult:
+    type: object
+    properties:
+      count:
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+  ErrorResponse:
+    type: object
+    properties:
+      code:
+        type: integer
+        minimum: 0
+        maximum: 9999999999999
+        format: int32
+        description: |
+            Código do erro
+      message:
+        type: string
+        description: |
+            Mensagem resumida sobre o erro
+      description:
+        type: string
+        description: |
+            Detalhes para melhor entendimento do erro
+  SumResult:
+    type: object
+    properties:
+      sum:
+        type: number
+        minimum: 0.0
+        maximum: 999999999999.99
+        format: double
+  nfse.Nota:
+    description: |
+            NFS-e da empresa e o seu ciclo de vida. Nasce como rascunho, preparado por um 
+            agente ou por uma pessoa, e só vai ao gateway depois da aprovação de uma pessoa. 
+            Aprovada e enviada, fica em processamento: o envio devolve o código 5023 com a 
+            chave e só depois vem a autorização.
+             Vive no contexto nfse (domain.nfse). Depende de configuracao (Empresa), de 
+            cadastros (Pessoa e Servico) e de usuarios (Usuario e ClienteAcesso) para o 
+            rastro de quem preparou, aprovou e descartou. Usuarios depende só de cadastros e 
+            configuracao, então não há ciclo.
+             Guarda uma CÓPIA dos dados do SERVIÇO enviados (código, discriminação, valores, 
+            tributos), porque alterar o cadastro de Servico depois não pode mudar uma nota 
+            já emitida.
+             Da PESSOA guarda só o vínculo: o sistema monta o envio lendo a Pessoa no momento 
+            do envio (aprovação). O registro do que de fato foi enviado e autorizado é o XML 
+            (e o PDF) que a nota guarda; consultas por nome ou documento da pessoa usam a 
+            relação. Custo: se a Pessoa for alterada depois, a nota passa a mostrar o dado 
+            novo nas telas e nos relatórios, mas o XML e o PDF guardados preservam o que foi 
+            emitido.
+             Chave única: a nota só tem a chave de 50 caracteres devolvida pelo gateway, 
+            única por NFS-e (índice no banco). O campo identificacao do envio (1 a 40 
+            caracteres) é preenchido com o id da nota (UUID de 36 caracteres, cabe nos 40 do 
+            gateway, que não aceita mais que isso), então a nota não guarda atributo de 
+            correlação à parte.
+             A numeração da DPS (numero e serie) é atributo da nota, não existe entidade RPS. 
+            O prestador não vai no envio, vem do token da empresa (emitente no 
+            IntegraNotas).
+             Regra de unicidade para a camada de banco: a combinação (empresa, ambiente, 
+            serie, numero) deve ser única.
+             O mapa não expressa unicidade composta, ela precisa virar constraint no banco.
+             Fora do modelo por ora, a modelar sob demanda: obra, evento, locação, exterior, 
+            intermediário, deduções, contingência, emissão pelo tomador e o bloco ibs_cbs.
+
+    type: object
+    required:
+      - numero
+      - serie
+      - dataEmissao
+      - codigoServico
+      - discriminacao
+      - valorServicos
+      - tipoOperacaoIss
+      - issRetido
+      - cstPisCofins
+      - estado
+      - id
+      - ambiente
+      - dataCriacao
+      - dataAtualizacao
+      - empresa
+      - pessoa
+      - servico
+    properties:
+      id:
+        type: integer
+        minimum: 0
+        maximum: 9999999999999
+        format: int64
+        description: |
+            ID para referência interna da API
+      version:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da versão do registro. Usado principalmente para sincronização e controle de lock otimista.
+            Mantido pela API, não deve ser alterado, mas em caso de alterações deve ser copiado o valor recebido.
+            Em inclusões deve vir vazio, ao gravar a API irá retornar a primeira versão.
+            Em alterações deve vir o mesmo valor que verio no ultimo retorno de consulta do registro, ao gravar o sistema vai gerar um novo valor.
+            Somente com o valor certo desse campo, que registros podem ser atualizados.
+      numero:
+        type: string
+        maxLength: 9
+        pattern: \w*\W*
+        description: |
+            Numeração da DPS enviada ao gateway, 1 a 9 dígitos (campo numero do envio). Não 
+            é o número da NFS-e devolvido na autorização.
+
+      serie:
+        type: string
+        maxLength: 5
+        pattern: \w*\W*
+        description: |
+            Série da DPS, 1 a 5 dígitos (campo serie do envio).
+
+      dataEmissao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora de emissão enviadas (campo data_emissao do envio, ISO com fuso).
+
+      dataCompetencia:
+        type: string
+        format: date
+        description: |
+            Data de competência (campo data_competencia do envio). Opcional, o padrão do 
+            gateway é a data de emissão.
+
+      informacoesComplementares:
+        type: string
+        maxLength: 2000
+        pattern: \w*\W*
+        description: |
+            Texto livre de até 2000 caracteres (campo informacoes_complementares do envio). 
+            Quebra de linha só com \n. Opcional.
+
+      regimeApuracao:
+        type: integer
+        minimum: 0
+        maximum: 9
+        format: int32
+        description: |
+            Regime de apuração do Simples Nacional, de 1 a 3 (campo regime_apuracao do 
+            envio). Opcional.
+
+      regimeTributacao:
+        type: integer
+        minimum: 0
+        maximum: 9
+        format: int32
+        description: |
+            Regime especial de tributação, de 0 a 9 (campo regime_tributacao do envio). 
+            Padrão 0, nenhum. Opcional.
+
+      codigoServico:
+        type: string
+        maxLength: 6
+        pattern: \w*\W*
+        description: |
+            Código do serviço da LC 116/2003, 6 dígitos (campo servico.codigo do envio). 
+            Cópia do que foi enviado.
+
+      codigoTributacaoMunicipio:
+        type: string
+        maxLength: 3
+        pattern: \w*\W*
+        description: |
+            Código de tributação do município, 3 dígitos. Opcional.
+
+      codigoNbs:
+        type: string
+        maxLength: 9
+        pattern: \w*\W*
+        description: |
+            Nomenclatura Brasileira de Serviços, 9 dígitos. Opcional.
+
+      discriminacao:
+        type: string
+        maxLength: 2000
+        pattern: \w*\W*
+        description: |
+            Discriminação do serviço, até 2000 caracteres (campo servico.discriminacao do 
+            envio). Quebra de linha só com \n.
+
+      descricao:
+        type: string
+        maxLength: 200
+        pattern: \w*\W*
+        description: |
+            Descrição de até 200 caracteres, usada só no PDF (campo servico.descricao do 
+            envio). Opcional.
+
+      valorServicos:
+        type: number
+        minimum: 0
+        maximum: 9999999999999.99
+        description: |
+            Valor dos serviços, mínimo 0.01 (campo servico.valor_servicos do envio).
+
+      valorRecebido:
+        type: number
+        minimum: 0
+        maximum: 9999999999999.99
+        description: |
+            Valor efetivamente recebido (campo servico.valor_recebido do envio). Opcional.
+
+      valorDescontoCondicionado:
+        type: number
+        minimum: 0
+        maximum: 9999999999999.99
+        description: |
+            Valor do desconto condicionado (campo servico.valor_desconto_condicionado do 
+            envio). Opcional.
+
+      valorDescontoIncondicionado:
+        type: number
+        minimum: 0
+        maximum: 9999999999999.99
+        description: |
+            Valor do desconto incondicionado (campo servico.valor_desconto_incondicionado do 
+            envio). Opcional.
+
+      tipoOperacaoIss:
+        type: integer
+        minimum: 0
+        maximum: 9
+        format: int32
+        description: |
+            Tipo da operação para o ISS (campo tributos_municipais.tipo_operacao do envio). 
+            Padrão 1, tributável.
+
+            Valores permitidos: 
+              tributavel
+                 Valor: 1
+                 Texto: Tributável
+              imunidade
+                 Valor: 2
+                 Texto: Imunidade
+              exportacao
+                 Valor: 3
+                 Texto: Exportação
+              naoIncidencia
+                 Valor: 4
+                 Texto: Não incidência
+      aliquotaIss:
+        type: number
+        minimum: 0
+        maximum: 999.99
+        description: |
+            Alíquota do ISS em pontos percentuais, de 0 a 100 (5.00 significa 5%). Opcional.
+
+      issRetido:
+        type: boolean
+        description: |
+            Indica se o ISS é retido pelo tomador (campo iss_retido do envio). Padrão não.
+
+      responsavelRetencao:
+        type: integer
+        minimum: 0
+        maximum: 9
+        format: int32
+        description: |
+            Quem retém o ISS, quando há retenção (campo 
+            tributos_municipais.responsavel_retencao do envio). Opcional.
+
+            Valores permitidos: 
+              tomador
+                 Valor: 2
+                 Texto: Tomador
+              intermediario
+                 Valor: 3
+                 Texto: Intermediário
+      cstPisCofins:
+        type: string
+        maxLength: 2
+        pattern: \w*\W*
+        description: |
+            CST do PIS/COFINS, 2 dígitos (campo tributos_nacionais.cst do envio). 
+            Obrigatório na nota.
+
+      tipoRetencao:
+        type: integer
+        minimum: 0
+        maximum: 9
+        format: int32
+        description: |
+            Tipo de retenção dos tributos federais, de 0 a 9 (campo 
+            tributos_nacionais.tipo_retencao do envio). Padrão 2.
+
+      valorBaseCalculo:
+        type: number
+        minimum: 0
+        maximum: 9999999999999.99
+        description: |
+            Base de cálculo do PIS e da COFINS (campo tributos_nacionais.valor_base_calculo 
+            do envio). Opcional.
+
+      aliquotaPis:
+        type: number
+        minimum: 0
+        maximum: 999.99
+        description: |
+            Alíquota do PIS em pontos percentuais (5.00 significa 5%). Opcional.
+
+      valorPis:
+        type: number
+        minimum: 0
+        maximum: 9999999999999.99
+        description: |
+            Valor do PIS (campo tributos_nacionais.valor_pis do envio). Opcional.
+
+      aliquotaCofins:
+        type: number
+        minimum: 0
+        maximum: 999.99
+        description: |
+            Alíquota da COFINS em pontos percentuais (5.00 significa 5%). Opcional.
+
+      valorCofins:
+        type: number
+        minimum: 0
+        maximum: 9999999999999.99
+        description: |
+            Valor da COFINS (campo tributos_nacionais.valor_cofins do envio). Opcional.
+
+      valorInss:
+        type: number
+        minimum: 0
+        maximum: 9999999999999.99
+        description: |
+            Valor do INSS retido (campo tributos_nacionais.valor_inss do envio). Opcional.
+
+      valorIr:
+        type: number
+        minimum: 0
+        maximum: 9999999999999.99
+        description: |
+            Valor do imposto de renda retido (campo tributos_nacionais.valor_ir do envio). 
+            Opcional.
+
+      valorCsll:
+        type: number
+        minimum: 0
+        maximum: 9999999999999.99
+        description: |
+            Valor da CSLL retida (campo tributos_nacionais.valor_csll do envio). Opcional.
+
+      dataHoraAprovacao:
+        type: string
+        format: date-time
+        description: |
+            Momento em que uma pessoa aprovou o rascunho e o sistema o enviou ao gateway. 
+            Vazia enquanto rascunho e em nota descartada.
+
+      dataHoraDescarte:
+        type: string
+        format: date-time
+        description: |
+            Momento em que uma pessoa recusou o rascunho. Preenchida só no estado 
+            descartada.
+
+      estado:
+        type: string
+        maxLength: 20
+        pattern: \w*\W*
+        description: |
+            Estado da nota no ciclo de vida, na ordem: rascunho, processando, 
+            emitida_offline, autorizada, rejeitada, em_conflito, cancelada, descartada.
+             Rascunho é a nota preparada e ainda não enviada ao gateway, aguardando a 
+            aprovação; é o estado inicial. Processando é a nota aprovada e enviada ao 
+            gateway, aguardando o retorno (código 5023).
+             Emitida offline é a nota aceita que aguarda a prefeitura (código 2), sem XML nem 
+            protocolo. Autorizada vem do código 100, cancelada do 101, em conflito do 5027 e 
+            rejeitada das falhas definitivas.
+             Descartada é o rascunho recusado por uma pessoa; nunca foi enviada ao gateway e 
+            não tem chave.
+             Regra: só o estado rascunho pode ser aprovado ou descartado, e só a aprovação de 
+            um usuário envia ao gateway (rascunho vira processando). Um agente apenas 
+            prepara.
+             Só uma nota autorizada pode ser cancelada. Depois do envio, a decisão é sempre 
+            pelo código de retorno, nunca pelo texto da mensagem.
+
+      codigoRetorno:
+        type: integer
+        minimum: 0
+        maximum: 9999
+        format: int32
+        description: |
+            Código do último retorno do gateway (5023, 100, 2, 5001, 5027...). Gravado a 
+            cada retorno, inclusive em falha.
+
+      mensagemRetorno:
+        type: string
+        maxLength: 500
+        pattern: \w*\W*
+        description: |
+            Mensagem do último retorno do gateway. Informativa, não se decide por ela.
+
+      errosRetorno:
+        type: string
+        maxLength: 4000
+        pattern: \w*\W*
+        description: |
+            Lista erros[] dos códigos 5001 e 5002 (campo, erro, descrição e detalhes), 
+            guardada como texto JSON. Opcional.
+             Entidade própria só se for preciso consultar por campo, a modelar sob demanda.
+
+      chave:
+        type: string
+        maxLength: 50
+        pattern: \w*\W*
+        description: |
+            Chave da NFS-e, 50 dígitos (padrão nacional). Gravada desde o primeiro retorno 
+            do gateway, inclusive em falha. É a única chave da nota no IntegraNotas.
+             Vazia só se o gateway nunca respondeu. Por isso não é obrigatória.
+             Única por NFS-e: o mapa não expressa a unicidade, ela vai em índice no banco.
+             O campo identificacao do envio (1 a 40 caracteres) é preenchido com o id da Nota 
+            (UUID de 36 caracteres, cabe nos 40 do gateway, que não aceita mais que isso). A 
+            Nota não guarda atributo de correlação à parte.
+
+      numeroNfse:
+        type: string
+        maxLength: 20
+        pattern: \w*\W*
+        description: |
+            Número da NFS-e devolvido na autorização (campo numero do retorno), distinto da 
+            numeração da DPS enviada.
+
+      rpsNumero:
+        type: string
+        maxLength: 9
+        pattern: \w*\W*
+        description: |
+            Campo rps_numero devolvido na consulta. Atributo da nota, não entidade. 
+            Opcional.
+
+      rpsSerie:
+        type: string
+        maxLength: 5
+        pattern: \w*\W*
+        description: |
+            Campo rps_serie devolvido na consulta. Atributo da nota, não entidade. Opcional.
+
+      codigoVerificacao:
+        type: string
+        maxLength: 40
+        pattern: \w*\W*
+        description: |
+            Código de verificação da prefeitura. Pode conter espaços.
+
+      dataHoraEvento:
+        type: string
+        format: date-time
+        description: |
+            Data e hora do evento devolvida pelo gateway (autorização), no formato 
+            AAAA-MM-DD HH:MM:SS, sem fuso. Nula enquanto não autorizada.
+
+      linkPdf:
+        type: string
+        maxLength: 500
+        pattern: \w*\W*
+        description: |
+            URL do PDF da nota (campo link_pdf). Opcional, alguns provedores não devolvem.
+
+      xml:
+        type: string
+        format: byte
+        description: |
+            XML da NFS-e autorizada, decodificado do Base64 e guardado como conteúdo, com 
+            limite explícito de 2 MiB.
+             Documento fiscal, precisa ser retido. Ausente enquanto processando e na emissão 
+            offline.
+
+      pdf:
+        type: string
+        format: byte
+        description: |
+            DANFSe em PDF, decodificado do Base64 e guardado como conteúdo, com limite 
+            explícito de 2 MiB. Vem também na emissão offline.
+
+      id:
+        type: string
+        maxLength: 36
+        pattern: \w*\W*
+        description: |
+            Identificador interno da nota (UUID).
+
+      ambiente:
+        type: string
+        maxLength: 15
+        pattern: \w*\W*
+        description: |
+            Ambiente do gateway em que a nota foi emitida. Uma nota de homologação nunca se 
+            mistura com uma de produção.
+
+      dataCriacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora em que a nota foi criada no sistema.
+
+      dataAtualizacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da última alteração, inclusive de cada transição de estado.
+
+      empresa:
+        description: |
+            Empresa dona desta nota e tenant do registro. Todo acesso é filtrado por ela.
+
+        allOf:
+          - $ref: '#/definitions/IdReference'
+      pessoa:
+        description: |
+            Pessoa da mesma empresa que é a tomadora do serviço nesta nota. É o único 
+            vínculo com a pessoa: documento, nome, endereço, e-mail e telefone são lidos da 
+            Pessoa no momento do envio. Consultas por nome ou documento usam esta relação. 
+            Se a Pessoa mudar depois, a nota mostra o dado novo nas telas e nos relatórios; 
+            o XML e o PDF guardados preservam o que foi emitido.
+
+        allOf:
+          - $ref: '#/definitions/IdReference'
+      servico:
+        description: |
+            Serviço do cadastro usado como origem dos valores padrão. Os valores enviados 
+            são copiados para a nota.
+
+        allOf:
+          - $ref: '#/definitions/IdReference'
+      preparadoPorUsuario:
+        description: |
+            Pessoa que preparou o rascunho. Regra que o mapa não expressa: preencher este 
+            campo OU preparadoPorCliente, no máximo um dos dois, e exatamente um deles na 
+            criação.
+
+        allOf:
+          - $ref: '#/definitions/IdReference'
+      preparadoPorCliente:
+        description: |
+            Agente (credencial de máquina, por exemplo o MCP) que preparou o rascunho. Regra 
+            que o mapa não expressa: preencher este campo OU preparadoPorUsuario, no máximo 
+            um dos dois.
+
+        allOf:
+          - $ref: '#/definitions/IdReference'
+      aprovadoPor:
+        description: |
+            Pessoa que aprovou o envio ao gateway. Só uma PESSOA aprova, nunca um 
+            ClienteAcesso, e só quem tem o scope de emitir na empresa da nota (vínculo ativo 
+            com papel administrador ou operador). Quem preparou pode ser quem aprova. Vazio 
+            enquanto rascunho e em nota descartada.
+
+        allOf:
+          - $ref: '#/definitions/IdReference'
+      descartadoPor:
+        description: |
+            Pessoa que recusou o rascunho. Só uma pessoa descarta, com o mesmo scope de 
+            emitir exigido para aprovar. Preenchido só no estado descartada.
+
+        allOf:
+          - $ref: '#/definitions/IdReference'
+      cancelamentos:
+        type: array
+        items:
+          $ref: '#/definitions/nfse.Cancelamento'
+        description: |
+            Pedidos de cancelamento da nota. Só existem dentro da nota, no mesmo contexto. 
+            Uma nota rejeitada no cancelamento pode ter novo pedido.
+
+  nfse.Cancelamento:
+    description: |
+            Pedido de cancelamento de uma Nota, com o evento e o retorno do gateway (XML e 
+            PDF). Só se cancela nota autorizada,
+             caso contrário o gateway devolve 5013. Nota já cancelada devolve 5015, tratado 
+            como sucesso idempotente.
+             Existe só dentro de uma nota e no mesmo contexto, por isso é detalhe da Nota 
+            ([m]/[o]).
+             Prazos e regras de cancelamento por município não estão documentados e não são 
+            validados no modelo.
+             Cancelar exige confirmação humana: um agente só PEDE (aguardando_aprovacao) e 
+            uma pessoa com o scope de cancelar (papel administrador) aprova, e só então o 
+            sistema envia ao gateway.
+             Vive no contexto nfse (domain.nfse). Depende do contexto usuarios (Usuario e 
+            ClienteAcesso) para o rastro; usuarios depende só de cadastros e configuracao, 
+            não há ciclo.
+
+    type: object
+    required:
+      - codigoMotivo
+      - motivo
+      - estado
+      - id
+      - ambiente
+      - dataCriacao
+      - dataAtualizacao
+      - empresa
+      - nota
+    properties:
+      id:
+        type: integer
+        minimum: 0
+        maximum: 9999999999999
+        format: int64
+        description: |
+            ID para referência interna da API
+      version:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da versão do registro. Usado principalmente para sincronização e controle de lock otimista.
+            Mantido pela API, não deve ser alterado, mas em caso de alterações deve ser copiado o valor recebido.
+            Em inclusões deve vir vazio, ao gravar a API irá retornar a primeira versão.
+            Em alterações deve vir o mesmo valor que verio no ultimo retorno de consulta do registro, ao gravar o sistema vai gerar um novo valor.
+            Somente com o valor certo desse campo, que registros podem ser atualizados.
+      codigoMotivo:
+        type: integer
+        minimum: 0
+        maximum: 9
+        format: int32
+        description: |
+            Código do motivo do cancelamento (campo codigo_cancelamento do envio).
+
+            Valores permitidos: 
+              erroEmissao
+                 Valor: 1
+                 Texto: Erro de Emissão
+              servicoNaoConcluido
+                 Valor: 2
+                 Texto: Serviço não concluído
+              outros
+                 Valor: 9
+                 Texto: Outros
+      motivo:
+        type: string
+        maxLength: 255
+        pattern: \w*\W*
+        description: |
+            Motivo do cancelamento em texto, de 15 a 255 caracteres (campo 
+            motivo_cancelamento do envio).
+
+      dataHoraAprovacao:
+        type: string
+        format: date-time
+        description: |
+            Momento em que uma pessoa aprovou o pedido e o sistema o enviou ao gateway. 
+            Vazia enquanto aguarda aprovação e em pedido recusado.
+
+      dataHoraRecusa:
+        type: string
+        format: date-time
+        description: |
+            Momento em que uma pessoa recusou o pedido. Preenchida só no estado recusado.
+
+      estado:
+        type: string
+        maxLength: 25
+        pattern: \w*\W*
+        description: |
+            Estado do pedido, na ordem: aguardando_aprovacao, recusado, solicitado, 
+            cancelado, rejeitado.
+             Nasce aguardando_aprovacao: o pedido foi preparado e ainda não foi ao gateway. 
+            Só nesse estado pode ser aprovado ou recusado, e só a aprovação de um usuário o 
+            envia ao gateway (vira solicitado).
+             Recusado é o pedido recusado por uma pessoa; nunca foi enviado. Solicitado é o 
+            pedido aprovado e enviado, aguardando o retorno.
+             Vira cancelado com o código 101 (ou 5015) e rejeitado nas falhas. Quando 
+            cancelado, a Nota passa ao estado cancelada. Só se cancela nota autorizada.
+
+      codigoRetorno:
+        type: integer
+        minimum: 0
+        maximum: 9999
+        format: int32
+        description: |
+            Código de retorno do gateway (101 homologado, 5013, 5015...).
+
+      mensagemRetorno:
+        type: string
+        maxLength: 500
+        pattern: \w*\W*
+        description: |
+            Mensagem de retorno do gateway. Informativa, não se decide por ela.
+
+      dataHoraEvento:
+        type: string
+        format: date-time
+        description: |
+            Data e hora do evento de cancelamento devolvida pelo gateway, formato AAAA-MM-DD 
+            HH:MM:SS sem fuso. Nula até o retorno.
+
+      xml:
+        type: string
+        format: byte
+        description: |
+            XML do evento de cancelamento, decodificado do Base64, com limite explícito de 2 
+            MiB. Documento fiscal, precisa ser retido.
+
+      pdf:
+        type: string
+        format: byte
+        description: |
+            PDF do cancelamento, decodificado do Base64, com limite explícito de 2 MiB.
+
+      id:
+        type: string
+        maxLength: 36
+        pattern: \w*\W*
+        description: |
+            Identificador interno do cancelamento (UUID).
+
+      ambiente:
+        type: string
+        maxLength: 15
+        pattern: \w*\W*
+        description: |
+            Ambiente do gateway, o mesmo da nota cancelada.
+
+      dataCriacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora em que o pedido foi registrado.
+
+      dataAtualizacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da última alteração do registro.
+
+      empresa:
+        description: |
+            Empresa dona deste cancelamento e tenant do registro. Todo acesso é filtrado por 
+            ela.
+
+        allOf:
+          - $ref: '#/definitions/IdReference'
+      preparadoPorUsuario:
+        description: |
+            Pessoa que preparou o pedido. Regra que o mapa não expressa: preencher este 
+            campo OU preparadoPorCliente, no máximo um dos dois, e exatamente um deles na 
+            criação.
+
+        allOf:
+          - $ref: '#/definitions/IdReference'
+      preparadoPorCliente:
+        description: |
+            Agente (credencial de máquina, por exemplo o MCP) que preparou o pedido. Regra 
+            que o mapa não expressa: preencher este campo OU preparadoPorUsuario, no máximo 
+            um dos dois.
+
+        allOf:
+          - $ref: '#/definitions/IdReference'
+      aprovadoPor:
+        description: |
+            Pessoa que aprovou o envio do cancelamento ao gateway. Só uma PESSOA aprova, 
+            nunca um ClienteAcesso, e só quem tem o scope de cancelar na empresa (vínculo 
+            ativo com papel administrador; o operador emite mas não cancela). Vazio enquanto 
+            aguarda aprovação e em pedido recusado.
+
+        allOf:
+          - $ref: '#/definitions/IdReference'
+      recusadoPor:
+        description: |
+            Pessoa que recusou o pedido, com o mesmo scope de cancelar exigido para aprovar. 
+            Preenchido só no estado recusado.
+
+        allOf:
+          - $ref: '#/definitions/IdReference'
+      nota:
+        description: |
+            Nota cancelada, que deve estar autorizada. A chave do pedido é a da nota.
+
+        allOf:
+          - $ref: '#/definitions/IdReference'
+  configuracao.Empresa:
+    description: |
+            Empresa usuária do sistema e tenant do modelo. Cada empresa só emite e só 
+            enxerga as próprias notas.
+             NUNCA é apagada, só DESATIVADA (situacao = desativada): a aplicação não deve 
+            expor a remoção. Nasce no signup com o documento, o e-mail e o WhatsApp 
+            informados, em situacao pendente_confirmacao, e fica ativa quando o usuário 
+            clica no link do e-mail (ConfirmacaoCadastro).
+             É identificada por um documento único (CNPJ ou CPF). Tem atividades 
+            (AtividadeEmpresa) e quadro de sócios (QsaEmpresa) como detalhes ([m]/[o]).
+             Regra de edição, da aplicação: o usuário da empresa só altera razaoSocial, 
+            nomeFantasia e o endereço; o resto é alterável só pelo administrador da 
+            plataforma ou suporte. É cadastrada no gateway IntegraNotas, onde se chama 
+            "emitente", e o gateway devolve o token do emitente,
+             separado por ambiente. Token, credenciais da prefeitura e certificado ficam no 
+            cofre, aqui só há referência.
+             Vive no contexto configuracao (domain.configuracao), sozinha. Há dependência 
+            mútua com o contexto cadastros: a Empresa referencia o Municipio (cadastros), e 
+            Pessoa e Servico (cadastros) referenciam a Empresa. Empresa e Municipio devem 
+            ser modelados juntos.
+
+    type: object
+    required:
+      - nomeFantasia
+      - razaoSocial
+      - documento
+      - email
+      - whatsapp
+      - telefone
+      - logradouro
+      - numeroEndereco
+      - bairro
+      - cep
+      - regimeTributario
+      - situacao
+      - statusCadastro
+      - situacaoCertificado
+      - id
+      - ambiente
+      - dataCriacao
+      - dataAtualizacao
+      - municipio
+    properties:
+      id:
+        type: integer
+        minimum: 0
+        maximum: 9999999999999
+        format: int64
+        description: |
+            ID para referência interna da API
+      version:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da versão do registro. Usado principalmente para sincronização e controle de lock otimista.
+            Mantido pela API, não deve ser alterado, mas em caso de alterações deve ser copiado o valor recebido.
+            Em inclusões deve vir vazio, ao gravar a API irá retornar a primeira versão.
+            Em alterações deve vir o mesmo valor que verio no ultimo retorno de consulta do registro, ao gravar o sistema vai gerar um novo valor.
+            Somente com o valor certo desse campo, que registros podem ser atualizados.
+      nomeFantasia:
+        type: string
+        maxLength: 60
+        pattern: \w*\W*
+        description: |
+            Nome fantasia da empresa, de 2 a 60 caracteres (campo nome do cadastro no 
+            gateway). Alterável pelo usuário da empresa.
+
+      razaoSocial:
+        type: string
+        maxLength: 60
+        pattern: \w*\W*
+        description: |
+            Razão social da empresa, de 2 a 60 caracteres (campo razao do cadastro no 
+            gateway). Alterável pelo usuário da empresa.
+
+      documento:
+        type: string
+        maxLength: 14
+        pattern: \w*\W*
+        description: |
+            Documento da empresa, só dígitos, sem formatação: 14 dígitos é CNPJ e 11 dígitos 
+            é CPF. É um ou outro, nunca os dois.
+             No cadastro no gateway e no envio ao IntegraNotas o sistema o separa em cnpj ou 
+            cpf conforme o tamanho. CPF é dado pessoal, sujeito a mascaramento nas 
+            respostas. Obrigatório.
+             Único por ambiente (o mesmo documento tem um registro por ambiente). Alterável 
+            só pelo administrador da plataforma ou suporte.
+
+      rgInscricaoEstadual:
+        type: string
+        maxLength: 20
+        pattern: \w*\W*
+        description: |
+            Inscrição estadual da empresa, até 20 caracteres. Mesmo nome do campo da Pessoa. 
+            Opcional. Alterável só pelo administrador da plataforma ou suporte.
+
+      inscricaoMunicipal:
+        type: string
+        maxLength: 20
+        pattern: \w*\W*
+        description: |
+            Inscrição municipal da empresa, de 1 a 20 caracteres (campo im do gateway). 
+            Opcional. Alterável só pelo administrador da plataforma ou suporte.
+
+      email:
+        type: string
+        maxLength: 60
+        pattern: \w*\W*
+        description: |
+            E-mail da empresa, até 60 caracteres. Obrigatório: várias integrações exigem 
+            (IntegraNotas, bancos para boleto e PIX). É o e-mail informado no signup. 
+            Alterável só pelo administrador da plataforma ou suporte.
+
+      whatsapp:
+        type: string
+        maxLength: 20
+        pattern: \w*\W*
+        description: |
+            WhatsApp da empresa, até 20 caracteres. Obrigatório: necessário em cadastros de 
+            integração como IntegraNotas e bancos para boleto e PIX. É o WhatsApp informado 
+            no signup. Alterável só pelo administrador da plataforma ou suporte.
+
+      telefone:
+        type: string
+        maxLength: 14
+        pattern: \w*\W*
+        description: |
+            Telefone da empresa, de 6 a 14 dígitos, só números. Alterável só pelo 
+            administrador da plataforma ou suporte.
+
+      logradouro:
+        type: string
+        maxLength: 60
+        pattern: \w*\W*
+        description: |
+            Rua, avenida ou similar do endereço da empresa, de 1 a 60 caracteres (campo rua 
+            do gateway). Alterável pelo usuário da empresa.
+
+      numeroEndereco:
+        type: string
+        maxLength: 60
+        pattern: \w*\W*
+        description: |
+            Número do imóvel, de 1 a 60 caracteres, texto porque aceita S/N (campo numero do 
+            gateway). Alterável pelo usuário da empresa.
+
+      complemento:
+        type: string
+        maxLength: 60
+        pattern: \w*\W*
+        description: |
+            Complemento do endereço, até 60 caracteres. Opcional. Alterável pelo usuário da 
+            empresa.
+
+      bairro:
+        type: string
+        maxLength: 60
+        pattern: \w*\W*
+        description: |
+            Bairro do endereço, de 2 a 60 caracteres. Alterável pelo usuário da empresa.
+
+      cep:
+        type: string
+        maxLength: 8
+        pattern: \w*\W*
+        description: |
+            CEP do endereço, exatamente 8 dígitos sem hífen. Guardado como texto para 
+            preservar zeros à esquerda. Alterável pelo usuário da empresa.
+
+      regimeTributario:
+        type: integer
+        minimum: 0
+        maximum: 9
+        format: int32
+        description: |
+            Regime tributário da empresa (campo crt do gateway). Define o enquadramento 
+            usado na emissão. Alterável só pelo administrador da plataforma ou suporte.
+
+            Valores permitidos: 
+              simplesNacional
+                 Valor: 1
+                 Texto: Simples Nacional
+              simplesExcessoSublimite
+                 Valor: 2
+                 Texto: Simples Nacional com excesso de sublimite
+              regimeNormal
+                 Valor: 3
+                 Texto: Regime Normal
+              mei
+                 Valor: 4
+                 Texto: MEI
+      regimeIbsCbs:
+        type: integer
+        minimum: 0
+        maximum: 9
+        format: int32
+        description: |
+            Regime de apuração do IBS e da CBS da empresa (campo regime_cibs do gateway), de 
+            0 a 4. Opcional por decisão do usuário.
+             O valor 0 significa não informado e a tag não é enviada. Alterável só pelo 
+            administrador da plataforma ou suporte.
+
+            Valores permitidos: 
+              naoInformado
+                 Valor: 0
+                 Texto: Não informado, padrão, a tag não é enviada
+              simplesOpcaoRegimeRegular
+                 Valor: 1
+                 Texto: Simples Nacional com opção pelo regime regular do IBS e da CBS (crt 1 ou 2)
+              normalOpcaoSimplesPendenteSemRegular
+                 Valor: 2
+                 Texto: Regime Normal com opção pendente pelo Simples Nacional, sem regime regular do IBS e da CBS (crt 3)
+              normalSublimitePendenteSemRegular
+                 Valor: 3
+                 Texto: Regime Normal com opção pendente pelo Simples Nacional com excesso de sublimite, sem regime regular do IBS e da CBS (crt 3)
+              normalOpcaoSimplesPendenteComRegular
+                 Valor: 4
+                 Texto: Regime Normal com opção pendente pelo Simples Nacional, com regime regular do IBS e da CBS (crt 3)
+      logo:
+        type: string
+        format: byte
+        description: |
+            Logotipo da empresa, imagem JPG ou PNG proporcional (como 100x100) de até 1 MB. 
+            Opcional, enviado ao gateway em Base64. Alterável só pelo administrador da 
+            plataforma ou suporte.
+
+      urlWebhook:
+        type: string
+        maxLength: 200
+        pattern: \w*\W*
+        description: |
+            URL pública, de 1 a 200 caracteres, que recebe as notificações do gateway. 
+            Registrada no cadastro da empresa no gateway
+             e só aceita se responder HTTP 200. Opcional. Alterável só pelo administrador da 
+            plataforma ou suporte.
+
+      situacao:
+        type: string
+        maxLength: 20
+        pattern: \w*\W*
+        description: |
+            Situação da conta da empresa NO SISTEMA (não confundir com statusCadastro, que é 
+            o cadastro no gateway IntegraNotas). A empresa nasce pendente_confirmacao no 
+            signup,
+             vira ativa quando o usuário clica no link do e-mail (ou quando o suporte ativa) 
+            e desativada quando o suporte a desativa à mão. Nunca é apagada. Alterável só 
+            pelo administrador da plataforma ou suporte.
+
+      dataConfirmacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora em que o usuário confirmou o cadastro pelo link do e-mail. Vazia 
+            enquanto pendente. Alterável só pelo administrador da plataforma ou suporte.
+
+      referenciaCrm:
+        type: string
+        maxLength: 50
+        pattern: \w*\W*
+        description: |
+            Identificador desta empresa como cliente no CRM da Marke. A cobrança é do CRM, 
+            este sistema não processa pagamento. Opcional. Alterável só pelo administrador 
+            da plataforma ou suporte.
+
+      statusCadastro:
+        type: string
+        maxLength: 20
+        pattern: \w*\W*
+        description: |
+            Situação do cadastro da empresa NO GATEWAY (emitente no IntegraNotas), no 
+            ambiente do registro. Não é a situação da conta no sistema (ver situacao). A 
+            empresa nasce nao_cadastrado,
+             vira cadastrado quando o gateway devolve o token, e erro quando o cadastro é 
+            recusado. Alterável só pelo administrador da plataforma ou suporte.
+
+      dataCadastroGateway:
+        type: string
+        format: date-time
+        description: |
+            Data e hora em que o gateway aceitou o cadastro e devolveu o token. Vazia 
+            enquanto não cadastrado. Alterável só pelo administrador da plataforma ou 
+            suporte.
+
+      validadeCertificado:
+        type: string
+        format: date
+        description: |
+            Data de validade do certificado digital enviado ao gateway. Vazia enquanto não 
+            houver certificado. Alterável só pelo administrador da plataforma ou suporte.
+
+      situacaoCertificado:
+        type: string
+        maxLength: 20
+        pattern: \w*\W*
+        description: |
+            Situação do certificado digital da empresa no gateway, no ambiente do registro. 
+            Alterável só pelo administrador da plataforma ou suporte.
+
+      id:
+        type: string
+        maxLength: 36
+        pattern: \w*\W*
+        description: |
+            Identificador interno da empresa (UUID). Também é o identificador do tenant, 
+            usado como chave de escopo
+             da própria empresa (tenantKey) e referenciado pelo tenantKey das demais 
+            entidades.
+
+      ambiente:
+        type: string
+        maxLength: 15
+        pattern: \w*\W*
+        description: |
+            Ambiente do gateway a que este registro pertence. Empresa (emitente no 
+            IntegraNotas) e token são independentes por ambiente,
+             então o mesmo documento (CNPJ ou CPF) tem um registro por ambiente e uma nota de 
+            teste nunca se mistura com uma real.
+
+      dataCriacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora em que a empresa foi cadastrada no sistema.
+
+      dataAtualizacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da última alteração do registro.
+
+      atividades:
+        type: array
+        items:
+          $ref: '#/definitions/configuracao.AtividadeEmpresa'
+        description: |
+            Atividades econômicas (CNAE) da empresa: uma principal e várias secundárias. Só 
+            existem dentro da empresa, no mesmo contexto. Alterável só pelo administrador da 
+            plataforma ou suporte.
+
+      qsa:
+        type: array
+        items:
+          $ref: '#/definitions/configuracao.QsaEmpresa'
+        description: |
+            Quadro de sócios e administradores (QSA) da empresa, com vários itens. Só existe 
+            dentro da empresa, no mesmo contexto. Alterável só pelo administrador da 
+            plataforma ou suporte.
+
+      municipio:
+        description: |
+            Município do endereço da empresa. Traz código IBGE, nome e UF, que não se 
+            repetem aqui (campos cmun, municipio e uf do gateway). A empresa não pode usar o 
+            registro Exterior (regra da aplicação). Alterável pelo usuário da empresa.
+
+        allOf:
+          - $ref: '#/definitions/IdReference'
+  cadastros.Pessoa:
+    description: |
+            Cadastro de cliente, física ou jurídica, reutilizável nas emissões, que na nota 
+            assume o papel de tomador do serviço. É por empresa: o mesmo documento pode 
+            existir
+             uma vez em cada empresa, e uma empresa nunca enxerga a pessoa de outra.
+             Tem um só documento (CNPJ ou CPF, um ou outro). Ao enviar a NFS-e, o sistema 
+            separa o documento em cnpj ou cpf, que no IntegraNotas são campos distintos.
+             A cidade é uma referência ao Municipio, que já traz a UF e o código IBGE: a tela 
+            mostra cidade e UF e esconde o IBGE.
+             Os contatos são uma lista (Contato), com vários por pessoa. Na exportação o 
+            endereço não tem município brasileiro e usa os campos de exterior.
+             Vive no contexto cadastros (domain.cadastros), que referencia a Empresa 
+            (configuracao) e tem dependência mútua com ele, pois a Empresa referencia o 
+            Municipio, que está em cadastros.
+
+    type: object
+    required:
+      - tipoPessoa
+      - nome
+      - logradouro
+      - numeroEndereco
+      - bairro
+      - id
+      - dataCriacao
+      - dataAtualizacao
+      - empresa
+    properties:
+      id:
+        type: integer
+        minimum: 0
+        maximum: 9999999999999
+        format: int64
+        description: |
+            ID para referência interna da API
+      version:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da versão do registro. Usado principalmente para sincronização e controle de lock otimista.
+            Mantido pela API, não deve ser alterado, mas em caso de alterações deve ser copiado o valor recebido.
+            Em inclusões deve vir vazio, ao gravar a API irá retornar a primeira versão.
+            Em alterações deve vir o mesmo valor que verio no ultimo retorno de consulta do registro, ao gravar o sistema vai gerar um novo valor.
+            Somente com o valor certo desse campo, que registros podem ser atualizados.
+      tipoPessoa:
+        type: string
+        maxLength: 10
+        pattern: \w*\W*
+        description: |
+            Física ou jurídica. Define como se lê o documento: jurídica tem CNPJ de 14 
+            dígitos, física tem CPF de 11 dígitos. Obrigatório.
+
+      documento:
+        type: string
+        maxLength: 14
+        pattern: \w*\W*
+        description: |
+            Documento da pessoa, só dígitos, sem formatação: 14 dígitos é CNPJ (pessoa 
+            jurídica) e 11 dígitos é CPF (pessoa física), coerente com o tipo de pessoa.
+             É um ou outro, nunca os dois. Ao enviar a NFS-e vai como cnpj ou cpf conforme o 
+            tamanho. CPF é dado pessoal, sujeito a mascaramento nas respostas. Único dentro 
+            da empresa.
+
+      nome:
+        type: string
+        maxLength: 300
+        pattern: \w*\W*
+        description: |
+            Nome da pessoa física ou razão social da pessoa jurídica (vai no campo 
+            razao_social do envio). Obrigatório.
+
+      nomeFantasia:
+        type: string
+        maxLength: 300
+        pattern: \w*\W*
+        description: |
+            Nome fantasia da pessoa jurídica. Opcional. O nome nomeFantasia é o que já 
+            consta na lista de busca do projeto (nondeterministicSearchField), por isso o 
+            campo é pesquisável.
+
+      inscricaoMunicipal:
+        type: string
+        maxLength: 15
+        pattern: \w*\W*
+        description: |
+            Inscrição municipal da pessoa (campo im do envio). Opcional.
+
+      rgInscricaoEstadual:
+        type: string
+        maxLength: 20
+        pattern: \w*\W*
+        description: |
+            Um só campo: RG quando a pessoa é física, inscrição estadual quando é jurídica. 
+            Opcional.
+             Regra de aplicação: pessoa jurídica com inscrição estadual preenchida marca 
+            consumidorFinal como não.
+
+      tipoDestinatario:
+        type: integer
+        minimum: 0
+        maximum: 9
+        format: int32
+        description: |
+            Indica quem é o destinatário (campo tipo_destinatario do envio, indDest), 
+            valores 0 ou 1. Opcional, padrão 0.
+
+            Valores permitidos: 
+              proprioTomador
+                 Valor: 0
+                 Texto: O destinatário é o próprio tomador/adquirente (padrão)
+              outroDestinatario
+                 Valor: 1
+                 Texto: O destinatário não é o próprio adquirente (outra pessoa ou outro estabelecimento)
+      consumidorFinal:
+        type: boolean
+        description: |
+            Indica se a pessoa é consumidora final, sim ou não. Padrão sim (true), que é o 
+            da pessoa física.
+             Regra de aplicação, não do mapa: pessoa jurídica com inscrição estadual 
+            preenchida passa a não.
+
+      telefone:
+        type: string
+        maxLength: 20
+        pattern: \w*\W*
+        description: |
+            Telefone principal da pessoa, só números. Opcional. Outros contatos ficam na 
+            lista de contatos.
+
+      email:
+        type: string
+        maxLength: 60
+        pattern: \w*\W*
+        description: |
+            E-mail principal da pessoa, até 60 caracteres. Opcional. Outros contatos ficam 
+            na lista de contatos.
+
+      logradouro:
+        type: string
+        maxLength: 255
+        pattern: \w*\W*
+        description: |
+            Rua, avenida ou similar do endereço da pessoa. Obrigatório.
+
+      numeroEndereco:
+        type: string
+        maxLength: 60
+        pattern: \w*\W*
+        description: |
+            Número do imóvel, texto porque aceita S/N (campo numero do endereço do envio). 
+            Obrigatório.
+
+      complemento:
+        type: string
+        maxLength: 256
+        pattern: \w*\W*
+        description: |
+            Complemento do endereço. Opcional.
+
+      bairro:
+        type: string
+        maxLength: 60
+        pattern: \w*\W*
+        description: |
+            Bairro do endereço. Obrigatório.
+
+      cep:
+        type: string
+        maxLength: 8
+        pattern: \w*\W*
+        description: |
+            CEP de 8 dígitos sem hífen, texto para preservar zeros à esquerda. Opcional. A 
+            consulta de CEP (BrasilAPI) preenche o endereço e a cidade.
+
+      codigoPais:
+        type: string
+        maxLength: 4
+        pattern: \w*\W*
+        description: |
+            Código do país do endereço no exterior, de 3 a 4 dígitos (campo codigo_pais do 
+            envio). Só na exportação. Quando preenchido e sem cidade,
+             o endereço é de exportação e a UF enviada ao gateway é EX, derivada pelo sistema 
+            na montagem do envio, sem atributo uf.
+
+      codigoPostal:
+        type: string
+        maxLength: 11
+        pattern: \w*\W*
+        description: |
+            Código postal do endereço no exterior (campo codigo_postal do envio). Opcional.
+
+      nomeMunicipioExterior:
+        type: string
+        maxLength: 60
+        pattern: \w*\W*
+        description: |
+            Nome da cidade no exterior (campo nome_municipio do envio). Opcional.
+
+      nomeProvincia:
+        type: string
+        maxLength: 60
+        pattern: \w*\W*
+        description: |
+            Nome da província ou estado no exterior (campo nome_provincia do envio). 
+            Opcional.
+
+      id:
+        type: string
+        maxLength: 36
+        pattern: \w*\W*
+        description: |
+            Identificador interno da pessoa (UUID).
+
+      dataCriacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora em que a pessoa foi cadastrada.
+
+      dataAtualizacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da última alteração do registro.
+
+      empresa:
+        description: |
+            Empresa dona desta pessoa e tenant do registro. Todo acesso é filtrado por ela.
+
+        allOf:
+          - $ref: '#/definitions/IdReference'
+      cidade:
+        description: |
+            Cidade do endereço, referência ao Municipio, que traz nome, UF e código IBGE 
+            (campos codigo_municipio e uf do envio).
+             A tela mostra cidade e UF e esconde o IBGE, que é obtido do Municipio buscado 
+            por nome e UF. Não há atributos uf nem IBGE na pessoa.
+             Opcional apenas porque na exportação o endereço não tem município brasileiro. 
+            Para pessoa estrangeira a cidade é o registro Exterior (UF EX), junto dos campos 
+            de exportação.
+
+        allOf:
+          - $ref: '#/definitions/IdReference'
+      contatos:
+        type: array
+        items:
+          $ref: '#/definitions/cadastros.Contato'
+        description: |
+            Lista de contatos da pessoa, com vários itens. Só existem dentro da pessoa, no 
+            mesmo contexto. Os sócios do QSA da consulta de CNPJ entram aqui.
+
+  cadastros.Servico:
+    description: |
+            Cadastro de serviço prestado, próprio de cada empresa e reutilizável na emissão. 
+            Guarda o enquadramento fiscal padrão
+             (código da LC 116, ISS e PIS/COFINS) e valores padrão que a nota pode 
+            sobrescrever.
+             Vive no contexto cadastros (domain.cadastros), que referencia a Empresa 
+            (configuracao) e tem dependência mútua com ele, pois a Empresa referencia o 
+            Municipio, que está em cadastros.
+
+    type: object
+    required:
+      - nome
+      - ativo
+      - codigoServico
+      - issRetido
+      - tipoOperacaoIss
+      - id
+      - dataCriacao
+      - dataAtualizacao
+      - empresa
+    properties:
+      id:
+        type: integer
+        minimum: 0
+        maximum: 9999999999999
+        format: int64
+        description: |
+            ID para referência interna da API
+      version:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da versão do registro. Usado principalmente para sincronização e controle de lock otimista.
+            Mantido pela API, não deve ser alterado, mas em caso de alterações deve ser copiado o valor recebido.
+            Em inclusões deve vir vazio, ao gravar a API irá retornar a primeira versão.
+            Em alterações deve vir o mesmo valor que verio no ultimo retorno de consulta do registro, ao gravar o sistema vai gerar um novo valor.
+            Somente com o valor certo desse campo, que registros podem ser atualizados.
+      nome:
+        type: string
+        maxLength: 100
+        pattern: \w*\W*
+        description: |
+            Nome interno para reconhecer o serviço em telas e listas. Não vai no envio ao 
+            gateway.
+
+      codigoInterno:
+        type: string
+        maxLength: 20
+        pattern: \w*\W*
+        description: |
+            Código do serviço no sistema da empresa, até 20 caracteres (campo codigo_interno 
+            do envio). Opcional.
+
+      ativo:
+        type: boolean
+        description: |
+            Indica se o serviço pode ser escolhido em novas emissões. Serviço desativado 
+            some das listas, mas permanece
+             nas notas já emitidas, que guardam o que foi enviado.
+
+      codigoServico:
+        type: string
+        maxLength: 6
+        pattern: \w*\W*
+        description: |
+            Código do serviço da LC 116/2003, exatamente 6 dígitos (campo servico.codigo do 
+            envio). Obrigatório.
+             Texto para preservar zeros à esquerda.
+
+      codigoTributacaoMunicipio:
+        type: string
+        maxLength: 3
+        pattern: \w*\W*
+        description: |
+            Código de tributação do município, 3 dígitos (campo codigo_tributacao_municipio 
+            do envio). Opcional.
+
+      codigoNbs:
+        type: string
+        maxLength: 9
+        pattern: \w*\W*
+        description: |
+            Nomenclatura Brasileira de Serviços, 9 dígitos (campo codigo_nbs do envio). 
+            Opcional.
+
+      descricaoCurta:
+        type: string
+        maxLength: 200
+        pattern: \w*\W*
+        description: |
+            Descrição de até 200 caracteres (campo descricao do envio), usada só no PDF. 
+            Opcional.
+
+      discriminacaoPadrao:
+        type: string
+        maxLength: 2000
+        pattern: \w*\W*
+        description: |
+            Texto padrão da discriminação do serviço, até 2000 caracteres (campo 
+            discriminacao do envio, obrigatório na nota).
+             Quebra de linha só com \n. Opcional no cadastro, a nota pode informar a sua.
+
+      valorPadrao:
+        type: number
+        minimum: 0
+        maximum: 9999999999999.99
+        description: |
+            Valor sugerido do serviço (valor_servicos do envio, mínimo 0.01 na nota). 
+            Opcional, a nota pode alterar.
+
+      aliquotaIss:
+        type: number
+        minimum: 0
+        maximum: 999.99
+        description: |
+            Alíquota do ISS em pontos percentuais, de 0 a 100 (5.00 significa 5%). Campo 
+            aliquota_iss do envio. Opcional.
+
+      issRetido:
+        type: boolean
+        description: |
+            Indica se o ISS é retido pelo tomador (campo iss_retido do envio). Padrão não.
+
+      tipoOperacaoIss:
+        type: integer
+        minimum: 0
+        maximum: 9
+        format: int32
+        description: |
+            Tipo da operação para o ISS (campo tributos_municipais.tipo_operacao do envio). 
+            Padrão 1, tributável.
+
+            Valores permitidos: 
+              tributavel
+                 Valor: 1
+                 Texto: Tributável
+              imunidade
+                 Valor: 2
+                 Texto: Imunidade
+              exportacao
+                 Valor: 3
+                 Texto: Exportação
+              naoIncidencia
+                 Valor: 4
+                 Texto: Não incidência
+      cstPisCofins:
+        type: string
+        maxLength: 2
+        pattern: \w*\W*
+        description: |
+            CST do PIS/COFINS, 2 dígitos (campo tributos_nacionais.cst do envio, obrigatório 
+            na nota). Texto porque a lista é longa
+             e vem da tabela de CST PIS/COFINS da documentação do IntegraNotas. Opcional no 
+            cadastro, a nota informa se faltar.
+
+      id:
+        type: string
+        maxLength: 36
+        pattern: \w*\W*
+        description: |
+            Identificador interno do serviço (UUID).
+
+      dataCriacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora em que o serviço foi cadastrado.
+
+      dataAtualizacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da última alteração do registro.
+
+      empresa:
+        description: |
+            Empresa dona deste serviço e tenant do registro. Todo acesso é filtrado por ela.
+
+        allOf:
+          - $ref: '#/definitions/IdReference'
+  usuarios.Usuario:
+    description: |
+            Identidade de uma pessoa que entra no sistema. É global: uma pessoa pode ter 
+            vínculo com várias empresas, por isso não tem tenantKey, e o isolamento por 
+            empresa está no VinculoUsuario. Vive no contexto usuarios (domain.usuarios), que 
+            depende de configuracao e cadastros.
+             O e-mail é único no sistema inteiro (o mapa não expressa unicidade, ela é regra 
+            de negócio e índice único no banco).
+             NUNCA guarda a senha, só o hash. NUNCA guarda token.
+
+    type: object
+    required:
+      - nome
+      - email
+      - ativo
+      - administradorPlataforma
+      - id
+      - dataCriacao
+      - dataAtualizacao
+    properties:
+      id:
+        type: integer
+        minimum: 0
+        maximum: 9999999999999
+        format: int64
+        description: |
+            ID para referência interna da API
+      version:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da versão do registro. Usado principalmente para sincronização e controle de lock otimista.
+            Mantido pela API, não deve ser alterado, mas em caso de alterações deve ser copiado o valor recebido.
+            Em inclusões deve vir vazio, ao gravar a API irá retornar a primeira versão.
+            Em alterações deve vir o mesmo valor que verio no ultimo retorno de consulta do registro, ao gravar o sistema vai gerar um novo valor.
+            Somente com o valor certo desse campo, que registros podem ser atualizados.
+      nome:
+        type: string
+        maxLength: 120
+        pattern: \w*\W*
+        description: |
+            Nome da pessoa. No signup é o nome do responsável, o primeiro usuário da 
+            empresa.
+
+      email:
+        type: string
+        maxLength: 160
+        pattern: \w*\W*
+        description: |
+            E-mail usado no login. Único no sistema, sem diferenciar maiúsculas de 
+            minúsculas. No signup, nome, e-mail e WhatsApp do responsável viram dados do 
+            Usuario.
+
+      whatsapp:
+        type: string
+        maxLength: 20
+        pattern: \w*\W*
+        description: |
+            WhatsApp da pessoa, até 20 caracteres. Opcional: o primeiro usuário, do signup, 
+            o terá; usuários criados depois podem não ter.
+
+      ativo:
+        type: boolean
+        description: |
+            Usuário inativo não consegue entrar nem renovar o acesso.
+
+      administradorPlataforma:
+        type: boolean
+        description: |
+            Indica o administrador da plataforma, que pode cadastrar empresas em modo 
+            irrestrito. Necessário porque a Empresa é o tenant e carrega tenantKey no 
+            próprio id.
+
+      dataUltimoAcesso:
+        type: string
+        format: date-time
+        description: |
+            Data e hora do último login bem-sucedido. Vazia se nunca entrou.
+
+      id:
+        type: string
+        maxLength: 36
+        pattern: \w*\W*
+        description: |
+            Identificador interno do registro (UUID).
+
+      dataCriacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora em que o registro foi gravado.
+
+      dataAtualizacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da última alteração do registro.
+
+  usuarios.ClienteAcesso:
+    description: |
+            Credencial de máquina para os agentes do próprio usuário (fase 1), vinculada a 
+            uma única empresa. Troca clientId e segredo por um JWT de acesso com a claim da 
+            empresa e os scopes permitidos. Vive no contexto usuarios (domain.usuarios), que 
+            depende de configuracao e cadastros.
+             Não é cliente OAuth de terceiros: registro dinâmico e consentimento ficam para a 
+            fase 2.
+             O clientId é único no sistema. NUNCA guarda o segredo, só o hash, e NUNCA guarda 
+            token.
+
+    type: object
+    required:
+      - nome
+      - clientId
+      - scopes
+      - ativo
+      - id
+      - dataCriacao
+      - dataAtualizacao
+      - empresa
+    properties:
+      id:
+        type: integer
+        minimum: 0
+        maximum: 9999999999999
+        format: int64
+        description: |
+            ID para referência interna da API
+      version:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da versão do registro. Usado principalmente para sincronização e controle de lock otimista.
+            Mantido pela API, não deve ser alterado, mas em caso de alterações deve ser copiado o valor recebido.
+            Em inclusões deve vir vazio, ao gravar a API irá retornar a primeira versão.
+            Em alterações deve vir o mesmo valor que verio no ultimo retorno de consulta do registro, ao gravar o sistema vai gerar um novo valor.
+            Somente com o valor certo desse campo, que registros podem ser atualizados.
+      nome:
+        type: string
+        maxLength: 120
+        pattern: \w*\W*
+        description: |
+            Nome que identifica o agente ou a integração, por exemplo Agente de conciliação.
+
+      clientId:
+        type: string
+        maxLength: 64
+        pattern: \w*\W*
+        description: |
+            Identificador público do cliente (clientId). Único no sistema. Não é segredo.
+
+      scopes:
+        type: string
+        maxLength: 100
+        pattern: \w*\W*
+        description: |
+            Lista dos scopes permitidos, separados por espaço, entre consultar, preparar, 
+            emitir e cancelar (formato da claim scope do JWT). Texto em vez de entidade 
+            filha: o conjunto é fixo e pequeno, não tem ciclo de vida próprio e vai direto 
+            para a claim. Emitir e cancelar exigem confirmação humana, regra de fluxo fora 
+            deste mapa.
+
+      ativo:
+        type: boolean
+        description: |
+            Cliente inativo não obtém token.
+
+      dataUltimoUso:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da última troca de credencial por token. Vazia se nunca usado.
+
+      dataExpiracao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora a partir da qual o cliente deixa de valer. Vazia significa sem 
+            expiração.
+
+      id:
+        type: string
+        maxLength: 36
+        pattern: \w*\W*
+        description: |
+            Identificador interno do registro (UUID).
+
+      dataCriacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora em que o registro foi gravado.
+
+      dataAtualizacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da última alteração do registro.
+
+      empresa:
+        description: |
+            Única empresa a que o cliente dá acesso e tenant do registro. Todo acesso é 
+            filtrado por ela.
+
+        allOf:
+          - $ref: '#/definitions/IdReference'
+  configuracao.AtividadeEmpresa:
+    description: |
+            Atividade econômica (CNAE) de uma Empresa, com tipo, código CNAE e descrição. 
+            Uma empresa tem uma atividade principal e várias secundárias. A regra de no 
+            máximo uma principal por empresa é da aplicação.
+             Existe só dentro da empresa e no mesmo contexto, por isso é detalhe da Empresa 
+            ([m]/[o]). O tenant é a própria empresa. Não tem ambiente: herda o da Empresa.
+             Vive no contexto configuracao (domain.configuracao).
+
+    type: object
+    required:
+      - tipo
+      - codigoCnae
+      - descricao
+      - id
+      - dataCriacao
+      - dataAtualizacao
+      - empresa
+    properties:
+      id:
+        type: integer
+        minimum: 0
+        maximum: 9999999999999
+        format: int64
+        description: |
+            ID para referência interna da API
+      version:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da versão do registro. Usado principalmente para sincronização e controle de lock otimista.
+            Mantido pela API, não deve ser alterado, mas em caso de alterações deve ser copiado o valor recebido.
+            Em inclusões deve vir vazio, ao gravar a API irá retornar a primeira versão.
+            Em alterações deve vir o mesmo valor que verio no ultimo retorno de consulta do registro, ao gravar o sistema vai gerar um novo valor.
+            Somente com o valor certo desse campo, que registros podem ser atualizados.
+      tipo:
+        type: string
+        maxLength: 10
+        pattern: \w*\W*
+        description: |
+            Se a atividade é a principal ou uma secundária da empresa. No máximo uma 
+            principal por empresa (regra da aplicação). Obrigatório.
+
+      codigoCnae:
+        type: string
+        maxLength: 7
+        pattern: \w*\W*
+        description: |
+            Código CNAE da atividade, 7 dígitos, só números, sem formatação. Guardado como 
+            texto para preservar zeros à esquerda. Obrigatório.
+
+      descricao:
+        type: string
+        maxLength: 300
+        pattern: \w*\W*
+        description: |
+            Descrição da atividade conforme a tabela CNAE, até 300 caracteres. Obrigatório.
+
+      id:
+        type: string
+        maxLength: 36
+        pattern: \w*\W*
+        description: |
+            Identificador interno da atividade (UUID).
+
+      dataCriacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora em que a atividade foi cadastrada.
+
+      dataAtualizacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da última alteração do registro.
+
+      empresa:
+        description: |
+            Empresa a quem a atividade pertence e tenant do registro. Apagar a empresa apaga 
+            suas atividades. Todo acesso é filtrado por ela.
+
+        allOf:
+          - $ref: '#/definitions/IdReference'
+  configuracao.QsaEmpresa:
+    description: |
+            Item do quadro de sócios e administradores (QSA) de uma Empresa, com nome, CPF, 
+            qualificação e data de entrada na sociedade. Uma empresa tem vários.
+             Existe só dentro da empresa e no mesmo contexto, por isso é detalhe da Empresa 
+            ([m]/[o]). O tenant é a própria empresa. Não tem ambiente: herda o da Empresa.
+             Vive no contexto configuracao (domain.configuracao).
+
+    type: object
+    required:
+      - nome
+      - id
+      - dataCriacao
+      - dataAtualizacao
+      - empresa
+    properties:
+      id:
+        type: integer
+        minimum: 0
+        maximum: 9999999999999
+        format: int64
+        description: |
+            ID para referência interna da API
+      version:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da versão do registro. Usado principalmente para sincronização e controle de lock otimista.
+            Mantido pela API, não deve ser alterado, mas em caso de alterações deve ser copiado o valor recebido.
+            Em inclusões deve vir vazio, ao gravar a API irá retornar a primeira versão.
+            Em alterações deve vir o mesmo valor que verio no ultimo retorno de consulta do registro, ao gravar o sistema vai gerar um novo valor.
+            Somente com o valor certo desse campo, que registros podem ser atualizados.
+      nome:
+        type: string
+        maxLength: 300
+        pattern: \w*\W*
+        description: |
+            Nome do sócio ou administrador. Obrigatório.
+
+      cpf:
+        type: string
+        maxLength: 14
+        pattern: \w*\W*
+        description: |
+            CPF do sócio, opcional. NÃO se valida como 11 dígitos: a consulta pública de 
+            CNPJ pode devolver o CPF do sócio mascarado (a confirmar ao ler a API), então o 
+            valor é guardado como veio, até 14 caracteres.
+             Dado pessoal, sujeito a mascaramento nas respostas.
+
+      qualificacao:
+        type: string
+        maxLength: 100
+        pattern: \w*\W*
+        description: |
+            Qualificação do sócio na sociedade, como Sócio-Administrador, até 100 
+            caracteres. Opcional.
+
+      dataEntradaSociedade:
+        type: string
+        format: date
+        description: |
+            Data em que o sócio entrou na sociedade. Opcional.
+
+      id:
+        type: string
+        maxLength: 36
+        pattern: \w*\W*
+        description: |
+            Identificador interno do item do QSA (UUID).
+
+      dataCriacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora em que o item foi cadastrado.
+
+      dataAtualizacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da última alteração do registro.
+
+      empresa:
+        description: |
+            Empresa a quem o sócio pertence e tenant do registro. Apagar a empresa apaga seu 
+            QSA. Todo acesso é filtrado por ela.
+
+        allOf:
+          - $ref: '#/definitions/IdReference'
+  cadastros.Municipio:
+    description: |
+            Município brasileiro identificado pelo código IBGE de 7 dígitos, exceto o 
+            registro especial Exterior (UF EX), que não tem IBGE e carrega o código 0 da 
+            tabela oficial; esse 0 nunca é enviado ao IntegraNotas (para pessoa no exterior 
+            o envio manda uf = EX e omite o código do município). Dado de referência 
+            compartilhado:
+             endereço de Empresa aponta para ele, e a Pessoa o referencia por cidade e UF 
+            (relação cidade): a tela mostra cidade e UF e esconde o IBGE, que está direto 
+            aqui.
+             O par (nome, UF) é único, regra documentada e não expressa no mapa. O Municipio 
+            é buscado por nome e UF. Todo registro tem código: o IBGE de 7 dígitos ou, no 
+            Exterior, o 0.
+             Vive no contexto cadastros (domain.cadastros). Há dependência mútua entre os 
+            contextos configuracao e cadastros:
+             a Empresa (configuracao) referencia o Municipio, e Pessoa e Servico (cadastros) 
+            referenciam a Empresa.
+             Municipio e Empresa devem ser modelados juntos.
+
+    type: object
+    required:
+      - codigoIbge
+      - nome
+      - uf
+      - id
+      - dataCriacao
+      - dataAtualizacao
+    properties:
+      id:
+        type: integer
+        minimum: 0
+        maximum: 9999999999999
+        format: int64
+        description: |
+            ID para referência interna da API
+      version:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da versão do registro. Usado principalmente para sincronização e controle de lock otimista.
+            Mantido pela API, não deve ser alterado, mas em caso de alterações deve ser copiado o valor recebido.
+            Em inclusões deve vir vazio, ao gravar a API irá retornar a primeira versão.
+            Em alterações deve vir o mesmo valor que verio no ultimo retorno de consulta do registro, ao gravar o sistema vai gerar um novo valor.
+            Somente com o valor certo desse campo, que registros podem ser atualizados.
+      codigoIbge:
+        type: string
+        maxLength: 7
+        pattern: \w*\W*
+        description: |
+            Código do município no IBGE, 7 dígitos numéricos (inclui o dígito verificador), 
+            exceto o registro especial Exterior (UF EX),
+             que não tem IBGE e carrega o código 0 da tabela oficial. Esse 0 nunca é enviado 
+            ao IntegraNotas (para pessoa no exterior o envio manda uf = EX e omite o código 
+            do município).
+             É único: não há dois municípios com o mesmo código. Guardado como texto para 
+            preservar o formato.
+
+      nome:
+        type: string
+        maxLength: 100
+        pattern: \w*\W*
+        description: |
+            Nome oficial do município, como publicado pelo IBGE. O registro Exterior tem o 
+            nome Exterior (o nome do IBGE vem vazio no arquivo; decisão provisória do 
+            usuário, a confirmar).
+
+      uf:
+        type: string
+        maxLength: 2
+        pattern: \w*\W*
+        description: |
+            Sigla da unidade federativa do município, com 2 letras maiúsculas (ex: SP). 
+            Valem as 27 UFs do Brasil mais EX (exterior).
+
+      id:
+        type: string
+        maxLength: 36
+        pattern: \w*\W*
+        description: |
+            Identificador interno do registro (UUID). O código IBGE é a chave de negócio; 
+            este campo é a chave técnica.
+
+      dataCriacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora em que o município foi cadastrado no sistema.
+
+      dataAtualizacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da última alteração do registro.
+
+  cadastros.Contato:
+    description: |
+            Contato de uma Pessoa, com tipo, nome, WhatsApp e e-mail. Uma pessoa tem vários. 
+            Existe só dentro da pessoa e no mesmo contexto, por isso é detalhe da Pessoa 
+            ([m]/[o]).
+             Os sócios do QSA da consulta de CNPJ entram como contatos do tipo sócio. O 
+            e-mail e o telefone principais ficam na própria Pessoa.
+             Vive no contexto cadastros (domain.cadastros) e referencia a Empresa 
+            (configuracao) como tenant.
+
+    type: object
+    required:
+      - tipoContato
+      - nome
+      - id
+      - dataCriacao
+      - dataAtualizacao
+      - pessoa
+      - empresa
+    properties:
+      id:
+        type: integer
+        minimum: 0
+        maximum: 9999999999999
+        format: int64
+        description: |
+            ID para referência interna da API
+      version:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da versão do registro. Usado principalmente para sincronização e controle de lock otimista.
+            Mantido pela API, não deve ser alterado, mas em caso de alterações deve ser copiado o valor recebido.
+            Em inclusões deve vir vazio, ao gravar a API irá retornar a primeira versão.
+            Em alterações deve vir o mesmo valor que verio no ultimo retorno de consulta do registro, ao gravar o sistema vai gerar um novo valor.
+            Somente com o valor certo desse campo, que registros podem ser atualizados.
+      tipoContato:
+        type: string
+        maxLength: 10
+        pattern: \w*\W*
+        description: |
+            Papel do contato perante a pessoa. Valores propostos pelo modelador (o usuário 
+            não os definiu, a confirmar): socio, financeiro, comercial, fiscal e outro. 
+            Obrigatório.
+
+      nome:
+        type: string
+        maxLength: 300
+        pattern: \w*\W*
+        description: |
+            Nome da pessoa de contato. Acréscimo do modelador, não listado pelo usuário: os 
+            sócios do QSA entram como contatos e um contato sem nome não se identifica. 
+            Obrigatório.
+
+      whatsapp:
+        type: string
+        maxLength: 20
+        pattern: \w*\W*
+        description: |
+            Número de WhatsApp do contato, só números. Opcional.
+
+      email:
+        type: string
+        maxLength: 60
+        pattern: \w*\W*
+        description: |
+            E-mail do contato, até 60 caracteres. Opcional.
+
+      id:
+        type: string
+        maxLength: 36
+        pattern: \w*\W*
+        description: |
+            Identificador interno do contato (UUID).
+
+      dataCriacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora em que o contato foi cadastrado.
+
+      dataAtualizacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da última alteração do registro.
+
+      pessoa:
+        description: |
+            Pessoa a quem o contato pertence. Apagar a pessoa apaga seus contatos.
+
+        allOf:
+          - $ref: '#/definitions/IdReference'
+      empresa:
+        description: |
+            Empresa dona deste contato e tenant do registro. Todo acesso é filtrado por ela.
+
+        allOf:
+          - $ref: '#/definitions/IdReference'

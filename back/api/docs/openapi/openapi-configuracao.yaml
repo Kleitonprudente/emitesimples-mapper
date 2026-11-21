@@ -1,0 +1,3263 @@
+swagger: '2.0'
+info:
+  version: v1
+  title: Emitesimples API Configuração
+  description: Contexto com a Empresa, a empresa usuária e tenant do modelo, e seus detalhes AtividadeEmpresa e QsaEmpresa. Tem dependência mútua com cadastros: a Empresa referencia o Municipio (cadastros), e Pessoa e Servico (cadastros) referenciam a Empresa. Não é erro, pois a relação entre contextos é sempre referência, mas quebra o princípio de modelar do mais independente para o mais dependente. Empresa e Municipio devem ser modelados juntos. O contexto admin depende deste (referencia a Empresa), e este não depende dele.
+host: localhost:8080
+securityDefinitions:
+  configuracao_auth:
+    type: oauth2
+    tokenUrl: http://localhost:8080/token
+    flow: application
+    scopes:
+      write: Permite modificar entidades na sua conta.
+      read: Permite ler entidades na sua conta.
+security:
+  - configuracao_auth:
+    - write
+    - read
+schemes:
+  - https
+basePath: /configuracao
+tags:
+- name: Empresa
+  description: |
+            Empresa usuária do sistema e tenant do modelo. Cada empresa só emite e só 
+            enxerga as próprias notas.
+             NUNCA é apagada, só DESATIVADA (situacao = desativada): a aplicação não deve 
+            expor a remoção. Nasce no signup com o documento, o e-mail e o WhatsApp 
+            informados, em situacao pendente_confirmacao, e fica ativa quando o usuário 
+            clica no link do e-mail (ConfirmacaoCadastro).
+             É identificada por um documento único (CNPJ ou CPF). Tem atividades 
+            (AtividadeEmpresa) e quadro de sócios (QsaEmpresa) como detalhes ([m]/[o]).
+             Regra de edição, da aplicação: o usuário da empresa só altera razaoSocial, 
+            nomeFantasia e o endereço; o resto é alterável só pelo administrador da 
+            plataforma ou suporte. É cadastrada no gateway IntegraNotas, onde se chama 
+            "emitente", e o gateway devolve o token do emitente,
+             separado por ambiente. Token, credenciais da prefeitura e certificado ficam no 
+            cofre, aqui só há referência.
+             Vive no contexto configuracao (domain.configuracao), sozinha. Há dependência 
+            mútua com o contexto cadastros: a Empresa referencia o Municipio (cadastros), e 
+            Pessoa e Servico (cadastros) referenciam a Empresa. Empresa e Municipio devem 
+            ser modelados juntos.
+
+- name: AtividadeEmpresa
+  description: |
+            Atividade econômica (CNAE) de uma Empresa, com tipo, código CNAE e descrição. 
+            Uma empresa tem uma atividade principal e várias secundárias. A regra de no 
+            máximo uma principal por empresa é da aplicação.
+             Existe só dentro da empresa e no mesmo contexto, por isso é detalhe da Empresa 
+            ([m]/[o]). O tenant é a própria empresa. Não tem ambiente: herda o da Empresa.
+             Vive no contexto configuracao (domain.configuracao).
+
+- name: QsaEmpresa
+  description: |
+            Item do quadro de sócios e administradores (QSA) de uma Empresa, com nome, CPF, 
+            qualificação e data de entrada na sociedade. Uma empresa tem vários.
+             Existe só dentro da empresa e no mesmo contexto, por isso é detalhe da Empresa 
+            ([m]/[o]). O tenant é a própria empresa. Não tem ambiente: herda o da Empresa.
+             Vive no contexto configuracao (domain.configuracao).
+
+paths:
+  /Empresa:
+    get:
+      operationId: "Empresa_listAll"
+      summary: Lista todos os registros de Empresa.
+      description: |
+          Limitado a 100 registros, para mais resultados usar o listRange em conjunto com count.
+      tags:
+        - Empresa
+      parameters:
+      - name: "sortBy"
+        in: "query"
+        description: "Campo para ordenação"
+        type: string
+      - name: "sortDirection"
+        in: "query"
+        description: "Direção da ordenação (asc ou desc)"
+        type: string
+        enum:
+          - asc
+          - desc
+        default: "asc"
+      - name: "nomeFantasia"
+        in: "query"
+        description: "Filtra registros por nomeFantasia"
+        type: string
+      - name: "razaoSocial"
+        in: "query"
+        description: "Filtra registros por razaoSocial"
+        type: string
+      - name: "documento"
+        in: "query"
+        description: "Filtra registros por documento"
+        type: string
+      - name: "rgInscricaoEstadual"
+        in: "query"
+        description: "Filtra registros por rgInscricaoEstadual"
+        type: string
+      - name: "inscricaoMunicipal"
+        in: "query"
+        description: "Filtra registros por inscricaoMunicipal"
+        type: string
+      - name: "email"
+        in: "query"
+        description: "Filtra registros por email"
+        type: string
+      - name: "whatsapp"
+        in: "query"
+        description: "Filtra registros por whatsapp"
+        type: string
+      - name: "telefone"
+        in: "query"
+        description: "Filtra registros por telefone"
+        type: string
+      - name: "logradouro"
+        in: "query"
+        description: "Filtra registros por logradouro"
+        type: string
+      - name: "numeroEndereco"
+        in: "query"
+        description: "Filtra registros por numeroEndereco"
+        type: string
+      - name: "complemento"
+        in: "query"
+        description: "Filtra registros por complemento"
+        type: string
+      - name: "bairro"
+        in: "query"
+        description: "Filtra registros por bairro"
+        type: string
+      - name: "cep"
+        in: "query"
+        description: "Filtra registros por cep"
+        type: string
+      - name: "regimeTributario"
+        in: "query"
+        description: "Filtra registros por regimeTributario"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "regimeIbsCbs"
+        in: "query"
+        description: "Filtra registros por regimeIbsCbs"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "urlWebhook"
+        in: "query"
+        description: "Filtra registros por urlWebhook"
+        type: string
+      - name: "situacao"
+        in: "query"
+        description: "Filtra registros por situacao"
+        type: string
+      - name: "referenciaCrm"
+        in: "query"
+        description: "Filtra registros por referenciaCrm"
+        type: string
+      - name: "statusCadastro"
+        in: "query"
+        description: "Filtra registros por statusCadastro"
+        type: string
+      - name: "validadeCertificado"
+        in: "query"
+        description: "Filtra registros por validadeCertificado"
+        type: string
+      - name: "situacaoCertificado"
+        in: "query"
+        description: "Filtra registros por situacaoCertificado"
+        type: string
+      - name: "id"
+        in: "query"
+        description: "Filtra registros por id"
+        type: string
+      - name: "version"
+        in: "query"
+        description: "Filtra registros por versão"
+        type: integer
+      - name: "ambiente"
+        in: "query"
+        description: "Filtra registros por ambiente"
+        type: string
+      - name: "municipio.id"
+        in: "query"
+        description: "Filtra registros por municipio usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      produces:
+      - "application/json"
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/configuracao.Empresa'
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    post:
+      operationId: "Empresa_create"
+      summary: Cria um registro de Empresa.
+      tags:
+        - Empresa
+      consumes:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "Request body"
+        required: true
+        schema:
+              $ref: '#/definitions/configuracao.Empresa'
+      responses:
+        '200':
+          description: OK
+          schema:
+              $ref: '#/definitions/configuracao.Empresa'
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  /Empresa/sum/{fieldName}:
+    get:
+      operationId: "Empresa_sum"
+      summary: Retorna a soma do campo especificado no path de Empresa.
+      tags:
+        - Empresa
+      parameters:
+      - name: "fieldName"
+        in: "path"
+        required: true
+        type: "string"
+      - name: "nomeFantasia"
+        in: "query"
+        description: "Filtra registros por nomeFantasia"
+        type: string
+      - name: "razaoSocial"
+        in: "query"
+        description: "Filtra registros por razaoSocial"
+        type: string
+      - name: "documento"
+        in: "query"
+        description: "Filtra registros por documento"
+        type: string
+      - name: "rgInscricaoEstadual"
+        in: "query"
+        description: "Filtra registros por rgInscricaoEstadual"
+        type: string
+      - name: "inscricaoMunicipal"
+        in: "query"
+        description: "Filtra registros por inscricaoMunicipal"
+        type: string
+      - name: "email"
+        in: "query"
+        description: "Filtra registros por email"
+        type: string
+      - name: "whatsapp"
+        in: "query"
+        description: "Filtra registros por whatsapp"
+        type: string
+      - name: "telefone"
+        in: "query"
+        description: "Filtra registros por telefone"
+        type: string
+      - name: "logradouro"
+        in: "query"
+        description: "Filtra registros por logradouro"
+        type: string
+      - name: "numeroEndereco"
+        in: "query"
+        description: "Filtra registros por numeroEndereco"
+        type: string
+      - name: "complemento"
+        in: "query"
+        description: "Filtra registros por complemento"
+        type: string
+      - name: "bairro"
+        in: "query"
+        description: "Filtra registros por bairro"
+        type: string
+      - name: "cep"
+        in: "query"
+        description: "Filtra registros por cep"
+        type: string
+      - name: "regimeTributario"
+        in: "query"
+        description: "Filtra registros por regimeTributario"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "regimeIbsCbs"
+        in: "query"
+        description: "Filtra registros por regimeIbsCbs"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "urlWebhook"
+        in: "query"
+        description: "Filtra registros por urlWebhook"
+        type: string
+      - name: "situacao"
+        in: "query"
+        description: "Filtra registros por situacao"
+        type: string
+      - name: "referenciaCrm"
+        in: "query"
+        description: "Filtra registros por referenciaCrm"
+        type: string
+      - name: "statusCadastro"
+        in: "query"
+        description: "Filtra registros por statusCadastro"
+        type: string
+      - name: "validadeCertificado"
+        in: "query"
+        description: "Filtra registros por validadeCertificado"
+        type: string
+      - name: "situacaoCertificado"
+        in: "query"
+        description: "Filtra registros por situacaoCertificado"
+        type: string
+      - name: "id"
+        in: "query"
+        description: "Filtra registros por id"
+        type: string
+      - name: "version"
+        in: "query"
+        description: "Filtra registros por versão"
+        type: integer
+      - name: "ambiente"
+        in: "query"
+        description: "Filtra registros por ambiente"
+        type: string
+      - name: "municipio.id"
+        in: "query"
+        description: "Filtra registros por municipio usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      produces:
+      - "application/json"
+      responses: 
+        '200': 
+          description: OK 
+          schema: 
+              $ref: '#/definitions/SumResult' 
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  /Empresa/count:
+    get:
+      operationId: "Empresa_count"
+      summary: Retorna contagem dos registros de Empresa.
+      tags:
+        - Empresa
+      parameters:
+      - name: "nomeFantasia"
+        in: "query"
+        description: "Filtra registros por nomeFantasia"
+        type: string
+      - name: "razaoSocial"
+        in: "query"
+        description: "Filtra registros por razaoSocial"
+        type: string
+      - name: "documento"
+        in: "query"
+        description: "Filtra registros por documento"
+        type: string
+      - name: "rgInscricaoEstadual"
+        in: "query"
+        description: "Filtra registros por rgInscricaoEstadual"
+        type: string
+      - name: "inscricaoMunicipal"
+        in: "query"
+        description: "Filtra registros por inscricaoMunicipal"
+        type: string
+      - name: "email"
+        in: "query"
+        description: "Filtra registros por email"
+        type: string
+      - name: "whatsapp"
+        in: "query"
+        description: "Filtra registros por whatsapp"
+        type: string
+      - name: "telefone"
+        in: "query"
+        description: "Filtra registros por telefone"
+        type: string
+      - name: "logradouro"
+        in: "query"
+        description: "Filtra registros por logradouro"
+        type: string
+      - name: "numeroEndereco"
+        in: "query"
+        description: "Filtra registros por numeroEndereco"
+        type: string
+      - name: "complemento"
+        in: "query"
+        description: "Filtra registros por complemento"
+        type: string
+      - name: "bairro"
+        in: "query"
+        description: "Filtra registros por bairro"
+        type: string
+      - name: "cep"
+        in: "query"
+        description: "Filtra registros por cep"
+        type: string
+      - name: "regimeTributario"
+        in: "query"
+        description: "Filtra registros por regimeTributario"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "regimeIbsCbs"
+        in: "query"
+        description: "Filtra registros por regimeIbsCbs"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "urlWebhook"
+        in: "query"
+        description: "Filtra registros por urlWebhook"
+        type: string
+      - name: "situacao"
+        in: "query"
+        description: "Filtra registros por situacao"
+        type: string
+      - name: "referenciaCrm"
+        in: "query"
+        description: "Filtra registros por referenciaCrm"
+        type: string
+      - name: "statusCadastro"
+        in: "query"
+        description: "Filtra registros por statusCadastro"
+        type: string
+      - name: "validadeCertificado"
+        in: "query"
+        description: "Filtra registros por validadeCertificado"
+        type: string
+      - name: "situacaoCertificado"
+        in: "query"
+        description: "Filtra registros por situacaoCertificado"
+        type: string
+      - name: "id"
+        in: "query"
+        description: "Filtra registros por id"
+        type: string
+      - name: "version"
+        in: "query"
+        description: "Filtra registros por versão"
+        type: integer
+      - name: "ambiente"
+        in: "query"
+        description: "Filtra registros por ambiente"
+        type: string
+      - name: "municipio.id"
+        in: "query"
+        description: "Filtra registros por municipio usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      produces:
+      - "application/json"
+      responses: 
+        '200': 
+          description: OK 
+          schema: 
+              $ref: '#/definitions/CountResult' 
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  /Empresa/{from}/{to}:
+    get:
+      operationId: "Empresa_listRange"
+      summary: Lista os registros de Empresa por faixa de posição.
+      description: |
+          Observar que a faixa inicia em 0 e o limite máximo é de 100 itens retornados total.
+          Deve ser usado em conjunto com o count para determinar qtos itens tem no total, e no seu aplicativo fazer o controle de paginas.
+          Por exemplo, ao usar um determinado filtro o count retorna o valor de 240 itens, e no seu aplicativo usa 20 itens por pagina:
+          A primeira pagina vai ser from = 0 e o to = 19
+          A segunda pagina vai ser from = 20 e o to = 39
+          e assim sucessivamente até ler toda a lista.
+          ATENÇÃO para usar o mesmo filtro (query parameters) no count e no listRange para evitar divergencia no tamanho da lista, lembrando que a lista pode aumentar caso novos registros sejam inseridos no banco, durante a leitura paginada.
+      tags:
+        - Empresa
+      parameters:
+      - name: "from"
+        in: "path"
+        required: true
+        type: "integer"
+      - name: "to"
+        in: "path"
+        required: true
+        type: "integer"
+      - name: "sortBy"
+        in: "query"
+        description: "Campo para ordenação"
+        type: string
+      - name: "sortDirection"
+        in: "query"
+        description: "Direção da ordenação (asc ou desc)"
+        type: string
+        enum:
+          - asc
+          - desc
+        default: "asc"
+      - name: "nomeFantasia"
+        in: "query"
+        description: "Filtra registros por nomeFantasia"
+        type: string
+      - name: "razaoSocial"
+        in: "query"
+        description: "Filtra registros por razaoSocial"
+        type: string
+      - name: "documento"
+        in: "query"
+        description: "Filtra registros por documento"
+        type: string
+      - name: "rgInscricaoEstadual"
+        in: "query"
+        description: "Filtra registros por rgInscricaoEstadual"
+        type: string
+      - name: "inscricaoMunicipal"
+        in: "query"
+        description: "Filtra registros por inscricaoMunicipal"
+        type: string
+      - name: "email"
+        in: "query"
+        description: "Filtra registros por email"
+        type: string
+      - name: "whatsapp"
+        in: "query"
+        description: "Filtra registros por whatsapp"
+        type: string
+      - name: "telefone"
+        in: "query"
+        description: "Filtra registros por telefone"
+        type: string
+      - name: "logradouro"
+        in: "query"
+        description: "Filtra registros por logradouro"
+        type: string
+      - name: "numeroEndereco"
+        in: "query"
+        description: "Filtra registros por numeroEndereco"
+        type: string
+      - name: "complemento"
+        in: "query"
+        description: "Filtra registros por complemento"
+        type: string
+      - name: "bairro"
+        in: "query"
+        description: "Filtra registros por bairro"
+        type: string
+      - name: "cep"
+        in: "query"
+        description: "Filtra registros por cep"
+        type: string
+      - name: "regimeTributario"
+        in: "query"
+        description: "Filtra registros por regimeTributario"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "regimeIbsCbs"
+        in: "query"
+        description: "Filtra registros por regimeIbsCbs"
+        type: integer
+        minimum: 0
+        maximum: 9
+      - name: "urlWebhook"
+        in: "query"
+        description: "Filtra registros por urlWebhook"
+        type: string
+      - name: "situacao"
+        in: "query"
+        description: "Filtra registros por situacao"
+        type: string
+      - name: "referenciaCrm"
+        in: "query"
+        description: "Filtra registros por referenciaCrm"
+        type: string
+      - name: "statusCadastro"
+        in: "query"
+        description: "Filtra registros por statusCadastro"
+        type: string
+      - name: "validadeCertificado"
+        in: "query"
+        description: "Filtra registros por validadeCertificado"
+        type: string
+      - name: "situacaoCertificado"
+        in: "query"
+        description: "Filtra registros por situacaoCertificado"
+        type: string
+      - name: "id"
+        in: "query"
+        description: "Filtra registros por id"
+        type: string
+      - name: "version"
+        in: "query"
+        description: "Filtra registros por versão"
+        type: integer
+      - name: "ambiente"
+        in: "query"
+        description: "Filtra registros por ambiente"
+        type: string
+      - name: "municipio.id"
+        in: "query"
+        description: "Filtra registros por municipio usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      produces:
+      - "application/json"
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/configuracao.Empresa'
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  /Empresa/id/{value}:
+    get:
+      operationId: "Empresa_byId_read"
+      summary: Retorna o respectivo registro de Empresa usando o ID da API.
+      tags:
+        - Empresa
+      parameters:
+      - name: "value"
+        in: "path"
+        required: true
+        type: "integer"
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      produces:
+      - "application/json"
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/configuracao.Empresa'
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    put:
+      operationId: "Empresa_update" 
+      summary: Altera o respectivo registro de Empresa.
+      tags:
+        - Empresa
+      consumes:
+      - "application/json"
+      parameters:
+      - name: "value"
+        in: "path"
+        required: true
+        type: "integer"
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - in: "body"
+        name: "body"
+        description: "Request body"
+        required: true
+        schema:
+          $ref: '#/definitions/configuracao.Empresa'
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    delete:
+      operationId: "Empresa_delete"
+      summary: Remove um registro de Empresa.
+      tags:
+        - Empresa
+      consumes:
+      - "application/json"
+      parameters:
+      - name: "value"
+        in: "path"
+        description: "ID do Empresa a ser removido"
+        required: true
+        type: integer
+        minimum: 0
+        format: int32
+      responses:
+        '204':
+          description: "Registro removido com sucesso."
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    patch:
+      operationId: "Empresa_patch" 
+      summary: Altera parcialmente o respectivo registro de Empresa.
+      tags:
+        - Empresa
+      consumes:
+      - "application/json"
+      parameters:
+      - name: "value"
+        in: "path"
+        required: true
+        type: "integer"
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - in: "body"
+        name: "body"
+        description: "Request body"
+        required: true
+        schema:
+          $ref: '#/definitions/configuracao.Empresa'
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  /AtividadeEmpresa:
+    get:
+      operationId: "AtividadeEmpresa_listAll"
+      summary: Lista todos os registros de AtividadeEmpresa.
+      description: |
+          Limitado a 100 registros, para mais resultados usar o listRange em conjunto com count.
+      tags:
+        - AtividadeEmpresa
+      parameters:
+      - name: "sortBy"
+        in: "query"
+        description: "Campo para ordenação"
+        type: string
+      - name: "sortDirection"
+        in: "query"
+        description: "Direção da ordenação (asc ou desc)"
+        type: string
+        enum:
+          - asc
+          - desc
+        default: "asc"
+      - name: "tipo"
+        in: "query"
+        description: "Filtra registros por tipo"
+        type: string
+      - name: "codigoCnae"
+        in: "query"
+        description: "Filtra registros por codigoCnae"
+        type: string
+      - name: "descricao"
+        in: "query"
+        description: "Filtra registros por descricao"
+        type: string
+      - name: "id"
+        in: "query"
+        description: "Filtra registros por id"
+        type: string
+      - name: "version"
+        in: "query"
+        description: "Filtra registros por versão"
+        type: integer
+      produces:
+      - "application/json"
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/configuracao.AtividadeEmpresa'
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    post:
+      operationId: "AtividadeEmpresa_create"
+      summary: Cria um registro de AtividadeEmpresa.
+      tags:
+        - AtividadeEmpresa
+      consumes:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "Request body"
+        required: true
+        schema:
+              $ref: '#/definitions/configuracao.AtividadeEmpresa'
+      responses:
+        '200':
+          description: OK
+          schema:
+              $ref: '#/definitions/configuracao.AtividadeEmpresa'
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  /AtividadeEmpresa/sum/{fieldName}:
+    get:
+      operationId: "AtividadeEmpresa_sum"
+      summary: Retorna a soma do campo especificado no path de AtividadeEmpresa.
+      tags:
+        - AtividadeEmpresa
+      parameters:
+      - name: "fieldName"
+        in: "path"
+        required: true
+        type: "string"
+      - name: "tipo"
+        in: "query"
+        description: "Filtra registros por tipo"
+        type: string
+      - name: "codigoCnae"
+        in: "query"
+        description: "Filtra registros por codigoCnae"
+        type: string
+      - name: "descricao"
+        in: "query"
+        description: "Filtra registros por descricao"
+        type: string
+      - name: "id"
+        in: "query"
+        description: "Filtra registros por id"
+        type: string
+      - name: "version"
+        in: "query"
+        description: "Filtra registros por versão"
+        type: integer
+      produces:
+      - "application/json"
+      responses: 
+        '200': 
+          description: OK 
+          schema: 
+              $ref: '#/definitions/SumResult' 
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  /AtividadeEmpresa/count:
+    get:
+      operationId: "AtividadeEmpresa_count"
+      summary: Retorna contagem dos registros de AtividadeEmpresa.
+      tags:
+        - AtividadeEmpresa
+      parameters:
+      - name: "tipo"
+        in: "query"
+        description: "Filtra registros por tipo"
+        type: string
+      - name: "codigoCnae"
+        in: "query"
+        description: "Filtra registros por codigoCnae"
+        type: string
+      - name: "descricao"
+        in: "query"
+        description: "Filtra registros por descricao"
+        type: string
+      - name: "id"
+        in: "query"
+        description: "Filtra registros por id"
+        type: string
+      - name: "version"
+        in: "query"
+        description: "Filtra registros por versão"
+        type: integer
+      produces:
+      - "application/json"
+      responses: 
+        '200': 
+          description: OK 
+          schema: 
+              $ref: '#/definitions/CountResult' 
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  /AtividadeEmpresa/{from}/{to}:
+    get:
+      operationId: "AtividadeEmpresa_listRange"
+      summary: Lista os registros de AtividadeEmpresa por faixa de posição.
+      description: |
+          Observar que a faixa inicia em 0 e o limite máximo é de 100 itens retornados total.
+          Deve ser usado em conjunto com o count para determinar qtos itens tem no total, e no seu aplicativo fazer o controle de paginas.
+          Por exemplo, ao usar um determinado filtro o count retorna o valor de 240 itens, e no seu aplicativo usa 20 itens por pagina:
+          A primeira pagina vai ser from = 0 e o to = 19
+          A segunda pagina vai ser from = 20 e o to = 39
+          e assim sucessivamente até ler toda a lista.
+          ATENÇÃO para usar o mesmo filtro (query parameters) no count e no listRange para evitar divergencia no tamanho da lista, lembrando que a lista pode aumentar caso novos registros sejam inseridos no banco, durante a leitura paginada.
+      tags:
+        - AtividadeEmpresa
+      parameters:
+      - name: "from"
+        in: "path"
+        required: true
+        type: "integer"
+      - name: "to"
+        in: "path"
+        required: true
+        type: "integer"
+      - name: "sortBy"
+        in: "query"
+        description: "Campo para ordenação"
+        type: string
+      - name: "sortDirection"
+        in: "query"
+        description: "Direção da ordenação (asc ou desc)"
+        type: string
+        enum:
+          - asc
+          - desc
+        default: "asc"
+      - name: "tipo"
+        in: "query"
+        description: "Filtra registros por tipo"
+        type: string
+      - name: "codigoCnae"
+        in: "query"
+        description: "Filtra registros por codigoCnae"
+        type: string
+      - name: "descricao"
+        in: "query"
+        description: "Filtra registros por descricao"
+        type: string
+      - name: "id"
+        in: "query"
+        description: "Filtra registros por id"
+        type: string
+      - name: "version"
+        in: "query"
+        description: "Filtra registros por versão"
+        type: integer
+      produces:
+      - "application/json"
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/configuracao.AtividadeEmpresa'
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  /AtividadeEmpresa/id/{value}:
+    get:
+      operationId: "AtividadeEmpresa_byId_read"
+      summary: Retorna o respectivo registro de AtividadeEmpresa usando o ID da API.
+      tags:
+        - AtividadeEmpresa
+      parameters:
+      - name: "value"
+        in: "path"
+        required: true
+        type: "integer"
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      produces:
+      - "application/json"
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/configuracao.AtividadeEmpresa'
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    put:
+      operationId: "AtividadeEmpresa_update" 
+      summary: Altera o respectivo registro de AtividadeEmpresa.
+      tags:
+        - AtividadeEmpresa
+      consumes:
+      - "application/json"
+      parameters:
+      - name: "value"
+        in: "path"
+        required: true
+        type: "integer"
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - in: "body"
+        name: "body"
+        description: "Request body"
+        required: true
+        schema:
+          $ref: '#/definitions/configuracao.AtividadeEmpresa'
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    delete:
+      operationId: "AtividadeEmpresa_delete"
+      summary: Remove um registro de AtividadeEmpresa.
+      tags:
+        - AtividadeEmpresa
+      consumes:
+      - "application/json"
+      parameters:
+      - name: "value"
+        in: "path"
+        description: "ID do AtividadeEmpresa a ser removido"
+        required: true
+        type: integer
+        minimum: 0
+        format: int32
+      responses:
+        '204':
+          description: "Registro removido com sucesso."
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    patch:
+      operationId: "AtividadeEmpresa_patch" 
+      summary: Altera parcialmente o respectivo registro de AtividadeEmpresa.
+      tags:
+        - AtividadeEmpresa
+      consumes:
+      - "application/json"
+      parameters:
+      - name: "value"
+        in: "path"
+        required: true
+        type: "integer"
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - in: "body"
+        name: "body"
+        description: "Request body"
+        required: true
+        schema:
+          $ref: '#/definitions/configuracao.AtividadeEmpresa'
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  /QsaEmpresa:
+    get:
+      operationId: "QsaEmpresa_listAll"
+      summary: Lista todos os registros de QsaEmpresa.
+      description: |
+          Limitado a 100 registros, para mais resultados usar o listRange em conjunto com count.
+      tags:
+        - QsaEmpresa
+      parameters:
+      - name: "sortBy"
+        in: "query"
+        description: "Campo para ordenação"
+        type: string
+      - name: "sortDirection"
+        in: "query"
+        description: "Direção da ordenação (asc ou desc)"
+        type: string
+        enum:
+          - asc
+          - desc
+        default: "asc"
+      - name: "nome"
+        in: "query"
+        description: "Filtra registros por nome"
+        type: string
+      - name: "cpf"
+        in: "query"
+        description: "Filtra registros por cpf"
+        type: string
+      - name: "qualificacao"
+        in: "query"
+        description: "Filtra registros por qualificacao"
+        type: string
+      - name: "dataEntradaSociedade"
+        in: "query"
+        description: "Filtra registros por dataEntradaSociedade"
+        type: string
+      - name: "id"
+        in: "query"
+        description: "Filtra registros por id"
+        type: string
+      - name: "version"
+        in: "query"
+        description: "Filtra registros por versão"
+        type: integer
+      produces:
+      - "application/json"
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/configuracao.QsaEmpresa'
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    post:
+      operationId: "QsaEmpresa_create"
+      summary: Cria um registro de QsaEmpresa.
+      tags:
+        - QsaEmpresa
+      consumes:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "Request body"
+        required: true
+        schema:
+              $ref: '#/definitions/configuracao.QsaEmpresa'
+      responses:
+        '200':
+          description: OK
+          schema:
+              $ref: '#/definitions/configuracao.QsaEmpresa'
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  /QsaEmpresa/sum/{fieldName}:
+    get:
+      operationId: "QsaEmpresa_sum"
+      summary: Retorna a soma do campo especificado no path de QsaEmpresa.
+      tags:
+        - QsaEmpresa
+      parameters:
+      - name: "fieldName"
+        in: "path"
+        required: true
+        type: "string"
+      - name: "nome"
+        in: "query"
+        description: "Filtra registros por nome"
+        type: string
+      - name: "cpf"
+        in: "query"
+        description: "Filtra registros por cpf"
+        type: string
+      - name: "qualificacao"
+        in: "query"
+        description: "Filtra registros por qualificacao"
+        type: string
+      - name: "dataEntradaSociedade"
+        in: "query"
+        description: "Filtra registros por dataEntradaSociedade"
+        type: string
+      - name: "id"
+        in: "query"
+        description: "Filtra registros por id"
+        type: string
+      - name: "version"
+        in: "query"
+        description: "Filtra registros por versão"
+        type: integer
+      produces:
+      - "application/json"
+      responses: 
+        '200': 
+          description: OK 
+          schema: 
+              $ref: '#/definitions/SumResult' 
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  /QsaEmpresa/count:
+    get:
+      operationId: "QsaEmpresa_count"
+      summary: Retorna contagem dos registros de QsaEmpresa.
+      tags:
+        - QsaEmpresa
+      parameters:
+      - name: "nome"
+        in: "query"
+        description: "Filtra registros por nome"
+        type: string
+      - name: "cpf"
+        in: "query"
+        description: "Filtra registros por cpf"
+        type: string
+      - name: "qualificacao"
+        in: "query"
+        description: "Filtra registros por qualificacao"
+        type: string
+      - name: "dataEntradaSociedade"
+        in: "query"
+        description: "Filtra registros por dataEntradaSociedade"
+        type: string
+      - name: "id"
+        in: "query"
+        description: "Filtra registros por id"
+        type: string
+      - name: "version"
+        in: "query"
+        description: "Filtra registros por versão"
+        type: integer
+      produces:
+      - "application/json"
+      responses: 
+        '200': 
+          description: OK 
+          schema: 
+              $ref: '#/definitions/CountResult' 
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  /QsaEmpresa/{from}/{to}:
+    get:
+      operationId: "QsaEmpresa_listRange"
+      summary: Lista os registros de QsaEmpresa por faixa de posição.
+      description: |
+          Observar que a faixa inicia em 0 e o limite máximo é de 100 itens retornados total.
+          Deve ser usado em conjunto com o count para determinar qtos itens tem no total, e no seu aplicativo fazer o controle de paginas.
+          Por exemplo, ao usar um determinado filtro o count retorna o valor de 240 itens, e no seu aplicativo usa 20 itens por pagina:
+          A primeira pagina vai ser from = 0 e o to = 19
+          A segunda pagina vai ser from = 20 e o to = 39
+          e assim sucessivamente até ler toda a lista.
+          ATENÇÃO para usar o mesmo filtro (query parameters) no count e no listRange para evitar divergencia no tamanho da lista, lembrando que a lista pode aumentar caso novos registros sejam inseridos no banco, durante a leitura paginada.
+      tags:
+        - QsaEmpresa
+      parameters:
+      - name: "from"
+        in: "path"
+        required: true
+        type: "integer"
+      - name: "to"
+        in: "path"
+        required: true
+        type: "integer"
+      - name: "sortBy"
+        in: "query"
+        description: "Campo para ordenação"
+        type: string
+      - name: "sortDirection"
+        in: "query"
+        description: "Direção da ordenação (asc ou desc)"
+        type: string
+        enum:
+          - asc
+          - desc
+        default: "asc"
+      - name: "nome"
+        in: "query"
+        description: "Filtra registros por nome"
+        type: string
+      - name: "cpf"
+        in: "query"
+        description: "Filtra registros por cpf"
+        type: string
+      - name: "qualificacao"
+        in: "query"
+        description: "Filtra registros por qualificacao"
+        type: string
+      - name: "dataEntradaSociedade"
+        in: "query"
+        description: "Filtra registros por dataEntradaSociedade"
+        type: string
+      - name: "id"
+        in: "query"
+        description: "Filtra registros por id"
+        type: string
+      - name: "version"
+        in: "query"
+        description: "Filtra registros por versão"
+        type: integer
+      produces:
+      - "application/json"
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/configuracao.QsaEmpresa'
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  /QsaEmpresa/id/{value}:
+    get:
+      operationId: "QsaEmpresa_byId_read"
+      summary: Retorna o respectivo registro de QsaEmpresa usando o ID da API.
+      tags:
+        - QsaEmpresa
+      parameters:
+      - name: "value"
+        in: "path"
+        required: true
+        type: "integer"
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      produces:
+      - "application/json"
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/configuracao.QsaEmpresa'
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    put:
+      operationId: "QsaEmpresa_update" 
+      summary: Altera o respectivo registro de QsaEmpresa.
+      tags:
+        - QsaEmpresa
+      consumes:
+      - "application/json"
+      parameters:
+      - name: "value"
+        in: "path"
+        required: true
+        type: "integer"
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - in: "body"
+        name: "body"
+        description: "Request body"
+        required: true
+        schema:
+          $ref: '#/definitions/configuracao.QsaEmpresa'
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    delete:
+      operationId: "QsaEmpresa_delete"
+      summary: Remove um registro de QsaEmpresa.
+      tags:
+        - QsaEmpresa
+      consumes:
+      - "application/json"
+      parameters:
+      - name: "value"
+        in: "path"
+        description: "ID do QsaEmpresa a ser removido"
+        required: true
+        type: integer
+        minimum: 0
+        format: int32
+      responses:
+        '204':
+          description: "Registro removido com sucesso."
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    patch:
+      operationId: "QsaEmpresa_patch" 
+      summary: Altera parcialmente o respectivo registro de QsaEmpresa.
+      tags:
+        - QsaEmpresa
+      consumes:
+      - "application/json"
+      parameters:
+      - name: "value"
+        in: "path"
+        required: true
+        type: "integer"
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - in: "body"
+        name: "body"
+        description: "Request body"
+        required: true
+        schema:
+          $ref: '#/definitions/configuracao.QsaEmpresa'
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: "A requisição foi malformada, omitindo atributos obrigatórios, seja no payload ou através de atributos na URL."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '401':
+          description: "Cabeçalho de autenticação ausente/inválido ou token inválido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '403':
+          description: "O token tem escopo incorreto ou uma política de segurança foi violada"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '404':
+          description: "O recurso solicitado não existe ou não foi implementado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '405':
+          description: "O consumidor tentou acessar o recurso com um método não suportado"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '406':
+          description: "A solicitação continha um cabeçalho Accept diferente dos tipos de mídia permitidos ou um conjunto de caracteres diferente de UTF-8"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '422':
+          description: "A sintaxe da requisição esta correta, mas não foi possível processar as instruções presentes."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '423':
+          description: "O recurso está bloqueado."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '429':
+          description: "A operação foi recusada, pois muitas solicitações foram feitas dentro de um determinado período ou o limite global de requisições concorrentes foi atingido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '500':
+          description: "Ocorreu um erro no gateway da API ou no microsserviço"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '504':
+          description: "GATEWAY TIMEOUT - A requisição não foi atendida dentro do tempo limite estabelecido"
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        '529':
+          description: "O site está sobrecarregado e a operação foi recusada, pois foi atingido o limite máximo de TPS global, neste momento."
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+definitions:
+  IdReference:
+    type: object
+    properties:
+      id:
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+  CountResult:
+    type: object
+    properties:
+      count:
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+  ErrorResponse:
+    type: object
+    properties:
+      code:
+        type: integer
+        minimum: 0
+        maximum: 9999999999999
+        format: int32
+        description: |
+            Código do erro
+      message:
+        type: string
+        description: |
+            Mensagem resumida sobre o erro
+      description:
+        type: string
+        description: |
+            Detalhes para melhor entendimento do erro
+  SumResult:
+    type: object
+    properties:
+      sum:
+        type: number
+        minimum: 0.0
+        maximum: 999999999999.99
+        format: double
+  configuracao.Empresa:
+    description: |
+            Empresa usuária do sistema e tenant do modelo. Cada empresa só emite e só 
+            enxerga as próprias notas.
+             NUNCA é apagada, só DESATIVADA (situacao = desativada): a aplicação não deve 
+            expor a remoção. Nasce no signup com o documento, o e-mail e o WhatsApp 
+            informados, em situacao pendente_confirmacao, e fica ativa quando o usuário 
+            clica no link do e-mail (ConfirmacaoCadastro).
+             É identificada por um documento único (CNPJ ou CPF). Tem atividades 
+            (AtividadeEmpresa) e quadro de sócios (QsaEmpresa) como detalhes ([m]/[o]).
+             Regra de edição, da aplicação: o usuário da empresa só altera razaoSocial, 
+            nomeFantasia e o endereço; o resto é alterável só pelo administrador da 
+            plataforma ou suporte. É cadastrada no gateway IntegraNotas, onde se chama 
+            "emitente", e o gateway devolve o token do emitente,
+             separado por ambiente. Token, credenciais da prefeitura e certificado ficam no 
+            cofre, aqui só há referência.
+             Vive no contexto configuracao (domain.configuracao), sozinha. Há dependência 
+            mútua com o contexto cadastros: a Empresa referencia o Municipio (cadastros), e 
+            Pessoa e Servico (cadastros) referenciam a Empresa. Empresa e Municipio devem 
+            ser modelados juntos.
+
+    type: object
+    required:
+      - nomeFantasia
+      - razaoSocial
+      - documento
+      - email
+      - whatsapp
+      - telefone
+      - logradouro
+      - numeroEndereco
+      - bairro
+      - cep
+      - regimeTributario
+      - situacao
+      - statusCadastro
+      - situacaoCertificado
+      - id
+      - ambiente
+      - dataCriacao
+      - dataAtualizacao
+      - municipio
+    properties:
+      id:
+        type: integer
+        minimum: 0
+        maximum: 9999999999999
+        format: int64
+        description: |
+            ID para referência interna da API
+      version:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da versão do registro. Usado principalmente para sincronização e controle de lock otimista.
+            Mantido pela API, não deve ser alterado, mas em caso de alterações deve ser copiado o valor recebido.
+            Em inclusões deve vir vazio, ao gravar a API irá retornar a primeira versão.
+            Em alterações deve vir o mesmo valor que verio no ultimo retorno de consulta do registro, ao gravar o sistema vai gerar um novo valor.
+            Somente com o valor certo desse campo, que registros podem ser atualizados.
+      nomeFantasia:
+        type: string
+        maxLength: 60
+        pattern: \w*\W*
+        description: |
+            Nome fantasia da empresa, de 2 a 60 caracteres (campo nome do cadastro no 
+            gateway). Alterável pelo usuário da empresa.
+
+      razaoSocial:
+        type: string
+        maxLength: 60
+        pattern: \w*\W*
+        description: |
+            Razão social da empresa, de 2 a 60 caracteres (campo razao do cadastro no 
+            gateway). Alterável pelo usuário da empresa.
+
+      documento:
+        type: string
+        maxLength: 14
+        pattern: \w*\W*
+        description: |
+            Documento da empresa, só dígitos, sem formatação: 14 dígitos é CNPJ e 11 dígitos 
+            é CPF. É um ou outro, nunca os dois.
+             No cadastro no gateway e no envio ao IntegraNotas o sistema o separa em cnpj ou 
+            cpf conforme o tamanho. CPF é dado pessoal, sujeito a mascaramento nas 
+            respostas. Obrigatório.
+             Único por ambiente (o mesmo documento tem um registro por ambiente). Alterável 
+            só pelo administrador da plataforma ou suporte.
+
+      rgInscricaoEstadual:
+        type: string
+        maxLength: 20
+        pattern: \w*\W*
+        description: |
+            Inscrição estadual da empresa, até 20 caracteres. Mesmo nome do campo da Pessoa. 
+            Opcional. Alterável só pelo administrador da plataforma ou suporte.
+
+      inscricaoMunicipal:
+        type: string
+        maxLength: 20
+        pattern: \w*\W*
+        description: |
+            Inscrição municipal da empresa, de 1 a 20 caracteres (campo im do gateway). 
+            Opcional. Alterável só pelo administrador da plataforma ou suporte.
+
+      email:
+        type: string
+        maxLength: 60
+        pattern: \w*\W*
+        description: |
+            E-mail da empresa, até 60 caracteres. Obrigatório: várias integrações exigem 
+            (IntegraNotas, bancos para boleto e PIX). É o e-mail informado no signup. 
+            Alterável só pelo administrador da plataforma ou suporte.
+
+      whatsapp:
+        type: string
+        maxLength: 20
+        pattern: \w*\W*
+        description: |
+            WhatsApp da empresa, até 20 caracteres. Obrigatório: necessário em cadastros de 
+            integração como IntegraNotas e bancos para boleto e PIX. É o WhatsApp informado 
+            no signup. Alterável só pelo administrador da plataforma ou suporte.
+
+      telefone:
+        type: string
+        maxLength: 14
+        pattern: \w*\W*
+        description: |
+            Telefone da empresa, de 6 a 14 dígitos, só números. Alterável só pelo 
+            administrador da plataforma ou suporte.
+
+      logradouro:
+        type: string
+        maxLength: 60
+        pattern: \w*\W*
+        description: |
+            Rua, avenida ou similar do endereço da empresa, de 1 a 60 caracteres (campo rua 
+            do gateway). Alterável pelo usuário da empresa.
+
+      numeroEndereco:
+        type: string
+        maxLength: 60
+        pattern: \w*\W*
+        description: |
+            Número do imóvel, de 1 a 60 caracteres, texto porque aceita S/N (campo numero do 
+            gateway). Alterável pelo usuário da empresa.
+
+      complemento:
+        type: string
+        maxLength: 60
+        pattern: \w*\W*
+        description: |
+            Complemento do endereço, até 60 caracteres. Opcional. Alterável pelo usuário da 
+            empresa.
+
+      bairro:
+        type: string
+        maxLength: 60
+        pattern: \w*\W*
+        description: |
+            Bairro do endereço, de 2 a 60 caracteres. Alterável pelo usuário da empresa.
+
+      cep:
+        type: string
+        maxLength: 8
+        pattern: \w*\W*
+        description: |
+            CEP do endereço, exatamente 8 dígitos sem hífen. Guardado como texto para 
+            preservar zeros à esquerda. Alterável pelo usuário da empresa.
+
+      regimeTributario:
+        type: integer
+        minimum: 0
+        maximum: 9
+        format: int32
+        description: |
+            Regime tributário da empresa (campo crt do gateway). Define o enquadramento 
+            usado na emissão. Alterável só pelo administrador da plataforma ou suporte.
+
+            Valores permitidos: 
+              simplesNacional
+                 Valor: 1
+                 Texto: Simples Nacional
+              simplesExcessoSublimite
+                 Valor: 2
+                 Texto: Simples Nacional com excesso de sublimite
+              regimeNormal
+                 Valor: 3
+                 Texto: Regime Normal
+              mei
+                 Valor: 4
+                 Texto: MEI
+      regimeIbsCbs:
+        type: integer
+        minimum: 0
+        maximum: 9
+        format: int32
+        description: |
+            Regime de apuração do IBS e da CBS da empresa (campo regime_cibs do gateway), de 
+            0 a 4. Opcional por decisão do usuário.
+             O valor 0 significa não informado e a tag não é enviada. Alterável só pelo 
+            administrador da plataforma ou suporte.
+
+            Valores permitidos: 
+              naoInformado
+                 Valor: 0
+                 Texto: Não informado, padrão, a tag não é enviada
+              simplesOpcaoRegimeRegular
+                 Valor: 1
+                 Texto: Simples Nacional com opção pelo regime regular do IBS e da CBS (crt 1 ou 2)
+              normalOpcaoSimplesPendenteSemRegular
+                 Valor: 2
+                 Texto: Regime Normal com opção pendente pelo Simples Nacional, sem regime regular do IBS e da CBS (crt 3)
+              normalSublimitePendenteSemRegular
+                 Valor: 3
+                 Texto: Regime Normal com opção pendente pelo Simples Nacional com excesso de sublimite, sem regime regular do IBS e da CBS (crt 3)
+              normalOpcaoSimplesPendenteComRegular
+                 Valor: 4
+                 Texto: Regime Normal com opção pendente pelo Simples Nacional, com regime regular do IBS e da CBS (crt 3)
+      logo:
+        type: string
+        format: byte
+        description: |
+            Logotipo da empresa, imagem JPG ou PNG proporcional (como 100x100) de até 1 MB. 
+            Opcional, enviado ao gateway em Base64. Alterável só pelo administrador da 
+            plataforma ou suporte.
+
+      urlWebhook:
+        type: string
+        maxLength: 200
+        pattern: \w*\W*
+        description: |
+            URL pública, de 1 a 200 caracteres, que recebe as notificações do gateway. 
+            Registrada no cadastro da empresa no gateway
+             e só aceita se responder HTTP 200. Opcional. Alterável só pelo administrador da 
+            plataforma ou suporte.
+
+      situacao:
+        type: string
+        maxLength: 20
+        pattern: \w*\W*
+        description: |
+            Situação da conta da empresa NO SISTEMA (não confundir com statusCadastro, que é 
+            o cadastro no gateway IntegraNotas). A empresa nasce pendente_confirmacao no 
+            signup,
+             vira ativa quando o usuário clica no link do e-mail (ou quando o suporte ativa) 
+            e desativada quando o suporte a desativa à mão. Nunca é apagada. Alterável só 
+            pelo administrador da plataforma ou suporte.
+
+      dataConfirmacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora em que o usuário confirmou o cadastro pelo link do e-mail. Vazia 
+            enquanto pendente. Alterável só pelo administrador da plataforma ou suporte.
+
+      referenciaCrm:
+        type: string
+        maxLength: 50
+        pattern: \w*\W*
+        description: |
+            Identificador desta empresa como cliente no CRM da Marke. A cobrança é do CRM, 
+            este sistema não processa pagamento. Opcional. Alterável só pelo administrador 
+            da plataforma ou suporte.
+
+      statusCadastro:
+        type: string
+        maxLength: 20
+        pattern: \w*\W*
+        description: |
+            Situação do cadastro da empresa NO GATEWAY (emitente no IntegraNotas), no 
+            ambiente do registro. Não é a situação da conta no sistema (ver situacao). A 
+            empresa nasce nao_cadastrado,
+             vira cadastrado quando o gateway devolve o token, e erro quando o cadastro é 
+            recusado. Alterável só pelo administrador da plataforma ou suporte.
+
+      dataCadastroGateway:
+        type: string
+        format: date-time
+        description: |
+            Data e hora em que o gateway aceitou o cadastro e devolveu o token. Vazia 
+            enquanto não cadastrado. Alterável só pelo administrador da plataforma ou 
+            suporte.
+
+      validadeCertificado:
+        type: string
+        format: date
+        description: |
+            Data de validade do certificado digital enviado ao gateway. Vazia enquanto não 
+            houver certificado. Alterável só pelo administrador da plataforma ou suporte.
+
+      situacaoCertificado:
+        type: string
+        maxLength: 20
+        pattern: \w*\W*
+        description: |
+            Situação do certificado digital da empresa no gateway, no ambiente do registro. 
+            Alterável só pelo administrador da plataforma ou suporte.
+
+      id:
+        type: string
+        maxLength: 36
+        pattern: \w*\W*
+        description: |
+            Identificador interno da empresa (UUID). Também é o identificador do tenant, 
+            usado como chave de escopo
+             da própria empresa (tenantKey) e referenciado pelo tenantKey das demais 
+            entidades.
+
+      ambiente:
+        type: string
+        maxLength: 15
+        pattern: \w*\W*
+        description: |
+            Ambiente do gateway a que este registro pertence. Empresa (emitente no 
+            IntegraNotas) e token são independentes por ambiente,
+             então o mesmo documento (CNPJ ou CPF) tem um registro por ambiente e uma nota de 
+            teste nunca se mistura com uma real.
+
+      dataCriacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora em que a empresa foi cadastrada no sistema.
+
+      dataAtualizacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da última alteração do registro.
+
+      atividades:
+        type: array
+        items:
+          $ref: '#/definitions/configuracao.AtividadeEmpresa'
+        description: |
+            Atividades econômicas (CNAE) da empresa: uma principal e várias secundárias. Só 
+            existem dentro da empresa, no mesmo contexto. Alterável só pelo administrador da 
+            plataforma ou suporte.
+
+      qsa:
+        type: array
+        items:
+          $ref: '#/definitions/configuracao.QsaEmpresa'
+        description: |
+            Quadro de sócios e administradores (QSA) da empresa, com vários itens. Só existe 
+            dentro da empresa, no mesmo contexto. Alterável só pelo administrador da 
+            plataforma ou suporte.
+
+      municipio:
+        description: |
+            Município do endereço da empresa. Traz código IBGE, nome e UF, que não se 
+            repetem aqui (campos cmun, municipio e uf do gateway). A empresa não pode usar o 
+            registro Exterior (regra da aplicação). Alterável pelo usuário da empresa.
+
+        allOf:
+          - $ref: '#/definitions/IdReference'
+  configuracao.AtividadeEmpresa:
+    description: |
+            Atividade econômica (CNAE) de uma Empresa, com tipo, código CNAE e descrição. 
+            Uma empresa tem uma atividade principal e várias secundárias. A regra de no 
+            máximo uma principal por empresa é da aplicação.
+             Existe só dentro da empresa e no mesmo contexto, por isso é detalhe da Empresa 
+            ([m]/[o]). O tenant é a própria empresa. Não tem ambiente: herda o da Empresa.
+             Vive no contexto configuracao (domain.configuracao).
+
+    type: object
+    required:
+      - tipo
+      - codigoCnae
+      - descricao
+      - id
+      - dataCriacao
+      - dataAtualizacao
+      - empresa
+    properties:
+      id:
+        type: integer
+        minimum: 0
+        maximum: 9999999999999
+        format: int64
+        description: |
+            ID para referência interna da API
+      version:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da versão do registro. Usado principalmente para sincronização e controle de lock otimista.
+            Mantido pela API, não deve ser alterado, mas em caso de alterações deve ser copiado o valor recebido.
+            Em inclusões deve vir vazio, ao gravar a API irá retornar a primeira versão.
+            Em alterações deve vir o mesmo valor que verio no ultimo retorno de consulta do registro, ao gravar o sistema vai gerar um novo valor.
+            Somente com o valor certo desse campo, que registros podem ser atualizados.
+      tipo:
+        type: string
+        maxLength: 10
+        pattern: \w*\W*
+        description: |
+            Se a atividade é a principal ou uma secundária da empresa. No máximo uma 
+            principal por empresa (regra da aplicação). Obrigatório.
+
+      codigoCnae:
+        type: string
+        maxLength: 7
+        pattern: \w*\W*
+        description: |
+            Código CNAE da atividade, 7 dígitos, só números, sem formatação. Guardado como 
+            texto para preservar zeros à esquerda. Obrigatório.
+
+      descricao:
+        type: string
+        maxLength: 300
+        pattern: \w*\W*
+        description: |
+            Descrição da atividade conforme a tabela CNAE, até 300 caracteres. Obrigatório.
+
+      id:
+        type: string
+        maxLength: 36
+        pattern: \w*\W*
+        description: |
+            Identificador interno da atividade (UUID).
+
+      dataCriacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora em que a atividade foi cadastrada.
+
+      dataAtualizacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da última alteração do registro.
+
+      empresa:
+        description: |
+            Empresa a quem a atividade pertence e tenant do registro. Apagar a empresa apaga 
+            suas atividades. Todo acesso é filtrado por ela.
+
+        allOf:
+          - $ref: '#/definitions/IdReference'
+  configuracao.QsaEmpresa:
+    description: |
+            Item do quadro de sócios e administradores (QSA) de uma Empresa, com nome, CPF, 
+            qualificação e data de entrada na sociedade. Uma empresa tem vários.
+             Existe só dentro da empresa e no mesmo contexto, por isso é detalhe da Empresa 
+            ([m]/[o]). O tenant é a própria empresa. Não tem ambiente: herda o da Empresa.
+             Vive no contexto configuracao (domain.configuracao).
+
+    type: object
+    required:
+      - nome
+      - id
+      - dataCriacao
+      - dataAtualizacao
+      - empresa
+    properties:
+      id:
+        type: integer
+        minimum: 0
+        maximum: 9999999999999
+        format: int64
+        description: |
+            ID para referência interna da API
+      version:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da versão do registro. Usado principalmente para sincronização e controle de lock otimista.
+            Mantido pela API, não deve ser alterado, mas em caso de alterações deve ser copiado o valor recebido.
+            Em inclusões deve vir vazio, ao gravar a API irá retornar a primeira versão.
+            Em alterações deve vir o mesmo valor que verio no ultimo retorno de consulta do registro, ao gravar o sistema vai gerar um novo valor.
+            Somente com o valor certo desse campo, que registros podem ser atualizados.
+      nome:
+        type: string
+        maxLength: 300
+        pattern: \w*\W*
+        description: |
+            Nome do sócio ou administrador. Obrigatório.
+
+      cpf:
+        type: string
+        maxLength: 14
+        pattern: \w*\W*
+        description: |
+            CPF do sócio, opcional. NÃO se valida como 11 dígitos: a consulta pública de 
+            CNPJ pode devolver o CPF do sócio mascarado (a confirmar ao ler a API), então o 
+            valor é guardado como veio, até 14 caracteres.
+             Dado pessoal, sujeito a mascaramento nas respostas.
+
+      qualificacao:
+        type: string
+        maxLength: 100
+        pattern: \w*\W*
+        description: |
+            Qualificação do sócio na sociedade, como Sócio-Administrador, até 100 
+            caracteres. Opcional.
+
+      dataEntradaSociedade:
+        type: string
+        format: date
+        description: |
+            Data em que o sócio entrou na sociedade. Opcional.
+
+      id:
+        type: string
+        maxLength: 36
+        pattern: \w*\W*
+        description: |
+            Identificador interno do item do QSA (UUID).
+
+      dataCriacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora em que o item foi cadastrado.
+
+      dataAtualizacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da última alteração do registro.
+
+      empresa:
+        description: |
+            Empresa a quem o sócio pertence e tenant do registro. Apagar a empresa apaga seu 
+            QSA. Todo acesso é filtrado por ela.
+
+        allOf:
+          - $ref: '#/definitions/IdReference'
+  cadastros.Municipio:
+    description: |
+            Município brasileiro identificado pelo código IBGE de 7 dígitos, exceto o 
+            registro especial Exterior (UF EX), que não tem IBGE e carrega o código 0 da 
+            tabela oficial; esse 0 nunca é enviado ao IntegraNotas (para pessoa no exterior 
+            o envio manda uf = EX e omite o código do município). Dado de referência 
+            compartilhado:
+             endereço de Empresa aponta para ele, e a Pessoa o referencia por cidade e UF 
+            (relação cidade): a tela mostra cidade e UF e esconde o IBGE, que está direto 
+            aqui.
+             O par (nome, UF) é único, regra documentada e não expressa no mapa. O Municipio 
+            é buscado por nome e UF. Todo registro tem código: o IBGE de 7 dígitos ou, no 
+            Exterior, o 0.
+             Vive no contexto cadastros (domain.cadastros). Há dependência mútua entre os 
+            contextos configuracao e cadastros:
+             a Empresa (configuracao) referencia o Municipio, e Pessoa e Servico (cadastros) 
+            referenciam a Empresa.
+             Municipio e Empresa devem ser modelados juntos.
+
+    type: object
+    required:
+      - codigoIbge
+      - nome
+      - uf
+      - id
+      - dataCriacao
+      - dataAtualizacao
+    properties:
+      id:
+        type: integer
+        minimum: 0
+        maximum: 9999999999999
+        format: int64
+        description: |
+            ID para referência interna da API
+      version:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da versão do registro. Usado principalmente para sincronização e controle de lock otimista.
+            Mantido pela API, não deve ser alterado, mas em caso de alterações deve ser copiado o valor recebido.
+            Em inclusões deve vir vazio, ao gravar a API irá retornar a primeira versão.
+            Em alterações deve vir o mesmo valor que verio no ultimo retorno de consulta do registro, ao gravar o sistema vai gerar um novo valor.
+            Somente com o valor certo desse campo, que registros podem ser atualizados.
+      codigoIbge:
+        type: string
+        maxLength: 7
+        pattern: \w*\W*
+        description: |
+            Código do município no IBGE, 7 dígitos numéricos (inclui o dígito verificador), 
+            exceto o registro especial Exterior (UF EX),
+             que não tem IBGE e carrega o código 0 da tabela oficial. Esse 0 nunca é enviado 
+            ao IntegraNotas (para pessoa no exterior o envio manda uf = EX e omite o código 
+            do município).
+             É único: não há dois municípios com o mesmo código. Guardado como texto para 
+            preservar o formato.
+
+      nome:
+        type: string
+        maxLength: 100
+        pattern: \w*\W*
+        description: |
+            Nome oficial do município, como publicado pelo IBGE. O registro Exterior tem o 
+            nome Exterior (o nome do IBGE vem vazio no arquivo; decisão provisória do 
+            usuário, a confirmar).
+
+      uf:
+        type: string
+        maxLength: 2
+        pattern: \w*\W*
+        description: |
+            Sigla da unidade federativa do município, com 2 letras maiúsculas (ex: SP). 
+            Valem as 27 UFs do Brasil mais EX (exterior).
+
+      id:
+        type: string
+        maxLength: 36
+        pattern: \w*\W*
+        description: |
+            Identificador interno do registro (UUID). O código IBGE é a chave de negócio; 
+            este campo é a chave técnica.
+
+      dataCriacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora em que o município foi cadastrado no sistema.
+
+      dataAtualizacao:
+        type: string
+        format: date-time
+        description: |
+            Data e hora da última alteração do registro.
+

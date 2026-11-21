@@ -203,7 +203,8 @@
                     [v]       try {
                     [v]         {{ @name }}Entity entity = mapper.apiToEntity(body);
                     [v]         repository.persist(entity);
-                    [v] 
+                    [v]         repository.gravarAgora();
+                    [v]
                     [v]         return mapper.entityToApi(entity);
                     [v] 
                     [y]       }
@@ -326,6 +327,7 @@
                         [v]             .orElseThrow(() -> new NotFoundException("No {{ mi:first-lower(@name) }} found for Id: " + value));
                         [v]         body.setId(value);
                         [v]         mapper.updateApiToEntity(body, entity);
+                        [v]         repository.gravarAgora();
                     [e] updateByIdEnd
                         [v]     }
                 [g] patch
@@ -342,6 +344,7 @@
                           |             .orElseThrow(() -> new NotFoundException("No {{ mi:first-lower(@name) }} found with ID: " + value));
                           |         body.setId(value);
                           |         mapper.patchApiToEntity(body, entity);
+                          |         repository.gravarAgora();
                           |     }
                 [g] delete
                     [e] delete-id

@@ -16,7 +16,7 @@ Tier B. Fatos verificados em 2026-11-20.
 - Você não fala com a API do IntegraNotas e não emite nota.
 - Parâmetros do `generate` divergem por gerador: `struct` usa `className`+`packageName`; os `quarkus` usam `modelName`+`package` (pacote COMPLETO do DOM, ex.: `br.com.emitesimples.domain.cadastros`). Param errado = saída vazia, sem erro. `swagger restAPI` usa `packageName`.
 - Validação 4 (2026-11-20): segundo push feito (ValorTeste desregistrado, EMI9001 do swagger corrigido); escada e 8 compiles OK. Não há mais push autorizado sem novo aval.
-- **Prova de compilação (2026-11-20)**: o código gerado vive no projeto irmão `emitesimples-api` (`scripts/gerar.sh` gera 72
+- **Prova de compilação (2026-11-20)**: o código gerado vive no projeto `back/api` (antes pasta irmã `emitesimples-api`) (`scripts/gerar.sh` gera 72
   arquivos Java + 5 OpenAPI a partir do mapa na nuvem, sem push). Com JDK 25.0.5.1 + Maven 3.10.1 + Quarkus 3.33.4.2,
   `mvn -B compile` e `mvn -B package -DskipTests` dão BUILD SUCCESS (76 fontes). Só o `javac` pega erros que o `struct` e o
   `generate` não pegam (ex.: parâmetros duplicados `<relação><Campo>`). Para rodar o Maven sem mexer no PATH do Windows:
@@ -27,7 +27,7 @@ Tier B. Fatos verificados em 2026-11-20.
   main.mi` rodado na nova pasta atualiza `mainMindMapHome`, mas **APAGA `lastPush`** (a ligação com a nuvem): depois dele
   `struct` e `generate` falham com "not pushed to mapperidea cloud", e `check` e `load` ainda imprimem sucesso (não provam
   nada). A volta exige um `mi push` (precisa de autorização do usuário). Antes de re-registrar qualquer projeto, avise isso.
-- **Banco de teste (2026-11-21)**: o Flyway é o dono do esquema do `emitesimples-api` (V1 emitida pelo Hibernate e congelada, V2
+- **Banco de teste (2026-11-21)**: o Flyway é o dono do esquema do `back/api` (V1 emitida pelo Hibernate e congelada, V2
   com unicidades e índices; o Hibernate só valida, `quarkus.hibernate-orm.schema-management.strategy=validate`). Para provar,
   suba um PostgreSQL descartável: `docker run -d --name emitesimples-pg-test -e POSTGRES_USER=emitesimples -e
   POSTGRES_PASSWORD=<teste> -e POSTGRES_DB=emitesimples -p 127.0.0.1:5433:5432 postgres:17-alpine` (imagem local; NUNCA use o

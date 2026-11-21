@@ -1,7 +1,7 @@
 # Carga e administração da tabela de cidades (`Municipio`)
 
 **Fonte**: arquivo `municipios.csv` baixado do site do IBGE pelo usuário (inspecionado em 2026-11-21) e decisões do usuário.
-Este documento especifica a importação; a importação em si é código escrito à mão no `emitesimples-api` (o pack
+Este documento especifica a importação; a importação em si é código escrito à mão no `back/api` (o pack
 Quarkus não gera upload de tabela inteira: o upload dele é preso a um registro e usa `long` no id, e os ids deste
 projeto são UUID em texto).
 

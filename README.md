@@ -11,6 +11,7 @@ back/
     main.mi           mapa principal
     Configuracao/ Cadastros/ Usuarios/ Nfse/ IntegraNotas/ Admin/    um arquivo .mi por entidade, por contexto
     generators/       geradores (pack Quarkus adaptado) e fixture de teste
+  api/                projeto Quarkus do back: compila o código gerado e guarda o escrito à mão (login, regras)
 front/                reservada para o mapa do front-end (projeto separado, ainda não criado)
 docs/                 compartilhado: histórias de usuário, documentos do IntegraNotas, contrato do pack, guias
 scripts/              hooks usados pelos agentes (limitam a escrita ao projeto)
@@ -33,8 +34,8 @@ scripts/              hooks usados pelos agentes (limitam a escrita ao projeto)
 - Rode o `mi` no **Git Bash**. No PowerShell, `mi` é um alias de `Move-Item`.
 - O `mi push` **publica na conta em nuvem** do Mapper Idea. Só com autorização explícita.
 
-## Projetos irmãos (fora deste repositório)
+## O código do back
 
 | Pasta | O que é |
 |---|---|
-| `../emitesimples-api` | projeto Quarkus que compila o código gerado do back (`scripts/gerar.sh` gera; Flyway é o dono do esquema do banco) |
+| `back/api` | projeto Quarkus que compila o código gerado do back (`scripts/gerar.sh` gera; Flyway é o dono do esquema do banco) |

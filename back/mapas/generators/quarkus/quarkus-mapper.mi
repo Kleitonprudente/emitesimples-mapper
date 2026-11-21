@@ -74,8 +74,14 @@
             [e] constructor-close
                 [v]         this.repository = repository;
                 [v]     }
+            [e] apiToEntity-getTenant
+                [v]             {{ $className }}Builder.{{ @name }} = repository.{{ @name }}Efetiva(api.get{{ mi:first-upper(@name) }}() == null ? null : api.get{{ mi:first-upper(@name) }}().getId());
+            [e] updateApiToEntity-setTenant
+                [v]             repository.conferir{{ mi:first-upper(@name) }}Imutavel(entity, api.get{{ mi:first-upper(@name) }}() == null ? null : api.get{{ mi:first-upper(@name) }}().getId());
+            [e] patchApiToEntity-setTenant
+                [v]         repository.conferir{{ mi:first-upper(@name) }}Imutavel(entity, api.get{{ mi:first-upper(@name) }}() == null ? null : api.get{{ mi:first-upper(@name) }}().getId());
             [e] attribute-mapper
-                [v] 
+                [v]
                 [v]     @Inject 
                 [v]     {{ $typeClassName }}Mapper {{ mi:first-lower($typeClassName) }}Mapper;
             [e] constructor-mapper-param
@@ -1290,6 +1296,11 @@
                                     [e] write-pattern
                                         [v] apiToEntity-getDirectToField
                                 [e] else-if
+                                    [v] .[properties/tenantKey]
+                                    [e] then
+                                        [e] write-pattern
+                                            [v] apiToEntity-getTenant
+                                [e] else-if
                                     [v] @mode = 'oneToOne'
                                     [e] then
                                         [e] vars
@@ -1420,6 +1431,11 @@
                                     [e] write-pattern
                                         [v] updateApiToEntity-setDirectToField
                                 [e] else-if
+                                    [v] .[properties/tenantKey]
+                                    [e] then
+                                        [e] write-pattern
+                                            [v] updateApiToEntity-setTenant
+                                [e] else-if
                                     [v] @mode = 'oneToOne'
                                     [e] then
                                         [e] vars
@@ -1514,6 +1530,11 @@
                                 [e] then
                                     [e] write-pattern
                                         [v] patchApiToEntity-setDirectToField
+                                [e] else-if
+                                    [v] .[properties/tenantKey]
+                                    [e] then
+                                        [e] write-pattern
+                                            [v] patchApiToEntity-setTenant
                                 [e] else-if
                                     [v] @mode = 'oneToOne'
                                     [e] then

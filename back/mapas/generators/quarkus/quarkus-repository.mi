@@ -40,6 +40,8 @@
                 [e] then
                     [e] write-pattern
                         [v] escopo-inject
+            [e] write-pattern
+                [v] gravacao-flush
             [e] apply-templates
                 [e] select
                     [v] attributes/attribute[properties/tenantKey]
@@ -531,10 +533,25 @@
                         [v] escopo-por-id-campo
             [e] template
                 [e] match
-                    [v] attribute
+                    [v] attribute[@mode != 'directToField']
                 [e] body
+                    [e] vars
+                        [e] var
+                            [v] tipoNome
+                            [e] expr
+                                [v] functx:substring-after-last(@type,'.')
+                        [e] var
+                            [v] tipoPacote
+                            [e] expr
+                                [v] mi:if-else(contains(@type,'.'), substring-before(@type, functx:substring-after-last(@type,'.')), concat(substring-after(/classes/class[@name = $tipoNome][1]/@package,'.domain.'),'.'))
+                        [e] var
+                            [v] entidadeRel
+                            [e] expr
+                                [v] concat(substring-before($package,'.domain.'),'.',$tipoPacote,'entity.',$tipoNome,'Entity')
                     [e] write-pattern
                         [v] escopo-por-id-relacao
+                    [e] write-pattern
+                        [v] escopo-gravacao-relacao
     [e] patterns
         [e] package
             [v] package {{ substring-before(@package,'.domain.') }}.{{ substring-after(@package,'.domain.') }}.repository;
@@ -551,7 +568,11 @@
             [v] import java.util.Optional;
             [v] import jakarta.inject.Inject;
             [v] import jakarta.persistence.EntityManager;
+            [v] import jakarta.persistence.PersistenceException;
             [v] import jakarta.persistence.TypedQuery;
+            [v] import jakarta.ws.rs.ClientErrorException;
+            [v] import jakarta.ws.rs.WebApplicationException;
+            [v] import {{ substring-before(@package,'.domain.') }}.exceptions.InvalidInputException;
             [v] import jakarta.persistence.criteria.*;
             [v] import {{ substring-before(@package,'.domain.') }}.{{ substring-after(@package,'.domain.') }}.entity.{{ @name }}Entity;
         [e] escopo-import
@@ -647,12 +668,92 @@
             [v]     public boolean deleteById(String id) {
             [v]         return findByIdOptional(id).map(e -> { delete(e); return true; }).orElse(false);
             [v]     }
+        [e] escopo-gravacao-relacao
+            [v]
+            [v]     /**
+            [v]      * Resolve a <b>{{ @name }}</b> que o registro vai carregar. Fora do modo irrestrito e sempre
+            [v]      * a da sessao (carrega so a referencia, sem exigir version do cliente); se o corpo
+            [v]      * trouxer outra, e 403. No modo irrestrito vale a do corpo (null se ausente; o
+            [v]      * persist a exige).
+            [v]      */
+            [v]     public {{ $entidadeRel }} {{ @name }}Efetiva(String {{ @name }}IdInformada) {
+            [v]         if (!escopo.irrestrito()) {
+            [v]             String daSessao = escopo.exigir("{{ properties/cn/value }}");
+            [v]             if ({{ @name }}IdInformada != null && !{{ @name }}IdInformada.equals(daSessao)) {
+            [v]                 throw new jakarta.ws.rs.ForbiddenException("O registro nao pode pertencer a outra {{ @name }}.");
+            [v]             }
+            [v]             return em.getReference({{ $entidadeRel }}.class, daSessao);
+            [v]         }
+            [v]         if ({{ @name }}IdInformada == null || {{ @name }}IdInformada.isBlank()) {
+            [v]             return null;
+            [v]         }
+            [v]         {{ $entidadeRel }} encontrada = em.find({{ $entidadeRel }}.class, {{ @name }}IdInformada);
+            [v]         if (encontrada == null) {
+            [v]             throw new {{ substring-before($package,'.domain.') }}.exceptions.NotFoundException("No entity {{ $tipoNome }} found for Id: " + {{ @name }}IdInformada);
+            [v]         }
+            [v]         return encontrada;
+            [v]     }
+            [v]
+            [v]     /** Grava impondo a {{ @name }} da sessao (ver {{ @name }}Efetiva); no modo irrestrito ela e obrigatoria. */
+            [v]     @Override
+            [v]     public void persist({{ ../../@name }}Entity entity) {
+            [v]         String informada = entity.get{{ mi:first-upper(@name) }}() == null ? null : entity.get{{ mi:first-upper(@name) }}().getId();
+            [v]         {{ $entidadeRel }} efetiva = {{ @name }}Efetiva(informada);
+            [v]         if (efetiva == null) {
+            [v]             throw new InvalidInputException("O campo {{ @name }} e obrigatorio.");
+            [v]         }
+            [v]         entity.set{{ mi:first-upper(@name) }}(efetiva);
+            [v]         em.persist(entity);
+            [v]     }
+            [v]
+            [v]     /** PUT e PATCH nao movem o registro de {{ @name }}: outra no corpo e 403 (escopado) ou 400 (irrestrito). Ausente no corpo mantem a atual. */
+            [v]     public void conferir{{ mi:first-upper(@name) }}Imutavel({{ ../../@name }}Entity entity, String {{ @name }}IdInformada) {
+            [v]         if ({{ @name }}IdInformada == null) {
+            [v]             return;
+            [v]         }
+            [v]         String atual = entity.get{{ mi:first-upper(@name) }}() == null ? null : entity.get{{ mi:first-upper(@name) }}().getId();
+            [v]         if ({{ @name }}IdInformada.equals(atual)) {
+            [v]             return;
+            [v]         }
+            [v]         if (!escopo.irrestrito()) {
+            [v]             throw new jakarta.ws.rs.ForbiddenException("A {{ @name }} do registro nao pode ser alterada.");
+            [v]         }
+            [v]         throw new InvalidInputException("A {{ @name }} do registro nao pode ser alterada.");
+            [v]     }
         [e] interface-start
-            [v] 
+            [v]
             [v] @ApplicationScoped
             [v] public class {{ @name }}Repository implements PanacheRepositoryBase<{{ @name }}Entity, String> {
             [v] 
             [v]     @Inject EntityManager em;
+        [e] gravacao-flush
+            [v]
+            [v]     /**
+            [v]      * Descarrega as gravacoes pendentes <b>dentro</b> do try do resource: a violacao
+            [v]      * estoura aqui e nao no commit (onde viraria 500 e vazaria SQL). Unicidade
+            [v]      * (SQLState 23505) e conflito de versao viram 409; as demais violacoes viram 400,
+            [v]      * sem expor o SQL.
+            [v]      */
+            [v]     public void gravarAgora() {
+            [v]         try {
+            [v]             em.flush();
+            [v]         } catch (PersistenceException pe) {
+            [v]             throw traduzirFalhaDeGravacao(pe);
+            [v]         }
+            [v]     }
+            [v]
+            [v]     private WebApplicationException traduzirFalhaDeGravacao(PersistenceException pe) {
+            [v]         if (pe instanceof jakarta.persistence.OptimisticLockException) {
+            [v]             return new ClientErrorException("O registro foi alterado por outra operacao. Recarregue e tente de novo.", 409);
+            [v]         }
+            [v]         Throwable causa = pe;
+            [v]         for (int i = 0; causa != null && i < 10; i++, causa = causa.getCause()) {
+            [v]             if (causa instanceof java.sql.SQLException sql && "23505".equals(sql.getSQLState())) {
+            [v]                 return new ClientErrorException("Ja existe um registro com os mesmos dados unicos.", 409);
+            [v]             }
+            [v]         }
+            [v]         return new InvalidInputException("Nao foi possivel gravar o registro: dados invalidos ou em conflito com uma restricao.", pe.getCause());
+            [v]     }
         [e] get-idErp
             [v]
             [v]     public Optional<{{ @name }}Entity> findByIdErp(String idErp) {

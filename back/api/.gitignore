@@ -1,0 +1,8 @@
+target/
+*.class
+.idea/
+*.iml
+.vscode/
+# chaves JWT nunca no repositorio
+*.pem
+keys/

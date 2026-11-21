@@ -1185,7 +1185,7 @@
                             [e] write-pattern
                                 [v] isWeakReference-start
                             [e] if
-                                [v] attributes/attribute[@name!='idErp' and @name!='uuid' and not(functx:is-value-in-sequence(@name, $SK/value)) and not(exists(properties/storageOnly)) and (not(contains(@mode,'oneToMany')) or properties/apiRelation/value = 'EMBEDDED')]
+                                [v] attributes/attribute[@name!='id' and @name!='idErp' and @name!='uuid' and not(functx:is-value-in-sequence(@name, $SK/value)) and not(exists(properties/storageOnly)) and (not(contains(@mode,'oneToMany')) or properties/apiRelation/value = 'EMBEDDED')]
                                 [e] then
                                     [g] isWeakReference
                                         [e] write-pattern
@@ -1274,13 +1274,13 @@
                         [e] write-pattern
                             [v] isAnyNotKeyFieldsDefined-start
                         [e] if
-                            [v] attributes/attribute[@name!='idErp' and @name!='uuid' and not(functx:is-value-in-sequence(@name, $SK/value)) and not(exists(properties/storageOnly)) and (not(contains(@mode,'oneToMany')) or properties/apiRelation/value = 'EMBEDDED')]
+                            [v] attributes/attribute[@name!='id' and @name!='idErp' and @name!='uuid' and not(functx:is-value-in-sequence(@name, $SK/value)) and not(exists(properties/storageOnly)) and (not(contains(@mode,'oneToMany')) or properties/apiRelation/value = 'EMBEDDED')]
                             [e] then
                                 [e] write-pattern
                                     [v] quebraLinha
                                 [e] apply-templates
                                     [e] select
-                                        [v] attributes/attribute[@name!='idErp' and @name!='uuid' and not(functx:is-value-in-sequence(@name, $SK/value)) and not(exists(properties/storageOnly)) and (not(contains(@mode,'oneToMany')) or properties/apiRelation/value = 'EMBEDDED')]
+                                        [v] attributes/attribute[@name!='id' and @name!='idErp' and @name!='uuid' and not(functx:is-value-in-sequence(@name, $SK/value)) and not(exists(properties/storageOnly)) and (not(contains(@mode,'oneToMany')) or properties/apiRelation/value = 'EMBEDDED')]
                             [e] else
                                 [e] write-pattern
                                     [v] allAreKeyFields
