@@ -83,6 +83,16 @@ e `rps_numero`/`rps_serie` (atributos opcionais da Nota, não entidade).
   ainda não lidas.
 - Estado: `mvn compile` e `mvn package` passam com 13 entidades, 82 fontes (2026-11-21).
 
+## Cidades administráveis (decisão do usuário em 2026-11-21; especificação em `docs/carga-municipios.md`)
+- A tabela `Municipio` é controlada pelo **administrador da plataforma**, por upload de arquivo novo e correção manual. A
+  importação atualiza ou insere pelo código IBGE e **nunca apaga**. O registro especial **`Exterior`** (UF `EX`, IBGE `0`,
+  nome `Exterior`) FICA, para notas ao exterior; o `0` nunca vai ao IntegraNotas (envio com `uf = EX` e sem código do
+  município); a Empresa não pode usá-lo.
+- `ImportacaoMunicipio` (14ª entidade, contexto `cadastros`): histórico dos envios, com `[r] usuario` obrigatório (sem
+  tenantKey, sem ambiente), totais `Inteiro(9)`, `estado` (em_andamento, concluida, concluida_com_rejeicoes, falhou) e
+  resumo das rejeições. Cria o laço de dependência cadastros, usuarios, configuracao, cadastros.
+- **Flyway é o dono do esquema do banco**; o Hibernate só valida. Unicidade (`codigo_ibge`; `nome`+`uf`) vai em migração.
+
 ## Não confirmado
 Corpo da notificação do webhook, compactação do XML/PDF dele; rotas auxiliares da v2; quais blocos do envio são obrigatórios por si; prazos de cancelamento por município.
 

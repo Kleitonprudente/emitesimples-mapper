@@ -22,3 +22,9 @@ Tier B. Fatos verificados em 2026-11-20.
   `generate` não pegam (ex.: parâmetros duplicados `<relação><Campo>`). Para rodar o Maven sem mexer no PATH do Windows:
   `export JAVA_HOME="/c/Program Files/Java/jdk-25.0.5.1"; export PATH="$JAVA_HOME/bin:/c/Program Files/apache-maven/apache-maven-3.10.1/bin:$PATH"`.
   Se o `clean` falhar com "Failed to delete target\classes", é lock de processo: apague `target/` e rode sem `clean`.
+- **Banco de teste (2026-11-21)**: o Flyway é o dono do esquema do `emitesimples-api` (V1 emitida pelo Hibernate e congelada, V2
+  com unicidades e índices; o Hibernate só valida, `quarkus.hibernate-orm.schema-management.strategy=validate`). Para provar,
+  suba um PostgreSQL descartável: `docker run -d --name emitesimples-pg-test -e POSTGRES_USER=emitesimples -e
+  POSTGRES_PASSWORD=<teste> -e POSTGRES_DB=emitesimples -p 127.0.0.1:5433:5432 postgres:17-alpine` (imagem local; NUNCA use o
+  `erp-postgres-1`, que é de outro projeto) e rode o jar com `-Dquarkus.datasource.jdbc.url=jdbc:postgresql://localhost:5433/emitesimples`
+  `-Dquarkus.datasource.username=... -Dquarkus.datasource.password=...`. Remova com `docker rm -f -v` ao final.

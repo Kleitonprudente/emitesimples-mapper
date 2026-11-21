@@ -411,11 +411,11 @@
                     [e] pt
                         [v] Cidade do endereço, referência ao Municipio, que traz nome, UF e código IBGE (campos codigo_municipio e uf do envio).
                           | A tela mostra cidade e UF e esconde o IBGE, que é obtido do Municipio buscado por nome e UF. Não há atributos uf nem IBGE na pessoa.
-                          | Opcional apenas porque na exportação o endereço não tem município brasileiro.
+                          | Opcional apenas porque na exportação o endereço não tem município brasileiro. Para pessoa estrangeira a cidade é o registro Exterior (UF EX), junto dos campos de exportação.
                     [e] en
                         [v] City of the address, a reference to Municipio, which carries name, state and IBGE code (the codigo_municipio and uf fields of the submission).
                           | The screen shows city and state and hides the IBGE, which comes from the Municipio looked up by name and state. There are no uf or IBGE attributes on the person.
-                          | Optional only because on export the address has no Brazilian municipality.
+                          | Optional only because on export the address has no Brazilian municipality. For a foreign person the city is the Exterior record (state EX), together with the export fields.
         [o] contatos: Contato()
             @
                 [e] cn

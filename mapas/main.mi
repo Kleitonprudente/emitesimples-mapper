@@ -127,9 +127,9 @@
                     [v] Domain
             [e] description
                 [e] pt
-                    [v] Modelo de domínio do emissor, organizado por contexto delimitado. Ordem de modelagem: configuracao e cadastros juntos (dependência mútua), depois usuarios (depende de configuracao e cadastros), nfse (depende de configuracao, cadastros e usuarios) e integranotas (depende de configuracao e nfse).
+                    [v] Modelo de domínio do emissor, organizado por contexto delimitado. Ordem de modelagem: configuracao e cadastros juntos (dependência mútua, e cadastros também referencia usuarios por causa da ImportacaoMunicipio, formando o laço cadastros, usuarios, configuracao, cadastros), depois usuarios (depende de configuracao), nfse (depende de configuracao, cadastros e usuarios) e integranotas (depende de configuracao e nfse).
                 [e] en
-                    [v] Domain model of the issuer, organized by bounded context. Modeling order: configuracao and cadastros together (mutual dependency), then usuarios (depends on configuracao and cadastros), nfse (depends on configuracao, cadastros and usuarios) and integranotas (depends on configuracao and nfse).
+                    [v] Domain model of the issuer, organized by bounded context. Modeling order: configuracao and cadastros together (mutual dependency, and cadastros also references usuarios because of ImportacaoMunicipio, forming the loop cadastros, usuarios, configuracao, cadastros), then usuarios (depends on configuracao), nfse (depends on configuracao, cadastros and usuarios) and integranotas (depends on configuracao and nfse).
         [p] configuracao
             @
                 [e] title
@@ -154,9 +154,9 @@
                         [v] Registries
                 [e] description
                     [e] pt
-                        [v] Contexto com Municipio (dado de referência compartilhado), Pessoa e Servico. Tem dependência mútua com configuracao: Pessoa e Servico referenciam a Empresa (configuracao), e a Empresa referencia o Municipio daqui. Não é erro, pois a relação entre contextos é sempre referência, mas quebra o princípio de modelar do mais independente para o mais dependente. Municipio e Empresa devem ser modelados juntos.
+                        [v] Contexto com Municipio (dado de referência compartilhado), Pessoa, Servico, Contato e ImportacaoMunicipio. Depende de configuracao (Empresa) e de usuarios (a ImportacaoMunicipio referencia o Usuario). Tem dependência mútua com configuracao: Pessoa e Servico referenciam a Empresa (configuracao), e a Empresa referencia o Municipio daqui. Forma o laço cadastros, usuarios, configuracao, cadastros. Não é erro, pois a relação entre contextos é sempre referência, mas quebra o princípio de modelar do mais independente para o mais dependente. Municipio e Empresa devem ser modelados juntos.
                     [e] en
-                        [v] Context with Municipio (shared reference data), Pessoa and Servico. It has a mutual dependency with configuracao: Pessoa and Servico reference Empresa (configuracao), and Empresa references the Municipio held here. This is not an error, since the relation between contexts is always a reference, but it breaks the principle of modeling from the most independent to the most dependent. Municipio and Empresa must be modeled together.
+                        [v] Context with Municipio (shared reference data), Pessoa, Servico, Contato and ImportacaoMunicipio. It depends on configuracao (Empresa) and on usuarios (ImportacaoMunicipio references Usuario). It has a mutual dependency with configuracao: Pessoa and Servico reference Empresa (configuracao), and Empresa references the Municipio held here. It forms the loop cadastros, usuarios, configuracao, cadastros. This is not an error, since the relation between contexts is always a reference, but it breaks the principle of modeling from the most independent to the most dependent. Municipio and Empresa must be modeled together.
             [b] Municipio
                 #
                     Cadastros/Municipio.mi
@@ -169,6 +169,9 @@
             [b] Contato
                 #
                     Cadastros/Contato.mi
+            [b] ImportacaoMunicipio
+                #
+                    Cadastros/ImportacaoMunicipio.mi
         [p] usuarios
             @
                 [e] title
@@ -178,9 +181,9 @@
                         [v] Users
                 [e] description
                     [e] pt
-                        [v] Contexto que depende de configuracao e cadastros, com Usuario, VinculoUsuario, ClienteAcesso e TokenRenovacao. Entre contextos a relação é sempre referência.
+                        [v] Contexto que depende de configuracao, com Usuario, VinculoUsuario, ClienteAcesso e TokenRenovacao. O contexto cadastros agora o referencia (ImportacaoMunicipio referencia o Usuario), fechando o laço cadastros, usuarios, configuracao, cadastros. Entre contextos a relação é sempre referência.
                     [e] en
-                        [v] Context that depends on configuracao and cadastros, with Usuario, VinculoUsuario, ClienteAcesso and TokenRenovacao. Between contexts the relation is always a reference.
+                        [v] Context that depends on configuracao, with Usuario, VinculoUsuario, ClienteAcesso and TokenRenovacao. The cadastros context now references it (ImportacaoMunicipio references Usuario), closing the loop cadastros, usuarios, configuracao, cadastros. Between contexts the relation is always a reference.
             [b] Usuario
                 #
                     Usuarios/Usuario.mi

@@ -557,8 +557,8 @@
                         [v] Municipality
                 [e] description
                     [e] pt
-                        [v] Município do endereço da empresa. Traz código IBGE, nome e UF, que não se repetem aqui (campos cmun, municipio e uf do gateway).
+                        [v] Município do endereço da empresa. Traz código IBGE, nome e UF, que não se repetem aqui (campos cmun, municipio e uf do gateway). A empresa não pode usar o registro Exterior (regra da aplicação).
                     [e] en
-                        [v] Municipality of the company address. It carries IBGE code, name and state, which are not repeated here (the cmun, municipio and uf fields of the gateway).
+                        [v] Municipality of the company address. It carries IBGE code, name and state, which are not repeated here (the cmun, municipio and uf fields of the gateway). The company cannot use the Exterior record (application rule).
                 [e] required
                     [v] true
