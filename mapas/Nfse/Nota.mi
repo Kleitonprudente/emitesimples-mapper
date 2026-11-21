@@ -7,19 +7,19 @@
                 [v] Invoice
         [e] description
             [e] pt
-                [v] NFS-e do emitente e o seu ciclo de vida. Nasce como rascunho, preparado por um agente ou por uma pessoa, e só vai ao gateway depois da aprovação de uma pessoa. Aprovada e enviada, fica em processamento: o envio devolve o código 5023 com a chave e só depois vem a autorização.
-                  | Depende do contexto Acesso (Usuario e ClienteAcesso) para o rastro de quem preparou, aprovou e descartou. O Acesso depende só do Cadastro, então não há ciclo.
-                  | Guarda uma CÓPIA dos dados enviados (serviço, tributos, valores), porque alterar o cadastro de Servico ou Tomador depois não pode mudar uma nota já emitida.
-                  | A numeração da DPS (numero e serie) é atributo da nota, não existe entidade RPS. O prestador não vai no envio, vem do token do emitente.
-                  | Regra de unicidade para a camada de banco: a combinação (emitente, ambiente, serie, numero) deve ser única, e a identificacao deve ser única por emitente e ambiente.
+                [v] NFS-e da empresa e o seu ciclo de vida. Nasce como rascunho, preparado por um agente ou por uma pessoa, e só vai ao gateway depois da aprovação de uma pessoa. Aprovada e enviada, fica em processamento: o envio devolve o código 5023 com a chave e só depois vem a autorização.
+                  | Vive no contexto nfse (domain.nfse). Depende de configuracao (Empresa), de cadastros (Pessoa e Servico) e de usuarios (Usuario e ClienteAcesso) para o rastro de quem preparou, aprovou e descartou. Usuarios depende só de cadastros e configuracao, então não há ciclo.
+                  | Guarda uma CÓPIA dos dados enviados (serviço, tributos, valores), porque alterar o cadastro de Servico ou Pessoa depois não pode mudar uma nota já emitida.
+                  | A numeração da DPS (numero e serie) é atributo da nota, não existe entidade RPS. O prestador não vai no envio, vem do token da empresa (emitente no IntegraNotas).
+                  | Regra de unicidade para a camada de banco: a combinação (empresa, ambiente, serie, numero) deve ser única, e a identificacao deve ser única por empresa e ambiente.
                   | O mapa não expressa unicidade composta, ela precisa virar constraint no banco.
                   | Fora do modelo por ora, a modelar sob demanda: obra, evento, locação, exterior, intermediário, deduções, contingência, emissão pelo tomador e o bloco ibs_cbs.
             [e] en
-                [v] Issuer NFS-e and its life cycle. It is born as a draft, prepared by an agent or a person, and only goes to the gateway after a person approves it. Once approved and sent, it is processing: the submission returns code 5023 with the key and authorization comes later.
-                  | Depends on the Acesso context (Usuario and ClienteAcesso) for the trail of who prepared, approved and discarded. Acesso depends only on Cadastro, so there is no cycle.
-                  | It keeps a COPY of the submitted data (service, taxes, amounts), because changing the Servico or Tomador registry later must not change an issued note.
-                  | The DPS numbering (numero and serie) is a note attribute, there is no RPS entity. The provider is not in the submission, it comes from the issuer token.
-                  | Uniqueness rule for the database layer: the combination (issuer, environment, serie, numero) must be unique, and identificacao must be unique per issuer and environment.
+                [v] Company NFS-e and its life cycle. It is born as a draft, prepared by an agent or a person, and only goes to the gateway after a person approves it. Once approved and sent, it is processing: the submission returns code 5023 with the key and authorization comes later.
+                  | Lives in the nfse context (domain.nfse). Depends on configuracao (Empresa), cadastros (Pessoa and Servico) and usuarios (Usuario and ClienteAcesso) for the trail of who prepared, approved and discarded. Usuarios depends only on cadastros and configuracao, so there is no cycle.
+                  | It keeps a COPY of the submitted data (service, taxes, amounts), because changing the Servico or Pessoa registry later must not change an issued note.
+                  | The DPS numbering (numero and serie) is a note attribute, there is no RPS entity. The provider is not in the submission, it comes from the company token (emitente at IntegraNotas).
+                  | Uniqueness rule for the database layer: the combination (company, environment, serie, numero) must be unique, and identificacao must be unique per company and environment.
                   | The map cannot express composite uniqueness, it must become a database constraint.
                   | Out of the model for now, to be modeled on demand: works, event, lease, abroad, intermediary, deductions, contingency, issuing by the taker and the ibs_cbs block.
     [g] envio
@@ -163,9 +163,9 @@
                         [v] Taker CNPJ at Issuance
                 [e] description
                     [e] pt
-                        [v] Retrato do CNPJ do tomador no momento da emissão, só dígitos. Opcional: informe CNPJ ou CPF. Não muda se o cadastro do Tomador mudar depois.
+                        [v] Retrato do CNPJ do tomador no momento da emissão, só dígitos. Opcional: informe CNPJ ou CPF. Não muda se o cadastro da Pessoa mudar depois.
                     [e] en
-                        [v] Snapshot of the taker CNPJ at the moment of issuance, digits only. Optional: provide CNPJ or CPF. Does not change if the Tomador record changes later.
+                        [v] Snapshot of the taker CNPJ at the moment of issuance, digits only. Optional: provide CNPJ or CPF. Does not change if the Pessoa record changes later.
         [d] tomadorCpf: Texto(11)
             @
                 [e] cn
@@ -177,9 +177,9 @@
                         [v] Taker CPF at Issuance
                 [e] description
                     [e] pt
-                        [v] Retrato do CPF do tomador no momento da emissão, só dígitos. Opcional: informe CNPJ ou CPF. Não muda se o cadastro do Tomador mudar depois.
+                        [v] Retrato do CPF do tomador no momento da emissão, só dígitos. Opcional: informe CNPJ ou CPF. Não muda se o cadastro da Pessoa mudar depois.
                     [e] en
-                        [v] Snapshot of the taker CPF at the moment of issuance, digits only. Optional: provide CNPJ or CPF. Does not change if the Tomador record changes later.
+                        [v] Snapshot of the taker CPF at the moment of issuance, digits only. Optional: provide CNPJ or CPF. Does not change if the Pessoa record changes later.
         [d] tomadorRazaoSocial: Texto(300)
             @
                 [e] cn
@@ -191,9 +191,9 @@
                         [v] Taker Legal Name at Issuance
                 [e] description
                     [e] pt
-                        [v] Retrato da razão social ou nome do tomador no momento da emissão. É o que valeu na nota, mesmo que o cadastro do Tomador mude depois.
+                        [v] Retrato da razão social ou nome do tomador no momento da emissão. É o que valeu na nota, mesmo que o cadastro da Pessoa mude depois.
                     [e] en
-                        [v] Snapshot of the taker legal name at the moment of issuance. It is what applied to the note, even if the Tomador record changes later.
+                        [v] Snapshot of the taker legal name at the moment of issuance. It is what applied to the note, even if the Pessoa record changes later.
                 [e] required
                     [v] true
     [g] servico
@@ -897,25 +897,25 @@
                 [e] required
                     [v] true
     [g] relacionamentos
-        [r] emitente: Emitente()
+        [r] empresa: Empresa()
             @
                 [e] cn
-                    [v] emitente_id
+                    [v] empresa_id
                 [e] title
                     [e] pt
-                        [v] Emitente
+                        [v] Empresa
                     [e] en
-                        [v] Issuer
+                        [v] Company
                 [e] description
                     [e] pt
-                        [v] Emitente dono desta nota e tenant do registro. Todo acesso é filtrado por ele.
+                        [v] Empresa dona desta nota e tenant do registro. Todo acesso é filtrado por ela.
                     [e] en
-                        [v] Issuer that owns this note and tenant of the record. Every access is filtered by it.
+                        [v] Company that owns this note and tenant of the record. Every access is filtered by it.
                 [e] required
                     [v] true
                 [e] tenantKey
                     [v] true
-        [r] tomador: Tomador()
+        [r] tomador: Pessoa()
             @
                 [e] cn
                     [v] tomador_id
@@ -926,9 +926,9 @@
                         [v] Taker
                 [e] description
                     [e] pt
-                        [v] Tomador do serviço, do mesmo emitente. É referência de origem, os dados fiscais enviados ficam na nota.
+                        [v] Pessoa no papel de tomador do serviço, da mesma empresa. É referência de origem, os dados fiscais enviados ficam na nota. O nome do papel é mantido (tomador) porque é o papel da pessoa nesta nota.
                     [e] en
-                        [v] Service taker, of the same issuer. It is an origin reference, the tax data sent stays on the note.
+                        [v] Person in the role of service taker, of the same company. It is an origin reference, the tax data sent stays on the note.
                 [e] required
                     [v] true
         [r] servico: Servico()
@@ -986,9 +986,9 @@
                         [v] Approved by
                 [e] description
                     [e] pt
-                        [v] Pessoa que aprovou o envio ao gateway. Só uma PESSOA aprova, nunca um ClienteAcesso, e só quem tem o scope de emitir no emitente da nota (vínculo ativo com papel administrador ou operador). Quem preparou pode ser quem aprova. Vazio enquanto rascunho e em nota descartada.
+                        [v] Pessoa que aprovou o envio ao gateway. Só uma PESSOA aprova, nunca um ClienteAcesso, e só quem tem o scope de emitir na empresa da nota (vínculo ativo com papel administrador ou operador). Quem preparou pode ser quem aprova. Vazio enquanto rascunho e em nota descartada.
                     [e] en
-                        [v] Person who approved sending to the gateway. Only a PERSON approves, never a ClienteAcesso, and only someone with the issue scope on the note issuer (active link with role administrador or operador). The preparer may also be the approver. Empty while draft and on a discarded note.
+                        [v] Person who approved sending to the gateway. Only a PERSON approves, never a ClienteAcesso, and only someone with the issue scope on the note company (active link with role administrador or operador). The preparer may also be the approver. Empty while draft and on a discarded note.
         [r] descartadoPor: Usuario()
             @
                 [e] cn

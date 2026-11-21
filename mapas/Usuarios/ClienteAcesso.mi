@@ -7,11 +7,11 @@
                 [v] Access Client
         [e] description
             [e] pt
-                [v] Credencial de máquina para os agentes do próprio usuário (fase 1), vinculada a um único emitente. Troca clientId e segredo por um JWT de acesso com a claim do emitente e os scopes permitidos.
+                [v] Credencial de máquina para os agentes do próprio usuário (fase 1), vinculada a uma única empresa. Troca clientId e segredo por um JWT de acesso com a claim da empresa e os scopes permitidos. Vive no contexto usuarios (domain.usuarios), que depende de configuracao e cadastros.
                   | Não é cliente OAuth de terceiros: registro dinâmico e consentimento ficam para a fase 2.
                   | O clientId é único no sistema. NUNCA guarda o segredo, só o hash, e NUNCA guarda token.
             [e] en
-                [v] Machine credential for the user's own agents (phase 1), tied to a single issuer. Exchanges clientId and secret for an access JWT carrying the issuer claim and the allowed scopes.
+                [v] Machine credential for the user's own agents (phase 1), tied to a single company. Exchanges clientId and secret for an access JWT carrying the company claim and the allowed scopes. Lives in the usuarios context (domain.usuarios), which depends on configuracao and cadastros.
                   | Not a third-party OAuth client: dynamic registration and consent are left for phase 2.
                   | The clientId is unique in the system. NEVER keeps the secret, only the hash, and NEVER keeps a token.
     [g] identificacao
@@ -182,20 +182,20 @@
                 [e] required
                     [v] true
     [g] relacionamentos
-        [r] emitente: Emitente()
+        [r] empresa: Empresa()
             @
                 [e] cn
-                    [v] emitente_id
+                    [v] empresa_id
                 [e] title
                     [e] pt
-                        [v] Emitente
+                        [v] Empresa
                     [e] en
-                        [v] Issuer
+                        [v] Company
                 [e] description
                     [e] pt
-                        [v] Único emitente a que o cliente dá acesso e tenant do registro. Todo acesso é filtrado por ele.
+                        [v] Única empresa a que o cliente dá acesso e tenant do registro. Todo acesso é filtrado por ela.
                     [e] en
-                        [v] The single issuer the client gives access to and tenant of the record. Every access is filtered by it.
+                        [v] The single company the client gives access to and tenant of the record. Every access is filtered by it.
                 [e] required
                     [v] true
                 [e] tenantKey

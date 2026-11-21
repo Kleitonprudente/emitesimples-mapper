@@ -1,5 +1,9 @@
 # IntegraNotas — NFS-e (envio v2, consulta e cancelamento v1)
 
+> **Glossário**: este documento descreve a API do IntegraNotas, que chama a empresa de **"emitente"** e fala em
+> **"tomador"**. No mapa de negócio do projeto, a empresa é a entidade **`Empresa`** (contexto `configuracao`) e a pessoa
+> que toma o serviço é uma **`Pessoa`** (contexto `cadastros`); a NFS-e e o cancelamento vivem no contexto `nfse`.
+
 **Fonte**: schemas e respostas colados pelo usuário a partir da documentação oficial em 2026-11-20 (knowledge-tier B),
 mais o SDK Java oficial `cloud-dfe/sdk-java` e a leitura de `https://integranotas.com.br/doc/nfse` (tier C) onde indicado.
 **Auth**: header `Authorization: <token>` cru, sem `Bearer`. Token do Emitente, por ambiente.

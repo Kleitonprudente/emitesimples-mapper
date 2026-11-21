@@ -12,14 +12,14 @@
                   | Existe só dentro de uma nota e no mesmo contexto, por isso é detalhe da Nota ([m]/[o]).
                   | Prazos e regras de cancelamento por município não estão documentados e não são validados no modelo.
                   | Cancelar exige confirmação humana: um agente só PEDE (aguardando_aprovacao) e uma pessoa com o scope de cancelar (papel administrador) aprova, e só então o sistema envia ao gateway.
-                  | Depende do contexto Acesso (Usuario e ClienteAcesso) para o rastro; o Acesso depende só do Cadastro, não há ciclo.
+                  | Vive no contexto nfse (domain.nfse). Depende do contexto usuarios (Usuario e ClienteAcesso) para o rastro; usuarios depende só de cadastros e configuracao, não há ciclo.
             [e] en
                 [v] Cancellation request of a Nota, with the event and the gateway return (XML and PDF). Only an authorized note can be canceled,
                   | otherwise the gateway returns 5013. An already canceled note returns 5015, treated as idempotent success.
                   | It exists only within a note and in the same context, so it is a detail of Nota ([m]/[o]).
                   | Deadlines and rules per municipality are not documented and are not validated in the model.
                   | Cancelling requires human confirmation: an agent only REQUESTS (aguardando_aprovacao) and a person with the cancel scope (role administrador) approves, and only then does the system send it to the gateway.
-                  | Depends on the Acesso context (Usuario and ClienteAcesso) for the trail; Acesso depends only on Cadastro, so there is no cycle.
+                  | Lives in the nfse context (domain.nfse). Depends on the usuarios context (Usuario and ClienteAcesso) for the trail; usuarios depends only on cadastros and configuracao, so there is no cycle.
     [g] pedido
         [d] codigoMotivo: Inteiro(1)
             @
@@ -282,20 +282,20 @@
                 [e] required
                     [v] true
     [g] relacionamentos
-        [r] emitente: Emitente()
+        [r] empresa: Empresa()
             @
                 [e] cn
-                    [v] emitente_id
+                    [v] empresa_id
                 [e] title
                     [e] pt
-                        [v] Emitente
+                        [v] Empresa
                     [e] en
-                        [v] Issuer
+                        [v] Company
                 [e] description
                     [e] pt
-                        [v] Emitente dono deste cancelamento e tenant do registro. Todo acesso é filtrado por ele.
+                        [v] Empresa dona deste cancelamento e tenant do registro. Todo acesso é filtrado por ela.
                     [e] en
-                        [v] Issuer that owns this cancellation and tenant of the record. Every access is filtered by it.
+                        [v] Company that owns this cancellation and tenant of the record. Every access is filtered by it.
                 [e] required
                     [v] true
                 [e] tenantKey
@@ -339,9 +339,9 @@
                         [v] Approved by
                 [e] description
                     [e] pt
-                        [v] Pessoa que aprovou o envio do cancelamento ao gateway. Só uma PESSOA aprova, nunca um ClienteAcesso, e só quem tem o scope de cancelar no emitente (vínculo ativo com papel administrador; o operador emite mas não cancela). Vazio enquanto aguarda aprovação e em pedido recusado.
+                        [v] Pessoa que aprovou o envio do cancelamento ao gateway. Só uma PESSOA aprova, nunca um ClienteAcesso, e só quem tem o scope de cancelar na empresa (vínculo ativo com papel administrador; o operador emite mas não cancela). Vazio enquanto aguarda aprovação e em pedido recusado.
                     [e] en
-                        [v] Person who approved sending the cancellation to the gateway. Only a PERSON approves, never a ClienteAcesso, and only someone with the cancel scope on the issuer (active link with role administrador; operador issues but cannot cancel). Empty while awaiting approval and on a refused request.
+                        [v] Person who approved sending the cancellation to the gateway. Only a PERSON approves, never a ClienteAcesso, and only someone with the cancel scope on the company (active link with role administrador; operador issues but cannot cancel). Empty while awaiting approval and on a refused request.
         [r] recusadoPor: Usuario()
             @
                 [e] cn

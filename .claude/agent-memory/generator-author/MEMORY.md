@@ -55,6 +55,14 @@ Tier B. Fontes: SDK Java oficial `cloud-dfe/sdk-java` (master, lido em 2026-11-2
   e o `signature` de exemplo é o começo do XML repetido; a doc diz 5 a 20 caracteres mas o valor real é longo. O código
   detecta o formato pelos primeiros bytes (`1f 8b` gzip, `PK` zip, senão texto) e não fixa tamanho de `signature`.
 
+## Renomes de domínio (2026-11-20, pedido do usuário)
+`Emitente` → `Empresa` (contexto `configuracao`; o `Municipio` fica em `cadastros`, com dependência mútua entre os dois contextos), `Tomador` → `Pessoa`; contextos `cadastro` → `cadastros`, `acesso` →
+`usuarios`, `emissao` → `nfse`, `integracao` → `integranotas`. Pacotes: `br.com.emitesimples.domain.{configuracao,cadastros,
+usuarios,nfse,integranotas}`; as camadas geradas saem em `br.com.emitesimples.<contexto>.<camada>`. A coluna do tenant
+passa de `emitente_id` para `empresa_id`: o repositório gerado chama `escopo.exigir("empresa_id")` e a classe `EscopoTenant`
+precisa aceitar essa coluna. O IntegraNotas continua chamando de "emitente" (rotas, token, documentação): isso é o conceito
+do gateway, não mudou. Os trechos abaixo escritos antes do renome dizem Emitente/Tomador.
+
 ## Decisões de arquitetura (2026-11-20)
 - Banco **PostgreSQL**: a busca com `unaccent()` do pack é compatível (exige a extensão `unaccent` no banco).
 - **Multi-tenant por emitente**: cada emitente só emite e vê as próprias notas. Logo o filtro multi-tenant do repositório

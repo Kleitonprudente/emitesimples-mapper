@@ -319,20 +319,20 @@
                 [e] required
                     [v] true
     [g] relacionamentos
-        [r] emitente: Emitente()
+        [r] empresa: Empresa()
             @
                 [e] cn
-                    [v] emitente_id
+                    [v] empresa_id
                 [e] title
                     [e] pt
-                        [v] Emitente
+                        [v] Empresa
                     [e] en
-                        [v] Issuer
+                        [v] Company
                 [e] description
                     [e] pt
-                        [v] Emitente dono desta chamada e tenant do registro. Todo acesso é filtrado por ele.
+                        [v] Empresa dona desta chamada e tenant do registro. Todo acesso é filtrado por ela.
                     [e] en
-                        [v] Issuer that owns this call and tenant of the record. Every access is filtered by it.
+                        [v] Company that owns this call and tenant of the record. Every access is filtered by it.
                 [e] required
                     [v] true
                 [e] tenantKey
@@ -348,6 +348,6 @@
                         [v] Invoice
                 [e] description
                     [e] pt
-                        [v] Nota a que a chamada se refere. Opcional: cadastro de emitente e envio de certificado não envolvem nota, e uma emissão recusada pode não ter gerado nota.
+                        [v] Nota a que a chamada se refere. Opcional: cadastro da empresa (emitente no IntegraNotas) e envio de certificado não envolvem nota, e uma emissão recusada pode não ter gerado nota.
                     [e] en
-                        [v] Note the call refers to. Optional: issuer registration and certificate upload involve no note, and a refused submission may not have produced a note.
+                        [v] Note the call refers to. Optional: company registration (emitente at IntegraNotas) and certificate upload involve no note, and a refused submission may not have produced a note.

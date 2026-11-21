@@ -7,12 +7,12 @@
                 [v] User Membership
         [e] description
             [e] pt
-                [v] Liga um Usuario a um Emitente com um papel. É aqui que está o isolamento: o usuário só enxerga os emitentes em que tem vínculo ativo, e o emitente do token vem daqui.
-                  | Unicidade: um usuário tem no máximo um vínculo por emitente (par usuario, emitente único).
+                [v] Liga um Usuario a uma Empresa com um papel. É aqui que está o isolamento: o usuário só enxerga as empresas em que tem vínculo ativo, e a empresa do token vem daqui.
+                  | Unicidade: um usuário tem no máximo um vínculo por empresa (par usuario, empresa único).
                   | Papel para scopes: administrador = consultar, preparar, emitir, cancelar; operador = consultar, preparar, emitir; consulta = consultar. Emitir e cancelar exigem confirmação humana, regra de fluxo fora deste mapa.
             [e] en
-                [v] Links a Usuario to an Emitente with a role. This is where isolation lives: the user only sees issuers with an active membership, and the token issuer comes from here.
-                  | Uniqueness: a user has at most one membership per issuer (unique usuario, emitente pair).
+                [v] Links a Usuario to an Empresa with a role. This is where isolation lives: the user only sees companies with an active membership, and the token company comes from here.
+                  | Uniqueness: a user has at most one membership per company (unique usuario, empresa pair).
                   | Role to scopes: administrador = consultar, preparar, emitir, cancelar; operador = consultar, preparar, emitir; consulta = consultar. Issuing and cancelling require human confirmation, a flow rule outside this map.
     [g] vinculo
         [d] papel: Texto(15)
@@ -26,9 +26,9 @@
                         [v] Role
                 [e] description
                     [e] pt
-                        [v] Papel do usuário neste emitente. Mapeamento para scopes: administrador = consultar, preparar, emitir, cancelar; operador = consultar, preparar, emitir; consulta = consultar.
+                        [v] Papel do usuário nesta empresa. Mapeamento para scopes: administrador = consultar, preparar, emitir, cancelar; operador = consultar, preparar, emitir; consulta = consultar.
                     [e] en
-                        [v] Role of the user in this issuer. Mapping to scopes: administrador = consultar, preparar, emitir, cancelar; operador = consultar, preparar, emitir; consulta = consultar.
+                        [v] Role of the user in this company. Mapping to scopes: administrador = consultar, preparar, emitir, cancelar; operador = consultar, preparar, emitir; consulta = consultar.
                 [e] required
                     [v] true
                 [e] searchable
@@ -56,9 +56,9 @@
                         [v] Active
                 [e] description
                     [e] pt
-                        [v] Vínculo desativado tira o acesso do usuário a este emitente sem apagar o histórico.
+                        [v] Vínculo desativado tira o acesso do usuário a esta empresa sem apagar o histórico.
                     [e] en
-                        [v] A deactivated membership removes the user access to this issuer without erasing history.
+                        [v] A deactivated membership removes the user access to this company without erasing history.
                 [e] required
                     [v] true
                 [e] defaultValue
@@ -129,20 +129,20 @@
                         [v] Linked user.
                 [e] required
                     [v] true
-        [r] emitente: Emitente()
+        [r] empresa: Empresa()
             @
                 [e] cn
-                    [v] emitente_id
+                    [v] empresa_id
                 [e] title
                     [e] pt
-                        [v] Emitente
+                        [v] Empresa
                     [e] en
-                        [v] Issuer
+                        [v] Company
                 [e] description
                     [e] pt
-                        [v] Emitente do vínculo e tenant do registro. Todo acesso é filtrado por ele.
+                        [v] Empresa do vínculo e tenant do registro. Todo acesso é filtrado por ela.
                     [e] en
-                        [v] Issuer of the membership and tenant of the record. Every access is filtered by it.
+                        [v] Company of the membership and tenant of the record. Every access is filtered by it.
                 [e] required
                     [v] true
                 [e] tenantKey

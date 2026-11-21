@@ -1,5 +1,9 @@
 # IntegraNotas — Softhouse: cadastro de emitente e certificado digital
 
+> **Glossário**: este documento descreve a API do IntegraNotas, que chama a empresa de **"emitente"**. No mapa de negócio
+> do projeto, o mesmo conceito se chama **`Empresa`** (contexto `configuracao`), e o tomador da NFS-e é uma **`Pessoa`**
+> (contexto `cadastros`). Aqui "emitente" sempre é o termo do gateway.
+
 **Fonte**: schemas e respostas colados pelo usuário a partir da documentação oficial em 2026-11-20 (knowledge-tier B).
 **Ambiente**: homologação `https://hom-api.integranotas.com.br`; produção `https://api.integranotas.com.br` — **nunca
 para teste**. Emitente e token são independentes por ambiente: cadastra-se e configura-se cada um separadamente.

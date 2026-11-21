@@ -5,9 +5,17 @@ Tier B. Fontes principais: `docs/integranotas-nfse-v2.md` (NFS-e: envio v2, cons
 
 ## Decisões do usuário (2026-11-20)
 - Pacote base `br.com.emitesimples`. Nome do projeto no CLI: `emitesimples`. Pasta dos mapas: `mapas/`.
-- Contextos, nesta ordem: Cadastro (Emitente, Tomador, Servico, Municipio) → Emissao (Nota, Cancelamento) →
-  Integracao (gateway, webhook, certificado).
-- Emitente = empresa usuária. Tomador = cadastro de pessoa. Municipio nasce com IBGE. Sem entidade RPS.
+- **Renomeado em 2026-11-20 (pedido do usuário)**: `Emitente` → `Empresa` (no novo contexto `configuracao`), `Tomador` →
+  `Pessoa`; contextos `cadastro` → `cadastros`, `acesso` → `usuarios`, `emissao` → `nfse`, `integracao` → `integranotas`. O IntegraNotas continua
+  dizendo "emitente" nas rotas e na documentação: no mapa o termo é `Empresa`; nos docs e neste resumo da API, "emitente" é
+  o conceito do gateway. As seções abaixo que dizem Emitente/Tomador foram escritas antes do renome.
+- Contextos, nesta ordem de dependência: configuracao (Empresa) e cadastros (Municipio, Pessoa, Servico), que dependem um do outro → usuarios
+  (Usuario, VinculoUsuario, ClienteAcesso, TokenRenovacao) → nfse (Nota, Cancelamento) → integranotas (ChamadaGateway,
+  EventoWebhook). **Dependência mútua aceita pelo usuário**: a Empresa (configuracao) referencia o Municipio (cadastros) e
+  Pessoa e Servico (cadastros) referenciam a Empresa. Modele Municipio e Empresa juntos.
+- Empresa = empresa usuária. Pessoa = cadastro de pessoa (atua como tomador na NFS-e). Municipio nasce com IBGE. Sem entidade RPS.
+- Emitir e cancelar exigem confirmação humana: Nota nasce em `rascunho`, Cancelamento em `aguardando_aprovacao`; só uma
+  pessoa aprova (Nota: administrador ou operador; Cancelamento: administrador).
 - Stack alvo: Quarkus (Java 21).
 
 ## O que a API v2 exige no envio (resumo; detalhe no doc)
@@ -47,13 +55,14 @@ e `rps_numero`/`rps_serie` (atributos opcionais da Nota, não entidade).
 - `/v1/certificado` recebe `certificado` (Base64) e `senha` (1 a 60; só letras e números; sem acento). Erros 5003, 5011, 5029.
   Mapa: só metadados do certificado (validade, situação); arquivo e senha são referência ao cofre.
 - Emitente por CNPJ **ou** CPF. `regime_cibs` e o bloco `ibs_cbs` do envio: opcionais por ora.
-- Banco PostgreSQL. Multi-tenant por emitente (decisão do usuário em 2026-11-20): "cada emissor só emite sua nota".
-  `Emitente` é o tenant; Servico, Nota e Cancelamento levam `tenantKey` para o Emitente; Municipio é compartilhado.
-  **Tomador é por emitente** (confirmado em 2026-11-20): leva `tenantKey`; o mesmo CNPJ/CPF pode se repetir entre emitentes.
-- Autenticação (decisão do usuário, revista em 2026-11-20): o back-end Quarkus **emite os próprios JWT**, para o front-end
-  e para o MCP de terceiros. Logo o mapa vai ter um **contexto de acesso**, que depende do Cadastro e vem depois dele:
-  usuário, vínculo do usuário com o Emitente e cliente OAuth. Senha só como hash, segredo de cliente só como hash ou
-  referência, e **token nunca em entidade**. Modelar quando o contexto chegar; não antecipar.
+- Banco PostgreSQL. Multi-tenant por empresa (decisão do usuário em 2026-11-20): "cada emissor só emite sua nota".
+  `Empresa` é o tenant; Servico, Pessoa, Nota, Cancelamento e as do integranotas e usuarios (exceto Usuario) levam
+  `tenantKey` na relação `[r] empresa`; Municipio é compartilhado. **Pessoa é por empresa**: o mesmo CNPJ/CPF pode se
+  repetir entre empresas.
+- Autenticação (decisão do usuário, revista em 2026-11-20): o back-end Quarkus **emite os próprios JWT** (fase 1: front-end
+  e agentes próprios; OAuth do MCP de terceiros adiado). O contexto `usuarios` já está modelado: Usuario (global, sem
+  tenant), VinculoUsuario, ClienteAcesso e TokenRenovacao. Senha só como hash, segredo de cliente só como hash, e **token
+  nunca em entidade**.
 - Pack Quarkus: pacote no padrão `<raiz>.domain.<contexto>`; `id: Texto(36)` em toda entidade; `cn` também nas
   relações; `Inteiro(n)` com tamanho; sem `:` em description de pacote.
 

@@ -10,14 +10,14 @@
                 [v] Cada notificação recebida do gateway no endpoint de webhook do sistema. Registro de auditoria e de idempotência.
                   | ATENÇÃO: o corpo exato do webhook de emissão de NFS-e AINDA NÃO FOI CONFIRMADO (as páginas Notificação com sucesso e Notificação com falha não foram lidas). Este modelo cobre só o envelope comum conhecido (origem, cnpj_cpf, tipo) e os campos chave, sucesso, código, mensagem e identificação. Quando o corpo for confirmado, o mapa será revisado.
                   | O XML e o PDF do webhook NÃO são guardados aqui: a Nota guarda os documentos.
-                  | Idempotência: a mesma notificação pode chegar até 3 vezes. Chave de deduplicação sugerida: (emitente, ambiente, chave, código). O mapa não expressa unicidade composta, ela precisa virar constraint única no banco, e uma repetição deve ser reconhecida e marcada como ignorada em vez de reprocessada.
-                  | O emitente é resolvido pelo cnpj_cpf e pelo ambiente. A validade da assinatura é registrada, mas não há validação por header e a assinatura na v2 não está confirmada.
+                  | Idempotência: a mesma notificação pode chegar até 3 vezes. Chave de deduplicação sugerida: (empresa, ambiente, chave, código). O mapa não expressa unicidade composta, ela precisa virar constraint única no banco, e uma repetição deve ser reconhecida e marcada como ignorada em vez de reprocessada.
+                  | A empresa (emitente no IntegraNotas) é resolvida pelo cnpj_cpf e pelo ambiente. A validade da assinatura é registrada, mas não há validação por header e a assinatura na v2 não está confirmada.
             [e] en
                 [v] Each notification received from the gateway at the system webhook endpoint. Audit and idempotency record.
                   | ATTENTION: the exact body of the NFS-e issuance webhook is NOT CONFIRMED YET (the pages Success notification and Failure notification were not read). This model covers only the known common envelope (origem, cnpj_cpf, tipo) and the fields chave, sucesso, codigo, mensagem and identificacao. Once the body is confirmed, the map will be revised.
                   | The webhook XML and PDF are NOT stored here: the Nota keeps the documents.
-                  | Idempotency: the same notification may arrive up to 3 times. Suggested deduplication key: (emitente, ambiente, chave, codigo). The map cannot express composite uniqueness, it must become a unique constraint in the database, and a repeat must be recognized and marked as ignored instead of reprocessed.
-                  | The issuer is resolved by cnpj_cpf and environment. Signature validity is recorded, but there is no header authentication and the v2 signature is not confirmed.
+                  | Idempotency: the same notification may arrive up to 3 times. Suggested deduplication key: (empresa, ambiente, chave, codigo). The map cannot express composite uniqueness, it must become a unique constraint in the database, and a repeat must be recognized and marked as ignored instead of reprocessed.
+                  | The company (emitente at IntegraNotas) is resolved by cnpj_cpf and environment. Signature validity is recorded, but there is no header authentication and the v2 signature is not confirmed.
     [g] envelope
         [d] origem: Texto(30)
             @
@@ -44,9 +44,9 @@
                         [v] CNPJ or CPF
                 [e] description
                     [e] pt
-                        [v] CNPJ ou CPF do emitente a que a notificação se refere, só dígitos.
+                        [v] CNPJ ou CPF da empresa a que a notificação se refere, só dígitos.
                     [e] en
-                        [v] CNPJ or CPF of the issuer the notification refers to, digits only.
+                        [v] CNPJ or CPF of the company the notification refers to, digits only.
                 [e] searchable
                     [v] true
         [d] tipo: Texto(30)
@@ -304,20 +304,20 @@
                 [e] required
                     [v] true
     [g] relacionamentos
-        [r] emitente: Emitente()
+        [r] empresa: Empresa()
             @
                 [e] cn
-                    [v] emitente_id
+                    [v] empresa_id
                 [e] title
                     [e] pt
-                        [v] Emitente
+                        [v] Empresa
                     [e] en
-                        [v] Issuer
+                        [v] Company
                 [e] description
                     [e] pt
-                        [v] Emitente dono deste evento e tenant do registro, resolvido pelo cnpj_cpf e pelo ambiente. Notificação de emitente desconhecido não vira registro.
+                        [v] Empresa dona deste evento e tenant do registro, resolvida pelo cnpj_cpf e pelo ambiente. Notificação de emitente desconhecido não vira registro.
                     [e] en
-                        [v] Issuer that owns this event and tenant of the record, resolved by cnpj_cpf and environment. A notification from an unknown issuer does not become a record.
+                        [v] Company that owns this event and tenant of the record, resolved by cnpj_cpf and environment. A notification from an unknown emitente does not become a record.
                 [e] required
                     [v] true
                 [e] tenantKey

@@ -1,19 +1,21 @@
-[b] Tomador
+[b] Pessoa
     @
         [e] title
             [e] pt
-                [v] Tomador
+                [v] Pessoa
             [e] en
-                [v] Service Taker
+                [v] Person
         [e] description
             [e] pt
-                [v] Cadastro de pessoa que contrata o serviço, reutilizável nas emissões. É por emitente: o mesmo CNPJ ou CPF pode existir
-                  | uma vez em cada emitente, e um emitente nunca enxerga o tomador de outro. Identifica-se por CNPJ ou CPF, um ou outro.
+                [v] Cadastro de pessoa, reutilizável nas emissões, que na nota assume o papel de tomador do serviço. É por empresa: o mesmo CNPJ ou CPF pode existir
+                  | uma vez em cada empresa, e uma empresa nunca enxerga a pessoa de outra. Identifica-se por CNPJ ou CPF, um ou outro.
                   | Na exportação o endereço não tem município brasileiro e usa os campos de exterior.
+                  | Vive no contexto cadastros (domain.cadastros), que referencia a Empresa (configuracao) e tem dependência mútua com ele, pois a Empresa referencia o Municipio, que está em cadastros.
             [e] en
-                [v] Registry of the person who hires the service, reusable across issues. It is per issuer: the same CNPJ or CPF may exist
-                  | once in each issuer, and an issuer never sees another issuer taker. Identified by CNPJ or CPF, one or the other.
+                [v] Registry of a person, reusable across issues, who takes the role of service taker (tomador) on the note. It is per company: the same CNPJ or CPF may exist
+                  | once in each company, and a company never sees another company person. Identified by CNPJ or CPF, one or the other.
                   | On export the address has no Brazilian municipality and uses the foreign fields.
+                  | Lives in the cadastros context (domain.cadastros), which references Empresa (configuracao) and has a mutual dependency with it, since Empresa references Municipio, which is in cadastros.
     [g] identificacao
         [d] razaoSocial: Texto(300)
             @
@@ -45,10 +47,10 @@
                 [e] description
                     [e] pt
                         [v] CNPJ do tomador pessoa jurídica, 14 dígitos sem formatação. Informe CNPJ ou CPF, um ou outro, nunca os dois.
-                          | Pode ficar vazio nos dois quando o tomador é do exterior e se identifica por NIF. Único dentro do emitente.
+                          | Pode ficar vazio nos dois quando o tomador é do exterior e se identifica por NIF. Único dentro da empresa.
                     [e] en
                         [v] CNPJ of a legal-entity taker, 14 digits without formatting. Provide CNPJ or CPF, one or the other, never both.
-                          | May be empty in both when the taker is foreign and identified by NIF. Unique within the issuer.
+                          | May be empty in both when the taker is foreign and identified by NIF. Unique within the company.
                 [e] searchable
                     [v] true
         [d] cpf: Texto(11)
@@ -63,10 +65,10 @@
                 [e] description
                     [e] pt
                         [v] CPF do tomador pessoa física, 11 dígitos sem formatação. Informe CNPJ ou CPF, um ou outro, nunca os dois.
-                          | Dado pessoal, sujeito a mascaramento nas respostas. Único dentro do emitente.
+                          | Dado pessoal, sujeito a mascaramento nas respostas. Único dentro da empresa.
                     [e] en
                         [v] CPF of an individual taker, 11 digits without formatting. Provide CNPJ or CPF, one or the other, never both.
-                          | Personal data, subject to masking in responses. Unique within the issuer.
+                          | Personal data, subject to masking in responses. Unique within the company.
                 [e] searchable
                     [v] true
         [d] nif: Texto(40)
@@ -360,9 +362,9 @@
                         [v] Identifier
                 [e] description
                     [e] pt
-                        [v] Identificador interno do tomador (UUID).
+                        [v] Identificador interno da pessoa (UUID).
                     [e] en
-                        [v] Internal taker identifier (UUID).
+                        [v] Internal person identifier (UUID).
                 [e] required
                     [v] true
         [d] dataCriacao: DataHora()
@@ -376,9 +378,9 @@
                         [v] Creation Date
                 [e] description
                     [e] pt
-                        [v] Data e hora em que o tomador foi cadastrado.
+                        [v] Data e hora em que a pessoa foi cadastrada.
                     [e] en
-                        [v] Date and time the taker was registered.
+                        [v] Date and time the person was registered.
                 [e] required
                     [v] true
         [d] dataAtualizacao: DataHora()
@@ -398,20 +400,20 @@
                 [e] required
                     [v] true
     [g] relacionamentos
-        [r] emitente: Emitente()
+        [r] empresa: Empresa()
             @
                 [e] cn
-                    [v] emitente_id
+                    [v] empresa_id
                 [e] title
                     [e] pt
-                        [v] Emitente
+                        [v] Empresa
                     [e] en
-                        [v] Issuer
+                        [v] Company
                 [e] description
                     [e] pt
-                        [v] Emitente dono deste tomador e tenant do registro. Todo acesso é filtrado por ele.
+                        [v] Empresa dona desta pessoa e tenant do registro. Todo acesso é filtrado por ela.
                     [e] en
-                        [v] Issuer that owns this taker and tenant of the record. Every access is filtered by it.
+                        [v] Company that owns this person and tenant of the record. Every access is filtered by it.
                 [e] required
                     [v] true
                 [e] tenantKey

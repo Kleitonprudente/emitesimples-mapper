@@ -179,20 +179,20 @@
                         [v] User owning the session.
                 [e] required
                     [v] true
-        [r] emitente: Emitente()
+        [r] empresa: Empresa()
             @
                 [e] cn
-                    [v] emitente_id
+                    [v] empresa_id
                 [e] title
                     [e] pt
-                        [v] Emitente
+                        [v] Empresa
                     [e] en
-                        [v] Issuer
+                        [v] Company
                 [e] description
                     [e] pt
-                        [v] Emitente escolhido na sessão e tenant do registro. O JWT renovado carrega a claim deste emitente.
+                        [v] Empresa escolhida na sessão e tenant do registro. O JWT renovado carrega a claim desta empresa.
                     [e] en
-                        [v] Issuer chosen in the session and tenant of the record. The renewed JWT carries this issuer claim.
+                        [v] Company chosen in the session and tenant of the record. The renewed JWT carries this company claim.
                 [e] required
                     [v] true
                 [e] tenantKey

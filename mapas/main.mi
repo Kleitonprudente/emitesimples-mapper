@@ -127,90 +127,102 @@
                     [v] Domain
             [e] description
                 [e] pt
-                    [v] Modelo de domínio do emissor, organizado por contexto delimitado.
+                    [v] Modelo de domínio do emissor, organizado por contexto delimitado. Ordem de modelagem: configuracao e cadastros juntos (dependência mútua), depois usuarios (depende de configuracao e cadastros), nfse (depende de configuracao, cadastros e usuarios) e integranotas (depende de configuracao e nfse).
                 [e] en
-                    [v] Domain model of the issuer, organized by bounded context.
-        [p] cadastro
+                    [v] Domain model of the issuer, organized by bounded context. Modeling order: configuracao and cadastros together (mutual dependency), then usuarios (depends on configuracao and cadastros), nfse (depends on configuracao, cadastros and usuarios) and integranotas (depends on configuracao and nfse).
+        [p] configuracao
             @
                 [e] title
                     [e] pt
-                        [v] Cadastro
+                        [v] Configuração
                     [e] en
-                        [v] Registry
+                        [v] Configuration
                 [e] description
                     [e] pt
-                        [v] Contexto raiz, sem dependências, com Emitente, Tomador, Servico e Municipio.
+                        [v] Contexto com a Empresa, a empresa usuária e tenant do modelo. Tem dependência mútua com cadastros: a Empresa referencia o Municipio (cadastros), e Pessoa e Servico (cadastros) referenciam a Empresa. Não é erro, pois a relação entre contextos é sempre referência, mas quebra o princípio de modelar do mais independente para o mais dependente. Empresa e Municipio devem ser modelados juntos.
                     [e] en
-                        [v] Root context, with no dependencies, holding Emitente, Tomador, Servico and Municipio.
+                        [v] Context with Empresa, the company that uses the system and tenant of the model. It has a mutual dependency with cadastros: Empresa references Municipio (cadastros), and Pessoa and Servico (cadastros) reference Empresa. This is not an error, since the relation between contexts is always a reference, but it breaks the principle of modeling from the most independent to the most dependent. Empresa and Municipio must be modeled together.
+            [b] Empresa
+                #
+                    Configuracao/Empresa.mi
+        [p] cadastros
+            @
+                [e] title
+                    [e] pt
+                        [v] Cadastros
+                    [e] en
+                        [v] Registries
+                [e] description
+                    [e] pt
+                        [v] Contexto com Municipio (dado de referência compartilhado), Pessoa e Servico. Tem dependência mútua com configuracao: Pessoa e Servico referenciam a Empresa (configuracao), e a Empresa referencia o Municipio daqui. Não é erro, pois a relação entre contextos é sempre referência, mas quebra o princípio de modelar do mais independente para o mais dependente. Municipio e Empresa devem ser modelados juntos.
+                    [e] en
+                        [v] Context with Municipio (shared reference data), Pessoa and Servico. It has a mutual dependency with configuracao: Pessoa and Servico reference Empresa (configuracao), and Empresa references the Municipio held here. This is not an error, since the relation between contexts is always a reference, but it breaks the principle of modeling from the most independent to the most dependent. Municipio and Empresa must be modeled together.
             [b] Municipio
                 #
-                    Cadastro/Municipio.mi
-            [b] Emitente
+                    Cadastros/Municipio.mi
+            [b] Pessoa
                 #
-                    Cadastro/Emitente.mi
-            [b] Tomador
-                #
-                    Cadastro/Tomador.mi
+                    Cadastros/Pessoa.mi
             [b] Servico
                 #
-                    Cadastro/Servico.mi
-        [p] emissao
+                    Cadastros/Servico.mi
+        [p] usuarios
             @
                 [e] title
                     [e] pt
-                        [v] Emissão
+                        [v] Usuários
                     [e] en
-                        [v] Issuing
+                        [v] Users
                 [e] description
                     [e] pt
-                        [v] Contexto que depende de Cadastro, com Nota e Cancelamento. Entre contextos a relação é sempre referência.
+                        [v] Contexto que depende de configuracao e cadastros, com Usuario, VinculoUsuario, ClienteAcesso e TokenRenovacao. Entre contextos a relação é sempre referência.
                     [e] en
-                        [v] Context that depends on Registry, with Nota and Cancelamento. Between contexts the relation is always a reference.
-            [b] Nota
-                #
-                    Emissao/Nota.mi
-            [b] Cancelamento
-                #
-                    Emissao/Cancelamento.mi
-        [p] integracao
-            @
-                [e] title
-                    [e] pt
-                        [v] Integração
-                    [e] en
-                        [v] Integration
-                [e] description
-                    [e] pt
-                        [v] Contexto que depende de Cadastro e Emissão, com ChamadaGateway e EventoWebhook. Entre contextos a relação é sempre referência.
-                    [e] en
-                        [v] Context that depends on Registry and Issuing, with ChamadaGateway and EventoWebhook. Between contexts the relation is always a reference.
-            [b] ChamadaGateway
-                #
-                    Integracao/ChamadaGateway.mi
-            [b] EventoWebhook
-                #
-                    Integracao/EventoWebhook.mi
-        [p] acesso
-            @
-                [e] title
-                    [e] pt
-                        [v] Acesso
-                    [e] en
-                        [v] Access
-                [e] description
-                    [e] pt
-                        [v] Contexto que depende de Cadastro, com Usuario, VinculoUsuario, ClienteAcesso e TokenRenovacao. Entre contextos a relação é sempre referência.
-                    [e] en
-                        [v] Context that depends on Registry, with Usuario, VinculoUsuario, ClienteAcesso and TokenRenovacao. Between contexts the relation is always a reference.
+                        [v] Context that depends on configuracao and cadastros, with Usuario, VinculoUsuario, ClienteAcesso and TokenRenovacao. Between contexts the relation is always a reference.
             [b] Usuario
                 #
-                    Acesso/Usuario.mi
+                    Usuarios/Usuario.mi
             [b] VinculoUsuario
                 #
-                    Acesso/VinculoUsuario.mi
+                    Usuarios/VinculoUsuario.mi
             [b] ClienteAcesso
                 #
-                    Acesso/ClienteAcesso.mi
+                    Usuarios/ClienteAcesso.mi
             [b] TokenRenovacao
                 #
-                    Acesso/TokenRenovacao.mi
+                    Usuarios/TokenRenovacao.mi
+        [p] nfse
+            @
+                [e] title
+                    [e] pt
+                        [v] NFS-e
+                    [e] en
+                        [v] NFS-e
+                [e] description
+                    [e] pt
+                        [v] Contexto que depende de configuracao, cadastros e usuarios, com Nota e Cancelamento. Entre contextos a relação é sempre referência.
+                    [e] en
+                        [v] Context that depends on configuracao, cadastros and usuarios, with Nota and Cancelamento. Between contexts the relation is always a reference.
+            [b] Nota
+                #
+                    Nfse/Nota.mi
+            [b] Cancelamento
+                #
+                    Nfse/Cancelamento.mi
+        [p] integranotas
+            @
+                [e] title
+                    [e] pt
+                        [v] IntegraNotas
+                    [e] en
+                        [v] IntegraNotas
+                [e] description
+                    [e] pt
+                        [v] Contexto que depende de configuracao e nfse, com ChamadaGateway e EventoWebhook. Último na ordem de dependência dos contextos. Entre contextos a relação é sempre referência.
+                    [e] en
+                        [v] Context that depends on configuracao and nfse, with ChamadaGateway and EventoWebhook. Last in the context dependency order. Between contexts the relation is always a reference.
+            [b] ChamadaGateway
+                #
+                    IntegraNotas/ChamadaGateway.mi
+            [b] EventoWebhook
+                #
+                    IntegraNotas/EventoWebhook.mi

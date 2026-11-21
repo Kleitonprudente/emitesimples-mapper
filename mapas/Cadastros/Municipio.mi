@@ -8,10 +8,16 @@
         [e] description
             [e] pt
                 [v] Município brasileiro identificado pelo código IBGE de 7 dígitos. Dado de referência compartilhado:
-                  | endereço de Emitente e Tomador aponta para ele. Nenhum município existe sem código IBGE.
+                  | endereço de Empresa e Pessoa aponta para ele. Nenhum município existe sem código IBGE.
+                  | Vive no contexto cadastros (domain.cadastros). Há dependência mútua entre os contextos configuracao e cadastros:
+                  | a Empresa (configuracao) referencia o Municipio, e Pessoa e Servico (cadastros) referenciam a Empresa.
+                  | Municipio e Empresa devem ser modelados juntos.
             [e] en
                 [v] Brazilian municipality identified by its 7-digit IBGE code. Shared reference data:
-                  | the address of Emitente and Tomador points to it. No municipality exists without an IBGE code.
+                  | the address of Empresa and Pessoa points to it. No municipality exists without an IBGE code.
+                  | Lives in the cadastros context (domain.cadastros). There is a mutual dependency between the configuracao and cadastros contexts:
+                  | Empresa (configuracao) references Municipio, and Pessoa and Servico (cadastros) reference Empresa.
+                  | Municipio and Empresa must be modeled together.
     [g] identificacao
         [d] codigoIbge: Texto(7)
             @

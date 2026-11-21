@@ -7,11 +7,11 @@
                 [v] User
         [e] description
             [e] pt
-                [v] Identidade de uma pessoa que entra no sistema. É global: uma pessoa pode ter vínculo com vários emitentes, por isso não tem tenantKey, e o isolamento por emitente está no VinculoUsuario.
+                [v] Identidade de uma pessoa que entra no sistema. É global: uma pessoa pode ter vínculo com várias empresas, por isso não tem tenantKey, e o isolamento por empresa está no VinculoUsuario. Vive no contexto usuarios (domain.usuarios), que depende de configuracao e cadastros.
                   | O e-mail é único no sistema inteiro (o mapa não expressa unicidade, ela é regra de negócio e índice único no banco).
                   | NUNCA guarda a senha, só o hash. NUNCA guarda token.
             [e] en
-                [v] Identity of a person who signs in to the system. It is global: a person may be linked to several issuers, so it has no tenantKey, and the per-issuer isolation lives in VinculoUsuario.
+                [v] Identity of a person who signs in to the system. It is global: a person may be linked to several companies, so it has no tenantKey, and the per-company isolation lives in VinculoUsuario. Lives in the usuarios context (domain.usuarios), which depends on configuracao and cadastros.
                   | The e-mail is unique across the whole system (the map cannot express uniqueness, it is a business rule and a unique database index).
                   | NEVER keeps the password, only the hash. NEVER keeps a token.
     [g] identidade
@@ -99,9 +99,9 @@
                         [v] Platform Administrator
                 [e] description
                     [e] pt
-                        [v] Indica o administrador da plataforma, que pode cadastrar emitentes em modo irrestrito. Necessário porque o Emitente é o tenant e carrega tenantKey no próprio id.
+                        [v] Indica o administrador da plataforma, que pode cadastrar empresas em modo irrestrito. Necessário porque a Empresa é o tenant e carrega tenantKey no próprio id.
                     [e] en
-                        [v] Marks the platform administrator, who may register issuers in unrestricted mode. Needed because the Emitente is the tenant and carries tenantKey on its own id.
+                        [v] Marks the platform administrator, who may register companies in unrestricted mode. Needed because the Empresa is the tenant and carries tenantKey on its own id.
                 [e] required
                     [v] true
                 [e] defaultValue

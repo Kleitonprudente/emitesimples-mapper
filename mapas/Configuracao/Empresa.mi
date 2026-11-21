@@ -1,19 +1,21 @@
-[b] Emitente
+[b] Empresa
     @
         [e] title
             [e] pt
-                [v] Emitente
+                [v] Empresa
             [e] en
-                [v] Issuer
+                [v] Company
         [e] description
             [e] pt
-                [v] Empresa usuária do sistema e tenant do modelo. Cada emitente só emite e só enxerga as próprias notas.
-                  | É identificado por CNPJ ou CPF, um ou outro. É cadastrado no gateway IntegraNotas, que devolve o token do emitente,
+                [v] Empresa usuária do sistema e tenant do modelo. Cada empresa só emite e só enxerga as próprias notas.
+                  | É identificada por CNPJ ou CPF, um ou outro. É cadastrada no gateway IntegraNotas, onde se chama "emitente", e o gateway devolve o token do emitente,
                   | separado por ambiente. Token, credenciais da prefeitura e certificado ficam no cofre, aqui só há referência.
+                  | Vive no contexto configuracao (domain.configuracao), sozinha. Há dependência mútua com o contexto cadastros: a Empresa referencia o Municipio (cadastros), e Pessoa e Servico (cadastros) referenciam a Empresa. Empresa e Municipio devem ser modelados juntos.
             [e] en
-                [v] Company that uses the system and tenant of the model. Each issuer only issues and sees its own notes.
-                  | It is identified by CNPJ or CPF, one or the other. It is registered at the IntegraNotas gateway, which returns the issuer token,
+                [v] Company that uses the system and tenant of the model. Each company only issues and sees its own notes.
+                  | It is identified by CNPJ or CPF, one or the other. It is registered at the IntegraNotas gateway, where it is called "emitente", and the gateway returns the emitente token,
                   | separate per environment. Token, city hall credentials and certificate stay in the vault, only a reference is kept here.
+                  | Lives in the configuracao context (domain.configuracao), alone. There is a mutual dependency with the cadastros context: Empresa references Municipio (cadastros), and Pessoa and Servico (cadastros) reference Empresa. Empresa and Municipio must be modeled together.
     [g] identificacao
         [d] nomeFantasia: Texto(60)
             @
@@ -62,9 +64,9 @@
                         [v] Nickname
                 [e] description
                     [e] pt
-                        [v] Apelido opcional do emitente, de 1 a 100 caracteres, para reconhecê-lo em telas e listas.
+                        [v] Apelido opcional da empresa, de 1 a 100 caracteres, para reconhecê-la em telas e listas.
                     [e] en
-                        [v] Optional nickname of the issuer, 1 to 100 characters, to recognize it on screens and lists.
+                        [v] Optional nickname of the company, 1 to 100 characters, to recognize it on screens and lists.
         [d] cnpj: Texto(14)
             @
                 [e] cn
@@ -76,10 +78,10 @@
                         [v] CNPJ
                 [e] description
                     [e] pt
-                        [v] CNPJ do emitente, 14 dígitos sem formatação. Informe CNPJ ou CPF, um ou outro, nunca os dois e nunca nenhum.
+                        [v] CNPJ da empresa, 14 dígitos sem formatação. Informe CNPJ ou CPF, um ou outro, nunca os dois e nunca nenhum.
                           | Dado pessoal da empresa, tratado como identificador de negócio.
                     [e] en
-                        [v] CNPJ of the issuer, 14 digits without formatting. Provide CNPJ or CPF, one or the other, never both and never neither.
+                        [v] CNPJ of the company, 14 digits without formatting. Provide CNPJ or CPF, one or the other, never both and never neither.
                           | Company identifier, treated as a business key.
                 [e] searchable
                     [v] true
@@ -94,10 +96,10 @@
                         [v] CPF
                 [e] description
                     [e] pt
-                        [v] CPF do emitente pessoa física, 11 dígitos sem formatação. Informe CNPJ ou CPF, um ou outro.
+                        [v] CPF da empresa pessoa física, 11 dígitos sem formatação. Informe CNPJ ou CPF, um ou outro.
                           | Dado pessoal, sujeito a mascaramento nas respostas.
                     [e] en
-                        [v] CPF of an individual issuer, 11 digits without formatting. Provide CNPJ or CPF, one or the other.
+                        [v] CPF of an individual company, 11 digits without formatting. Provide CNPJ or CPF, one or the other.
                           | Personal data, subject to masking in responses.
                 [e] searchable
                     [v] true
@@ -112,9 +114,9 @@
                         [v] Municipal Registration
                 [e] description
                     [e] pt
-                        [v] Inscrição municipal do emitente, de 1 a 20 caracteres (campo im do gateway). Opcional.
+                        [v] Inscrição municipal da empresa, de 1 a 20 caracteres (campo im do gateway). Opcional.
                     [e] en
-                        [v] Municipal registration of the issuer, 1 to 20 characters (the im field of the gateway). Optional.
+                        [v] Municipal registration of the company, 1 to 20 characters (the im field of the gateway). Optional.
     [g] contato
         [d] email: Texto(60)
             @
@@ -127,9 +129,9 @@
                         [v] Email
                 [e] description
                     [e] pt
-                        [v] E-mail de contato do emitente, até 60 caracteres. Opcional.
+                        [v] E-mail de contato da empresa, até 60 caracteres. Opcional.
                     [e] en
-                        [v] Contact email of the issuer, up to 60 characters. Optional.
+                        [v] Contact email of the company, up to 60 characters. Optional.
         [d] telefone: Texto(14)
             @
                 [e] cn
@@ -141,9 +143,9 @@
                         [v] Phone
                 [e] description
                     [e] pt
-                        [v] Telefone do emitente, de 6 a 14 dígitos, só números.
+                        [v] Telefone da empresa, de 6 a 14 dígitos, só números.
                     [e] en
-                        [v] Phone of the issuer, 6 to 14 digits, numbers only.
+                        [v] Phone of the company, 6 to 14 digits, numbers only.
                 [e] required
                     [v] true
     [g] endereco
@@ -158,9 +160,9 @@
                         [v] Street
                 [e] description
                     [e] pt
-                        [v] Rua, avenida ou similar do endereço do emitente, de 1 a 60 caracteres (campo rua do gateway).
+                        [v] Rua, avenida ou similar do endereço da empresa, de 1 a 60 caracteres (campo rua do gateway).
                     [e] en
-                        [v] Street of the issuer address, 1 to 60 characters (the rua field of the gateway).
+                        [v] Street of the company address, 1 to 60 characters (the rua field of the gateway).
                 [e] required
                     [v] true
         [d] numeroEndereco: Texto(60)
@@ -266,10 +268,10 @@
                         [v] IBS/CBS Regime
                 [e] description
                     [e] pt
-                        [v] Regime de apuração do IBS e da CBS do emitente (campo regime_cibs do gateway), de 0 a 4. Opcional por decisão do usuário.
+                        [v] Regime de apuração do IBS e da CBS da empresa (campo regime_cibs do gateway), de 0 a 4. Opcional por decisão do usuário.
                           | O valor 0 significa não informado e a tag não é enviada.
                     [e] en
-                        [v] IBS and CBS assessment regime of the issuer (the regime_cibs field of the gateway), from 0 to 4. Optional by user decision.
+                        [v] IBS and CBS assessment regime of the company (the regime_cibs field of the gateway), from 0 to 4. Optional by user decision.
                           | Value 0 means not informed and the tag is not sent.
                 [e] values
                     [e] naoInformado
@@ -299,9 +301,9 @@
                         [v] Logo
                 [e] description
                     [e] pt
-                        [v] Logotipo do emitente, imagem JPG ou PNG proporcional (como 100x100) de até 1 MB. Opcional, enviado ao gateway em Base64.
+                        [v] Logotipo da empresa, imagem JPG ou PNG proporcional (como 100x100) de até 1 MB. Opcional, enviado ao gateway em Base64.
                     [e] en
-                        [v] Issuer logo, JPG or PNG image, proportional (like 100x100) up to 1 MB. Optional, sent to the gateway in Base64.
+                        [v] Company logo, JPG or PNG image, proportional (like 100x100) up to 1 MB. Optional, sent to the gateway in Base64.
     [g] webhook
         [d] urlWebhook: Texto(200)
             @
@@ -314,10 +316,10 @@
                         [v] Webhook URL
                 [e] description
                     [e] pt
-                        [v] URL pública, de 1 a 200 caracteres, que recebe as notificações do gateway. Registrada no cadastro do emitente
+                        [v] URL pública, de 1 a 200 caracteres, que recebe as notificações do gateway. Registrada no cadastro da empresa no gateway
                           | e só aceita se responder HTTP 200. Opcional.
                     [e] en
-                        [v] Public URL, 1 to 200 characters, that receives gateway notifications. Registered in the issuer registration
+                        [v] Public URL, 1 to 200 characters, that receives gateway notifications. Registered in the company registration at the gateway
                           | and only accepted if it answers HTTP 200. Optional.
     [g] gateway
         [d] statusCadastro: Texto(20)
@@ -331,10 +333,10 @@
                         [v] Gateway Registration Status
                 [e] description
                     [e] pt
-                        [v] Situação do cadastro do emitente no gateway, no ambiente do registro. O emitente nasce nao_cadastrado,
+                        [v] Situação do cadastro da empresa no gateway (emitente no IntegraNotas), no ambiente do registro. A empresa nasce nao_cadastrado,
                           | vira cadastrado quando o gateway devolve o token, e erro quando o cadastro é recusado.
                     [e] en
-                        [v] Status of the issuer registration at the gateway, in the record environment. The issuer starts as nao_cadastrado,
+                        [v] Status of the company registration at the gateway (emitente at IntegraNotas), in the record environment. The company starts as nao_cadastrado,
                           | becomes cadastrado when the gateway returns the token, and erro when the registration is refused.
                 [e] required
                     [v] true
@@ -346,7 +348,7 @@
                         [v] Ainda não cadastrado no gateway
                     [e] cadastrado
                         [v] cadastrado
-                        [v] Cadastrado no gateway, token do emitente guardado no cofre
+                        [v] Cadastrado no gateway, token do emitente (nome no IntegraNotas) guardado no cofre
                     [e] erro
                         [v] erro
                         [v] Cadastro recusado pelo gateway
@@ -364,20 +366,20 @@
                         [v] Data e hora em que o gateway aceitou o cadastro e devolveu o token. Vazia enquanto não cadastrado.
                     [e] en
                         [v] Date and time the gateway accepted the registration and returned the token. Empty while not registered.
-        [d] referenciaTokenEmitente: Texto(100)
+        [d] referenciaTokenEmpresa: Texto(100)
             @
                 [e] cn
-                    [v] referencia_token_emitente
+                    [v] referencia_token_empresa
                 [e] title
                     [e] pt
-                        [v] Referência do Token do Emitente
+                        [v] Referência do Token da Empresa
                     [e] en
-                        [v] Issuer Token Reference
+                        [v] Company Token Reference
                 [e] description
                     [e] pt
-                        [v] Referência ao cofre onde está o token do emitente devolvido pelo cadastro. É só a referência, nunca o token.
+                        [v] Referência ao cofre onde está o token da empresa (token do emitente no IntegraNotas) devolvido pelo cadastro. É só a referência, nunca o token.
                     [e] en
-                        [v] Reference to the vault holding the issuer token returned by the registration. Only the reference, never the token.
+                        [v] Reference to the vault holding the company token (the emitente token at IntegraNotas) returned by the registration. Only the reference, never the token.
                 [e] storageOnly
                     [v] true
         [d] referenciaCredenciaisPrefeitura: Texto(100)
@@ -440,9 +442,9 @@
                         [v] Certificate Status
                 [e] description
                     [e] pt
-                        [v] Situação do certificado digital do emitente no gateway, no ambiente do registro.
+                        [v] Situação do certificado digital da empresa no gateway, no ambiente do registro.
                     [e] en
-                        [v] Status of the issuer digital certificate at the gateway, in the record environment.
+                        [v] Status of the company digital certificate at the gateway, in the record environment.
                 [e] required
                     [v] true
                 [e] defaultValue
@@ -462,7 +464,7 @@
                         [v] Corrompido ou senha errada, erro 5003 do gateway
                     [e] naoPertence
                         [v] nao_pertence
-                        [v] Não pertence ao CNPJ ou CPF do emitente, erro 5029 do gateway
+                        [v] Não pertence ao CNPJ ou CPF da empresa, erro 5029 do gateway
     [g] controle
         [d] id: Texto(36)
             @
@@ -475,11 +477,11 @@
                         [v] Identifier
                 [e] description
                     [e] pt
-                        [v] Identificador interno do emitente (UUID). Também é o identificador do tenant, usado como chave de escopo
-                          | do próprio emitente (tenantKey) e referenciado pelo tenantKey das demais entidades.
+                        [v] Identificador interno da empresa (UUID). Também é o identificador do tenant, usado como chave de escopo
+                          | da própria empresa (tenantKey) e referenciado pelo tenantKey das demais entidades.
                     [e] en
-                        [v] Internal issuer identifier (UUID). It is also the tenant identifier, used as the scope key
-                          | of the issuer itself (tenantKey) and referenced by the tenantKey of the other entities.
+                        [v] Internal company identifier (UUID). It is also the tenant identifier, used as the scope key
+                          | of the company itself (tenantKey) and referenced by the tenantKey of the other entities.
                 [e] required
                     [v] true
                 [e] tenantKey
@@ -495,10 +497,10 @@
                         [v] Environment
                 [e] description
                     [e] pt
-                        [v] Ambiente do gateway a que este registro pertence. Emitente e token são independentes por ambiente,
+                        [v] Ambiente do gateway a que este registro pertence. Empresa (emitente no IntegraNotas) e token são independentes por ambiente,
                           | então o mesmo CNPJ ou CPF tem um registro por ambiente e uma nota de teste nunca se mistura com uma real.
                     [e] en
-                        [v] Gateway environment this record belongs to. Issuer and token are independent per environment,
+                        [v] Gateway environment this record belongs to. Company (emitente at IntegraNotas) and token are independent per environment,
                           | so the same CNPJ or CPF has one record per environment and a test note never mixes with a real one.
                 [e] required
                     [v] true
@@ -522,9 +524,9 @@
                         [v] Creation Date
                 [e] description
                     [e] pt
-                        [v] Data e hora em que o emitente foi cadastrado no sistema.
+                        [v] Data e hora em que a empresa foi cadastrada no sistema.
                     [e] en
-                        [v] Date and time the issuer was registered in the system.
+                        [v] Date and time the company was registered in the system.
                 [e] required
                     [v] true
         [d] dataAtualizacao: DataHora()
@@ -555,8 +557,8 @@
                         [v] Municipality
                 [e] description
                     [e] pt
-                        [v] Município do endereço do emitente. Traz código IBGE, nome e UF, que não se repetem aqui (campos cmun, municipio e uf do gateway).
+                        [v] Município do endereço da empresa. Traz código IBGE, nome e UF, que não se repetem aqui (campos cmun, municipio e uf do gateway).
                     [e] en
-                        [v] Municipality of the issuer address. It carries IBGE code, name and state, which are not repeated here (the cmun, municipio and uf fields of the gateway).
+                        [v] Municipality of the company address. It carries IBGE code, name and state, which are not repeated here (the cmun, municipio and uf fields of the gateway).
                 [e] required
                     [v] true

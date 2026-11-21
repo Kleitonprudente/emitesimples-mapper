@@ -39,9 +39,11 @@ conveniência do gerador deixa de descrever o negócio, que é a única coisa qu
 - Ler `docs/domain-modeling-guide.md` ao iniciar qualquer sessão de modelagem e aplicar seus princípios
   estruturais em todas as decisões.
 - **Respeitar a ordem de modelagem por bounded context — do mais independente para o mais dependente.**
-  Ordem deste projeto: **Cadastro** (Emitente, Tomador, Servico, Municipio) → **Emissao** (Nota, Cancelamento) →
-  **Integracao** (chamadas ao gateway, webhook, certificado). Integracao referencia os outros dois, nunca o
-  contrário. Modelar na ordem errada produz referência para entidade que ainda não existe, e a correção é retrabalho.
+  Ordem deste projeto: **configuracao** (Empresa) e **cadastros** (Municipio, Pessoa, Servico), que dependem um do outro, → **usuarios**
+  (Usuario, VinculoUsuario, ClienteAcesso, TokenRenovacao) → **nfse** (Nota, Cancelamento) → **integranotas**
+  (ChamadaGateway, EventoWebhook). Cada contexto referencia os anteriores, nunca o contrário, EXCETO configuracao e
+  cadastros, que se referenciam entre si por decisão do usuário (a Empresa referencia o Municipio, e Pessoa e Servico referenciam a
+  Empresa): modele Municipio e Empresa juntos. Modelar na ordem errada produz referência para entidade que ainda não existe, e a correção é retrabalho.
 - Ler as fontes de requisito (`docs/integranotas-nfse-v2.md`, `docs/integranotas-softhouse.md`, a documentação em
   https://integranotas.com.br/doc/nfse e as histórias de usuário que o usuário trouxer) e extrair entidades,
   atributos, relacionamentos e regras relevantes.
@@ -72,12 +74,16 @@ se propaga para o schema, para a API e para as telas.
 
 ## Decisões de domínio já tomadas pelo usuário
 
-- **Emitente** é a empresa usuária do sistema. O prestador **não vai no corpo** do envio à API: é identificado pelo
-  token do emitente, que é separado por ambiente. O emitente é **cadastrado no gateway** (`POST /v1/soft/emitente`,
+- **Nomes do domínio (renomeados em 2026-11-20)**: a entidade `Empresa` era `Emitente` e vive no contexto
+  `configuracao`; a entidade `Pessoa` era `Tomador`. Os contextos `cadastro`, `acesso`, `emissao` e `integracao` são agora `cadastros`, `usuarios`,
+  `nfse` e `integranotas`. O **IntegraNotas continua chamando a empresa de "emitente"**: nas rotas, nos campos e na
+  documentação (`docs/`), "emitente" é o conceito do gateway; no mapa, o termo do domínio é `Empresa`.
+- **Empresa** é a empresa usuária do sistema. O prestador **não vai no corpo** do envio à API: é identificado pelo
+  token do emitente, que é separado por ambiente. A empresa é **cadastrada no gateway** (`POST /v1/soft/emitente`,
   com o token da Softhouse); os campos exigidos estão em `docs/integranotas-softhouse.md`. Esse cadastro devolve o
   token do emitente, e as credenciais da prefeitura são segredos: ambos viram **referência ao cofre**, nunca atributo.
-- **Tomador** é o cadastro de pessoa (CNPJ ou CPF; informar um dos dois). O **Emitente** também se identifica por
-  CNPJ ou CPF, um ou outro.
+- **Pessoa** é o cadastro de pessoa (CNPJ ou CPF; informar um dos dois), que na NFS-e atua como tomador. A **Empresa**
+  também se identifica por CNPJ ou CPF, um ou outro.
 - O regime do IBS/CBS (`regime_cibs`) e o bloco `ibs_cbs` do envio são **atributos opcionais** por ora; não os
   trate como obrigatórios no modelo, mesmo que o schema marque campos internos como obrigatórios.
 - O **certificado digital** do emitente é enviado ao gateway (`/v1/certificado`, com senha de só letras e números, sem
@@ -85,7 +91,7 @@ se propaga para o schema, para a API e para as telas.
   referência ao cofre.
 - **Servico** é cadastro próprio, com o código de serviço de 6 dígitos (LC 116) exigido pela API.
 - **Municipio** nasce com o **código IBGE** (7 dígitos). Nenhum município existe no mapa sem IBGE.
-- **Emissao tem só Nota e Cancelamento. Não há entidade RPS.** Atenção: a API v2 exige `numero` (1 a 9 dígitos) e
+- **O contexto nfse tem só Nota e Cancelamento. Não há entidade RPS.** Atenção: a API v2 exige `numero` (1 a 9 dígitos) e
   `serie` (1 a 5 dígitos) no envio, e o retorno de consulta ainda traz `rps_numero`/`rps_serie`. Modele esses valores
   como **atributos da Nota** (numeração da DPS), nunca como entidade. Se o usuário quiser outro tratamento, é uma
   pergunta objetiva antes de modelar.
@@ -94,22 +100,26 @@ se propaga para o schema, para a API e para as telas.
 - **Cancelamento** é entidade própria da Nota, com os campos que a API exige: código do motivo (1 Erro de Emissão,
   2 Serviço não concluído, 9 Outros), motivo em texto de 15 a 255 caracteres, data e hora do evento e o retorno
   (XML e PDF). Só se cancela nota autorizada.
-- **A Nota nasce em processamento**: o envio devolve `5023` com a `chave`, e só depois vem a autorização. O estado da
-  Nota precisa comportar processando, **emitida offline (aceita, aguardando a prefeitura; sem XML nem protocolo)**,
-  autorizada, cancelada, rejeitada e em conflito, com a `chave` gravada desde o primeiro retorno, inclusive em falha. Os
-  erros de campo (`5001`, `5002`) trazem uma lista com campo, erro, descrição e detalhes. Guarde também a `identificacao` enviada, que é a chave de correlação do sistema.
-- **Banco de dados: PostgreSQL.** **Multi-tenant por emitente**: o sistema atende vários emitentes e cada emitente só
-  emite e só enxerga as próprias notas. O `Emitente` é o tenant. As entidades que pertencem a um emitente (Servico,
-  Nota, Cancelamento e Tomador) carregam um campo marcado com `tenantKey` que aponta para o Emitente. O
-  `Municipio` é dado de referência compartilhado e **não** tem `tenantKey`. O **Tomador é por emitente**
-  (decisão do usuário): o mesmo CNPJ ou CPF pode existir uma vez em cada emitente, e um emitente nunca vê o tomador do outro.
+- **A Nota nasce em rascunho e só vai ao gateway depois da aprovação de uma PESSOA** (emitir e cancelar exigem
+  confirmação humana; um agente só prepara). Depois da aprovação ela fica em `processando`: o envio devolve `5023` com a
+  `chave`, e só depois vem a autorização. Estados: rascunho, processando, **emitida offline (aceita, aguardando a
+  prefeitura; sem XML nem protocolo)**, autorizada, rejeitada, em conflito, cancelada e descartada, com a `chave`
+  gravada desde o primeiro retorno, inclusive em falha. O Cancelamento nasce em `aguardando_aprovacao` e tem o mesmo
+  rastro (quem preparou, quem aprovou ou recusou, quando). Os erros de campo (`5001`, `5002`) trazem uma lista com
+  campo, erro, descrição e detalhes. Guarde também a `identificacao` enviada, que é a chave de correlação do sistema.
+- **Banco de dados: PostgreSQL.** **Multi-tenant por empresa**: o sistema atende várias empresas e cada empresa só
+  emite e só enxerga as próprias notas. A `Empresa` é o tenant. As entidades que pertencem a uma empresa (Servico,
+  Pessoa, Nota, Cancelamento e as do contexto integranotas e usuarios, exceto Usuario) carregam um campo marcado com
+  `tenantKey` na relação `[r] empresa`. O `Municipio` é dado de referência compartilhado e **não** tem `tenantKey`. A
+  **Pessoa é por empresa** (decisão do usuário): o mesmo CNPJ ou CPF pode existir uma vez em cada empresa, e uma
+  empresa nunca vê a pessoa de outra.
 - **Nunca armazenar segredo em entidade**: token, senha do certificado, chave de webhook. Use campo de referência
   apontando para o cofre.
 
 ## Convenções do projeto
 
 - Mapas em `mapas/<contexto>/`, um arquivo por entidade, nome em PascalCase.
-- Idioma dos nomes: português para o negócio (`Nota`, `Tomador`, `Servico`); inglês só para termos técnicos do
+- Idioma dos nomes: português para o negócio (`Nota`, `Pessoa`, `Servico`, `Empresa`); inglês só para termos técnicos do
   gateway. Nomes de entidade no singular.
 - Pacote base: `br.com.emitesimples`, com um subpacote por contexto (`br.com.emitesimples.<contexto>`).
 - Campos de controle obrigatórios em toda entidade `[b]`: identificador, data de criação, data de atualização e

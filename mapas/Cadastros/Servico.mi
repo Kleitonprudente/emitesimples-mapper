@@ -7,11 +7,13 @@
                 [v] Service
         [e] description
             [e] pt
-                [v] Cadastro de serviço prestado, próprio de cada emitente e reutilizável na emissão. Guarda o enquadramento fiscal padrão
+                [v] Cadastro de serviço prestado, próprio de cada empresa e reutilizável na emissão. Guarda o enquadramento fiscal padrão
                   | (código da LC 116, ISS e PIS/COFINS) e valores padrão que a nota pode sobrescrever.
+                  | Vive no contexto cadastros (domain.cadastros), que referencia a Empresa (configuracao) e tem dependência mútua com ele, pois a Empresa referencia o Municipio, que está em cadastros.
             [e] en
-                [v] Registry of a provided service, owned by each issuer and reusable on issuing. Holds the default tax classification
+                [v] Registry of a provided service, owned by each company and reusable on issuing. Holds the default tax classification
                   | (LC 116 code, ISS and PIS/COFINS) and default values that the note may override.
+                  | Lives in the cadastros context (domain.cadastros), which references Empresa (configuracao) and has a mutual dependency with it, since Empresa references Municipio, which is in cadastros.
     [g] identificacao
         [d] nome: Texto(100)
             @
@@ -42,9 +44,9 @@
                         [v] Internal Code
                 [e] description
                     [e] pt
-                        [v] Código do serviço no sistema do emitente, até 20 caracteres (campo codigo_interno do envio). Opcional.
+                        [v] Código do serviço no sistema da empresa, até 20 caracteres (campo codigo_interno do envio). Opcional.
                     [e] en
-                        [v] Service code in the issuer system, up to 20 characters (the codigo_interno field of the submission). Optional.
+                        [v] Service code in the company system, up to 20 characters (the codigo_interno field of the submission). Optional.
         [d] ativo: Boolean()
             @
                 [e] cn
@@ -289,20 +291,20 @@
                 [e] required
                     [v] true
     [g] relacionamentos
-        [r] emitente: Emitente()
+        [r] empresa: Empresa()
             @
                 [e] cn
-                    [v] emitente_id
+                    [v] empresa_id
                 [e] title
                     [e] pt
-                        [v] Emitente
+                        [v] Empresa
                     [e] en
-                        [v] Issuer
+                        [v] Company
                 [e] description
                     [e] pt
-                        [v] Emitente dono deste serviço e tenant do registro. Todo acesso é filtrado por ele.
+                        [v] Empresa dona deste serviço e tenant do registro. Todo acesso é filtrado por ela.
                     [e] en
-                        [v] Issuer that owns this service and tenant of the record. Every access is filtered by it.
+                        [v] Company that owns this service and tenant of the record. Every access is filtered by it.
                 [e] required
                     [v] true
                 [e] tenantKey
