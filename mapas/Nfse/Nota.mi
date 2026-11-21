@@ -9,17 +9,21 @@
             [e] pt
                 [v] NFS-e da empresa e o seu ciclo de vida. Nasce como rascunho, preparado por um agente ou por uma pessoa, e só vai ao gateway depois da aprovação de uma pessoa. Aprovada e enviada, fica em processamento: o envio devolve o código 5023 com a chave e só depois vem a autorização.
                   | Vive no contexto nfse (domain.nfse). Depende de configuracao (Empresa), de cadastros (Pessoa e Servico) e de usuarios (Usuario e ClienteAcesso) para o rastro de quem preparou, aprovou e descartou. Usuarios depende só de cadastros e configuracao, então não há ciclo.
-                  | Guarda uma CÓPIA dos dados enviados (serviço, tributos, valores), porque alterar o cadastro de Servico ou Pessoa depois não pode mudar uma nota já emitida.
+                  | Guarda uma CÓPIA dos dados do SERVIÇO enviados (código, discriminação, valores, tributos), porque alterar o cadastro de Servico depois não pode mudar uma nota já emitida.
+                  | Da PESSOA guarda só o vínculo: o sistema monta o envio lendo a Pessoa no momento do envio (aprovação). O registro do que de fato foi enviado e autorizado é o XML (e o PDF) que a nota guarda; consultas por nome ou documento da pessoa usam a relação. Custo: se a Pessoa for alterada depois, a nota passa a mostrar o dado novo nas telas e nos relatórios, mas o XML e o PDF guardados preservam o que foi emitido.
+                  | Chave única: a nota só tem a chave de 50 caracteres devolvida pelo gateway, única por NFS-e (índice no banco). O campo identificacao do envio (1 a 40 caracteres) é preenchido com o id da nota (UUID de 36 caracteres, cabe nos 40 do gateway, que não aceita mais que isso), então a nota não guarda atributo de correlação à parte.
                   | A numeração da DPS (numero e serie) é atributo da nota, não existe entidade RPS. O prestador não vai no envio, vem do token da empresa (emitente no IntegraNotas).
-                  | Regra de unicidade para a camada de banco: a combinação (empresa, ambiente, serie, numero) deve ser única, e a identificacao deve ser única por empresa e ambiente.
+                  | Regra de unicidade para a camada de banco: a combinação (empresa, ambiente, serie, numero) deve ser única.
                   | O mapa não expressa unicidade composta, ela precisa virar constraint no banco.
                   | Fora do modelo por ora, a modelar sob demanda: obra, evento, locação, exterior, intermediário, deduções, contingência, emissão pelo tomador e o bloco ibs_cbs.
             [e] en
                 [v] Company NFS-e and its life cycle. It is born as a draft, prepared by an agent or a person, and only goes to the gateway after a person approves it. Once approved and sent, it is processing: the submission returns code 5023 with the key and authorization comes later.
                   | Lives in the nfse context (domain.nfse). Depends on configuracao (Empresa), cadastros (Pessoa and Servico) and usuarios (Usuario and ClienteAcesso) for the trail of who prepared, approved and discarded. Usuarios depends only on cadastros and configuracao, so there is no cycle.
-                  | It keeps a COPY of the submitted data (service, taxes, amounts), because changing the Servico or Pessoa registry later must not change an issued note.
+                  | It keeps a COPY of the submitted SERVICE data (code, breakdown, amounts, taxes), because changing the Servico registry later must not change an issued note.
+                  | Of the PERSON it keeps only the link: the system builds the submission by reading the Pessoa at submission time (approval). The record of what was actually sent and authorized is the XML (and PDF) the note keeps; queries by person name or document use the relation. Cost: if the Pessoa is changed later, the note shows the new data on screens and reports, but the stored XML and PDF preserve what was issued.
+                  | Single key: the note has only the 50-character key returned by the gateway, unique per NFS-e (database index). The identificacao field of the submission (1 to 40 characters) is filled with the note id (36-character UUID, fits the gateway 40, which accepts no more), so the note keeps no separate correlation attribute.
                   | The DPS numbering (numero and serie) is a note attribute, there is no RPS entity. The provider is not in the submission, it comes from the company token (emitente at IntegraNotas).
-                  | Uniqueness rule for the database layer: the combination (company, environment, serie, numero) must be unique, and identificacao must be unique per company and environment.
+                  | Uniqueness rule for the database layer: the combination (company, environment, serie, numero) must be unique.
                   | The map cannot express composite uniqueness, it must become a database constraint.
                   | Out of the model for now, to be modeled on demand: works, event, lease, abroad, intermediary, deductions, contingency, issuing by the taker and the ibs_cbs block.
     [g] envio
@@ -56,26 +60,6 @@
                     [e] en
                         [v] DPS series, 1 to 5 digits (the serie field of the submission).
                 [e] required
-                    [v] true
-        [d] identificacao: Texto(40)
-            @
-                [e] cn
-                    [v] identificacao
-                [e] title
-                    [e] pt
-                        [v] Identificação
-                    [e] en
-                        [v] Identification
-                [e] description
-                    [e] pt
-                        [v] Chave de correlação do sistema emissor, 1 a 40 caracteres (campo identificacao do envio, devolvido na consulta).
-                          | Opcional na API, mas o sistema sempre a gera e a guarda.
-                    [e] en
-                        [v] Correlation key of the issuing system, 1 to 40 characters (the identificacao field of the submission, returned on query).
-                          | Optional in the API, but the system always generates and keeps it.
-                [e] required
-                    [v] true
-                [e] searchable
                     [v] true
         [d] dataEmissao: DataHora()
             @
@@ -151,37 +135,6 @@
                         [v] Special taxation regime, from 0 to 9 (the regime_tributacao field of the submission). Default 0, none. Optional.
                 [e] defaultValue
                     [v] 0
-    [g] pessoaEmissao
-        [d] documentoPessoa:Texto(14)
-            @
-                [e] cn
-                    [v] pessoa_documento
-                [e] title
-                    [e] pt
-                        [v] Documento da Pessoa na Emissão
-                    [e] en
-                        [v] Person Document at Issuance
-                [e] description
-                    [e] pt
-                        [v] Retrato do documento da Pessoa no momento da emissão, só dígitos (14 dígitos é CNPJ, 11 é CPF). No envio ao IntegraNotas o sistema o separa em cnpj ou cpf, que lá são campos distintos de que só um é enviado. Opcional porque uma pessoa estrangeira (exportação) pode não ter documento. Não muda se o cadastro da Pessoa mudar depois.
-                    [e] en
-                        [v] Snapshot of the Pessoa document at the moment of issuance, digits only (14 digits is CNPJ, 11 is CPF). When submitting to IntegraNotas the system splits it into cnpj or cpf, which there are distinct fields of which only one is sent. Optional because a foreign person (export) may have no document. Does not change if the Pessoa record changes later.
-        [d] razaoSocialPessoa:Texto(300)
-            @
-                [e] cn
-                    [v] pessoa_razao_social
-                [e] title
-                    [e] pt
-                        [v] Razão Social da Pessoa na Emissão
-                    [e] en
-                        [v] Person Legal Name at Issuance
-                [e] description
-                    [e] pt
-                        [v] Retrato da razão social ou nome da pessoa no momento da emissão. É o que valeu na nota, mesmo que o cadastro da Pessoa mude depois.
-                    [e] en
-                        [v] Snapshot of the person legal name at the moment of issuance. It is what applied to the note, even if the Pessoa record changes later.
-                [e] required
-                    [v] true
     [g] servico
         [d] codigoServico: Texto(6)
             @
@@ -685,11 +638,15 @@
                         [v] Key
                 [e] description
                     [e] pt
-                        [v] Chave da NFS-e, 50 dígitos (padrão nacional). Gravada desde o primeiro retorno do gateway, inclusive em falha.
-                          | Vazia só se o gateway nunca respondeu.
+                        [v] Chave da NFS-e, 50 dígitos (padrão nacional). Gravada desde o primeiro retorno do gateway, inclusive em falha. É a única chave da nota no IntegraNotas.
+                          | Vazia só se o gateway nunca respondeu. Por isso não é obrigatória.
+                          | Única por NFS-e: o mapa não expressa a unicidade, ela vai em índice no banco.
+                          | O campo identificacao do envio (1 a 40 caracteres) é preenchido com o id da Nota (UUID de 36 caracteres, cabe nos 40 do gateway, que não aceita mais que isso). A Nota não guarda atributo de correlação à parte.
                     [e] en
-                        [v] NFS-e key, 50 digits (national standard). Stored from the first gateway return, even on failure.
-                          | Empty only if the gateway never answered.
+                        [v] NFS-e key, 50 digits (national standard). Stored from the first gateway return, even on failure. It is the only note key at IntegraNotas.
+                          | Empty only if the gateway never answered. That is why it is not required.
+                          | Unique per NFS-e: the map cannot express uniqueness, it goes in a database index.
+                          | The identificacao field of the submission (1 to 40 characters) is filled with the Nota id (36-character UUID, fits the gateway 40, which accepts no more). The Nota keeps no separate correlation attribute.
                 [e] searchable
                     [v] true
         [d] numeroNfse: Texto(20)
@@ -912,9 +869,9 @@
                         [v] Person
                 [e] description
                     [e] pt
-                        [v] Pessoa da mesma empresa que é a tomadora do serviço nesta nota. É referência de origem, os dados fiscais enviados ficam na nota.
+                        [v] Pessoa da mesma empresa que é a tomadora do serviço nesta nota. É o único vínculo com a pessoa: documento, nome, endereço, e-mail e telefone são lidos da Pessoa no momento do envio. Consultas por nome ou documento usam esta relação. Se a Pessoa mudar depois, a nota mostra o dado novo nas telas e nos relatórios; o XML e o PDF guardados preservam o que foi emitido.
                     [e] en
-                        [v] Person of the same company who is the service taker on this note. It is an origin reference, the tax data sent stays on the note.
+                        [v] Person of the same company who is the service taker on this note. It is the only link to the person: document, name, address, e-mail and phone are read from the Pessoa at submission time. Queries by name or document use this relation. If the Pessoa changes later, the note shows the new data on screens and reports; the stored XML and PDF preserve what was issued.
                 [e] required
                     [v] true
         [r] servico: Servico()

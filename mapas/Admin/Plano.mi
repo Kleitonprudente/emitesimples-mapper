@@ -1,0 +1,166 @@
+[b] Plano
+    @
+        [e] title
+            [e] pt
+                [v] Plano
+            [e] en
+                [v] Plan
+        [e] description
+            [e] pt
+                [v] Catálogo de planos da plataforma, criado e mantido pelo suporte. É dado GLOBAL: não pertence a uma empresa (sem tenant) e não tem ambiente. A cobrança é do CRM (PerfexCRM da Marke): o valor é o que o CRM cobra, e este sistema não processa pagamento. Um plano é desativado, nunca apagado.
+                  | EM ABERTO: o que o plano limita (notas por mês, usuários) e se há período de teste ainda não foi respondido pelo usuário, por isso nenhum limite foi modelado. Os limites entram depois por migração. A periodicidade é PROVISÓRIA.
+            [e] en
+                [v] Platform plan catalog, created and maintained by support. It is GLOBAL data: it does not belong to a company (no tenant) and has no environment. Billing is done by the CRM (Marke PerfexCRM): the value is what the CRM charges, and this system does not process payment. A plan is deactivated, never deleted.
+                  | OPEN: what the plan limits (notes per month, users) and whether there is a trial period have not been answered by the user, so no limit was modeled. Limits come later by migration. The periodicity is PROVISIONAL.
+    [g] plano
+        [d] nome: Texto(100)
+            @
+                [e] cn
+                    [v] nome
+                [e] title
+                    [e] pt
+                        [v] Nome
+                    [e] en
+                        [v] Name
+                [e] description
+                    [e] pt
+                        [v] Nome do plano.
+                    [e] en
+                        [v] Plan name.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+        [d] descricao: Texto(500)
+            @
+                [e] cn
+                    [v] descricao
+                [e] title
+                    [e] pt
+                        [v] Descrição
+                    [e] en
+                        [v] Description
+                [e] description
+                    [e] pt
+                        [v] Descrição do que o plano oferece.
+                    [e] en
+                        [v] Description of what the plan offers.
+        [d] valor: ValorMonetario(15,2)
+            @
+                [e] cn
+                    [v] valor
+                [e] title
+                    [e] pt
+                        [v] Valor
+                    [e] en
+                        [v] Value
+                [e] description
+                    [e] pt
+                        [v] Valor do plano, o que o CRM cobra por período.
+                    [e] en
+                        [v] Plan value, what the CRM charges per period.
+                [e] required
+                    [v] true
+        [d] periodicidade: Texto(10)
+            @
+                [e] cn
+                    [v] periodicidade
+                [e] title
+                    [e] pt
+                        [v] Periodicidade
+                    [e] en
+                        [v] Periodicity
+                [e] description
+                    [e] pt
+                        [v] Periodicidade da cobrança. PROVISÓRIO: só mensal por enquanto, o usuário ainda não definiu.
+                    [e] en
+                        [v] Billing periodicity. PROVISIONAL: only monthly for now, the user has not defined it yet.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] mensal
+                [e] values
+                    [e] mensal
+                        [v] mensal
+                        [v] Cobrança mensal, padrão
+        [d] ativo: Boolean()
+            @
+                [e] cn
+                    [v] ativo
+                [e] title
+                    [e] pt
+                        [v] Ativo
+                    [e] en
+                        [v] Active
+                [e] description
+                    [e] pt
+                        [v] Indica se o plano pode ser vinculado a empresas. Um plano é desativado, nunca apagado.
+                    [e] en
+                        [v] Whether the plan can be linked to companies. A plan is deactivated, never deleted.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] true
+        [d] referenciaCrm: Texto(50)
+            @
+                [e] cn
+                    [v] referencia_crm
+                [e] title
+                    [e] pt
+                        [v] Referência no CRM
+                    [e] en
+                        [v] CRM Reference
+                [e] description
+                    [e] pt
+                        [v] Identificador do item ou produto deste plano no CRM. Opcional.
+                    [e] en
+                        [v] Identifier of this plan's item or product in the CRM. Optional.
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno do registro (UUID).
+                    [e] en
+                        [v] Internal record identifier (UUID).
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o registro foi gravado.
+                    [e] en
+                        [v] Date and time the record was stored.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true

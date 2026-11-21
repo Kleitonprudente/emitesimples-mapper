@@ -225,9 +225,9 @@
                         [v] Identification
                 [e] description
                     [e] pt
-                        [v] Chave de correlação do sistema emissor enviada na emissão, de 1 a 40 caracteres. Vazia nas demais operações.
+                        [v] Valor do campo identificacao enviado na emissão (1 a 40 caracteres), que é o id da Nota (UUID de 36 caracteres). Vazia nas demais operações.
                     [e] en
-                        [v] Correlation key of the issuing system sent on submission, 1 to 40 characters. Empty on other operations.
+                        [v] Value of the identificacao field sent on submission (1 to 40 characters), which is the Nota id (36-character UUID). Empty on other operations.
         [d] resumoEnvio: Texto(500)
             @
                 [e] cn

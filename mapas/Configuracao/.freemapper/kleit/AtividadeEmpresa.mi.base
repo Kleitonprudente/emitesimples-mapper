@@ -1,0 +1,144 @@
+[b] AtividadeEmpresa
+    @
+        [e] title
+            [e] pt
+                [v] Atividade da Empresa
+            [e] en
+                [v] Company Activity
+        [e] description
+            [e] pt
+                [v] Atividade econômica (CNAE) de uma Empresa, com tipo, código CNAE e descrição. Uma empresa tem uma atividade principal e várias secundárias. A regra de no máximo uma principal por empresa é da aplicação.
+                  | Existe só dentro da empresa e no mesmo contexto, por isso é detalhe da Empresa ([m]/[o]). O tenant é a própria empresa. Não tem ambiente: herda o da Empresa.
+                  | Vive no contexto configuracao (domain.configuracao).
+            [e] en
+                [v] Economic activity (CNAE) of a Company, with type, CNAE code and description. A company has one main activity and several secondary ones. The rule of at most one main per company belongs to the application.
+                  | It exists only within the company and in the same context, so it is a detail of Empresa ([m]/[o]). The tenant is the company itself. It has no environment: it inherits the Empresa one.
+                  | Lives in the configuracao context (domain.configuracao).
+    [g] identificacao
+        [d] tipo: Texto(10)
+            @
+                [e] cn
+                    [v] tipo
+                [e] title
+                    [e] pt
+                        [v] Tipo da Atividade
+                    [e] en
+                        [v] Activity Type
+                [e] description
+                    [e] pt
+                        [v] Se a atividade é a principal ou uma secundária da empresa. No máximo uma principal por empresa (regra da aplicação). Obrigatório.
+                    [e] en
+                        [v] Whether the activity is the main or a secondary one of the company. At most one main per company (application rule). Required.
+                [e] required
+                    [v] true
+                [e] values
+                    [e] principal
+                        [v] principal
+                        [v] Atividade principal da empresa
+                    [e] secundaria
+                        [v] secundaria
+                        [v] Atividade secundária da empresa
+        [d] codigoCnae: Texto(7)
+            @
+                [e] cn
+                    [v] codigo_cnae
+                [e] title
+                    [e] pt
+                        [v] Código CNAE
+                    [e] en
+                        [v] CNAE Code
+                [e] description
+                    [e] pt
+                        [v] Código CNAE da atividade, 7 dígitos, só números, sem formatação. Guardado como texto para preservar zeros à esquerda. Obrigatório.
+                    [e] en
+                        [v] CNAE code of the activity, 7 digits, numbers only, unformatted. Stored as text to preserve leading zeros. Required.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+        [d] descricao: Texto(300)
+            @
+                [e] cn
+                    [v] descricao
+                [e] title
+                    [e] pt
+                        [v] Descrição
+                    [e] en
+                        [v] Description
+                [e] description
+                    [e] pt
+                        [v] Descrição da atividade conforme a tabela CNAE, até 300 caracteres. Obrigatório.
+                    [e] en
+                        [v] Description of the activity as in the CNAE table, up to 300 characters. Required.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno da atividade (UUID).
+                    [e] en
+                        [v] Internal activity identifier (UUID).
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que a atividade foi cadastrada.
+                    [e] en
+                        [v] Date and time the activity was registered.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true
+    [g] relacionamentos
+        [m] empresa: Empresa()
+            @
+                [e] cn
+                    [v] empresa_id
+                [e] title
+                    [e] pt
+                        [v] Empresa
+                    [e] en
+                        [v] Company
+                [e] description
+                    [e] pt
+                        [v] Empresa a quem a atividade pertence e tenant do registro. Apagar a empresa apaga suas atividades. Todo acesso é filtrado por ela.
+                    [e] en
+                        [v] Company the activity belongs to and tenant of the record. Deleting the company deletes its activities. Every access is filtered by it.
+                [e] required
+                    [v] true
+                [e] tenantKey
+                    [v] true

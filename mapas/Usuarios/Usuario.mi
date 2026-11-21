@@ -26,9 +26,9 @@
                         [v] Name
                 [e] description
                     [e] pt
-                        [v] Nome da pessoa.
+                        [v] Nome da pessoa. No signup é o nome do responsável, o primeiro usuário da empresa.
                     [e] en
-                        [v] Name of the person.
+                        [v] Name of the person. At signup it is the name of the person in charge, the company first user.
                 [e] required
                     [v] true
                 [e] searchable
@@ -44,13 +44,27 @@
                         [v] E-mail
                 [e] description
                     [e] pt
-                        [v] E-mail usado no login. Único no sistema, sem diferenciar maiúsculas de minúsculas.
+                        [v] E-mail usado no login. Único no sistema, sem diferenciar maiúsculas de minúsculas. No signup, nome, e-mail e WhatsApp do responsável viram dados do Usuario.
                     [e] en
-                        [v] E-mail used to sign in. Unique in the system, case-insensitive.
+                        [v] E-mail used to sign in. Unique in the system, case-insensitive. At signup, name, e-mail and WhatsApp of the person in charge become Usuario data.
                 [e] required
                     [v] true
                 [e] searchable
                     [v] true
+        [d] whatsapp: Texto(20)
+            @
+                [e] cn
+                    [v] whatsapp
+                [e] title
+                    [e] pt
+                        [v] WhatsApp
+                    [e] en
+                        [v] WhatsApp
+                [e] description
+                    [e] pt
+                        [v] WhatsApp da pessoa, até 20 caracteres. Opcional: o primeiro usuário, do signup, o terá; usuários criados depois podem não ter.
+                    [e] en
+                        [v] WhatsApp of the person, up to 20 characters. Optional: the first user, from signup, will have it; users created later may not.
     [g] seguranca
         [d] senhaHash: Texto(255)
             @
@@ -63,9 +77,9 @@
                         [v] Password Hash
                 [e] description
                     [e] pt
-                        [v] Hash da senha com algoritmo próprio para senha (nunca a senha). Não sai em nenhuma leitura.
+                        [v] Hash da senha com algoritmo próprio para senha (nunca a senha). Não sai em nenhuma leitura. Pode ficar vazia enquanto o método de login do usuário do signup (senha ou link) não for definido.
                     [e] en
-                        [v] Password hash using a password-specific algorithm (never the password). Never returned by any read.
+                        [v] Password hash using a password-specific algorithm (never the password). Never returned by any read. May stay empty while the sign-in method of the signup user (password or link) is undefined.
                 [e] required
                     [v] true
                 [e] storageOnly

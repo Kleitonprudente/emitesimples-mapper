@@ -1,0 +1,171 @@
+[b] Usuario
+    @
+        [e] title
+            [e] pt
+                [v] Usuário
+            [e] en
+                [v] User
+        [e] description
+            [e] pt
+                [v] Identidade de uma pessoa que entra no sistema. É global: uma pessoa pode ter vínculo com várias empresas, por isso não tem tenantKey, e o isolamento por empresa está no VinculoUsuario. Vive no contexto usuarios (domain.usuarios), que depende de configuracao e cadastros.
+                  | O e-mail é único no sistema inteiro (o mapa não expressa unicidade, ela é regra de negócio e índice único no banco).
+                  | NUNCA guarda a senha, só o hash. NUNCA guarda token.
+            [e] en
+                [v] Identity of a person who signs in to the system. It is global: a person may be linked to several companies, so it has no tenantKey, and the per-company isolation lives in VinculoUsuario. Lives in the usuarios context (domain.usuarios), which depends on configuracao and cadastros.
+                  | The e-mail is unique across the whole system (the map cannot express uniqueness, it is a business rule and a unique database index).
+                  | NEVER keeps the password, only the hash. NEVER keeps a token.
+    [g] identidade
+        [d] nome: Texto(120)
+            @
+                [e] cn
+                    [v] nome
+                [e] title
+                    [e] pt
+                        [v] Nome
+                    [e] en
+                        [v] Name
+                [e] description
+                    [e] pt
+                        [v] Nome da pessoa.
+                    [e] en
+                        [v] Name of the person.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+        [d] email: Texto(160)
+            @
+                [e] cn
+                    [v] email
+                [e] title
+                    [e] pt
+                        [v] E-mail
+                    [e] en
+                        [v] E-mail
+                [e] description
+                    [e] pt
+                        [v] E-mail usado no login. Único no sistema, sem diferenciar maiúsculas de minúsculas.
+                    [e] en
+                        [v] E-mail used to sign in. Unique in the system, case-insensitive.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+    [g] seguranca
+        [d] senhaHash: Texto(255)
+            @
+                [e] cn
+                    [v] senha_hash
+                [e] title
+                    [e] pt
+                        [v] Hash da Senha
+                    [e] en
+                        [v] Password Hash
+                [e] description
+                    [e] pt
+                        [v] Hash da senha com algoritmo próprio para senha (nunca a senha). Não sai em nenhuma leitura.
+                    [e] en
+                        [v] Password hash using a password-specific algorithm (never the password). Never returned by any read.
+                [e] required
+                    [v] true
+                [e] storageOnly
+                    [v] true
+        [d] ativo: Boolean()
+            @
+                [e] cn
+                    [v] ativo
+                [e] title
+                    [e] pt
+                        [v] Ativo
+                    [e] en
+                        [v] Active
+                [e] description
+                    [e] pt
+                        [v] Usuário inativo não consegue entrar nem renovar o acesso.
+                    [e] en
+                        [v] An inactive user cannot sign in or renew access.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] true
+        [d] administradorPlataforma: Boolean()
+            @
+                [e] cn
+                    [v] administrador_plataforma
+                [e] title
+                    [e] pt
+                        [v] Administrador da Plataforma
+                    [e] en
+                        [v] Platform Administrator
+                [e] description
+                    [e] pt
+                        [v] Indica o administrador da plataforma, que pode cadastrar empresas em modo irrestrito. Necessário porque a Empresa é o tenant e carrega tenantKey no próprio id.
+                    [e] en
+                        [v] Marks the platform administrator, who may register companies in unrestricted mode. Needed because the Empresa is the tenant and carries tenantKey on its own id.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] false
+        [d] dataUltimoAcesso: DataHora()
+            @
+                [e] cn
+                    [v] data_ultimo_acesso
+                [e] title
+                    [e] pt
+                        [v] Data do Último Acesso
+                    [e] en
+                        [v] Last Access Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora do último login bem-sucedido. Vazia se nunca entrou.
+                    [e] en
+                        [v] Date and time of the last successful sign-in. Empty if never signed in.
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno do registro (UUID).
+                    [e] en
+                        [v] Internal record identifier (UUID).
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o registro foi gravado.
+                    [e] en
+                        [v] Date and time the record was stored.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true

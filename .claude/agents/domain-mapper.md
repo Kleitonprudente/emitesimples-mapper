@@ -106,7 +106,7 @@ se propaga para o schema, para a API e para as telas.
   prefeitura; sem XML nem protocolo)**, autorizada, rejeitada, em conflito, cancelada e descartada, com a `chave`
   gravada desde o primeiro retorno, inclusive em falha. O Cancelamento nasce em `aguardando_aprovacao` e tem o mesmo
   rastro (quem preparou, quem aprovou ou recusou, quando). Os erros de campo (`5001`, `5002`) trazem uma lista com
-  campo, erro, descrição e detalhes. Guarde também a `identificacao` enviada, que é a chave de correlação do sistema.
+  campo, erro, descrição e detalhes. A Nota NÃO guarda atributo `identificacao`: o campo `identificacao` do envio (1 a 40 caracteres) é preenchido com o `id` da Nota (UUID de 36). A única chave da nota é `chave` (50 dígitos, opcional até o primeiro retorno, única por NFS-e). Da Pessoa a Nota guarda SÓ o vínculo: o envio lê a Pessoa no momento da aprovação; o XML e o PDF guardados são o registro do que foi emitido.
 - **Banco de dados: PostgreSQL.** **Multi-tenant por empresa**: o sistema atende várias empresas e cada empresa só
   emite e só enxerga as próprias notas. A `Empresa` é o tenant. As entidades que pertencem a uma empresa (Servico,
   Pessoa, Nota, Cancelamento e as do contexto integranotas e usuarios, exceto Usuario) carregam um campo marcado com

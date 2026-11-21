@@ -8,12 +8,16 @@
         [e] description
             [e] pt
                 [v] Empresa usuária do sistema e tenant do modelo. Cada empresa só emite e só enxerga as próprias notas.
-                  | É identificada por CNPJ ou CPF, um ou outro. É cadastrada no gateway IntegraNotas, onde se chama "emitente", e o gateway devolve o token do emitente,
+                  | NUNCA é apagada, só DESATIVADA (situacao = desativada): a aplicação não deve expor a remoção. Nasce no signup com o documento, o e-mail e o WhatsApp informados, em situacao pendente_confirmacao, e fica ativa quando o usuário clica no link do e-mail (ConfirmacaoCadastro).
+                  | É identificada por um documento único (CNPJ ou CPF). Tem atividades (AtividadeEmpresa) e quadro de sócios (QsaEmpresa) como detalhes ([m]/[o]).
+                  | Regra de edição, da aplicação: o usuário da empresa só altera razaoSocial, nomeFantasia e o endereço; o resto é alterável só pelo administrador da plataforma ou suporte. É cadastrada no gateway IntegraNotas, onde se chama "emitente", e o gateway devolve o token do emitente,
                   | separado por ambiente. Token, credenciais da prefeitura e certificado ficam no cofre, aqui só há referência.
                   | Vive no contexto configuracao (domain.configuracao), sozinha. Há dependência mútua com o contexto cadastros: a Empresa referencia o Municipio (cadastros), e Pessoa e Servico (cadastros) referenciam a Empresa. Empresa e Municipio devem ser modelados juntos.
             [e] en
                 [v] Company that uses the system and tenant of the model. Each company only issues and sees its own notes.
-                  | It is identified by CNPJ or CPF, one or the other. It is registered at the IntegraNotas gateway, where it is called "emitente", and the gateway returns the emitente token,
+                  | It is NEVER deleted, only DEACTIVATED (situacao = desativada): the application must not expose removal. It is born at signup with the document, e-mail and WhatsApp informed, in situacao pendente_confirmacao, and becomes active when the user clicks the e-mail link (ConfirmacaoCadastro).
+                  | It is identified by a single document (CNPJ or CPF). It has activities (AtividadeEmpresa) and a partner board (QsaEmpresa) as details ([m]/[o]).
+                  | Edit rule, an application rule: the company user only changes razaoSocial, nomeFantasia and the address; everything else is changeable only by the platform administrator or support. It is registered at the IntegraNotas gateway, where it is called "emitente", and the gateway returns the emitente token,
                   | separate per environment. Token, city hall credentials and certificate stay in the vault, only a reference is kept here.
                   | Lives in the configuracao context (domain.configuracao), alone. There is a mutual dependency with the cadastros context: Empresa references Municipio (cadastros), and Pessoa and Servico (cadastros) reference Empresa. Empresa and Municipio must be modeled together.
     [g] identificacao
@@ -28,9 +32,9 @@
                         [v] Trade Name
                 [e] description
                     [e] pt
-                        [v] Nome fantasia da empresa, de 2 a 60 caracteres (campo nome do cadastro no gateway).
+                        [v] Nome fantasia da empresa, de 2 a 60 caracteres (campo nome do cadastro no gateway). Alterável pelo usuário da empresa.
                     [e] en
-                        [v] Trade name of the company, 2 to 60 characters (the nome field of the gateway registration).
+                        [v] Trade name of the company, 2 to 60 characters (the nome field of the gateway registration). Changeable by the company user.
                 [e] required
                     [v] true
                 [e] searchable
@@ -46,61 +50,49 @@
                         [v] Legal Name
                 [e] description
                     [e] pt
-                        [v] Razão social da empresa, de 2 a 60 caracteres (campo razao do cadastro no gateway).
+                        [v] Razão social da empresa, de 2 a 60 caracteres (campo razao do cadastro no gateway). Alterável pelo usuário da empresa.
                     [e] en
-                        [v] Legal name of the company, 2 to 60 characters (the razao field of the gateway registration).
+                        [v] Legal name of the company, 2 to 60 characters (the razao field of the gateway registration). Changeable by the company user.
                 [e] required
                     [v] true
                 [e] searchable
                     [v] true
-        [d] apelido: Texto(100)
+        [d] documento: Texto(14)
             @
                 [e] cn
-                    [v] apelido
+                    [v] documento
                 [e] title
                     [e] pt
-                        [v] Apelido
+                        [v] CNPJ / CPF
                     [e] en
-                        [v] Nickname
+                        [v] CNPJ / CPF
                 [e] description
                     [e] pt
-                        [v] Apelido opcional da empresa, de 1 a 100 caracteres, para reconhecê-la em telas e listas.
+                        [v] Documento da empresa, só dígitos, sem formatação: 14 dígitos é CNPJ e 11 dígitos é CPF. É um ou outro, nunca os dois.
+                          | No cadastro no gateway e no envio ao IntegraNotas o sistema o separa em cnpj ou cpf conforme o tamanho. CPF é dado pessoal, sujeito a mascaramento nas respostas. Obrigatório.
+                          | Único por ambiente (o mesmo documento tem um registro por ambiente). Alterável só pelo administrador da plataforma ou suporte.
                     [e] en
-                        [v] Optional nickname of the company, 1 to 100 characters, to recognize it on screens and lists.
-        [d] cnpj: Texto(14)
-            @
-                [e] cn
-                    [v] cnpj
-                [e] title
-                    [e] pt
-                        [v] CNPJ
-                    [e] en
-                        [v] CNPJ
-                [e] description
-                    [e] pt
-                        [v] CNPJ da empresa, 14 dígitos sem formatação. Informe CNPJ ou CPF, um ou outro, nunca os dois e nunca nenhum.
-                          | Dado pessoal da empresa, tratado como identificador de negócio.
-                    [e] en
-                        [v] CNPJ of the company, 14 digits without formatting. Provide CNPJ or CPF, one or the other, never both and never neither.
-                          | Company identifier, treated as a business key.
+                        [v] Document of the company, digits only, unformatted: 14 digits is a CNPJ and 11 digits is a CPF. One or the other, never both.
+                          | In the gateway registration and when sending to IntegraNotas the system splits it into cnpj or cpf according to its length. CPF is personal data, subject to masking in responses. Required.
+                          | Unique per environment (the same document has one record per environment). Changeable only by the platform administrator or support.
+                [e] required
+                    [v] true
                 [e] searchable
                     [v] true
-        [d] cpf: Texto(11)
+        [d] rgInscricaoEstadual: Texto(20)
             @
                 [e] cn
-                    [v] cpf
+                    [v] rg_inscricao_estadual
                 [e] title
                     [e] pt
-                        [v] CPF
+                        [v] RG / Inscrição Estadual
                     [e] en
-                        [v] CPF
+                        [v] RG / State Registration
                 [e] description
                     [e] pt
-                        [v] CPF da empresa pessoa física, 11 dígitos sem formatação. Informe CNPJ ou CPF, um ou outro.
-                          | Dado pessoal, sujeito a mascaramento nas respostas.
+                        [v] Inscrição estadual da empresa, até 20 caracteres. Mesmo nome do campo da Pessoa. Opcional. Alterável só pelo administrador da plataforma ou suporte.
                     [e] en
-                        [v] CPF of an individual company, 11 digits without formatting. Provide CNPJ or CPF, one or the other.
-                          | Personal data, subject to masking in responses.
+                        [v] State registration of the company, up to 20 characters. Same name as the Pessoa field. Optional. Changeable only by the platform administrator or support.
                 [e] searchable
                     [v] true
         [d] inscricaoMunicipal: Texto(20)
@@ -114,9 +106,9 @@
                         [v] Municipal Registration
                 [e] description
                     [e] pt
-                        [v] Inscrição municipal da empresa, de 1 a 20 caracteres (campo im do gateway). Opcional.
+                        [v] Inscrição municipal da empresa, de 1 a 20 caracteres (campo im do gateway). Opcional. Alterável só pelo administrador da plataforma ou suporte.
                     [e] en
-                        [v] Municipal registration of the company, 1 to 20 characters (the im field of the gateway). Optional.
+                        [v] Municipal registration of the company, 1 to 20 characters (the im field of the gateway). Optional. Changeable only by the platform administrator or support.
     [g] contato
         [d] email: Texto(60)
             @
@@ -129,9 +121,27 @@
                         [v] Email
                 [e] description
                     [e] pt
-                        [v] E-mail de contato da empresa, até 60 caracteres. Opcional.
+                        [v] E-mail da empresa, até 60 caracteres. Obrigatório: várias integrações exigem (IntegraNotas, bancos para boleto e PIX). É o e-mail informado no signup. Alterável só pelo administrador da plataforma ou suporte.
                     [e] en
-                        [v] Contact email of the company, up to 60 characters. Optional.
+                        [v] Company e-mail, up to 60 characters. Required: several integrations demand it (IntegraNotas, banks for boleto and PIX). It is the e-mail informed at signup. Changeable only by the platform administrator or support.
+                [e] required
+                    [v] true
+        [d] whatsapp: Texto(20)
+            @
+                [e] cn
+                    [v] whatsapp
+                [e] title
+                    [e] pt
+                        [v] WhatsApp
+                    [e] en
+                        [v] WhatsApp
+                [e] description
+                    [e] pt
+                        [v] WhatsApp da empresa, até 20 caracteres. Obrigatório: necessário em cadastros de integração como IntegraNotas e bancos para boleto e PIX. É o WhatsApp informado no signup. Alterável só pelo administrador da plataforma ou suporte.
+                    [e] en
+                        [v] Company WhatsApp, up to 20 characters. Required: needed in integration registrations such as IntegraNotas and banks for boleto and PIX. It is the WhatsApp informed at signup. Changeable only by the platform administrator or support.
+                [e] required
+                    [v] true
         [d] telefone: Texto(14)
             @
                 [e] cn
@@ -143,9 +153,9 @@
                         [v] Phone
                 [e] description
                     [e] pt
-                        [v] Telefone da empresa, de 6 a 14 dígitos, só números.
+                        [v] Telefone da empresa, de 6 a 14 dígitos, só números. Alterável só pelo administrador da plataforma ou suporte.
                     [e] en
-                        [v] Phone of the company, 6 to 14 digits, numbers only.
+                        [v] Phone of the company, 6 to 14 digits, numbers only. Changeable only by the platform administrator or support.
                 [e] required
                     [v] true
     [g] endereco
@@ -160,9 +170,9 @@
                         [v] Street
                 [e] description
                     [e] pt
-                        [v] Rua, avenida ou similar do endereço da empresa, de 1 a 60 caracteres (campo rua do gateway).
+                        [v] Rua, avenida ou similar do endereço da empresa, de 1 a 60 caracteres (campo rua do gateway). Alterável pelo usuário da empresa.
                     [e] en
-                        [v] Street of the company address, 1 to 60 characters (the rua field of the gateway).
+                        [v] Street of the company address, 1 to 60 characters (the rua field of the gateway). Changeable by the company user.
                 [e] required
                     [v] true
         [d] numeroEndereco: Texto(60)
@@ -176,9 +186,9 @@
                         [v] Address Number
                 [e] description
                     [e] pt
-                        [v] Número do imóvel, de 1 a 60 caracteres, texto porque aceita S/N (campo numero do gateway).
+                        [v] Número do imóvel, de 1 a 60 caracteres, texto porque aceita S/N (campo numero do gateway). Alterável pelo usuário da empresa.
                     [e] en
-                        [v] Property number, 1 to 60 characters, text because it accepts S/N (the numero field of the gateway).
+                        [v] Property number, 1 to 60 characters, text because it accepts S/N (the numero field of the gateway). Changeable by the company user.
                 [e] required
                     [v] true
         [d] complemento: Texto(60)
@@ -192,9 +202,9 @@
                         [v] Complement
                 [e] description
                     [e] pt
-                        [v] Complemento do endereço, até 60 caracteres. Opcional.
+                        [v] Complemento do endereço, até 60 caracteres. Opcional. Alterável pelo usuário da empresa.
                     [e] en
-                        [v] Address complement, up to 60 characters. Optional.
+                        [v] Address complement, up to 60 characters. Optional. Changeable by the company user.
         [d] bairro: Texto(60)
             @
                 [e] cn
@@ -206,9 +216,9 @@
                         [v] Neighborhood
                 [e] description
                     [e] pt
-                        [v] Bairro do endereço, de 2 a 60 caracteres.
+                        [v] Bairro do endereço, de 2 a 60 caracteres. Alterável pelo usuário da empresa.
                     [e] en
-                        [v] Neighborhood of the address, 2 to 60 characters.
+                        [v] Neighborhood of the address, 2 to 60 characters. Changeable by the company user.
                 [e] required
                     [v] true
         [d] cep: Texto(8)
@@ -222,9 +232,9 @@
                         [v] Postal Code
                 [e] description
                     [e] pt
-                        [v] CEP do endereço, exatamente 8 dígitos sem hífen. Guardado como texto para preservar zeros à esquerda.
+                        [v] CEP do endereço, exatamente 8 dígitos sem hífen. Guardado como texto para preservar zeros à esquerda. Alterável pelo usuário da empresa.
                     [e] en
-                        [v] Postal code of the address, exactly 8 digits without hyphen. Stored as text to preserve leading zeros.
+                        [v] Postal code of the address, exactly 8 digits without hyphen. Stored as text to preserve leading zeros. Changeable by the company user.
                 [e] required
                     [v] true
     [g] tributacao
@@ -239,9 +249,9 @@
                         [v] Tax Regime
                 [e] description
                     [e] pt
-                        [v] Regime tributário da empresa (campo crt do gateway). Define o enquadramento usado na emissão.
+                        [v] Regime tributário da empresa (campo crt do gateway). Define o enquadramento usado na emissão. Alterável só pelo administrador da plataforma ou suporte.
                     [e] en
-                        [v] Tax regime of the company (the crt field of the gateway). Defines the framework used on issuing.
+                        [v] Tax regime of the company (the crt field of the gateway). Defines the framework used on issuing. Changeable only by the platform administrator or support.
                 [e] required
                     [v] true
                 [e] values
@@ -269,10 +279,10 @@
                 [e] description
                     [e] pt
                         [v] Regime de apuração do IBS e da CBS da empresa (campo regime_cibs do gateway), de 0 a 4. Opcional por decisão do usuário.
-                          | O valor 0 significa não informado e a tag não é enviada.
+                          | O valor 0 significa não informado e a tag não é enviada. Alterável só pelo administrador da plataforma ou suporte.
                     [e] en
                         [v] IBS and CBS assessment regime of the company (the regime_cibs field of the gateway), from 0 to 4. Optional by user decision.
-                          | Value 0 means not informed and the tag is not sent.
+                          | Value 0 means not informed and the tag is not sent. Changeable only by the platform administrator or support.
                 [e] values
                     [e] naoInformado
                         [v] 0
@@ -301,9 +311,9 @@
                         [v] Logo
                 [e] description
                     [e] pt
-                        [v] Logotipo da empresa, imagem JPG ou PNG proporcional (como 100x100) de até 1 MB. Opcional, enviado ao gateway em Base64.
+                        [v] Logotipo da empresa, imagem JPG ou PNG proporcional (como 100x100) de até 1 MB. Opcional, enviado ao gateway em Base64. Alterável só pelo administrador da plataforma ou suporte.
                     [e] en
-                        [v] Company logo, JPG or PNG image, proportional (like 100x100) up to 1 MB. Optional, sent to the gateway in Base64.
+                        [v] Company logo, JPG or PNG image, proportional (like 100x100) up to 1 MB. Optional, sent to the gateway in Base64. Changeable only by the platform administrator or support.
     [g] webhook
         [d] urlWebhook: Texto(200)
             @
@@ -317,10 +327,69 @@
                 [e] description
                     [e] pt
                         [v] URL pública, de 1 a 200 caracteres, que recebe as notificações do gateway. Registrada no cadastro da empresa no gateway
-                          | e só aceita se responder HTTP 200. Opcional.
+                          | e só aceita se responder HTTP 200. Opcional. Alterável só pelo administrador da plataforma ou suporte.
                     [e] en
                         [v] Public URL, 1 to 200 characters, that receives gateway notifications. Registered in the company registration at the gateway
-                          | and only accepted if it answers HTTP 200. Optional.
+                          | and only accepted if it answers HTTP 200. Optional. Changeable only by the platform administrator or support.
+    [g] conta
+        [d] situacao: Texto(20)
+            @
+                [e] cn
+                    [v] situacao
+                [e] title
+                    [e] pt
+                        [v] Situação da Conta
+                    [e] en
+                        [v] Account Status
+                [e] description
+                    [e] pt
+                        [v] Situação da conta da empresa NO SISTEMA (não confundir com statusCadastro, que é o cadastro no gateway IntegraNotas). A empresa nasce pendente_confirmacao no signup,
+                          | vira ativa quando o usuário clica no link do e-mail (ou quando o suporte ativa) e desativada quando o suporte a desativa à mão. Nunca é apagada. Alterável só pelo administrador da plataforma ou suporte.
+                    [e] en
+                        [v] Status of the company account IN THE SYSTEM (not to be confused with statusCadastro, which is the registration at the IntegraNotas gateway). The company starts as pendente_confirmacao at signup,
+                          | becomes ativa when the user clicks the e-mail link (or when support activates it) and desativada when support deactivates it by hand. It is never deleted. Changeable only by the platform administrator or support.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] pendente_confirmacao
+                [e] values
+                    [e] pendenteConfirmacao
+                        [v] pendente_confirmacao
+                        [v] Pendente de confirmação, padrão: nasce assim no signup
+                    [e] ativa
+                        [v] ativa
+                        [v] Ativa, depois do clique no link do e-mail ou ativada pelo suporte
+                    [e] desativada
+                        [v] desativada
+                        [v] Desativada à mão pelo suporte; nunca apagada
+        [d] dataConfirmacao: DataHora()
+            @
+                [e] cn
+                    [v] data_confirmacao
+                [e] title
+                    [e] pt
+                        [v] Data da Confirmação
+                    [e] en
+                        [v] Confirmation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o usuário confirmou o cadastro pelo link do e-mail. Vazia enquanto pendente. Alterável só pelo administrador da plataforma ou suporte.
+                    [e] en
+                        [v] Date and time the user confirmed the registration through the e-mail link. Empty while pending. Changeable only by the platform administrator or support.
+        [d] referenciaCrm: Texto(50)
+            @
+                [e] cn
+                    [v] referencia_crm
+                [e] title
+                    [e] pt
+                        [v] Referência no CRM
+                    [e] en
+                        [v] CRM Reference
+                [e] description
+                    [e] pt
+                        [v] Identificador desta empresa como cliente no CRM da Marke. A cobrança é do CRM, este sistema não processa pagamento. Opcional. Alterável só pelo administrador da plataforma ou suporte.
+                    [e] en
+                        [v] Identifier of this company as a customer in the Marke CRM. Billing belongs to the CRM, this system does not process payment. Optional. Changeable only by the platform administrator or support.
     [g] gateway
         [d] statusCadastro: Texto(20)
             @
@@ -333,11 +402,11 @@
                         [v] Gateway Registration Status
                 [e] description
                     [e] pt
-                        [v] Situação do cadastro da empresa no gateway (emitente no IntegraNotas), no ambiente do registro. A empresa nasce nao_cadastrado,
-                          | vira cadastrado quando o gateway devolve o token, e erro quando o cadastro é recusado.
+                        [v] Situação do cadastro da empresa NO GATEWAY (emitente no IntegraNotas), no ambiente do registro. Não é a situação da conta no sistema (ver situacao). A empresa nasce nao_cadastrado,
+                          | vira cadastrado quando o gateway devolve o token, e erro quando o cadastro é recusado. Alterável só pelo administrador da plataforma ou suporte.
                     [e] en
-                        [v] Status of the company registration at the gateway (emitente at IntegraNotas), in the record environment. The company starts as nao_cadastrado,
-                          | becomes cadastrado when the gateway returns the token, and erro when the registration is refused.
+                        [v] Status of the company registration AT THE GATEWAY (emitente at IntegraNotas), in the record environment. It is not the account status in the system (see situacao). The company starts as nao_cadastrado,
+                          | becomes cadastrado when the gateway returns the token, and erro when the registration is refused. Changeable only by the platform administrator or support.
                 [e] required
                     [v] true
                 [e] defaultValue
@@ -363,9 +432,9 @@
                         [v] Gateway Registration Date
                 [e] description
                     [e] pt
-                        [v] Data e hora em que o gateway aceitou o cadastro e devolveu o token. Vazia enquanto não cadastrado.
+                        [v] Data e hora em que o gateway aceitou o cadastro e devolveu o token. Vazia enquanto não cadastrado. Alterável só pelo administrador da plataforma ou suporte.
                     [e] en
-                        [v] Date and time the gateway accepted the registration and returned the token. Empty while not registered.
+                        [v] Date and time the gateway accepted the registration and returned the token. Empty while not registered. Changeable only by the platform administrator or support.
         [d] referenciaTokenEmpresa: Texto(100)
             @
                 [e] cn
@@ -377,9 +446,9 @@
                         [v] Company Token Reference
                 [e] description
                     [e] pt
-                        [v] Referência ao cofre onde está o token da empresa (token do emitente no IntegraNotas) devolvido pelo cadastro. É só a referência, nunca o token.
+                        [v] Referência ao cofre onde está o token da empresa (token do emitente no IntegraNotas) devolvido pelo cadastro. É só a referência, nunca o token. Alterável só pelo administrador da plataforma ou suporte.
                     [e] en
-                        [v] Reference to the vault holding the company token (the emitente token at IntegraNotas) returned by the registration. Only the reference, never the token.
+                        [v] Reference to the vault holding the company token (the emitente token at IntegraNotas) returned by the registration. Only the reference, never the token. Changeable only by the platform administrator or support.
                 [e] storageOnly
                     [v] true
         [d] referenciaCredenciaisPrefeitura: Texto(100)
@@ -394,10 +463,10 @@
                 [e] description
                     [e] pt
                         [v] Referência ao cofre onde estão login, senha, client id e client secret da prefeitura, exigidos em alguns municípios.
-                          | É só a referência, nunca os valores.
+                          | É só a referência, nunca os valores. Alterável só pelo administrador da plataforma ou suporte.
                     [e] en
                         [v] Reference to the vault holding the city hall login, password, client id and client secret, required in some municipalities.
-                          | Only the reference, never the values.
+                          | Only the reference, never the values. Changeable only by the platform administrator or support.
                 [e] storageOnly
                     [v] true
     [g] certificado
@@ -412,9 +481,9 @@
                         [v] Certificate Reference
                 [e] description
                     [e] pt
-                        [v] Referência ao cofre onde estão o arquivo do certificado digital e a senha dele. É só a referência.
+                        [v] Referência ao cofre onde estão o arquivo do certificado digital e a senha dele. É só a referência. Alterável só pelo administrador da plataforma ou suporte.
                     [e] en
-                        [v] Reference to the vault holding the digital certificate file and its password. Only the reference.
+                        [v] Reference to the vault holding the digital certificate file and its password. Only the reference. Changeable only by the platform administrator or support.
                 [e] storageOnly
                     [v] true
         [d] validadeCertificado: Data()
@@ -428,9 +497,9 @@
                         [v] Certificate Expiry
                 [e] description
                     [e] pt
-                        [v] Data de validade do certificado digital enviado ao gateway. Vazia enquanto não houver certificado.
+                        [v] Data de validade do certificado digital enviado ao gateway. Vazia enquanto não houver certificado. Alterável só pelo administrador da plataforma ou suporte.
                     [e] en
-                        [v] Expiry date of the digital certificate sent to the gateway. Empty while there is no certificate.
+                        [v] Expiry date of the digital certificate sent to the gateway. Empty while there is no certificate. Changeable only by the platform administrator or support.
         [d] situacaoCertificado: Texto(20)
             @
                 [e] cn
@@ -442,9 +511,9 @@
                         [v] Certificate Status
                 [e] description
                     [e] pt
-                        [v] Situação do certificado digital da empresa no gateway, no ambiente do registro.
+                        [v] Situação do certificado digital da empresa no gateway, no ambiente do registro. Alterável só pelo administrador da plataforma ou suporte.
                     [e] en
-                        [v] Status of the company digital certificate at the gateway, in the record environment.
+                        [v] Status of the company digital certificate at the gateway, in the record environment. Changeable only by the platform administrator or support.
                 [e] required
                     [v] true
                 [e] defaultValue
@@ -464,7 +533,7 @@
                         [v] Corrompido ou senha errada, erro 5003 do gateway
                     [e] naoPertence
                         [v] nao_pertence
-                        [v] Não pertence ao CNPJ ou CPF da empresa, erro 5029 do gateway
+                        [v] Não pertence ao documento da empresa, erro 5029 do gateway
     [g] controle
         [d] id: Texto(36)
             @
@@ -498,10 +567,10 @@
                 [e] description
                     [e] pt
                         [v] Ambiente do gateway a que este registro pertence. Empresa (emitente no IntegraNotas) e token são independentes por ambiente,
-                          | então o mesmo CNPJ ou CPF tem um registro por ambiente e uma nota de teste nunca se mistura com uma real.
+                          | então o mesmo documento (CNPJ ou CPF) tem um registro por ambiente e uma nota de teste nunca se mistura com uma real.
                     [e] en
                         [v] Gateway environment this record belongs to. Company (emitente at IntegraNotas) and token are independent per environment,
-                          | so the same CNPJ or CPF has one record per environment and a test note never mixes with a real one.
+                          | so the same document (CNPJ or CPF) has one record per environment and a test note never mixes with a real one.
                 [e] required
                     [v] true
                 [e] defaultValue
@@ -546,6 +615,34 @@
                 [e] required
                     [v] true
     [g] relacionamentos
+        [o] atividades: AtividadeEmpresa()
+            @
+                [e] cn
+                    [v] atividades
+                [e] title
+                    [e] pt
+                        [v] Atividades
+                    [e] en
+                        [v] Activities
+                [e] description
+                    [e] pt
+                        [v] Atividades econômicas (CNAE) da empresa: uma principal e várias secundárias. Só existem dentro da empresa, no mesmo contexto. Alterável só pelo administrador da plataforma ou suporte.
+                    [e] en
+                        [v] Economic activities (CNAE) of the company: one main and several secondary. They only exist within the company, in the same context. Changeable only by the platform administrator or support.
+        [o] qsa: QsaEmpresa()
+            @
+                [e] cn
+                    [v] qsa
+                [e] title
+                    [e] pt
+                        [v] Quadro de Sócios e Administradores
+                    [e] en
+                        [v] Partners and Administrators Board
+                [e] description
+                    [e] pt
+                        [v] Quadro de sócios e administradores (QSA) da empresa, com vários itens. Só existe dentro da empresa, no mesmo contexto. Alterável só pelo administrador da plataforma ou suporte.
+                    [e] en
+                        [v] Partners and administrators board (QSA) of the company, with several items. It only exists within the company, in the same context. Changeable only by the platform administrator or support.
         [r] municipio: Municipio()
             @
                 [e] cn
@@ -557,8 +654,8 @@
                         [v] Municipality
                 [e] description
                     [e] pt
-                        [v] Município do endereço da empresa. Traz código IBGE, nome e UF, que não se repetem aqui (campos cmun, municipio e uf do gateway). A empresa não pode usar o registro Exterior (regra da aplicação).
+                        [v] Município do endereço da empresa. Traz código IBGE, nome e UF, que não se repetem aqui (campos cmun, municipio e uf do gateway). A empresa não pode usar o registro Exterior (regra da aplicação). Alterável pelo usuário da empresa.
                     [e] en
-                        [v] Municipality of the company address. It carries IBGE code, name and state, which are not repeated here (the cmun, municipio and uf fields of the gateway). The company cannot use the Exterior record (application rule).
+                        [v] Municipality of the company address. It carries IBGE code, name and state, which are not repeated here (the cmun, municipio and uf fields of the gateway). The company cannot use the Exterior record (application rule). Changeable by the company user.
                 [e] required
                     [v] true

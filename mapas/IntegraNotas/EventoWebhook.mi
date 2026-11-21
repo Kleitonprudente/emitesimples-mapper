@@ -132,9 +132,9 @@
                         [v] Identification
                 [e] description
                     [e] pt
-                        [v] Chave de correlação do sistema emissor, de 1 a 40 caracteres, devolvida na notificação.
+                        [v] Eco do campo identificacao do envio (1 a 40 caracteres), que é o id da Nota (UUID de 36 caracteres), devolvido na notificação.
                     [e] en
-                        [v] Correlation key of the issuing system, 1 to 40 characters, returned in the notification.
+                        [v] Echo of the identificacao field of the submission (1 to 40 characters), which is the Nota id (36-character UUID), returned in the notification.
     [g] recebimento
         [d] dataRecebimento: DataHora()
             @

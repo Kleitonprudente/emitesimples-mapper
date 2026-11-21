@@ -1,0 +1,254 @@
+[b] FaturaCrm
+    @
+        [e] title
+            [e] pt
+                [v] Fatura do CRM
+            [e] en
+                [v] CRM Invoice
+        [e] description
+            [e] pt
+                [v] Fatura RECEBIDA do CRM (PerfexCRM da Marke). É dado do CRM: só a sincronização a escreve, e o usuário da empresa apenas LÊ as suas. Este sistema não processa pagamento; o linkFatura leva a empresa a pagar no CRM. Não tem ambiente: herda a situação da empresa.
+                  | EM ABERTO: como o CRM se comunica com o sistema (webhook ou consulta periódica) não foi definido. O estado é PROVISÓRIO: espelha o estado no CRM e o mapeamento exato ainda não foi definido. O log de sincronização com o CRM não foi modelado; é pendência.
+            [e] en
+                [v] Invoice RECEIVED from the CRM (Marke PerfexCRM). It is CRM data: only the synchronization writes it, and the company user only READS their own. This system does not process payment; linkFatura takes the company to pay in the CRM. It has no environment: it inherits the company situation.
+                  | OPEN: how the CRM talks to the system (webhook or periodic query) has not been defined. The state is PROVISIONAL: it mirrors the state in the CRM and the exact mapping has not been defined. The CRM synchronization log was not modeled; it is pending.
+    [g] fatura
+        [d] crmFaturaId: Texto(50)
+            @
+                [e] cn
+                    [v] crm_fatura_id
+                [e] title
+                    [e] pt
+                        [v] Id da Fatura no CRM
+                    [e] en
+                        [v] CRM Invoice Id
+                [e] description
+                    [e] pt
+                        [v] Identificador da fatura no CRM. Único.
+                    [e] en
+                        [v] Invoice identifier in the CRM. Unique.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+        [d] numero: Texto(30)
+            @
+                [e] cn
+                    [v] numero
+                [e] title
+                    [e] pt
+                        [v] Número
+                    [e] en
+                        [v] Number
+                [e] description
+                    [e] pt
+                        [v] Número da fatura como exibido no CRM.
+                    [e] en
+                        [v] Invoice number as shown in the CRM.
+                [e] searchable
+                    [v] true
+        [d] valor: ValorMonetario(15,2)
+            @
+                [e] cn
+                    [v] valor
+                [e] title
+                    [e] pt
+                        [v] Valor
+                    [e] en
+                        [v] Value
+                [e] description
+                    [e] pt
+                        [v] Valor da fatura.
+                    [e] en
+                        [v] Invoice value.
+                [e] required
+                    [v] true
+        [d] dataEmissao: Data()
+            @
+                [e] cn
+                    [v] data_emissao
+                [e] title
+                    [e] pt
+                        [v] Data de Emissão
+                    [e] en
+                        [v] Issue Date
+                [e] description
+                    [e] pt
+                        [v] Data de emissão da fatura no CRM.
+                    [e] en
+                        [v] Invoice issue date in the CRM.
+        [d] dataVencimento: Data()
+            @
+                [e] cn
+                    [v] data_vencimento
+                [e] title
+                    [e] pt
+                        [v] Data de Vencimento
+                    [e] en
+                        [v] Due Date
+                [e] description
+                    [e] pt
+                        [v] Data de vencimento da fatura.
+                    [e] en
+                        [v] Invoice due date.
+                [e] required
+                    [v] true
+        [d] dataPagamento: Data()
+            @
+                [e] cn
+                    [v] data_pagamento
+                [e] title
+                    [e] pt
+                        [v] Data de Pagamento
+                    [e] en
+                        [v] Payment Date
+                [e] description
+                    [e] pt
+                        [v] Data em que o CRM registrou o pagamento. Vazia enquanto não paga.
+                    [e] en
+                        [v] Date the CRM recorded the payment. Empty while unpaid.
+        [d] estado: Texto(10)
+            @
+                [e] cn
+                    [v] estado
+                [e] title
+                    [e] pt
+                        [v] Estado
+                    [e] en
+                        [v] State
+                [e] description
+                    [e] pt
+                        [v] Estado da fatura, espelho do estado no CRM. PROVISÓRIO: o mapeamento exato ainda não foi definido.
+                    [e] en
+                        [v] Invoice state, mirror of the state in the CRM. PROVISIONAL: the exact mapping has not been defined yet.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+                [e] defaultValue
+                    [v] aberta
+                [e] values
+                    [e] aberta
+                        [v] aberta
+                        [v] Aguardando pagamento, padrão
+                    [e] paga
+                        [v] paga
+                        [v] Paga
+                    [e] vencida
+                        [v] vencida
+                        [v] Vencida sem pagamento
+                    [e] cancelada
+                        [v] cancelada
+                        [v] Cancelada no CRM
+        [d] linkFatura: Texto(500)
+            @
+                [e] cn
+                    [v] link_fatura
+                [e] title
+                    [e] pt
+                        [v] Link da Fatura
+                    [e] en
+                        [v] Invoice Link
+                [e] description
+                    [e] pt
+                        [v] Endereço onde a empresa paga a fatura, no CRM. Opcional.
+                    [e] en
+                        [v] Address where the company pays the invoice, in the CRM. Optional.
+        [d] dataSincronizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_sincronizacao
+                [e] title
+                    [e] pt
+                        [v] Data da Sincronização
+                    [e] en
+                        [v] Synchronization Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que este sistema recebeu ou atualizou a fatura.
+                    [e] en
+                        [v] Date and time this system received or updated the invoice.
+                [e] required
+                    [v] true
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno do registro (UUID).
+                    [e] en
+                        [v] Internal record identifier (UUID).
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o registro foi gravado.
+                    [e] en
+                        [v] Date and time the record was stored.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true
+    [g] relacionamentos
+        [r] empresa: Empresa()
+            @
+                [e] cn
+                    [v] empresa_id
+                [e] title
+                    [e] pt
+                        [v] Empresa
+                    [e] en
+                        [v] Company
+                [e] description
+                    [e] pt
+                        [v] Empresa a quem a fatura se destina e tenant do registro. Todo acesso é filtrado por ela.
+                    [e] en
+                        [v] Company the invoice is addressed to and tenant of the record. Every access is filtered by it.
+                [e] required
+                    [v] true
+                [e] tenantKey
+                    [v] true
+        [r] assinatura: AssinaturaEmpresa()
+            @
+                [e] cn
+                    [v] assinatura_id
+                [e] title
+                    [e] pt
+                        [v] Assinatura
+                    [e] en
+                        [v] Subscription
+                [e] description
+                    [e] pt
+                        [v] Assinatura a que a fatura se refere. Opcional: a fatura pode chegar do CRM sem correspondência.
+                    [e] en
+                        [v] Subscription the invoice refers to. Optional: the invoice may arrive from the CRM with no match.

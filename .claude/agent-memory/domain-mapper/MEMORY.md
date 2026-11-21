@@ -25,7 +25,8 @@ Tier B. Fontes principais: `docs/integranotas-nfse-v2.md` (NFS-e: envio v2, cons
 - `tributos_nacionais.cst` e o bloco `ibs_cbs` têm campos obrigatórios; se os blocos são obrigatórios por si, o schema
   não diz: confirmar em homologação antes de tornar opcional no mapa.
 - O prestador não vai no corpo: vem do token.
-- `identificacao` (1 a 40) é a chave de correlação do sistema emissor: guardar na Nota.
+- `identificacao` (1 a 40 no envio) é a chave de correlação do sistema emissor. **Decisão do usuário em 2026-11-21: a Nota NÃO
+  guarda esse atributo**; o envio manda o `id` da Nota (UUID, 36) nesse campo. A chave única da nota é `chave` (50).
 - Percentuais em pontos (5.00 = 5%). Quebra de linha só `\n`.
 
 ## Retorno da API que o mapa precisa comportar
@@ -78,7 +79,9 @@ e `rps_numero`/`rps_serie` (atributos opcionais da Nota, não entidade).
 - **Contato** (`[m] pessoa`, coleção `[o] contatos`; `[r] empresa` com tenantKey): `tipoContato` (socio, financeiro,
   comercial, fiscal, outro: confirmados pelo usuário), `nome` (acrescentado porque os sócios do QSA do CNPJ.ws entram como
   contatos), `whatsapp`, `email`. Vários contatos por pessoa.
-- Retrato da pessoa na Nota: `documentoPessoa` (documento único, decisão do usuário) e `razaoSocialPessoa`.
+- **A Nota guarda SÓ o vínculo `[r] pessoa`** (decisão do usuário em 2026-11-21): não há retrato da pessoa (saíram `documentoPessoa`
+  e `razaoSocialPessoa`). O envio lê a Pessoa na aprovação; o XML e o PDF guardados preservam o que foi emitido. Custo
+  registrado: se a Pessoa mudar, as telas mostram o dado novo. A Nota tem 57 no DOM (49 `[d]` + 8 relações).
 - Pendente (fora do mapa): carga da tabela de cidades com as ~5.570 cidades e o IBGE; integrações CNPJ.ws e BrasilAPI (CEP)
   ainda não lidas.
 - Estado: `mvn compile` e `mvn package` passam com 13 entidades, 82 fontes (2026-11-21).
@@ -93,6 +96,17 @@ e `rps_numero`/`rps_serie` (atributos opcionais da Nota, não entidade).
   resumo das rejeições. Cria o laço de dependência cadastros, usuarios, configuracao, cadastros.
 - **Flyway é o dono do esquema do banco**; o Hibernate só valida. Unicidade (`codigo_ibge`; `nome`+`uf`) vai em migração.
 
+## Empresa: ajustes, atividades e QSA (pedido do usuário em 2026-11-21; fonte: `docs/historias-cadastro-empresa.md`)
+- `Empresa` (27 `[d]` + 3 relações = 30 no DOM): `documento` único (CNPJ ou CPF, 14 ou 11 dígitos), `rgInscricaoEstadual` novo,
+  `apelido` retirado. Relações: `municipio`, `[o] atividades`, `[o] qsa`.
+- `AtividadeEmpresa` (tipo principal|secundaria, codigoCnae, descricao) e `QsaEmpresa` (nome, cpf, qualificacao,
+  dataEntradaSociedade; o CPF pode vir MASCARADO da consulta pública, não validar como 11 dígitos): `[m] empresa` com
+  `tenantKey`, no contexto `configuracao`. 16 entidades no mapa.
+- Regra de edição (da aplicação, não do mapa): o usuário da empresa só altera `razaoSocial`, `nomeFantasia` e o endereço; o
+  resto só o administrador da plataforma ou o suporte. NÃO usar `readOnly` (é fixo no campo e o suporte precisa editar).
+- EM ABERTO com o usuário (NÃO modelar sem requisito): estado da conta, confirmação de cadastro por link de e-mail (signup),
+  planos, assinaturas, pagamentos, controles de suporte, e como o usuário do signup faz login.
+
 ## Não confirmado
 Corpo da notificação do webhook, compactação do XML/PDF dele; rotas auxiliares da v2; quais blocos do envio são obrigatórios por si; prazos de cancelamento por município.
 
@@ -101,7 +115,7 @@ Corpo da notificação do webhook, compactação do XML/PDF dele; rotas auxiliar
 - **NUNCA nomeie um atributo como `<nomeDaRelação><Campo>`** (descoberto no primeiro `mvn compile`, 2026-11-20). Para cada
   campo pesquisável da classe alvo de uma relação `[r] pessoa`, os geradores `repository` e `resource` criam um parâmetro
   de filtro `pessoaCnpj`, `pessoaCpf`, `pessoaRazaoSocial`; um atributo da mesma classe com esse nome gera "variable is
-  already defined" e o Java não compila. O `struct` e o `generate` NÃO pegam isso: só o `javac`. Por isso o retrato da pessoa
+  already defined" e o Java não compila. O `struct` e o `generate` NÃO pegam isso: só o `javac`. Por isso o antigo retrato da pessoa (hoje removido da Nota)
   na Nota se chama `cnpjPessoa`, `cpfPessoa`, `razaoSocialPessoa` (o sufixo evita o prefixo da relação), e a relação da
   Nota com a Pessoa é `[r] pessoa` (antes `tomador`). **Confirmado: `mvn compile` e `mvn package` passam (2026-11-20).**
 - Nenhum agente emite nota, exceto para testar, em homologação.

@@ -1,0 +1,149 @@
+[b] VinculoUsuario
+    @
+        [e] title
+            [e] pt
+                [v] Vínculo do Usuário
+            [e] en
+                [v] User Membership
+        [e] description
+            [e] pt
+                [v] Liga um Usuario a uma Empresa com um papel. É aqui que está o isolamento: o usuário só enxerga as empresas em que tem vínculo ativo, e a empresa do token vem daqui.
+                  | Unicidade: um usuário tem no máximo um vínculo por empresa (par usuario, empresa único).
+                  | Papel para scopes: administrador = consultar, preparar, emitir, cancelar; operador = consultar, preparar, emitir; consulta = consultar. Emitir e cancelar exigem confirmação humana, regra de fluxo fora deste mapa.
+            [e] en
+                [v] Links a Usuario to an Empresa with a role. This is where isolation lives: the user only sees companies with an active membership, and the token company comes from here.
+                  | Uniqueness: a user has at most one membership per company (unique usuario, empresa pair).
+                  | Role to scopes: administrador = consultar, preparar, emitir, cancelar; operador = consultar, preparar, emitir; consulta = consultar. Issuing and cancelling require human confirmation, a flow rule outside this map.
+    [g] vinculo
+        [d] papel: Texto(15)
+            @
+                [e] cn
+                    [v] papel
+                [e] title
+                    [e] pt
+                        [v] Papel
+                    [e] en
+                        [v] Role
+                [e] description
+                    [e] pt
+                        [v] Papel do usuário nesta empresa. Mapeamento para scopes: administrador = consultar, preparar, emitir, cancelar; operador = consultar, preparar, emitir; consulta = consultar.
+                    [e] en
+                        [v] Role of the user in this company. Mapping to scopes: administrador = consultar, preparar, emitir, cancelar; operador = consultar, preparar, emitir; consulta = consultar.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+                [e] defaultValue
+                    [v] consulta
+                [e] values
+                    [e] administrador
+                        [v] administrador
+                        [v] Administrador, consulta, preparo, emissão e cancelamento
+                    [e] operador
+                        [v] operador
+                        [v] Operador, consulta, preparo e emissão
+                    [e] consulta
+                        [v] consulta
+                        [v] Consulta, só leitura
+        [d] ativo: Boolean()
+            @
+                [e] cn
+                    [v] ativo
+                [e] title
+                    [e] pt
+                        [v] Ativo
+                    [e] en
+                        [v] Active
+                [e] description
+                    [e] pt
+                        [v] Vínculo desativado tira o acesso do usuário a esta empresa sem apagar o histórico.
+                    [e] en
+                        [v] A deactivated membership removes the user access to this company without erasing history.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] true
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno do registro (UUID).
+                    [e] en
+                        [v] Internal record identifier (UUID).
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o registro foi gravado.
+                    [e] en
+                        [v] Date and time the record was stored.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true
+    [g] relacionamentos
+        [r] usuario: Usuario()
+            @
+                [e] cn
+                    [v] usuario_id
+                [e] title
+                    [e] pt
+                        [v] Usuário
+                    [e] en
+                        [v] User
+                [e] description
+                    [e] pt
+                        [v] Usuário vinculado.
+                    [e] en
+                        [v] Linked user.
+                [e] required
+                    [v] true
+        [r] empresa: Empresa()
+            @
+                [e] cn
+                    [v] empresa_id
+                [e] title
+                    [e] pt
+                        [v] Empresa
+                    [e] en
+                        [v] Company
+                [e] description
+                    [e] pt
+                        [v] Empresa do vínculo e tenant do registro. Todo acesso é filtrado por ela.
+                    [e] en
+                        [v] Company of the membership and tenant of the record. Every access is filtered by it.
+                [e] required
+                    [v] true
+                [e] tenantKey
+                    [v] true

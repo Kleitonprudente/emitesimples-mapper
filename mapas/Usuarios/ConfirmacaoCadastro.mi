@@ -1,0 +1,191 @@
+[b] ConfirmacaoCadastro
+    @
+        [e] title
+            [e] pt
+                [v] Confirmação de Cadastro
+            [e] en
+                [v] Registration Confirmation
+        [e] description
+            [e] pt
+                [v] Confirmação do signup por link de e-mail. O link enviado ao usuário leva o token; o sistema guarda SÓ o hash do token, nunca o token. Ao confirmar, a empresa passa de pendente_confirmacao para ativa e a dataConfirmacao dela é preenchida.
+                  | O endpoint de confirmação é PÚBLICO (o usuário ainda não tem sessão): esta entidade NÃO deve ter recurso REST exposto, é regra da aplicação escrita à mão.
+            [e] en
+                [v] Signup confirmation by e-mail link. The link sent to the user carries the token; the system keeps ONLY the token hash, never the token. On confirmation the company goes from pendente_confirmacao to ativa and its dataConfirmacao is filled.
+                  | The confirmation endpoint is PUBLIC (the user has no session yet): this entity must NOT have an exposed REST resource, it is an application rule written by hand.
+    [g] confirmacao
+        [d] tokenHash: Texto(255)
+            @
+                [e] cn
+                    [v] token_hash
+                [e] title
+                    [e] pt
+                        [v] Hash do Token
+                    [e] en
+                        [v] Token Hash
+                [e] description
+                    [e] pt
+                        [v] Hash do token do link de confirmação (nunca o token). Único. Não sai em nenhuma leitura.
+                    [e] en
+                        [v] Hash of the confirmation link token (never the token). Unique. Never returned by any read.
+                [e] required
+                    [v] true
+                [e] storageOnly
+                    [v] true
+        [d] email: Texto(160)
+            @
+                [e] cn
+                    [v] email
+                [e] title
+                    [e] pt
+                        [v] E-mail
+                    [e] en
+                        [v] E-mail
+                [e] description
+                    [e] pt
+                        [v] Endereço de e-mail para onde o link de confirmação foi enviado.
+                    [e] en
+                        [v] E-mail address the confirmation link was sent to.
+                [e] required
+                    [v] true
+        [d] dataExpiracao: DataHora()
+            @
+                [e] cn
+                    [v] data_expiracao
+                [e] title
+                    [e] pt
+                        [v] Data de Expiração
+                    [e] en
+                        [v] Expiration Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o link deixa de valer.
+                    [e] en
+                        [v] Date and time the link stops being valid.
+                [e] required
+                    [v] true
+        [d] dataConfirmacao: DataHora()
+            @
+                [e] cn
+                    [v] data_confirmacao
+                [e] title
+                    [e] pt
+                        [v] Data da Confirmação
+                    [e] en
+                        [v] Confirmation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o usuário clicou no link. Vazia enquanto pendente.
+                    [e] en
+                        [v] Date and time the user clicked the link. Empty while pending.
+        [d] estado: Texto(10)
+            @
+                [e] cn
+                    [v] estado
+                [e] title
+                    [e] pt
+                        [v] Estado
+                    [e] en
+                        [v] State
+                [e] description
+                    [e] pt
+                        [v] Estado da confirmação: pendente até o clique, confirmado depois dele, expirado se a dataExpiracao passou sem clique.
+                    [e] en
+                        [v] Confirmation state: pendente until the click, confirmado after it, expirado if dataExpiracao passed without a click.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] pendente
+                [e] values
+                    [e] pendente
+                        [v] pendente
+                        [v] Aguardando o clique no link, padrão
+                    [e] confirmado
+                        [v] confirmado
+                        [v] Link usado, empresa ativada
+                    [e] expirado
+                        [v] expirado
+                        [v] Prazo vencido sem confirmação
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno do registro (UUID).
+                    [e] en
+                        [v] Internal record identifier (UUID).
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o registro foi gravado.
+                    [e] en
+                        [v] Date and time the record was stored.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true
+    [g] relacionamentos
+        [r] usuario: Usuario()
+            @
+                [e] cn
+                    [v] usuario_id
+                [e] title
+                    [e] pt
+                        [v] Usuário
+                    [e] en
+                        [v] User
+                [e] description
+                    [e] pt
+                        [v] Usuário a quem o link foi enviado, o responsável do signup.
+                    [e] en
+                        [v] User the link was sent to, the person in charge from signup.
+                [e] required
+                    [v] true
+        [r] empresa: Empresa()
+            @
+                [e] cn
+                    [v] empresa_id
+                [e] title
+                    [e] pt
+                        [v] Empresa
+                    [e] en
+                        [v] Company
+                [e] description
+                    [e] pt
+                        [v] Empresa a ser ativada pela confirmação, e tenant do registro.
+                    [e] en
+                        [v] Company to be activated by the confirmation, and tenant of the record.
+                [e] required
+                    [v] true
+                [e] tenantKey
+                    [v] true
