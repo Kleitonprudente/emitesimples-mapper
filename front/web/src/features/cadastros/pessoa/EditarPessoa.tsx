@@ -1,7 +1,7 @@
 // GERADO por frontend/screenForm a partir de EditarPessoa. Nao edite: a saida e sobrescrita por inteiro.
 import { z } from 'zod'
 import { AutoForm, type FieldLayout } from '@/runtime/AutoForm'
-import { pessoaSchema, tipoPessoaValues, tipoPessoaLabels } from '@/gen/schemas/pessoa'
+import { pessoaSchema, tipoPessoaValues, tipoPessoaLabels, tipoDestinatarioValues, tipoDestinatarioLabels } from '@/gen/schemas/pessoa'
 
 const SUBMIT_LABEL = 'Salvar'
 
@@ -26,7 +26,7 @@ const FIELDS: FieldLayout = [
     { name: 'rgInscricaoEstadual', label: 'RG / Inscrição Estadual', maxLength: 20 },
   ],
   [
-    // @TODO Pessoa.tipoDestinatario: enum numerico ainda sem select tipado no runtime (FieldSpec.options so aceita string); campo omitido
+    { name: 'tipoDestinatario', label: 'Tipo do Destinatário', options: tipoDestinatarioValues.map((value) => ({ value, label: tipoDestinatarioLabels[value] })) },
     { name: 'consumidorFinal', label: 'Consumidor Final', kind: 'boolean' },
   ],
   [

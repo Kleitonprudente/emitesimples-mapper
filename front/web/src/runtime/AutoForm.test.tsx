@@ -114,4 +114,16 @@ describe('AutoForm', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Já existe uma pessoa com este documento.')
     expect(screen.getByRole('alert')).toHaveTextContent('documento_duplicado')
   })
+  it('enum numerico: mostra o rotulo do valor atual e envia o numero, nao o texto', async () => {
+    const onSubmit = vi.fn()
+    const user = userEvent.setup()
+    const numSchema = z.object({ destinatario: z.number().int() })
+    const campos: FieldLayout = [{ name: 'destinatario', label: 'Destinatário', options: [{ value: 0, label: 'O próprio tomador' }, { value: 1, label: 'Outra pessoa' }] }]
+    wrap(<AutoForm schema={numSchema} fields={campos} defaults={{ destinatario: 0 }} onSubmit={onSubmit} />)
+    expect(screen.getByRole('combobox')).toHaveTextContent('O próprio tomador')
+    await user.click(screen.getByRole('combobox'))
+    await user.click(await screen.findByRole('option', { name: 'Outra pessoa' }))
+    await user.click(screen.getByRole('button', { name: 'Salvar' }))
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith({ destinatario: 1 }))
+  })
 })

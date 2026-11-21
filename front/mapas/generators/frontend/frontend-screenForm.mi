@@ -61,8 +61,6 @@
             [v]     // @TODO {{ $bean }}{{ normalize-space(value) }}: relacao ({{ $rel/@type }}) sem construto de FK/combobox no dialeto; campo omitido
         [e] todo-missing
             [v]     // @TODO {{ $bean }}{{ normalize-space(value) }}: atributo inexistente no dominio; campo omitido
-        [e] todo-numeric-enum
-            [v]     // @TODO {{ $bean }}{{ normalize-space(value) }}: enum numerico ainda sem select tipado no runtime (FieldSpec.options so aceita string); campo omitido
         [e] todo-type
             [v]     // @TODO {{ $bean }}{{ normalize-space(value) }}: tipo nao tratado (type={{ $attr/@type }}); campo omitido
         [e] layout-todo
@@ -111,7 +109,7 @@
                 [e] var
                     [v] enumImports
                     [e] expr
-                        [v] string-join(distinct-values(for $f in form/rows//field return (for $a in $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = substring(normalize-space($f/value), 2) and @mode = 'directToField' and exists(properties/values) and @type = $mapNativeTypes/String/value] return concat($a/@name, 'Values, ', $a/@name, 'Labels'))), ', ')
+                        [v] string-join(distinct-values(for $f in form/rows//field return (for $a in $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = substring(normalize-space($f/value), 2) and @mode = 'directToField' and exists(properties/values) and (@type = $mapNativeTypes/String/value or @type = $mapNativeTypes/Integer/value or @type = $mapNativeTypes/Long/value)] return concat($a/@name, 'Values, ', $a/@name, 'Labels'))), ', ')
                 [e] var
                     [v] picks
                     [e] expr
@@ -265,7 +263,7 @@
                             [v] exists($attr/properties/values) and ($attr/@type = $mapNativeTypes/Integer/value or $attr/@type = $mapNativeTypes/Long/value)
                             [e] then
                                 [e] write-pattern
-                                    [v] todo-numeric-enum
+                                    [v] spec-enum
                         [e] else-if
                             [v] exists($attr/properties/values) and $attr/@type = $mapNativeTypes/String/value
                             [e] then

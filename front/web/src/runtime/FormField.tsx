@@ -21,7 +21,8 @@ export interface FieldSpec {
   placeholder?: string
   description?: string
   readOnly?: boolean
-  options?: { value: string; label: string }[]
+  /** `value` numerico (enum numerico do back) volta como numero em `onChange`: o select so trafega texto. */
+  options?: { value: string | number; label: string }[]
   fk?: FkSource
   /** Peso de proporcao dentro da linha (padrao 1). */
   width?: number
@@ -90,13 +91,17 @@ export function FormField<T extends FieldValues>({ spec, control, disabled }: { 
             break
           case 'enum':
             node = (
-              <Select value={field.value ?? ''} onValueChange={field.onChange} disabled={isDisabled}>
+              <Select
+                value={field.value == null ? '' : String(field.value)}
+                onValueChange={(v) => field.onChange((spec.options ?? []).find((o) => String(o.value) === v)?.value ?? v)}
+                disabled={isDisabled}
+              >
                 <SelectTrigger id={id} aria-invalid={invalid || undefined} aria-describedby={invalid ? errId : undefined} onBlur={field.onBlur} ref={field.ref}>
                   <SelectValue placeholder={spec.placeholder ?? 'Selecione…'} />
                 </SelectTrigger>
                 <SelectContent>
                   {(spec.options ?? []).map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
+                    <SelectItem key={o.value} value={String(o.value)}>
                       {o.label}
                     </SelectItem>
                   ))}
