@@ -1,0 +1,56 @@
+[e] screenManifest
+    [e] fragments
+        [e] optRoute
+            [v] mi:if-else(exists(properties/route/value), concat(", route: '", normalize-space(properties/route/value), "'"), '')
+        [e] optIcon
+            [v] mi:if-else(exists(properties/icon/value), concat(", icon: '", normalize-space(properties/icon/value), "'"), '')
+        [e] optGroup
+            [v] mi:if-else(exists(properties/group/value), concat(", group: '", replace(normalize-space(properties/group/value), "'", "\\'"), "'"), '')
+        [e] optOrder
+            [v] mi:if-else(exists(properties/order/value), concat(', order: ', normalize-space(properties/order/value)), '')
+        [e] optRole
+            [v] mi:if-else(exists(properties/role/value), concat(", role: '", normalize-space(properties/role/value), "'"), '')
+    [e] patterns
+        [e] header
+            [v] // GERADO por frontend/screenManifest. Nao edite: a saida e sobrescrita por inteiro.
+            [v] // Fonte unica da navegacao: so as entradas com route sem $ viram item de menu (dialogs nao tem rota).
+            [v] import type { Papel } from '@/lib/api'
+            [v] {{ '' }}
+            [v] export interface ScreenEntry {
+            [v]   name: string
+            [v]   route?: string
+            [v]   title: string
+            [v]   stereo: string
+            [v]   icon?: string
+            [v]   group?: string
+            [v]   order?: number
+            [v]   role?: Papel
+            [v] }
+            [v] {{ '' }}
+            [v] export const screens: ScreenEntry[] = [
+        [e] footer
+            [v] ]
+        [e] entry
+            [v]   { name: '{{ @name }}', title: '{{ replace(normalize-space(properties/title/pt/value), "'", "\\'") }}', stereo: '{{ substring-after(@mode, 'window.') }}'{{ f#[optRoute] }}{{ f#[optIcon] }}{{ f#[optGroup] }}{{ f#[optOrder] }}{{ f#[optRole] }} },
+    [e] start
+        [e] match
+            [v] /
+        [e] body
+            [e] write-pattern
+                [v] header
+            [e] apply-templates
+                [e] select
+                    [v] /classes/class[starts-with(@mode, 'window.')]
+                [e] mode
+                    [v] screens
+            [e] write-pattern
+                [v] footer
+    [e] templates
+        [e] mode
+            [v] screens
+            [e] template
+                [e] match
+                    [v] class
+                [e] body
+                    [e] write-pattern
+                        [v] entry

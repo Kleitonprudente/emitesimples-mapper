@@ -7,14 +7,14 @@ import { toListRequest, type TableState } from '@/runtime/table-state'
 /* ESCRITO A MAO, so para provar o runtime. Quando os geradores de dominio existirem, isto vira `gen/schemas` + `gen/api`. */
 
 export const TIPOS_PESSOA = [
-  { value: 'FISICA', label: 'Pessoa física' },
-  { value: 'JURIDICA', label: 'Pessoa jurídica' },
+  { value: 'fisica', label: 'Pessoa física' },
+  { value: 'juridica', label: 'Pessoa jurídica' },
 ]
 
 const digits = (s: string) => s.replace(/\D/g, '')
 
 export const pessoaSchema = z.object({
-  tipoPessoa: z.enum(['FISICA', 'JURIDICA'], { error: 'Escolha o tipo de pessoa.' }),
+  tipoPessoa: z.enum(['fisica', 'juridica'], { error: 'Escolha o tipo de pessoa.' }),
   documento: z.string().refine((s) => [11, 14].includes(digits(s).length), 'Informe um CPF (11 dígitos) ou CNPJ (14 dígitos).'),
   nome: z.string().min(1, 'Informe o nome.').max(200, 'Máximo de 200 caracteres.'),
   email: z.email('Informe um e-mail válido.').optional(),

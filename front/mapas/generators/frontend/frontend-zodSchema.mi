@@ -1,0 +1,172 @@
+[e] zodSchema
+    [e] parameters
+        [e] modelName
+            [v] NOT_DEFINED
+        [e] package
+            [v] NOT_DEFINED
+    [e] vars
+        [e] mapNativeTypes
+            [e] select
+                [v] //maps/mapNativeTypes
+        [e] classes
+            [e] select
+                [v] /classes
+    [e] fragments
+        [e] optionalMark
+            [v] mi:if-else(normalize-space(properties/required/value) = 'true', '', '.optional()')
+        [e] maxMark
+            [v] mi:if-else(@typeParameter != '', concat('.max(', @typeParameter, ')'), '')
+    [e] patterns
+        [e] header
+            [v] // GERADO por frontend/zodSchema a partir de {{ @name }}. Nao edite: a saida e sobrescrita por inteiro.
+            [v] import { z } from 'zod'
+        [e] enum-values-string
+            [v] {{ '' }}
+            [v] export const {{ @name }}Values = [{{ string-join(for $v in properties/values/*/value[1] return concat("'", replace(normalize-space($v), "'", "\\'"), "'"), ', ') }}] as const
+            [v] export const {{ @name }}Labels: Record<string, string> = {
+        [e] enum-values-number
+            [v] {{ '' }}
+            [v] export const {{ @name }}Values = [{{ string-join(for $v in properties/values/*/value[1] return normalize-space($v), ', ') }}] as const
+            [v] export const {{ @name }}Labels: Record<string, string> = {
+        [e] enum-label-line
+            [v]     '{{ normalize-space(value[1]) }}': '{{ replace(normalize-space(value[2]), "'", "\\'") }}',
+        [e] enum-labels-end
+            [v] }
+        [e] schema-start
+            [v] {{ '' }}
+            [v] export const {{ mi:first-lower(@name) }}Schema = z.object({
+        [e] schema-end
+            [v] })
+            [v] {{ '' }}
+            [v] export type {{ @name }} = z.infer<typeof {{ mi:first-lower(@name) }}Schema>
+        [e] field-relation
+            [v]     // relacao omitida do schema: {{ @name }} ({{ @type }}, {{ @mode }})
+        [e] field-enum-string
+            [v]     {{ @name }}: z.enum({{ @name }}Values){{ f#[optionalMark] }},
+        [e] field-enum-number
+            [v]     {{ @name }}: z.number().int().refine((v) => ({{ @name }}Values as readonly number[]).includes(v)){{ f#[optionalMark] }},
+        [e] field-string
+            [v]     {{ @name }}: z.string(){{ f#[maxMark] }}{{ f#[optionalMark] }},
+        [e] field-int
+            [v]     {{ @name }}: z.number().int(){{ f#[optionalMark] }},
+        [e] field-number
+            [v]     {{ @name }}: z.number(){{ f#[optionalMark] }},
+        [e] field-boolean
+            [v]     {{ @name }}: z.boolean(){{ f#[optionalMark] }},
+        [e] field-plain-string
+            [v]     {{ @name }}: z.string(){{ f#[optionalMark] }},
+        [e] field-todo
+            [v]     // @TODO tipo nao tratado: {{ @name }} (type={{ @type }} mode={{ @mode }}) em {{ ../../@name }}
+    [e] start
+        [e] match
+            [v] /classes/class[@name = $modelName and @package = $package]
+        [e] body
+            [e] write-pattern
+                [v] header
+            [e] apply-templates
+                [e] select
+                    [v] attributes/attribute[@mode = 'directToField' and exists(properties/values) and (@type = $mapNativeTypes/String/value or @type = $mapNativeTypes/Integer/value or @type = $mapNativeTypes/Long/value)]
+                [e] mode
+                    [v] enums
+            [e] write-pattern
+                [v] schema-start
+            [e] apply-templates
+                [e] select
+                    [v] attributes/attribute
+                [e] mode
+                    [v] fields
+            [e] write-pattern
+                [v] schema-end
+    [e] templates
+        [e] mode
+            [v] enums
+            [e] template
+                [e] match
+                    [v] attribute[@type = $mapNativeTypes/String/value]
+                [e] body
+                    [e] write-pattern
+                        [v] enum-values-string
+                    [e] apply-templates
+                        [e] select
+                            [v] properties/values/*
+                        [e] mode
+                            [v] enumLabel
+                    [e] write-pattern
+                        [v] enum-labels-end
+            [e] template
+                [e] match
+                    [v] attribute[@type = $mapNativeTypes/Integer/value or @type = $mapNativeTypes/Long/value]
+                [e] body
+                    [e] write-pattern
+                        [v] enum-values-number
+                    [e] apply-templates
+                        [e] select
+                            [v] properties/values/*
+                        [e] mode
+                            [v] enumLabel
+                    [e] write-pattern
+                        [v] enum-labels-end
+        [e] mode
+            [v] enumLabel
+            [e] template
+                [e] match
+                    [v] *
+                [e] body
+                    [e] write-pattern
+                        [v] enum-label-line
+        [e] mode
+            [v] fields
+            [e] template
+                [e] match
+                    [v] attribute[@mode != 'directToField']
+                [e] body
+                    [e] write-pattern
+                        [v] field-relation
+            [e] template
+                [e] match
+                    [v] attribute[@mode = 'directToField' and exists(properties/values) and @type = $mapNativeTypes/String/value]
+                [e] body
+                    [e] write-pattern
+                        [v] field-enum-string
+            [e] template
+                [e] match
+                    [v] attribute[@mode = 'directToField' and exists(properties/values) and (@type = $mapNativeTypes/Integer/value or @type = $mapNativeTypes/Long/value)]
+                [e] body
+                    [e] write-pattern
+                        [v] field-enum-number
+            [e] template
+                [e] match
+                    [v] attribute[@mode = 'directToField' and not(exists(properties/values)) and (@type = $mapNativeTypes/String/value or @type = $mapNativeTypes/BigString/value)]
+                [e] body
+                    [e] write-pattern
+                        [v] field-string
+            [e] template
+                [e] match
+                    [v] attribute[@mode = 'directToField' and not(exists(properties/values)) and (@type = $mapNativeTypes/Integer/value or @type = $mapNativeTypes/Long/value)]
+                [e] body
+                    [e] write-pattern
+                        [v] field-int
+            [e] template
+                [e] match
+                    [v] attribute[@mode = 'directToField' and not(exists(properties/values)) and (@type = $mapNativeTypes/Double/value or @type = $mapNativeTypes/BigDecimal/value)]
+                [e] body
+                    [e] write-pattern
+                        [v] field-number
+            [e] template
+                [e] match
+                    [v] attribute[@mode = 'directToField' and not(exists(properties/values)) and @type = $mapNativeTypes/Boolean/value]
+                [e] body
+                    [e] write-pattern
+                        [v] field-boolean
+            [e] template
+                [e] match
+                    [v] attribute[@mode = 'directToField' and not(exists(properties/values)) and (@type = $mapNativeTypes/Date/value or @type = $mapNativeTypes/DateTime/value or @type = $mapNativeTypes/Binary/value)]
+                [e] body
+                    [e] write-pattern
+                        [v] field-plain-string
+            [e] template
+                [e] match
+                    [v] attribute
+                [e] body
+                    [e] write-pattern
+                        [v] field-todo

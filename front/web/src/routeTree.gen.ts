@@ -15,6 +15,8 @@ import { Route as ThemeRouteImport } from './routes/theme'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedExemplosPessoasRouteImport } from './routes/_authenticated/exemplos/pessoas'
+import { Route as AuthenticatedPessoasIndexRouteImport } from './routes/_authenticated/pessoas/index'
+import { Route as AuthenticatedPessoasIdRouteImport } from './routes/_authenticated/pessoas/$id'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
@@ -46,6 +48,17 @@ const AuthenticatedExemplosPessoasRoute =
     path: '/exemplos/pessoas',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedPessoasIndexRoute =
+  AuthenticatedPessoasIndexRouteImport.update({
+    id: '/pessoas/',
+    path: '/pessoas/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedPessoasIdRoute = AuthenticatedPessoasIdRouteImport.update({
+  id: '/pessoas/$id',
+  path: '/pessoas/$id',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -53,6 +66,8 @@ export interface FileRoutesByFullPath {
   '/theme': typeof ThemeRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/exemplos/pessoas': typeof AuthenticatedExemplosPessoasRoute
+  '/pessoas/$id': typeof AuthenticatedPessoasIdRoute
+  '/pessoas/': typeof AuthenticatedPessoasIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -60,6 +75,8 @@ export interface FileRoutesByTo {
   '/perfil': typeof AuthenticatedPerfilRoute
   '/': typeof AuthenticatedIndexRoute
   '/exemplos/pessoas': typeof AuthenticatedExemplosPessoasRoute
+  '/pessoas/$id': typeof AuthenticatedPessoasIdRoute
+  '/pessoas': typeof AuthenticatedPessoasIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -69,12 +86,28 @@ export interface FileRoutesById {
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/exemplos/pessoas': typeof AuthenticatedExemplosPessoasRoute
+  '/_authenticated/pessoas/$id': typeof AuthenticatedPessoasIdRoute
+  '/_authenticated/pessoas/': typeof AuthenticatedPessoasIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/theme' | '/perfil' | '/exemplos/pessoas'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/theme'
+    | '/perfil'
+    | '/exemplos/pessoas'
+    | '/pessoas/$id'
+    | '/pessoas/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/theme' | '/perfil' | '/' | '/exemplos/pessoas'
+  to:
+    | '/login'
+    | '/theme'
+    | '/perfil'
+    | '/'
+    | '/exemplos/pessoas'
+    | '/pessoas/$id'
+    | '/pessoas'
   id:
     | '__root__'
     | '/_authenticated'
@@ -83,6 +116,8 @@ export interface FileRouteTypes {
     | '/_authenticated/perfil'
     | '/_authenticated/'
     | '/_authenticated/exemplos/pessoas'
+    | '/_authenticated/pessoas/$id'
+    | '/_authenticated/pessoas/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -135,6 +170,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedExemplosPessoasRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/pessoas/': {
+      id: '/_authenticated/pessoas/'
+      path: '/pessoas'
+      fullPath: '/pessoas/'
+      preLoaderRoute: typeof AuthenticatedPessoasIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/pessoas/$id': {
+      id: '/_authenticated/pessoas/$id'
+      path: '/pessoas/$id'
+      fullPath: '/pessoas/$id'
+      preLoaderRoute: typeof AuthenticatedPessoasIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
@@ -142,12 +191,16 @@ interface AuthenticatedRouteChildren {
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedExemplosPessoasRoute: typeof AuthenticatedExemplosPessoasRoute
+  AuthenticatedPessoasIdRoute: typeof AuthenticatedPessoasIdRoute
+  AuthenticatedPessoasIndexRoute: typeof AuthenticatedPessoasIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedExemplosPessoasRoute: AuthenticatedExemplosPessoasRoute,
+  AuthenticatedPessoasIdRoute: AuthenticatedPessoasIdRoute,
+  AuthenticatedPessoasIndexRoute: AuthenticatedPessoasIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

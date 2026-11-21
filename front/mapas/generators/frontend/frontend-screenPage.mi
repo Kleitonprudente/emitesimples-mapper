@@ -1,0 +1,409 @@
+[e] screenPage
+    [e] parameters
+        [e] modelName
+            [v] NOT_DEFINED
+        [e] package
+            [v] NOT_DEFINED
+    [e] vars
+        [e] mapNativeTypes
+            [e] select
+                [v] //maps/mapNativeTypes
+        [e] classes
+            [e] select
+                [v] /classes
+    [e] patterns
+        [e] header
+            [v] // GERADO por frontend/screenPage a partir de {{ @name }}. Nao edite: a saida e sobrescrita por inteiro.
+        [e] import-react
+            [v] import { {{ $reactImports }} } from 'react'
+        [e] import-navigate
+            [v] import { useNavigate } from '@tanstack/react-router'
+        [e] import-dialog
+            [v] import { Button } from '@/components/ui/button'
+            [v] import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+        [e] import-auth
+            [v] import { hasRole, useSession } from '@/lib/auth'
+        [e] import-runtime
+            [v] import { DataTable, type Facet } from '@/runtime/DataTable'
+        [e] import-feedback
+            [v] import { mutationFeedback } from '@/runtime/feedback'
+            [v] import { resolveIcon } from '@/runtime/icons'
+        [e] import-tablestate
+            [v] import { useTableState } from '@/runtime/table-state'
+        [e] import-api
+            [v] import { {{ $apiImports }} } from '@/gen/api/{{ $entity }}'
+        [e] import-schema
+            [v] import { {{ $facetImports }} } from '@/gen/schemas/{{ $entity }}'
+        [e] import-columns
+            [v] import { {{ mi:first-lower(@name) }}Columns } from './columns'
+        [e] import-form
+            [v] import { {{ $createName }}Form } from '{{ $createPath }}'
+        [e] icon-const
+            [v] {{ '' }}
+            [v] const {{ mi:first-upper($createId) }}Icon = resolveIcon('{{ $createIcon }}')
+        [e] facets-start
+            [v] {{ '' }}
+            [v] const FACETS: Facet[] = [
+        [e] facets-end
+            [v] ]
+        [e] facet-line
+            [v]   { id: '{{ $fname }}', title: '{{ $ftitle }}', options: {{ $fname }}Values.map((value) => ({ value, label: {{ $fname }}Labels[value] })) },
+        [e] facet-todo
+            [v]   // @TODO {{ $bean }}{{ normalize-space(value) }}: filtro nao tratado (so faceted sobre enum Texto)
+        [e] columns-const
+            [v] {{ '' }}
+            [v] const columns = {{ mi:first-lower(@name) }}Columns()
+        [e] component-start
+            [v] {{ '' }}
+            [v] export function {{ @name }}Screen() {
+        [e] use-session
+            [v]   const session = useSession()
+        [e] use-navigate
+            [v]   const navigate = useNavigate()
+        [e] columns-memo-start
+            [v]   const columns = useMemo(
+            [v]     () =>
+            [v]       {{ mi:first-lower(@name) }}Columns({
+        [e] columns-memo-end
+            [v]       }),
+            [v]     [session, navigate],
+            [v]   )
+        [e] wire-edit
+            [v]         {{ normalize-space(value) }}: hasRole(session, '{{ $role }}') ? (row) => void navigate({ to: '{{ $route }}', params: { {{ $param }}: row.id } }) : undefined,
+        [e] wire-todo
+            [v]         // @TODO {{ normalize-space(value) }}: acao de linha sem destino window.editor com $id em opens
+        [e] use-state-table
+            [v]   const [state, update] = useTableState({ sortBy: '{{ $sortBy }}' })
+            [v]   const result = use{{ $bean }}s(state, '{{ $searchField }}')
+        [e] create-hooks
+            [v]   const [dialogOpen, setDialogOpen] = useState(false)
+            [v]   const criar = useCriar{{ $bean }}()
+            [v]   const fb = mutationFeedback({ success: 'Registro salvo.', onDone: () => setDialogOpen(false) })
+            [v]   const abrir = () => {
+            [v]     criar.reset()
+            [v]     setDialogOpen(true)
+            [v]   }
+            [v]   const canCriar = hasRole(session, '{{ $createRole }}')
+            [v]   const novo = canCriar ? (
+            [v]     <Button onClick={abrir}>
+            [v]       <{{ mi:first-upper($createId) }}Icon /> {{ $createLabel }}
+            [v]     </Button>
+            [v]   ) : null
+        [e] create-none
+            [v]   const novo = null
+        [e] empty-const
+            [v]   const empty = { title: '{{ $emptyTitle }}', action: novo || undefined }
+        [e] return-start
+            [v]   return (
+            [v]     <div className="flex flex-col gap-4">
+            [v]       <h1 className="text-2xl font-semibold">{{ $title }}</h1>
+            [v]       <DataTable
+            [v]         columns={columns}
+            [v]         result={result}
+            [v]         state={state}
+            [v]         onStateChange={update}
+            [v]         getRowId={(r) => r.id}
+            [v]         searchPlaceholder="{{ $placeholder }}"
+            [v]         facets={FACETS}
+            [v]         toolbarActions={novo}
+            [v]         empty={empty}
+            [v]       />
+        [e] return-dialog
+            [v]       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            [v]         <DialogContent>
+            [v]           <DialogHeader>
+            [v]             <DialogTitle>{{ $createTitle }}</DialogTitle>
+            [v]           </DialogHeader>
+            [v]           <{{ $createName }}Form
+            [v]             isSubmitting={criar.isPending}
+            [v]             serverError={criar.error}
+            [v]             onCancel={() => setDialogOpen(false)}
+            [v]             onSubmit={(v) => criar.mutateAsync(v).then(fb.onSuccess, () => {})}
+            [v]           />
+            [v]         </DialogContent>
+            [v]       </Dialog>
+        [e] return-end
+            [v]     </div>
+            [v]   )
+            [v] }
+    [e] start
+        [e] match
+            [v] /classes/class[@name = $modelName and @package = $package]
+        [e] body
+            [e] vars
+                [e] var
+                    [v] bean
+                    [e] expr
+                        [v] normalize-space(attributes/attribute[@name = 'object']/@type)
+                [e] var
+                    [v] entity
+                    [e] expr
+                        [v] mi:first-lower(normalize-space(attributes/attribute[@name = 'object']/@type))
+                [e] var
+                    [v] createAction
+                    [e] expr
+                        [v] (actions/action[normalize-space(properties/type/value) = 'primary' and exists(properties/opens/value)])[1]
+                [e] var
+                    [v] createName
+                    [e] expr
+                        [v] normalize-space($createAction/properties/opens/value)
+                [e] var
+                    [v] createClass
+                    [e] expr
+                        [v] ($classes/class[@name = $createName and @mode = 'window.dialog'])[1]
+                [e] var
+                    [v] hasCreate
+                    [e] expr
+                        [v] exists($createClass)
+                [e] var
+                    [v] createId
+                    [e] expr
+                        [v] normalize-space($createAction/value)
+                [e] var
+                    [v] createIcon
+                    [e] expr
+                        [v] normalize-space($createAction/properties/icon/value)
+                [e] var
+                    [v] createLabel
+                    [e] expr
+                        [v] normalize-space($createAction/properties/label/pt/value)
+                [e] var
+                    [v] createTitle
+                    [e] expr
+                        [v] replace(normalize-space($createClass/properties/title/pt/value), "'", "\\'")
+                [e] var
+                    [v] createPath
+                    [e] expr
+                        [v] concat('@/features/', tokenize($createClass/@package, '[.]')[last() - 1], '/', tokenize($createClass/@package, '[.]')[last()], '/', $createName)
+                [e] var
+                    [v] createRole
+                    [e] expr
+                        [v] if (exists($createClass/properties/role/value)) then normalize-space($createClass/properties/role/value) else if (exists(properties/role/value)) then normalize-space(properties/role/value) else 'consulta'
+                [e] var
+                    [v] rowActions
+                    [e] expr
+                        [v] actions/action[normalize-space(properties/type/value) = 'row']
+                [e] var
+                    [v] hasRows
+                    [e] expr
+                        [v] exists(actions/action[normalize-space(properties/type/value) = 'row'])
+                [e] var
+                    [v] usesRole
+                    [e] expr
+                        [v] $hasCreate or $hasRows
+                [e] var
+                    [v] reactImports
+                    [e] expr
+                        [v] string-join((if ($hasRows) then 'useMemo' else (), if ($hasCreate) then 'useState' else ()), ', ')
+                [e] var
+                    [v] apiImports
+                    [e] expr
+                        [v] string-join((concat('use', normalize-space(attributes/attribute[@name = 'object']/@type), 's'), if ($hasCreate) then concat('useCriar', normalize-space(attributes/attribute[@name = 'object']/@type)) else ()), ', ')
+                [e] var
+                    [v] facetImports
+                    [e] expr
+                        [v] string-join(distinct-values(for $f in filters/filter[normalize-space(properties/type/value) = 'faceted'] return (for $a in $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = substring(normalize-space($f/value), 2) and @mode = 'directToField' and exists(properties/values) and @type = $mapNativeTypes/String/value] return concat($a/@name, 'Values, ', $a/@name, 'Labels'))), ', ')
+                [e] var
+                    [v] searchField
+                    [e] expr
+                        [v] substring(normalize-space((search/field)[1]/value), 2)
+                [e] var
+                    [v] firstColumn
+                    [e] expr
+                        [v] substring(normalize-space((columns/field)[1]/value), 2)
+                [e] var
+                    [v] sortBy
+                    [e] expr
+                        [v] if ($searchField != '') then $searchField else $firstColumn
+                [e] var
+                    [v] title
+                    [e] expr
+                        [v] replace(normalize-space(properties/title/pt/value), "'", "\\'")
+                [e] var
+                    [v] placeholder
+                    [e] expr
+                        [v] mi:if-else(exists(search/properties/placeholder/pt/value), normalize-space(search/properties/placeholder/pt/value), 'Buscar…')
+                [e] var
+                    [v] emptyTitle
+                    [e] expr
+                        [v] replace(mi:if-else(exists(emptyState/properties/message/pt/value), normalize-space(emptyState/properties/message/pt/value), 'Nenhum registro encontrado.'), "'", "\\'")
+            [e] write-pattern
+                [v] header
+            [e] if
+                [v] $reactImports != ''
+                [e] then
+                    [e] write-pattern
+                        [v] import-react
+            [e] if
+                [v] $hasRows
+                [e] then
+                    [e] write-pattern
+                        [v] import-navigate
+            [e] if
+                [v] $hasCreate
+                [e] then
+                    [e] write-pattern
+                        [v] import-dialog
+            [e] if
+                [v] $usesRole
+                [e] then
+                    [e] write-pattern
+                        [v] import-auth
+            [e] write-pattern
+                [v] import-runtime
+            [e] if
+                [v] $hasCreate
+                [e] then
+                    [e] write-pattern
+                        [v] import-feedback
+            [e] write-pattern
+                [v] import-tablestate
+            [e] write-pattern
+                [v] import-api
+            [e] if
+                [v] $facetImports != ''
+                [e] then
+                    [e] write-pattern
+                        [v] import-schema
+            [e] write-pattern
+                [v] import-columns
+            [e] if
+                [v] $hasCreate
+                [e] then
+                    [e] write-pattern
+                        [v] import-form
+                    [e] write-pattern
+                        [v] icon-const
+            [e] write-pattern
+                [v] facets-start
+            [e] apply-templates
+                [e] select
+                    [v] filters/filter
+                [e] parameters
+                    [e] bean
+                        [e] expr
+                            [v] $bean
+                [e] mode
+                    [v] facet
+            [e] write-pattern
+                [v] facets-end
+            [e] if
+                [v] not($hasRows)
+                [e] then
+                    [e] write-pattern
+                        [v] columns-const
+            [e] write-pattern
+                [v] component-start
+            [e] if
+                [v] $usesRole
+                [e] then
+                    [e] write-pattern
+                        [v] use-session
+            [e] if
+                [v] $hasRows
+                [e] then
+                    [e] write-pattern
+                        [v] use-navigate
+                    [e] write-pattern
+                        [v] columns-memo-start
+                    [e] apply-templates
+                        [e] select
+                            [v] $rowActions
+                        [e] parameters
+                            [e] listRole
+                                [e] expr
+                                    [v] mi:if-else(exists(properties/role/value), normalize-space(properties/role/value), 'consulta')
+                        [e] mode
+                            [v] rowWire
+                    [e] write-pattern
+                        [v] columns-memo-end
+            [e] write-pattern
+                [v] use-state-table
+            [e] if
+                [v] $hasCreate
+                [e] then
+                    [e] write-pattern
+                        [v] create-hooks
+                [e] else
+                    [e] write-pattern
+                        [v] create-none
+            [e] write-pattern
+                [v] empty-const
+            [e] write-pattern
+                [v] return-start
+            [e] if
+                [v] $hasCreate
+                [e] then
+                    [e] write-pattern
+                        [v] return-dialog
+            [e] write-pattern
+                [v] return-end
+    [e] templates
+        [e] mode
+            [v] facet
+            [e] template
+                [e] match
+                    [v] filter
+                [e] parameters
+                    [e] bean
+                        [v] NOT_DEFINED
+                [e] body
+                    [e] vars
+                        [e] var
+                            [v] fname
+                            [e] expr
+                                [v] substring(normalize-space(value), 2)
+                        [e] var
+                            [v] attr
+                            [e] expr
+                                [v] $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = $fname and @mode = 'directToField' and exists(properties/values) and @type = $mapNativeTypes/String/value]
+                        [e] var
+                            [v] ftitle
+                            [e] expr
+                                [v] replace(normalize-space(if (exists(properties/label/pt/value)) then properties/label/pt/value else $attr/properties/title/pt/value), "'", "\\'")
+                    [e] if
+                        [v] normalize-space(properties/type/value) = 'faceted' and exists($attr)
+                        [e] then
+                            [e] write-pattern
+                                [v] facet-line
+                        [e] else
+                            [e] write-pattern
+                                [v] facet-todo
+        [e] mode
+            [v] rowWire
+            [e] template
+                [e] match
+                    [v] action
+                [e] parameters
+                    [e] listRole
+                        [v] consulta
+                [e] body
+                    [e] vars
+                        [e] var
+                            [v] tgtName
+                            [e] expr
+                                [v] normalize-space(properties/opens/value)
+                        [e] var
+                            [v] tgt
+                            [e] expr
+                                [v] ($classes/class[@name = $tgtName])[1]
+                        [e] var
+                            [v] route
+                            [e] expr
+                                [v] normalize-space($tgt/properties/route/value)
+                        [e] var
+                            [v] param
+                            [e] expr
+                                [v] substring-after($route, '$')
+                        [e] var
+                            [v] role
+                            [e] expr
+                                [v] mi:if-else(exists($tgt/properties/role/value), normalize-space($tgt/properties/role/value), $listRole)
+                    [e] if
+                        [v] exists($tgt) and $tgt/@mode = 'window.editor' and contains($route, '$')
+                        [e] then
+                            [e] write-pattern
+                                [v] wire-edit
+                        [e] else
+                            [e] write-pattern
+                                [v] wire-todo

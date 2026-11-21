@@ -53,14 +53,14 @@ describe('mock registry', () => {
     expect(count.body.count).toBe(37)
     const page = await call('GET', '/Pessoa/0/9', undefined, token, { sortBy: 'nome', sortDirection: 'desc' })
     expect(page.body).toHaveLength(10)
-    const filtered = await call('GET', '/Pessoa/count', undefined, token, { tipoPessoa: 'JURIDICA' })
+    const filtered = await call('GET', '/Pessoa/count', undefined, token, { tipoPessoa: 'juridica' })
     expect(filtered.body.count).toBeGreaterThan(0)
     expect(filtered.body.count).toBeLessThan(37)
   })
 
   it('create/update/delete por id e erro de documento duplicado', async () => {
     const token = await loginToken()
-    const nova = { tipoPessoa: 'FISICA', documento: '52998224725', nome: 'Teste' }
+    const nova = { tipoPessoa: 'fisica', documento: '52998224725', nome: 'Teste' }
     const c = await call('POST', '/Pessoa', nova, token)
     expect(c.status).toBe(200)
     expect((await call('POST', '/Pessoa', nova, token)).body.codigo).toBe('documento_duplicado')

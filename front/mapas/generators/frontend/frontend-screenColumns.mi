@@ -1,0 +1,314 @@
+[e] screenColumns
+    [e] parameters
+        [e] modelName
+            [v] NOT_DEFINED
+        [e] package
+            [v] NOT_DEFINED
+    [e] vars
+        [e] mapNativeTypes
+            [e] select
+                [v] //maps/mapNativeTypes
+        [e] classes
+            [e] select
+                [v] /classes
+    [e] fragments
+        [e] sortOpt
+            [v] mi:if-else(normalize-space(properties/sortable/value) = 'false', ', enableSorting: false', '')
+    [e] patterns
+        [e] header
+            [v] // GERADO por frontend/screenColumns a partir de {{ @name }}. Nao edite: a saida e sobrescrita por inteiro.
+            [v] import type { ColumnDef } from '@tanstack/react-table'
+        [e] import-badge
+            [v] import { Badge } from '@/components/ui/badge'
+        [e] import-button
+            [v] import { Button } from '@/components/ui/button'
+            [v] import { resolveIcon } from '@/runtime/icons'
+        [e] import-format
+            [v] import { {{ $fmtImports }} } from '@/runtime/format'
+        [e] import-labels
+            [v] import { {{ $labelImports }} } from '@/gen/schemas/{{ $entity }}'
+        [e] import-row
+            [v] import type { {{ $bean }}Row } from '@/gen/api/{{ $entity }}'
+        [e] icon-const
+            [v] const {{ mi:first-upper(normalize-space(value)) }}Icon = resolveIcon('{{ normalize-space(properties/icon/value) }}')
+        [e] actions-type-start
+            [v] {{ '' }}
+            [v] /** Acoes de linha do mapa: a tela passa o callback quando o usuario pode executa-la; sem callback o botao some. */
+            [v] export type {{ @name }}ColumnActions = {
+        [e] actions-type-end
+            [v] }
+        [e] actions-type-line
+            [v]   {{ normalize-space(value) }}?: (row: {{ $bean }}Row) => void
+        [e] actions-type-none
+            [v] {{ '' }}
+            [v] export type {{ @name }}ColumnActions = Record<string, never>
+        [e] function-start-actions
+            [v] {{ '' }}
+            [v] export function {{ mi:first-lower(@name) }}Columns(actions: {{ @name }}ColumnActions = {}): ColumnDef<{{ $bean }}Row>[] {
+            [v]   return [
+        [e] function-start-plain
+            [v] {{ '' }}
+            [v] export function {{ mi:first-lower(@name) }}Columns(): ColumnDef<{{ $bean }}Row>[] {
+            [v]   return [
+        [e] function-end
+            [v]   ]
+            [v] }
+        [e] col-todo
+            [v]     // @TODO {{ normalize-space(value) }}: coluna sem atributo escalar em {{ $bean }} (relacao como .cidade.nome e futuro no dialeto)
+        [e] col-badge-enum
+            [v]     { id: '{{ $fname }}', accessorKey: '{{ $fname }}', header: '{{ $header }}'{{ f#[sortOpt] }}, cell: (c) => <Badge tone={badgeTone(String(c.getValue() ?? ''))}>{ {{ $fname }}Labels[String(c.getValue())] ?? '' }</Badge> },
+        [e] col-badge-plain
+            [v]     { id: '{{ $fname }}', accessorKey: '{{ $fname }}', header: '{{ $header }}'{{ f#[sortOpt] }}, cell: (c) => <Badge tone={badgeTone(String(c.getValue() ?? ''))}>{String(c.getValue() ?? '')}</Badge> },
+        [e] col-mask
+            [v]     { id: '{{ $fname }}', accessorKey: '{{ $fname }}', header: '{{ $header }}'{{ f#[sortOpt] }}, cell: (c) => applyMask('{{ normalize-space(properties/mask/value) }}', c.getValue()) },
+        [e] col-enum
+            [v]     { id: '{{ $fname }}', accessorKey: '{{ $fname }}', header: '{{ $header }}'{{ f#[sortOpt] }}, cell: (c) => {{ $fname }}Labels[String(c.getValue())] ?? '' },
+        [e] col-date
+            [v]     { id: '{{ $fname }}', accessorKey: '{{ $fname }}', header: '{{ $header }}'{{ f#[sortOpt] }}, cell: (c) => formatDate(c.getValue() as string) },
+        [e] col-datetime
+            [v]     { id: '{{ $fname }}', accessorKey: '{{ $fname }}', header: '{{ $header }}'{{ f#[sortOpt] }}, cell: (c) => formatDateTime(c.getValue() as string) },
+        [e] col-boolean
+            [v]     { id: '{{ $fname }}', accessorKey: '{{ $fname }}', header: '{{ $header }}'{{ f#[sortOpt] }}, cell: (c) => (c.getValue() ? 'Sim' : 'Não') },
+        [e] col-plain
+            [v]     { id: '{{ $fname }}', accessorKey: '{{ $fname }}', header: '{{ $header }}'{{ f#[sortOpt] }} },
+        [e] actions-col-start
+            [v]     {
+            [v]       id: 'actions',
+            [v]       header: () => <span className="sr-only">Ações</span>,
+            [v]       enableSorting: false,
+            [v]       cell: ({ row }) => (
+            [v]         <div className="flex justify-end gap-1">
+        [e] actions-col-end
+            [v]         </div>
+            [v]       ),
+            [v]     },
+        [e] action-button
+            [v]           {actions.{{ normalize-space(value) }} && (
+            [v]             <Button variant="ghost" size="icon" aria-label="{{ normalize-space(properties/label/pt/value) }}" title="{{ normalize-space(properties/label/pt/value) }}" onClick={() => actions.{{ normalize-space(value) }}?.(row.original)}>
+            [v]               <{{ mi:first-upper(normalize-space(value)) }}Icon />
+            [v]             </Button>
+            [v]           )}
+        [e] column-todo-unhandled
+            [v]     // @TODO columns/{{ name() }}: elemento nao tratado
+    [e] start
+        [e] match
+            [v] /classes/class[@name = $modelName and @package = $package]
+        [e] body
+            [e] vars
+                [e] var
+                    [v] bean
+                    [e] expr
+                        [v] normalize-space(attributes/attribute[@name = 'object']/@type)
+                [e] var
+                    [v] entity
+                    [e] expr
+                        [v] mi:first-lower(normalize-space(attributes/attribute[@name = 'object']/@type))
+                [e] var
+                    [v] rowActions
+                    [e] expr
+                        [v] actions/action[normalize-space(properties/type/value) = 'row']
+                [e] var
+                    [v] labelImports
+                    [e] expr
+                        [v] string-join(distinct-values(for $f in columns/field[not(exists(properties/mask)) or normalize-space(properties/display/value) = 'badge'] return (for $a in $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = substring(normalize-space($f/value), 2) and @mode = 'directToField' and exists(properties/values)] return concat($a/@name, 'Labels'))), ', ')
+                [e] var
+                    [v] badgeUsed
+                    [e] expr
+                        [v] exists(for $f in columns/field[normalize-space(properties/display/value) = 'badge'] return $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = substring(normalize-space($f/value), 2) and @mode = 'directToField'])
+                [e] var
+                    [v] maskUsed
+                    [e] expr
+                        [v] exists(for $f in columns/field[exists(properties/mask) and not(normalize-space(properties/display/value) = 'badge')] return $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = substring(normalize-space($f/value), 2) and @mode = 'directToField'])
+                [e] var
+                    [v] dateUsed
+                    [e] expr
+                        [v] exists(for $f in columns/field[not(exists(properties/mask)) and not(normalize-space(properties/display/value) = 'badge')] return $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = substring(normalize-space($f/value), 2) and @mode = 'directToField' and not(exists(properties/values)) and @type = $mapNativeTypes/Date/value])
+                [e] var
+                    [v] dateTimeUsed
+                    [e] expr
+                        [v] exists(for $f in columns/field[not(exists(properties/mask)) and not(normalize-space(properties/display/value) = 'badge')] return $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = substring(normalize-space($f/value), 2) and @mode = 'directToField' and not(exists(properties/values)) and @type = $mapNativeTypes/DateTime/value])
+                [e] var
+                    [v] fmtImports
+                    [e] expr
+                        [v] string-join((if ($maskUsed) then 'applyMask' else (), if ($badgeUsed) then 'badgeTone' else (), if ($dateUsed) then 'formatDate' else (), if ($dateTimeUsed) then 'formatDateTime' else ()), ', ')
+            [e] write-pattern
+                [v] header
+            [e] if
+                [v] $badgeUsed
+                [e] then
+                    [e] write-pattern
+                        [v] import-badge
+            [e] if
+                [v] exists($rowActions)
+                [e] then
+                    [e] write-pattern
+                        [v] import-button
+            [e] if
+                [v] $fmtImports != ''
+                [e] then
+                    [e] write-pattern
+                        [v] import-format
+            [e] if
+                [v] $labelImports != ''
+                [e] then
+                    [e] write-pattern
+                        [v] import-labels
+            [e] write-pattern
+                [v] import-row
+            [e] if
+                [v] exists($rowActions)
+                [e] then
+                    [e] apply-templates
+                        [e] select
+                            [v] $rowActions
+                        [e] mode
+                            [v] actionIcon
+                    [e] write-pattern
+                        [v] actions-type-start
+                    [e] apply-templates
+                        [e] select
+                            [v] $rowActions
+                        [e] parameters
+                            [e] bean
+                                [e] expr
+                                    [v] $bean
+                        [e] mode
+                            [v] actionType
+                    [e] write-pattern
+                        [v] actions-type-end
+                    [e] write-pattern
+                        [v] function-start-actions
+                [e] else
+                    [e] write-pattern
+                        [v] actions-type-none
+                    [e] write-pattern
+                        [v] function-start-plain
+            [e] apply-templates
+                [e] select
+                    [v] columns/*
+                [e] parameters
+                    [e] bean
+                        [e] expr
+                            [v] $bean
+                [e] mode
+                    [v] column
+            [e] if
+                [v] exists($rowActions)
+                [e] then
+                    [e] write-pattern
+                        [v] actions-col-start
+                    [e] apply-templates
+                        [e] select
+                            [v] $rowActions
+                        [e] mode
+                            [v] actionButton
+                    [e] write-pattern
+                        [v] actions-col-end
+            [e] write-pattern
+                [v] function-end
+    [e] templates
+        [e] mode
+            [v] actionIcon
+            [e] template
+                [e] match
+                    [v] action
+                [e] body
+                    [e] write-pattern
+                        [v] icon-const
+        [e] mode
+            [v] actionType
+            [e] template
+                [e] match
+                    [v] action
+                [e] parameters
+                    [e] bean
+                        [v] NOT_DEFINED
+                [e] body
+                    [e] write-pattern
+                        [v] actions-type-line
+        [e] mode
+            [v] actionButton
+            [e] template
+                [e] match
+                    [v] action
+                [e] body
+                    [e] write-pattern
+                        [v] action-button
+        [e] mode
+            [v] column
+            [e] template
+                [e] match
+                    [v] field
+                [e] parameters
+                    [e] bean
+                        [v] NOT_DEFINED
+                [e] body
+                    [e] vars
+                        [e] var
+                            [v] fname
+                            [e] expr
+                                [v] substring(normalize-space(value), 2)
+                        [e] var
+                            [v] attr
+                            [e] expr
+                                [v] $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = $fname and @mode = 'directToField']
+                        [e] var
+                            [v] header
+                            [e] expr
+                                [v] replace(normalize-space(if (exists(properties/label/pt/value)) then properties/label/pt/value else $attr/properties/title/pt/value), "'", "\\'")
+                        [e] var
+                            [v] entity
+                            [e] expr
+                                [v] mi:first-lower($bean)
+                    [e] if
+                        [v] not(exists($attr))
+                        [e] then
+                            [e] write-pattern
+                                [v] col-todo
+                        [e] else-if
+                            [v] normalize-space(properties/display/value) = 'badge' and exists($attr/properties/values)
+                            [e] then
+                                [e] write-pattern
+                                    [v] col-badge-enum
+                        [e] else-if
+                            [v] normalize-space(properties/display/value) = 'badge'
+                            [e] then
+                                [e] write-pattern
+                                    [v] col-badge-plain
+                        [e] else-if
+                            [v] exists(properties/mask)
+                            [e] then
+                                [e] write-pattern
+                                    [v] col-mask
+                        [e] else-if
+                            [v] exists($attr/properties/values)
+                            [e] then
+                                [e] write-pattern
+                                    [v] col-enum
+                        [e] else-if
+                            [v] $attr/@type = $mapNativeTypes/Date/value
+                            [e] then
+                                [e] write-pattern
+                                    [v] col-date
+                        [e] else-if
+                            [v] $attr/@type = $mapNativeTypes/DateTime/value
+                            [e] then
+                                [e] write-pattern
+                                    [v] col-datetime
+                        [e] else-if
+                            [v] $attr/@type = $mapNativeTypes/Boolean/value
+                            [e] then
+                                [e] write-pattern
+                                    [v] col-boolean
+                        [e] else
+                            [e] write-pattern
+                                [v] col-plain
+            [e] template
+                [e] match
+                    [v] *
+                [e] parameters
+                    [e] bean
+                        [v] NOT_DEFINED
+                [e] body
+                    [e] write-pattern
+                        [v] column-todo-unhandled

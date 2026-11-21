@@ -1,0 +1,315 @@
+[e] screenForm
+    [e] parameters
+        [e] modelName
+            [v] NOT_DEFINED
+        [e] package
+            [v] NOT_DEFINED
+    [e] vars
+        [e] mapNativeTypes
+            [e] select
+                [v] //maps/mapNativeTypes
+        [e] classes
+            [e] select
+                [v] /classes
+    [e] fragments
+        [e] maxLen
+            [v] mi:if-else($attr/@typeParameter != '', concat(', maxLength: ', $attr/@typeParameter), '')
+        [e] commonOpts
+            [v] concat(mi:if-else(normalize-space($attr/properties/required/value) = 'true', ', required: true', ''), mi:if-else(exists(properties/mask), concat(", mask: '", normalize-space(properties/mask/value), "'"), ''), mi:if-else(exists(properties/width), concat(', width: ', normalize-space(properties/width/value)), ''))
+    [e] patterns
+        [e] header
+            [v] // GERADO por frontend/screenForm a partir de {{ @name }}. Nao edite: a saida e sobrescrita por inteiro.
+            [v] import { z } from 'zod'
+            [v] import { AutoForm, type FieldLayout } from '@/runtime/AutoForm'
+        [e] import-schema
+            [v] import { {{ concat($entity, 'Schema', mi:if-else($enumImports != '', concat(', ', $enumImports), '')) }} } from '@/gen/schemas/{{ $entity }}'
+        [e] schema-const
+            [v] {{ '' }}
+            [v] const SUBMIT_LABEL = '{{ replace(mi:if-else(exists(actions/action[normalize-space(properties/type/value) = 'primary']), normalize-space((actions/action[normalize-space(properties/type/value) = 'primary']/properties/label/pt/value)[1]), 'Salvar'), "'", "\\'") }}'
+            [v] {{ '' }}
+            [v] const schema = {{ $entity }}Schema.pick({ {{ $picks }} })
+            [v] export type {{ @name }}Values = z.infer<typeof schema>
+        [e] defaults-start
+            [v] {{ '' }}
+            [v] const DEFAULTS: Partial<{{ @name }}Values> = {
+        [e] defaults-end
+            [v] }
+        [e] default-line
+            [v]   {{ $fname }}: {{ mi:if-else($attr/@type = $mapNativeTypes/String/value or $attr/@type = $mapNativeTypes/BigString/value, concat("'", normalize-space($attr/properties/defaultValue/value), "'"), normalize-space($attr/properties/defaultValue/value)) }},
+        [e] fields-start
+            [v] {{ '' }}
+            [v] const FIELDS: FieldLayout = [
+        [e] fields-end
+            [v] ]
+        [e] row-open
+            [v] {{ '  [' }}
+        [e] row-close
+            [v] {{ '  ],' }}
+        [e] spec-text
+            [v]     { name: '{{ $fname }}', label: '{{ $lbl }}'{{ f#[maxLen] }}{{ f#[commonOpts] }} },
+        [e] spec-textarea
+            [v]     { name: '{{ $fname }}', label: '{{ $lbl }}', kind: 'textarea'{{ f#[maxLen] }}{{ f#[commonOpts] }} },
+        [e] spec-number
+            [v]     { name: '{{ $fname }}', label: '{{ $lbl }}', kind: 'number'{{ f#[commonOpts] }} },
+        [e] spec-boolean
+            [v]     { name: '{{ $fname }}', label: '{{ $lbl }}', kind: 'boolean'{{ f#[commonOpts] }} },
+        [e] spec-date
+            [v]     { name: '{{ $fname }}', label: '{{ $lbl }}', kind: 'date'{{ f#[commonOpts] }} },
+        [e] spec-enum
+            [v]     { name: '{{ $fname }}', label: '{{ $lbl }}', options: {{ $fname }}Values.map((value) => ({ value, label: {{ $fname }}Labels[value] })){{ f#[commonOpts] }} },
+        [e] todo-relation
+            [v]     // @TODO {{ $bean }}{{ normalize-space(value) }}: relacao ({{ $rel/@type }}) sem construto de FK/combobox no dialeto; campo omitido
+        [e] todo-missing
+            [v]     // @TODO {{ $bean }}{{ normalize-space(value) }}: atributo inexistente no dominio; campo omitido
+        [e] todo-numeric-enum
+            [v]     // @TODO {{ $bean }}{{ normalize-space(value) }}: enum numerico ainda sem select tipado no runtime (FieldSpec.options so aceita string); campo omitido
+        [e] todo-type
+            [v]     // @TODO {{ $bean }}{{ normalize-space(value) }}: tipo nao tratado (type={{ $attr/@type }}); campo omitido
+        [e] layout-todo
+            [v]   // @TODO form/rows/{{ name() }}: elemento nao tratado
+        [e] component
+            [v] {{ '' }}
+            [v] export interface {{ @name }}FormProps {
+            [v]   /** Modo edicao: valores existentes (sem nulos). */
+            [v]   values?: {{ @name }}Values
+            [v]   onSubmit: (values: {{ @name }}Values) => void | Promise<void>
+            [v]   isSubmitting?: boolean
+            [v]   onCancel?: () => void
+            [v]   serverError?: unknown
+            [v]   submitLabel?: string
+            [v] }
+            [v] {{ '' }}
+            [v] /** Formulario reutilizavel (dialog, pagina ou step): so compoe o AutoForm do runtime. */
+            [v] export function {{ @name }}Form({ values, onSubmit, isSubmitting, onCancel, serverError, submitLabel }: {{ @name }}FormProps) {
+            [v]   return (
+            [v]     <AutoForm
+            [v]       schema={schema}
+            [v]       fields={FIELDS}
+            [v]       defaults={DEFAULTS}
+            [v]       values={values}
+            [v]       isSubmitting={isSubmitting}
+            [v]       serverError={serverError}
+            [v]       onCancel={onCancel}
+            [v]       onSubmit={onSubmit}
+            [v]       submitLabel={submitLabel ?? SUBMIT_LABEL}
+            [v]     />
+            [v]   )
+            [v] }
+    [e] start
+        [e] match
+            [v] /classes/class[@name = $modelName and @package = $package]
+        [e] body
+            [e] vars
+                [e] var
+                    [v] bean
+                    [e] expr
+                        [v] normalize-space(attributes/attribute[@name = 'object']/@type)
+                [e] var
+                    [v] entity
+                    [e] expr
+                        [v] mi:first-lower(normalize-space(attributes/attribute[@name = 'object']/@type))
+                [e] var
+                    [v] enumImports
+                    [e] expr
+                        [v] string-join(distinct-values(for $f in form/rows//field return (for $a in $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = substring(normalize-space($f/value), 2) and @mode = 'directToField' and exists(properties/values) and @type = $mapNativeTypes/String/value] return concat($a/@name, 'Values, ', $a/@name, 'Labels'))), ', ')
+                [e] var
+                    [v] picks
+                    [e] expr
+                        [v] string-join(distinct-values(for $f in form/rows//field return (for $a in $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = substring(normalize-space($f/value), 2) and @mode = 'directToField'] return concat($a/@name, ': true'))), ', ')
+            [e] write-pattern
+                [v] header
+            [e] write-pattern
+                [v] import-schema
+            [e] write-pattern
+                [v] schema-const
+            [e] write-pattern
+                [v] defaults-start
+            [e] apply-templates
+                [e] select
+                    [v] form/rows//field
+                [e] parameters
+                    [e] bean
+                        [e] expr
+                            [v] $bean
+                [e] mode
+                    [v] defaults
+            [e] write-pattern
+                [v] defaults-end
+            [e] write-pattern
+                [v] fields-start
+            [e] apply-templates
+                [e] select
+                    [v] form/rows/*
+                [e] parameters
+                    [e] bean
+                        [e] expr
+                            [v] $bean
+                [e] mode
+                    [v] layout
+            [e] write-pattern
+                [v] fields-end
+            [e] write-pattern
+                [v] component
+    [e] templates
+        [e] mode
+            [v] defaults
+            [e] template
+                [e] match
+                    [v] field
+                [e] parameters
+                    [e] bean
+                        [v] NOT_DEFINED
+                [e] body
+                    [e] vars
+                        [e] var
+                            [v] fname
+                            [e] expr
+                                [v] substring(normalize-space(value), 2)
+                        [e] var
+                            [v] attr
+                            [e] expr
+                                [v] $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = $fname and @mode = 'directToField']
+                    [e] if
+                        [v] exists($attr/properties/defaultValue)
+                        [e] then
+                            [e] write-pattern
+                                [v] default-line
+        [e] mode
+            [v] layout
+            [e] template
+                [e] match
+                    [v] row
+                [e] parameters
+                    [e] bean
+                        [v] NOT_DEFINED
+                [e] body
+                    [e] write-pattern
+                        [v] row-open
+                    [e] apply-templates
+                        [e] select
+                            [v] *
+                        [e] parameters
+                            [e] bean
+                                [e] expr
+                                    [v] $bean
+                        [e] mode
+                            [v] spec
+                    [e] write-pattern
+                        [v] row-close
+            [e] template
+                [e] match
+                    [v] field
+                [e] parameters
+                    [e] bean
+                        [v] NOT_DEFINED
+                [e] body
+                    [e] write-pattern
+                        [v] row-open
+                    [e] apply-templates
+                        [e] select
+                            [v] .
+                        [e] parameters
+                            [e] bean
+                                [e] expr
+                                    [v] $bean
+                        [e] mode
+                            [v] spec
+                    [e] write-pattern
+                        [v] row-close
+            [e] template
+                [e] match
+                    [v] *
+                [e] parameters
+                    [e] bean
+                        [v] NOT_DEFINED
+                [e] body
+                    [e] write-pattern
+                        [v] layout-todo
+        [e] mode
+            [v] spec
+            [e] template
+                [e] match
+                    [v] field
+                [e] parameters
+                    [e] bean
+                        [v] NOT_DEFINED
+                [e] body
+                    [e] vars
+                        [e] var
+                            [v] fname
+                            [e] expr
+                                [v] substring(normalize-space(value), 2)
+                        [e] var
+                            [v] attr
+                            [e] expr
+                                [v] $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = $fname and @mode = 'directToField']
+                        [e] var
+                            [v] rel
+                            [e] expr
+                                [v] $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = $fname and @mode != 'directToField']
+                        [e] var
+                            [v] lbl
+                            [e] expr
+                                [v] replace(normalize-space(if (exists(properties/label/pt/value)) then properties/label/pt/value else $attr/properties/title/pt/value), "'", "\\'")
+                    [e] if
+                        [v] not(exists($attr)) and exists($rel)
+                        [e] then
+                            [e] write-pattern
+                                [v] todo-relation
+                        [e] else-if
+                            [v] not(exists($attr))
+                            [e] then
+                                [e] write-pattern
+                                    [v] todo-missing
+                        [e] else-if
+                            [v] exists($attr/properties/values) and ($attr/@type = $mapNativeTypes/Integer/value or $attr/@type = $mapNativeTypes/Long/value)
+                            [e] then
+                                [e] write-pattern
+                                    [v] todo-numeric-enum
+                        [e] else-if
+                            [v] exists($attr/properties/values) and $attr/@type = $mapNativeTypes/String/value
+                            [e] then
+                                [e] write-pattern
+                                    [v] spec-enum
+                        [e] else-if
+                            [v] exists($attr/properties/values)
+                            [e] then
+                                [e] write-pattern
+                                    [v] todo-type
+                        [e] else-if
+                            [v] $attr/@type = $mapNativeTypes/Boolean/value
+                            [e] then
+                                [e] write-pattern
+                                    [v] spec-boolean
+                        [e] else-if
+                            [v] $attr/@type = $mapNativeTypes/Integer/value or $attr/@type = $mapNativeTypes/Long/value or $attr/@type = $mapNativeTypes/Double/value or $attr/@type = $mapNativeTypes/BigDecimal/value
+                            [e] then
+                                [e] write-pattern
+                                    [v] spec-number
+                        [e] else-if
+                            [v] $attr/@type = $mapNativeTypes/Date/value
+                            [e] then
+                                [e] write-pattern
+                                    [v] spec-date
+                        [e] else-if
+                            [v] $attr/@type = $mapNativeTypes/BigString/value
+                            [e] then
+                                [e] write-pattern
+                                    [v] spec-textarea
+                        [e] else-if
+                            [v] $attr/@type = $mapNativeTypes/String/value
+                            [e] then
+                                [e] write-pattern
+                                    [v] spec-text
+                        [e] else
+                            [e] write-pattern
+                                [v] todo-type
+            [e] template
+                [e] match
+                    [v] *
+                [e] parameters
+                    [e] bean
+                        [v] NOT_DEFINED
+                [e] body
+                    [e] write-pattern
+                        [v] layout-todo

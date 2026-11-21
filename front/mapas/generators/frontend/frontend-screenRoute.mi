@@ -1,0 +1,67 @@
+[e] screenRoute
+    [e] parameters
+        [e] modelName
+            [v] NOT_DEFINED
+        [e] package
+            [v] NOT_DEFINED
+    [e] patterns
+        [e] header
+            [v] // GERADO por frontend/screenRoute a partir de {{ @name }}. Nao edite: a saida e sobrescrita por inteiro.
+            [v] // Arquivo de destino: src/routes/_authenticated{{ $routeFile }}.tsx
+        [e] route-list
+            [v] import { createFileRoute } from '@tanstack/react-router'
+            [v] import { {{ @name }}Screen } from '{{ $screenPath }}'
+            [v] {{ '' }}
+            [v] export const Route = createFileRoute('/_authenticated{{ $route }}/')({
+            [v]   component: {{ @name }}Screen,
+            [v] })
+        [e] route-editor
+            [v] import { createFileRoute } from '@tanstack/react-router'
+            [v] import { {{ @name }}Screen } from '{{ $screenPath }}'
+            [v] {{ '' }}
+            [v] function {{ @name }}Page() {
+            [v]   const { {{ $param }} } = Route.useParams()
+            [v]   return <{{ @name }}Screen id={ {{ $param }} } />
+            [v] }
+            [v] {{ '' }}
+            [v] export const Route = createFileRoute('/_authenticated{{ $route }}')({
+            [v]   component: {{ @name }}Page,
+            [v] })
+        [e] route-todo
+            [v] // @TODO {{ @name }}: {{ @mode }} sem rota tratavel (route={{ $route }}); screenRoute so trata window.list e window.editor com route.
+    [e] start
+        [e] match
+            [v] /classes/class[@name = $modelName and @package = $package]
+        [e] body
+            [e] vars
+                [e] var
+                    [v] route
+                    [e] expr
+                        [v] normalize-space(properties/route/value)
+                [e] var
+                    [v] param
+                    [e] expr
+                        [v] substring-after(normalize-space(properties/route/value), '$')
+                [e] var
+                    [v] routeFile
+                    [e] expr
+                        [v] mi:if-else(contains(normalize-space(properties/route/value), '$'), normalize-space(properties/route/value), concat(normalize-space(properties/route/value), '/index'))
+                [e] var
+                    [v] screenPath
+                    [e] expr
+                        [v] concat('@/features/', tokenize(@package, '[.]')[last() - 1], '/', tokenize(@package, '[.]')[last()], '/', @name, 'Screen')
+            [e] write-pattern
+                [v] header
+            [e] if
+                [v] @mode = 'window.list' and $route != '' and not(contains($route, '$'))
+                [e] then
+                    [e] write-pattern
+                        [v] route-list
+                [e] else-if
+                    [v] @mode = 'window.editor' and contains($route, '$')
+                    [e] then
+                        [e] write-pattern
+                            [v] route-editor
+                [e] else
+                    [e] write-pattern
+                        [v] route-todo

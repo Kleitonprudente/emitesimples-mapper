@@ -31,7 +31,7 @@ const FIELDS: FieldLayout = [
   ],
 ]
 
-const DEFAULTS: Partial<PessoaInput> = { tipoPessoa: 'FISICA', documento: '', nome: '' }
+const DEFAULTS: Partial<PessoaInput> = { tipoPessoa: 'fisica', documento: '', nome: '' }
 
 function toFormValues(p: PessoaRow): PessoaInput {
   return { tipoPessoa: p.tipoPessoa, documento: p.documento, nome: p.nome, email: p.email, telefone: p.telefone, cep: p.cep, cidade: p.cidade }

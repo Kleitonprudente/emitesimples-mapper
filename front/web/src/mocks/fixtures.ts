@@ -42,7 +42,7 @@ export type Municipio = (typeof MUNICIPIOS)[number]
 
 export interface Pessoa {
   id: string
-  tipoPessoa: 'FISICA' | 'JURIDICA'
+  tipoPessoa: 'fisica' | 'juridica'
   documento: string
   nome: string
   nomeFantasia?: string
@@ -73,7 +73,7 @@ export function buildPessoas(): Pessoa[] {
     const dia = String((i % 27) + 1).padStart(2, '0')
     out.push({
       id: `pes-${String(i + 1).padStart(4, '0')}`,
-      tipoPessoa: fisica ? 'FISICA' : 'JURIDICA',
+      tipoPessoa: fisica ? 'fisica' : 'juridica',
       documento: fisica ? cpfFrom(base) : cnpjFrom(`${String(10234567 + i * 31).slice(0, 8)}0001`),
       nome: fisica ? nome : `${nome} ${i % 2 ? 'Ltda' : 'ME'}`,
       nomeFantasia: fisica ? undefined : nome,

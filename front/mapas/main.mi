@@ -76,12 +76,31 @@
                 [e] struct
                     #
                         generators/struct.mi
-                //
-                    PLACEHOLDER: grupo de geradores frontend (futuro, plano secao 6).
-                    Quando existirem, registrar aqui, no mesmo dialeto do back, o grupo frontend
-                    com as subs zodSchema, apiClient, screenColumns, screenPage, screenForm,
-                    screenEditorById e screenManifest, apontando para generators/frontend/*.mi
-                    (ainda nao escritos).
+                [e] frontend
+                    [e] zodSchema
+                        #
+                            generators/frontend/frontend-zodSchema.mi
+                    [e] apiClient
+                        #
+                            generators/frontend/frontend-apiClient.mi
+                    [e] screenColumns
+                        #
+                            generators/frontend/frontend-screenColumns.mi
+                    [e] screenPage
+                        #
+                            generators/frontend/frontend-screenPage.mi
+                    [e] screenForm
+                        #
+                            generators/frontend/frontend-screenForm.mi
+                    [e] screenEditorById
+                        #
+                            generators/frontend/frontend-screenEditorById.mi
+                    [e] screenManifest
+                        #
+                            generators/frontend/frontend-screenManifest.mi
+                    [e] screenRoute
+                        #
+                            generators/frontend/frontend-screenRoute.mi
     [p] domain
         @
             [e] title

@@ -1,0 +1,94 @@
+[e] apiClient
+    [e] parameters
+        [e] modelName
+            [v] NOT_DEFINED
+        [e] package
+            [v] NOT_DEFINED
+    [e] vars
+        [e] mapNativeTypes
+            [e] select
+                [v] //maps/mapNativeTypes
+    [e] patterns
+        [e] header
+            [v] // GERADO por frontend/apiClient a partir de {{ @name }}. Nao edite: a saida e sobrescrita por inteiro.
+            [v] import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+            [v] import { api } from '@/lib/api'
+            [v] import { toListRequest, type TableState } from '@/runtime/table-state'
+            [v] import type { {{ @name }} } from '@/gen/schemas/{{ mi:first-lower(@name) }}'
+        [e] types
+            [v] {{ '' }}
+            [v] /** Referencia a outra entidade: o back devolve o objeto e recebe so o id. */
+            [v] export type {{ @name }}Ref = { id: string } & Record<string, unknown>
+            [v] {{ '' }}
+            [v] /** Registro como o back devolve: campos do schema mais as relacoes (omitidas do schema). */
+            [v] export type {{ @name }}Row = {{ @name }} & { id: string{{ string-join(for $r in attributes/attribute[@mode != 'directToField'] return concat('; ', $r/@name, '?: ', @name, 'Ref', mi:if-else(contains($r/@mode, 'oneToMany'), '[]', '')), '') }} }
+            [v] {{ '' }}
+            [v] /** Corpo de criacao e atualizacao: Partial, o zod do formulario valida os obrigatorios. */
+            [v] export type {{ @name }}Input = Partial<Omit<{{ @name }}Row, 'id'>>
+        [e] keys
+            [v] {{ '' }}
+            [v] const BASE = '/{{ @name }}'
+            [v] {{ '' }}
+            [v] export const {{ mi:first-lower(@name) }}Keys = {
+            [v]   all: ['{{ @name }}'] as const,
+            [v]   list: (s: TableState, searchField?: string) => ['{{ @name }}', 'list', s, searchField] as const,
+            [v]   one: (id: string) => ['{{ @name }}', 'id', id] as const,
+            [v] }
+        [e] hooks
+            [v] {{ '' }}
+            [v] /** Lista paginada no servidor: GET /{{ @name }}/from/to + GET /{{ @name }}/count. */
+            [v] export function use{{ @name }}s(state: TableState, searchField?: string) {
+            [v]   const req = toListRequest(state, searchField)
+            [v]   const q = useQuery({
+            [v]     queryKey: {{ mi:first-lower(@name) }}Keys.list(state, searchField),
+            [v]     queryFn: async () => {
+            [v]       const [data, count] = await Promise.all([
+            [v]         api<{{ @name }}Row[]>(`${BASE}${req.rangePath}`, { query: req.listQuery }),
+            [v]         api<{ count: number }>(`${BASE}/count`, { query: req.countQuery }),
+            [v]       ])
+            [v]       return { data, count: count.count }
+            [v]     },
+            [v]     placeholderData: keepPreviousData,
+            [v]   })
+            [v]   return { data: q.data?.data, count: q.data?.count, isLoading: q.isLoading, isFetching: q.isFetching, isError: q.isError, error: q.error, refetch: () => void q.refetch() }
+            [v] }
+            [v] {{ '' }}
+            [v] export function use{{ @name }}(id: string | null) {
+            [v]   return useQuery({ queryKey: {{ mi:first-lower(@name) }}Keys.one(id ?? ''), queryFn: () => api<{{ @name }}Row>(`${BASE}/id/${id}`), enabled: !!id })
+            [v] }
+            [v] {{ '' }}
+            [v] export function useCriar{{ @name }}() {
+            [v]   const qc = useQueryClient()
+            [v]   return useMutation({
+            [v]     mutationFn: (v: {{ @name }}Input) => api<{{ @name }}Row>(BASE, { method: 'POST', body: v }),
+            [v]     onSuccess: () => qc.invalidateQueries({ queryKey: {{ mi:first-lower(@name) }}Keys.all }),
+            [v]   })
+            [v] }
+            [v] {{ '' }}
+            [v] export function useAtualizar{{ @name }}(id: string) {
+            [v]   const qc = useQueryClient()
+            [v]   return useMutation({
+            [v]     mutationFn: (v: {{ @name }}Input) => api<{{ @name }}Row>(`${BASE}/id/${id}`, { method: 'PUT', body: v }),
+            [v]     onSuccess: () => qc.invalidateQueries({ queryKey: {{ mi:first-lower(@name) }}Keys.all }),
+            [v]   })
+            [v] }
+            [v] {{ '' }}
+            [v] export function useRemover{{ @name }}() {
+            [v]   const qc = useQueryClient()
+            [v]   return useMutation({
+            [v]     mutationFn: (id: string) => api<void>(`${BASE}/id/${id}`, { method: 'DELETE' }),
+            [v]     onSuccess: () => qc.invalidateQueries({ queryKey: {{ mi:first-lower(@name) }}Keys.all }),
+            [v]   })
+            [v] }
+    [e] start
+        [e] match
+            [v] /classes/class[@name = $modelName and @package = $package]
+        [e] body
+            [e] write-pattern
+                [v] header
+            [e] write-pattern
+                [v] types
+            [e] write-pattern
+                [v] keys
+            [e] write-pattern
+                [v] hooks

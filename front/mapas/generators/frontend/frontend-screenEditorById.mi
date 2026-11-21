@@ -1,0 +1,112 @@
+[e] screenEditorById
+    [e] parameters
+        [e] modelName
+            [v] NOT_DEFINED
+        [e] package
+            [v] NOT_DEFINED
+    [e] vars
+        [e] classes
+            [e] select
+                [v] /classes
+    [e] patterns
+        [e] header
+            [v] // GERADO por frontend/screenEditorById a partir de {{ @name }}. Nao edite: a saida e sobrescrita por inteiro.
+        [e] import-navigate
+            [v] import { useNavigate } from '@tanstack/react-router'
+        [e] imports
+            [v] import { useAtualizar{{ $bean }}, use{{ $bean }} } from '@/gen/api/{{ $entity }}'
+            [v] import { mutationFeedback } from '@/runtime/feedback'
+            [v] import { ErrorState, LoadingState } from '@/runtime/states'
+            [v] import { {{ @name }}Form, type {{ @name }}Values } from './{{ @name }}'
+        [e] component-start
+            [v] {{ '' }}
+            [v] export function {{ @name }}Screen({ id }: { id: string }) {
+            [v]   const loaded = use{{ $bean }}(id)
+            [v]   const salvar = useAtualizar{{ $bean }}(id)
+        [e] back-with-list
+            [v]   const navigate = useNavigate()
+            [v]   const voltar = () => void navigate({ to: '{{ $listRoute }}' })
+            [v]   const fb = mutationFeedback({ success: 'Registro salvo.', onDone: voltar })
+        [e] back-none
+            [v]   const fb = mutationFeedback({ success: 'Registro salvo.' })
+        [e] body
+            [v]   if (loaded.isLoading) return <LoadingState />
+            [v]   if (loaded.isError || !loaded.data) return <ErrorState error={loaded.error} onRetry={() => void loaded.refetch()} />
+            [v]   // O back devolve null nos opcionais ausentes; o schema do formulario espera ausente (undefined).
+            [v]   const values = Object.fromEntries(Object.entries(loaded.data).filter(([, v]) => v !== null)) as {{ @name }}Values
+            [v]   return (
+            [v]     <div className="flex flex-col gap-4">
+            [v]       <h1 className="text-2xl font-semibold">{{ $title }}</h1>
+            [v]       <{{ @name }}Form
+            [v]         values={values}
+            [v]         isSubmitting={salvar.isPending}
+            [v]         serverError={salvar.error}
+        [e] cancel-with-list
+            [v]         onCancel={voltar}
+        [e] body-end
+            [v]         onSubmit={(v) => salvar.mutateAsync(v).then(fb.onSuccess, () => {})}
+            [v]       />
+            [v]     </div>
+            [v]   )
+            [v] }
+        [e] todo-route
+            [v] // @TODO {{ @name }}: rota sem $id ({{ $route }}); screenEditorById so trata window.editor com parametro de rota.
+    [e] start
+        [e] match
+            [v] /classes/class[@name = $modelName and @package = $package]
+        [e] body
+            [e] vars
+                [e] var
+                    [v] bean
+                    [e] expr
+                        [v] normalize-space(attributes/attribute[@name = 'object']/@type)
+                [e] var
+                    [v] entity
+                    [e] expr
+                        [v] mi:first-lower(normalize-space(attributes/attribute[@name = 'object']/@type))
+                [e] var
+                    [v] route
+                    [e] expr
+                        [v] normalize-space(properties/route/value)
+                [e] var
+                    [v] title
+                    [e] expr
+                        [v] replace(normalize-space(properties/title/pt/value), "'", "\\'")
+                [e] var
+                    [v] listRoute
+                    [e] expr
+                        [v] normalize-space((for $c in $classes/class[@mode = 'window.list' and exists(actions/action/properties/opens/value[normalize-space(.) = $modelName])] return $c/properties/route/value)[1])
+            [e] write-pattern
+                [v] header
+            [e] if
+                [v] contains($route, '$')
+                [e] then
+                    [e] if
+                        [v] $listRoute != ''
+                        [e] then
+                            [e] write-pattern
+                                [v] import-navigate
+                    [e] write-pattern
+                        [v] imports
+                    [e] write-pattern
+                        [v] component-start
+                    [e] if
+                        [v] $listRoute != ''
+                        [e] then
+                            [e] write-pattern
+                                [v] back-with-list
+                        [e] else
+                            [e] write-pattern
+                                [v] back-none
+                    [e] write-pattern
+                        [v] body
+                    [e] if
+                        [v] $listRoute != ''
+                        [e] then
+                            [e] write-pattern
+                                [v] cancel-with-list
+                    [e] write-pattern
+                        [v] body-end
+                [e] else
+                    [e] write-pattern
+                        [v] todo-route

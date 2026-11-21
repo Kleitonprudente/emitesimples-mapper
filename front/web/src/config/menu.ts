@@ -1,10 +1,10 @@
 import type { Papel, SessionData } from '@/lib/api'
 import { hasRole } from '@/lib/auth'
+import { screens } from '@/gen/screens'
 
 /**
  * Manifesto de menu: FONTE UNICA da navegacao do shell.
- * Quando o gerador de manifesto existir, este arquivo sera substituido por `gen/screens.ts`
- * (mesma forma: name, route, title, icon, group, order, role). So o shell le este modulo.
+ * As telas do mapa entram por `gen/screens.ts` (gerado); aqui ficam so os itens escritos a mao.
  */
 export interface MenuItem {
   name: string
@@ -20,9 +20,14 @@ export interface MenuItem {
   platformOnly?: boolean
 }
 
+const doMapa: MenuItem[] = screens
+  .filter((s) => s.route && !s.route.includes('$'))
+  .map((s) => ({ name: s.name, route: s.route as string, title: s.title, icon: s.icon, group: s.group, order: s.order, role: s.role }))
+
 export const menu: MenuItem[] = [
   { name: 'Inicio', route: '/', title: 'Início', icon: 'home', order: 0 },
   { name: 'PessoasExemplo', route: '/exemplos/pessoas', title: 'Pessoas (exemplo)', icon: 'users', group: 'Exemplos', order: 10, role: 'consulta' },
+  ...doMapa,
   { name: 'Perfil', route: '/perfil', title: 'Meu perfil', icon: 'user', group: 'Conta', order: 90 },
 ]
 
