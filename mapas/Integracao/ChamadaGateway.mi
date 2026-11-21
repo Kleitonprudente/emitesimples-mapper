@@ -1,0 +1,353 @@
+[b] ChamadaGateway
+    @
+        [e] title
+            [e] pt
+                [v] Chamada ao Gateway
+            [e] en
+                [v] Gateway Call
+        [e] description
+            [e] pt
+                [v] Registro de auditoria de cada chamada que o sistema faz ao IntegraNotas, para operar e depurar. Guarda operação, método, rota, versão da API, códigos de retorno, mensagem, duração e a chave da nota.
+                  | A versão da API é por operação: o envio da nota usa v2, a consulta e o cancelamento usam v1.
+                  | NUNCA guarda token, senha, corpo com segredos, XML ou PDF. Guarda só um resumo seguro do que foi enviado (campo resumoEnvio, sem dado pessoal, sem segredo e sem documento).
+            [e] en
+                [v] Audit record of each call the system makes to IntegraNotas, to operate and debug. Keeps operation, method, route, API version, return codes, message, duration and the note key.
+                  | The API version is per operation: note submission uses v2, query and cancellation use v1.
+                  | NEVER keeps token, password, body with secrets, XML or PDF. Keeps only a safe summary of what was sent (resumoEnvio field, with no personal data, no secret and no document).
+    [g] chamada
+        [d] operacao: Texto(30)
+            @
+                [e] cn
+                    [v] operacao
+                [e] title
+                    [e] pt
+                        [v] Operação
+                    [e] en
+                        [v] Operation
+                [e] description
+                    [e] pt
+                        [v] Operação de negócio que motivou a chamada ao gateway.
+                    [e] en
+                        [v] Business operation that triggered the gateway call.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+                [e] values
+                    [e] emitir
+                        [v] emitir
+                        [v] Emitir nota
+                    [e] consultar
+                        [v] consultar
+                        [v] Consultar nota
+                    [e] cancelar
+                        [v] cancelar
+                        [v] Cancelar nota
+                    [e] cadastrarEmitente
+                        [v] cadastrar_emitente
+                        [v] Cadastrar emitente
+                    [e] enviarCertificado
+                        [v] enviar_certificado
+                        [v] Enviar certificado digital
+                    [e] outra
+                        [v] outra
+                        [v] Outra operação
+        [d] metodoHttp: Texto(7)
+            @
+                [e] cn
+                    [v] metodo_http
+                [e] title
+                    [e] pt
+                        [v] Método HTTP
+                    [e] en
+                        [v] HTTP Method
+                [e] description
+                    [e] pt
+                        [v] Método HTTP da chamada.
+                    [e] en
+                        [v] HTTP method of the call.
+                [e] required
+                    [v] true
+                [e] values
+                    [e] get
+                        [v] GET
+                        [v] GET
+                    [e] post
+                        [v] POST
+                        [v] POST
+                    [e] put
+                        [v] PUT
+                        [v] PUT
+                    [e] delete
+                        [v] DELETE
+                        [v] DELETE
+        [d] rota: Texto(200)
+            @
+                [e] cn
+                    [v] rota
+                [e] title
+                    [e] pt
+                        [v] Rota
+                    [e] en
+                        [v] Route
+                [e] description
+                    [e] pt
+                        [v] Rota chamada, por exemplo /v2/nfse ou /v1/nfse/cancela. Sem host e sem parâmetro de consulta que carregue segredo. Como a chave da nota pode ir no caminho, ela também fica no campo chave.
+                    [e] en
+                        [v] Route called, for example /v2/nfse or /v1/nfse/cancela. No host and no query parameter carrying a secret. Since the note key may be in the path, it is also kept in the chave field.
+                [e] required
+                    [v] true
+        [d] versaoApi: Texto(5)
+            @
+                [e] cn
+                    [v] versao_api
+                [e] title
+                    [e] pt
+                        [v] Versão da API
+                    [e] en
+                        [v] API Version
+                [e] description
+                    [e] pt
+                        [v] Versão da API da operação. É por operação, não global: envio v2, consulta e cancelamento v1.
+                    [e] en
+                        [v] API version of the operation. It is per operation, not global: submission v2, query and cancellation v1.
+                [e] required
+                    [v] true
+                [e] values
+                    [e] v1
+                        [v] v1
+                        [v] Versão 1
+                    [e] v2
+                        [v] v2
+                        [v] Versão 2
+    [g] resultado
+        [d] codigoHttp: Inteiro(3)
+            @
+                [e] cn
+                    [v] codigo_http
+                [e] title
+                    [e] pt
+                        [v] Código HTTP
+                    [e] en
+                        [v] HTTP Code
+                [e] description
+                    [e] pt
+                        [v] Código HTTP da resposta. O gateway costuma responder 200 mesmo em falha de negócio, então o resultado real está no código de retorno. Vazio se não houve resposta.
+                    [e] en
+                        [v] HTTP code of the response. The gateway usually answers 200 even on a business failure, so the real outcome is in the return code. Empty if there was no response.
+        [d] codigoRetorno: Inteiro(4)
+            @
+                [e] cn
+                    [v] codigo_retorno
+                [e] title
+                    [e] pt
+                        [v] Código de Retorno
+                    [e] en
+                        [v] Return Code
+                [e] description
+                    [e] pt
+                        [v] Código de retorno do gateway, por exemplo 5023 em processamento, 100 autorizada, 101 cancelada. Vazio se não houve resposta.
+                    [e] en
+                        [v] Gateway return code, for example 5023 processing, 100 authorized, 101 canceled. Empty if there was no response.
+                [e] searchable
+                    [v] true
+        [d] mensagemRetorno: Texto(500)
+            @
+                [e] cn
+                    [v] mensagem_retorno
+                [e] title
+                    [e] pt
+                        [v] Mensagem de Retorno
+                    [e] en
+                        [v] Return Message
+                [e] description
+                    [e] pt
+                        [v] Mensagem devolvida pelo gateway, truncada em 500 caracteres. Não guarda a lista detalhada de erros de campo, que fica na nota.
+                    [e] en
+                        [v] Message returned by the gateway, truncated to 500 characters. Does not keep the detailed field error list, which stays on the note.
+        [d] duracaoMs: Inteiro(9)
+            @
+                [e] cn
+                    [v] duracao_ms
+                [e] title
+                    [e] pt
+                        [v] Duração em Milissegundos
+                    [e] en
+                        [v] Duration in Milliseconds
+                [e] description
+                    [e] pt
+                        [v] Tempo gasto na chamada, em milissegundos.
+                    [e] en
+                        [v] Time spent on the call, in milliseconds.
+        [d] dataChamada: DataHora()
+            @
+                [e] cn
+                    [v] data_chamada
+                [e] title
+                    [e] pt
+                        [v] Data e Hora da Chamada
+                    [e] en
+                        [v] Call Date and Time
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que a chamada foi feita.
+                    [e] en
+                        [v] Date and time the call was made.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+    [g] correlacao
+        [d] chave: Texto(50)
+            @
+                [e] cn
+                    [v] chave
+                [e] title
+                    [e] pt
+                        [v] Chave
+                    [e] en
+                        [v] Key
+                [e] description
+                    [e] pt
+                        [v] Chave da nota, 50 dígitos, quando a chamada a envolve. Gravada mesmo em falha, porque o gateway pode devolvê-la.
+                    [e] en
+                        [v] Note key, 50 digits, when the call involves it. Stored even on failure, because the gateway may return it.
+                [e] searchable
+                    [v] true
+        [d] identificacao: Texto(40)
+            @
+                [e] cn
+                    [v] identificacao
+                [e] title
+                    [e] pt
+                        [v] Identificação
+                    [e] en
+                        [v] Identification
+                [e] description
+                    [e] pt
+                        [v] Chave de correlação do sistema emissor enviada na emissão, de 1 a 40 caracteres. Vazia nas demais operações.
+                    [e] en
+                        [v] Correlation key of the issuing system sent on submission, 1 to 40 characters. Empty on other operations.
+        [d] resumoEnvio: Texto(500)
+            @
+                [e] cn
+                    [v] resumo_envio
+                [e] title
+                    [e] pt
+                        [v] Resumo do Envio
+                    [e] en
+                        [v] Submission Summary
+                [e] description
+                    [e] pt
+                        [v] Resumo seguro do que foi enviado, em texto livre, por exemplo numero, serie e valor do serviço. Proibido incluir token, senha, certificado, XML, PDF ou dado pessoal do tomador.
+                    [e] en
+                        [v] Safe summary of what was sent, in free text, for example numero, serie and service amount. Must not include token, password, certificate, XML, PDF or taker personal data.
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno do registro (UUID).
+                    [e] en
+                        [v] Internal record identifier (UUID).
+                [e] required
+                    [v] true
+        [d] ambiente: Texto(15)
+            @
+                [e] cn
+                    [v] ambiente
+                [e] title
+                    [e] pt
+                        [v] Ambiente
+                    [e] en
+                        [v] Environment
+                [e] description
+                    [e] pt
+                        [v] Ambiente do gateway em que a chamada foi feita. Uma chamada de homologação nunca se mistura com uma de produção.
+                    [e] en
+                        [v] Gateway environment where the call was made. A test call never mixes with a real one.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+                [e] defaultValue
+                    [v] homologacao
+                [e] values
+                    [e] homologacao
+                        [v] homologacao
+                        [v] Homologação, ambiente de testes
+                    [e] producao
+                        [v] producao
+                        [v] Produção, ambiente real
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o registro foi gravado.
+                    [e] en
+                        [v] Date and time the record was stored.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true
+    [g] relacionamentos
+        [r] emitente: Emitente()
+            @
+                [e] cn
+                    [v] emitente_id
+                [e] title
+                    [e] pt
+                        [v] Emitente
+                    [e] en
+                        [v] Issuer
+                [e] description
+                    [e] pt
+                        [v] Emitente dono desta chamada e tenant do registro. Todo acesso é filtrado por ele.
+                    [e] en
+                        [v] Issuer that owns this call and tenant of the record. Every access is filtered by it.
+                [e] required
+                    [v] true
+                [e] tenantKey
+                    [v] true
+        [r] nota: Nota()
+            @
+                [e] cn
+                    [v] nota_id
+                [e] title
+                    [e] pt
+                        [v] Nota
+                    [e] en
+                        [v] Invoice
+                [e] description
+                    [e] pt
+                        [v] Nota a que a chamada se refere. Opcional: cadastro de emitente e envio de certificado não envolvem nota, e uma emissão recusada pode não ter gerado nota.
+                    [e] en
+                        [v] Note the call refers to. Optional: issuer registration and certificate upload involve no note, and a refused submission may not have produced a note.

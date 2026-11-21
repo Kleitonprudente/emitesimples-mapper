@@ -1,0 +1,434 @@
+[b] Tomador
+    @
+        [e] title
+            [e] pt
+                [v] Tomador
+            [e] en
+                [v] Service Taker
+        [e] description
+            [e] pt
+                [v] Cadastro de pessoa que contrata o serviço, reutilizável nas emissões. É por emitente: o mesmo CNPJ ou CPF pode existir
+                  | uma vez em cada emitente, e um emitente nunca enxerga o tomador de outro. Identifica-se por CNPJ ou CPF, um ou outro.
+                  | Na exportação o endereço não tem município brasileiro e usa os campos de exterior.
+            [e] en
+                [v] Registry of the person who hires the service, reusable across issues. It is per issuer: the same CNPJ or CPF may exist
+                  | once in each issuer, and an issuer never sees another issuer taker. Identified by CNPJ or CPF, one or the other.
+                  | On export the address has no Brazilian municipality and uses the foreign fields.
+    [g] identificacao
+        [d] razaoSocial: Texto(300)
+            @
+                [e] cn
+                    [v] razao_social
+                [e] title
+                    [e] pt
+                        [v] Razão Social
+                    [e] en
+                        [v] Legal Name
+                [e] description
+                    [e] pt
+                        [v] Nome ou razão social do tomador (campo razao_social do envio). Obrigatório.
+                    [e] en
+                        [v] Name or legal name of the taker (the razao_social field of the submission). Required.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+        [d] cnpj: Texto(14)
+            @
+                [e] cn
+                    [v] cnpj
+                [e] title
+                    [e] pt
+                        [v] CNPJ
+                    [e] en
+                        [v] CNPJ
+                [e] description
+                    [e] pt
+                        [v] CNPJ do tomador pessoa jurídica, 14 dígitos sem formatação. Informe CNPJ ou CPF, um ou outro, nunca os dois.
+                          | Pode ficar vazio nos dois quando o tomador é do exterior e se identifica por NIF. Único dentro do emitente.
+                    [e] en
+                        [v] CNPJ of a legal-entity taker, 14 digits without formatting. Provide CNPJ or CPF, one or the other, never both.
+                          | May be empty in both when the taker is foreign and identified by NIF. Unique within the issuer.
+                [e] searchable
+                    [v] true
+        [d] cpf: Texto(11)
+            @
+                [e] cn
+                    [v] cpf
+                [e] title
+                    [e] pt
+                        [v] CPF
+                    [e] en
+                        [v] CPF
+                [e] description
+                    [e] pt
+                        [v] CPF do tomador pessoa física, 11 dígitos sem formatação. Informe CNPJ ou CPF, um ou outro, nunca os dois.
+                          | Dado pessoal, sujeito a mascaramento nas respostas. Único dentro do emitente.
+                    [e] en
+                        [v] CPF of an individual taker, 11 digits without formatting. Provide CNPJ or CPF, one or the other, never both.
+                          | Personal data, subject to masking in responses. Unique within the issuer.
+                [e] searchable
+                    [v] true
+        [d] nif: Texto(40)
+            @
+                [e] cn
+                    [v] nif
+                [e] title
+                    [e] pt
+                        [v] NIF
+                    [e] en
+                        [v] Foreign Tax ID
+                [e] description
+                    [e] pt
+                        [v] Número de identificação fiscal do tomador estrangeiro (campo nif do envio). Opcional.
+                    [e] en
+                        [v] Tax identification number of a foreign taker (the nif field of the submission). Optional.
+        [d] dispensaNif: Inteiro(1)
+            @
+                [e] cn
+                    [v] dispensa_nif
+                [e] title
+                    [e] pt
+                        [v] Motivo da Dispensa do NIF
+                    [e] en
+                        [v] NIF Waiver Reason
+                [e] description
+                    [e] pt
+                        [v] Indica a dispensa do NIF (campo dispensa_nif do envio), valores 0, 1 e 2. Opcional. Confirmado pelo schema oficial.
+                    [e] en
+                        [v] Indicates the NIF waiver (the dispensa_nif field of the submission), values 0, 1 and 2. Optional. Confirmed by the official schema.
+                [e] values
+                    [e] naoInformado
+                        [v] 0
+                        [v] Não informado na nota de origem
+                    [e] dispensado
+                        [v] 1
+                        [v] Dispensado do NIF
+                    [e] naoExigencia
+                        [v] 2
+                        [v] Não exigência do NIF
+        [d] caepf: Texto(14)
+            @
+                [e] cn
+                    [v] caepf
+                [e] title
+                    [e] pt
+                        [v] CAEPF
+                    [e] en
+                        [v] CAEPF
+                [e] description
+                    [e] pt
+                        [v] Cadastro de Atividade Econômica da Pessoa Física do tomador (campo caepf do envio). Opcional.
+                    [e] en
+                        [v] Individual economic activity registry of the taker (the caepf field of the submission). Optional.
+        [d] inscricaoMunicipal: Texto(15)
+            @
+                [e] cn
+                    [v] inscricao_municipal
+                [e] title
+                    [e] pt
+                        [v] Inscrição Municipal
+                    [e] en
+                        [v] Municipal Registration
+                [e] description
+                    [e] pt
+                        [v] Inscrição municipal do tomador (campo im do envio). Opcional.
+                    [e] en
+                        [v] Municipal registration of the taker (the im field of the submission). Optional.
+        [d] tipoEnteGovernamental: Inteiro(1)
+            @
+                [e] cn
+                    [v] tipo_ente_governamental
+                [e] title
+                    [e] pt
+                        [v] Tipo de Ente Governamental
+                    [e] en
+                        [v] Government Entity Type
+                [e] description
+                    [e] pt
+                        [v] Esfera do tomador quando é ente governamental (campo tipo_ente_governamental do envio). Opcional.
+                    [e] en
+                        [v] Sphere of the taker when it is a government entity (the tipo_ente_governamental field of the submission). Optional.
+                [e] values
+                    [e] uniao
+                        [v] 1
+                        [v] União
+                    [e] estado
+                        [v] 2
+                        [v] Estado
+                    [e] distritoFederal
+                        [v] 3
+                        [v] Distrito Federal
+                    [e] municipio
+                        [v] 4
+                        [v] Município
+        [d] tipoDestinatario: Inteiro(1)
+            @
+                [e] cn
+                    [v] tipo_destinatario
+                [e] title
+                    [e] pt
+                        [v] Tipo do Destinatário
+                    [e] en
+                        [v] Recipient Type
+                [e] description
+                    [e] pt
+                        [v] Indica quem é o destinatário (campo tipo_destinatario do envio, indDest), valores 0 ou 1. Opcional, padrão 0.
+                    [e] en
+                        [v] Tells who the recipient is (the tipo_destinatario field of the submission, indDest), values 0 or 1. Optional, default 0.
+                [e] values
+                    [e] proprioTomador
+                        [v] 0
+                        [v] O destinatário é o próprio tomador/adquirente (padrão)
+                    [e] outroDestinatario
+                        [v] 1
+                        [v] O destinatário não é o próprio adquirente (outra pessoa ou outro estabelecimento)
+    [g] contato
+        [d] telefone: Texto(20)
+            @
+                [e] cn
+                    [v] telefone
+                [e] title
+                    [e] pt
+                        [v] Telefone
+                    [e] en
+                        [v] Phone
+                [e] description
+                    [e] pt
+                        [v] Telefone do tomador, só números. Opcional.
+                    [e] en
+                        [v] Phone of the taker, numbers only. Optional.
+        [d] email: Texto(60)
+            @
+                [e] cn
+                    [v] email
+                [e] title
+                    [e] pt
+                        [v] E-mail
+                    [e] en
+                        [v] Email
+                [e] description
+                    [e] pt
+                        [v] E-mail do tomador, até 60 caracteres. Opcional.
+                    [e] en
+                        [v] Email of the taker, up to 60 characters. Optional.
+    [g] endereco
+        [d] logradouro: Texto(255)
+            @
+                [e] cn
+                    [v] logradouro
+                [e] title
+                    [e] pt
+                        [v] Logradouro
+                    [e] en
+                        [v] Street
+                [e] description
+                    [e] pt
+                        [v] Rua, avenida ou similar do endereço do tomador. Obrigatório.
+                    [e] en
+                        [v] Street of the taker address. Required.
+                [e] required
+                    [v] true
+        [d] numeroEndereco: Texto(60)
+            @
+                [e] cn
+                    [v] numero_endereco
+                [e] title
+                    [e] pt
+                        [v] Número do Endereço
+                    [e] en
+                        [v] Address Number
+                [e] description
+                    [e] pt
+                        [v] Número do imóvel, texto porque aceita S/N (campo numero do endereço do envio). Obrigatório.
+                    [e] en
+                        [v] Property number, text because it accepts S/N (the numero field of the submission address). Required.
+                [e] required
+                    [v] true
+        [d] complemento: Texto(256)
+            @
+                [e] cn
+                    [v] complemento
+                [e] title
+                    [e] pt
+                        [v] Complemento
+                    [e] en
+                        [v] Complement
+                [e] description
+                    [e] pt
+                        [v] Complemento do endereço. Opcional.
+                    [e] en
+                        [v] Address complement. Optional.
+        [d] bairro: Texto(60)
+            @
+                [e] cn
+                    [v] bairro
+                [e] title
+                    [e] pt
+                        [v] Bairro
+                    [e] en
+                        [v] Neighborhood
+                [e] description
+                    [e] pt
+                        [v] Bairro do endereço. Obrigatório.
+                    [e] en
+                        [v] Neighborhood of the address. Required.
+                [e] required
+                    [v] true
+        [d] cep: Texto(8)
+            @
+                [e] cn
+                    [v] cep
+                [e] title
+                    [e] pt
+                        [v] CEP
+                    [e] en
+                        [v] Postal Code
+                [e] description
+                    [e] pt
+                        [v] CEP de 8 dígitos sem hífen, texto para preservar zeros à esquerda. Opcional.
+                    [e] en
+                        [v] Postal code of 8 digits without hyphen, text to preserve leading zeros. Optional.
+    [g] exterior
+        [d] codigoPais: Texto(4)
+            @
+                [e] cn
+                    [v] codigo_pais
+                [e] title
+                    [e] pt
+                        [v] Código do País
+                    [e] en
+                        [v] Country Code
+                [e] description
+                    [e] pt
+                        [v] Código do país do endereço no exterior, de 3 a 4 dígitos (campo codigo_pais do envio). Só na exportação. Quando preenchido e sem município,
+                          | o endereço é de exportação e a UF enviada ao gateway é EX, derivada pelo sistema na montagem do envio, sem atributo uf.
+                    [e] en
+                        [v] Country code of the foreign address (the codigo_pais field of the submission). Export only. When filled and with no municipality,
+                          | the address is an export address and the state sent to the gateway is EX, derived by the system when building the submission, with no uf attribute.
+        [d] codigoPostal: Texto(11)
+            @
+                [e] cn
+                    [v] codigo_postal
+                [e] title
+                    [e] pt
+                        [v] Código Postal do Exterior
+                    [e] en
+                        [v] Foreign Postal Code
+                [e] description
+                    [e] pt
+                        [v] Código postal do endereço no exterior (campo codigo_postal do envio). Opcional.
+                    [e] en
+                        [v] Postal code of the foreign address (the codigo_postal field of the submission). Optional.
+        [d] nomeMunicipioExterior: Texto(60)
+            @
+                [e] cn
+                    [v] nome_municipio_exterior
+                [e] title
+                    [e] pt
+                        [v] Município no Exterior
+                    [e] en
+                        [v] Foreign City
+                [e] description
+                    [e] pt
+                        [v] Nome da cidade no exterior (campo nome_municipio do envio). Opcional.
+                    [e] en
+                        [v] Foreign city name (the nome_municipio field of the submission). Optional.
+        [d] nomeProvincia: Texto(60)
+            @
+                [e] cn
+                    [v] nome_provincia
+                [e] title
+                    [e] pt
+                        [v] Província no Exterior
+                    [e] en
+                        [v] Foreign Province
+                [e] description
+                    [e] pt
+                        [v] Nome da província ou estado no exterior (campo nome_provincia do envio). Opcional.
+                    [e] en
+                        [v] Foreign province or state name (the nome_provincia field of the submission). Optional.
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno do tomador (UUID).
+                    [e] en
+                        [v] Internal taker identifier (UUID).
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o tomador foi cadastrado.
+                    [e] en
+                        [v] Date and time the taker was registered.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true
+    [g] relacionamentos
+        [r] emitente: Emitente()
+            @
+                [e] cn
+                    [v] emitente_id
+                [e] title
+                    [e] pt
+                        [v] Emitente
+                    [e] en
+                        [v] Issuer
+                [e] description
+                    [e] pt
+                        [v] Emitente dono deste tomador e tenant do registro. Todo acesso é filtrado por ele.
+                    [e] en
+                        [v] Issuer that owns this taker and tenant of the record. Every access is filtered by it.
+                [e] required
+                    [v] true
+                [e] tenantKey
+                    [v] true
+        [r] municipio: Municipio()
+            @
+                [e] cn
+                    [v] municipio_id
+                [e] title
+                    [e] pt
+                        [v] Município
+                    [e] en
+                        [v] Municipality
+                [e] description
+                    [e] pt
+                        [v] Município brasileiro do endereço. Traz código IBGE, nome e UF (campos codigo_municipio e uf do envio).
+                          | Opcional apenas porque na exportação o endereço não tem município brasileiro.
+                    [e] en
+                        [v] Brazilian municipality of the address. It carries IBGE code, name and state (the codigo_municipio and uf fields of the submission).
+                          | Optional only because on export the address has no Brazilian municipality.

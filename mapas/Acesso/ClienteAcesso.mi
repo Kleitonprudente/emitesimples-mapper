@@ -1,0 +1,202 @@
+[b] ClienteAcesso
+    @
+        [e] title
+            [e] pt
+                [v] Cliente de Acesso
+            [e] en
+                [v] Access Client
+        [e] description
+            [e] pt
+                [v] Credencial de máquina para os agentes do próprio usuário (fase 1), vinculada a um único emitente. Troca clientId e segredo por um JWT de acesso com a claim do emitente e os scopes permitidos.
+                  | Não é cliente OAuth de terceiros: registro dinâmico e consentimento ficam para a fase 2.
+                  | O clientId é único no sistema. NUNCA guarda o segredo, só o hash, e NUNCA guarda token.
+            [e] en
+                [v] Machine credential for the user's own agents (phase 1), tied to a single issuer. Exchanges clientId and secret for an access JWT carrying the issuer claim and the allowed scopes.
+                  | Not a third-party OAuth client: dynamic registration and consent are left for phase 2.
+                  | The clientId is unique in the system. NEVER keeps the secret, only the hash, and NEVER keeps a token.
+    [g] identificacao
+        [d] nome: Texto(120)
+            @
+                [e] cn
+                    [v] nome
+                [e] title
+                    [e] pt
+                        [v] Nome
+                    [e] en
+                        [v] Name
+                [e] description
+                    [e] pt
+                        [v] Nome que identifica o agente ou a integração, por exemplo Agente de conciliação.
+                    [e] en
+                        [v] Name identifying the agent or integration.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+        [d] clientId: Texto(64)
+            @
+                [e] cn
+                    [v] client_id
+                [e] title
+                    [e] pt
+                        [v] Identificador do Cliente
+                    [e] en
+                        [v] Client Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador público do cliente (clientId). Único no sistema. Não é segredo.
+                    [e] en
+                        [v] Public client identifier (clientId). Unique in the system. Not a secret.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+    [g] seguranca
+        [d] segredoHash: Texto(255)
+            @
+                [e] cn
+                    [v] segredo_hash
+                [e] title
+                    [e] pt
+                        [v] Hash do Segredo
+                    [e] en
+                        [v] Secret Hash
+                [e] description
+                    [e] pt
+                        [v] Hash do segredo do cliente (nunca o segredo). O segredo em claro aparece uma única vez, na criação. Não sai em nenhuma leitura.
+                    [e] en
+                        [v] Hash of the client secret (never the secret). The plain secret is shown only once, at creation. Never returned by any read.
+                [e] required
+                    [v] true
+                [e] storageOnly
+                    [v] true
+        [d] scopes: Texto(100)
+            @
+                [e] cn
+                    [v] scopes
+                [e] title
+                    [e] pt
+                        [v] Scopes Permitidos
+                    [e] en
+                        [v] Allowed Scopes
+                [e] description
+                    [e] pt
+                        [v] Lista dos scopes permitidos, separados por espaço, entre consultar, preparar, emitir e cancelar (formato da claim scope do JWT). Texto em vez de entidade filha: o conjunto é fixo e pequeno, não tem ciclo de vida próprio e vai direto para a claim. Emitir e cancelar exigem confirmação humana, regra de fluxo fora deste mapa.
+                    [e] en
+                        [v] List of allowed scopes, space-separated, among consultar, preparar, emitir and cancelar (JWT scope claim format). Text instead of a child entity: the set is small and fixed, has no lifecycle of its own and goes straight into the claim.
+                [e] required
+                    [v] true
+        [d] ativo: Boolean()
+            @
+                [e] cn
+                    [v] ativo
+                [e] title
+                    [e] pt
+                        [v] Ativo
+                    [e] en
+                        [v] Active
+                [e] description
+                    [e] pt
+                        [v] Cliente inativo não obtém token.
+                    [e] en
+                        [v] An inactive client gets no token.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] true
+        [d] dataUltimoUso: DataHora()
+            @
+                [e] cn
+                    [v] data_ultimo_uso
+                [e] title
+                    [e] pt
+                        [v] Data do Último Uso
+                    [e] en
+                        [v] Last Use Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última troca de credencial por token. Vazia se nunca usado.
+                    [e] en
+                        [v] Date and time of the last credential-for-token exchange. Empty if never used.
+        [d] dataExpiracao: DataHora()
+            @
+                [e] cn
+                    [v] data_expiracao
+                [e] title
+                    [e] pt
+                        [v] Data de Expiração
+                    [e] en
+                        [v] Expiration Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora a partir da qual o cliente deixa de valer. Vazia significa sem expiração.
+                    [e] en
+                        [v] Date and time after which the client is no longer valid. Empty means no expiration.
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno do registro (UUID).
+                    [e] en
+                        [v] Internal record identifier (UUID).
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o registro foi gravado.
+                    [e] en
+                        [v] Date and time the record was stored.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true
+    [g] relacionamentos
+        [r] emitente: Emitente()
+            @
+                [e] cn
+                    [v] emitente_id
+                [e] title
+                    [e] pt
+                        [v] Emitente
+                    [e] en
+                        [v] Issuer
+                [e] description
+                    [e] pt
+                        [v] Único emitente a que o cliente dá acesso e tenant do registro. Todo acesso é filtrado por ele.
+                    [e] en
+                        [v] The single issuer the client gives access to and tenant of the record. Every access is filtered by it.
+                [e] required
+                    [v] true
+                [e] tenantKey
+                    [v] true

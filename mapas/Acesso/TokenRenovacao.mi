@@ -1,0 +1,199 @@
+[b] TokenRenovacao
+    @
+        [e] title
+            [e] pt
+                [v] Token de Renovação
+            [e] en
+                [v] Refresh Token
+        [e] description
+            [e] pt
+                [v] Registro do token de renovação do login, que permite um JWT de acesso curto. Guarda só o hash do token e o estado, para rotação (cada uso gera um novo e marca o anterior) e detecção de reuso (token já usado ou revogado reapresentado derruba a sessão).
+                  | NUNCA guarda o token, só o hash. O JWT de acesso não é guardado em lugar nenhum.
+            [e] en
+                [v] Record of the login refresh token, which allows a short-lived access JWT. Keeps only the token hash and its state, for rotation (each use issues a new one and marks the previous) and reuse detection (a used or revoked token presented again ends the session).
+                  | NEVER keeps the token, only the hash. The access JWT is not stored anywhere.
+    [g] token
+        [d] tokenHash: Texto(255)
+            @
+                [e] cn
+                    [v] token_hash
+                [e] title
+                    [e] pt
+                        [v] Hash do Token
+                    [e] en
+                        [v] Token Hash
+                [e] description
+                    [e] pt
+                        [v] Hash do token de renovação (nunca o token). Único. Não sai em nenhuma leitura.
+                    [e] en
+                        [v] Hash of the refresh token (never the token). Unique. Never returned by any read.
+                [e] required
+                    [v] true
+                [e] storageOnly
+                    [v] true
+        [d] dataExpiracao: DataHora()
+            @
+                [e] cn
+                    [v] data_expiracao
+                [e] title
+                    [e] pt
+                        [v] Data de Expiração
+                    [e] en
+                        [v] Expiration Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o token deixa de valer.
+                    [e] en
+                        [v] Date and time the token stops being valid.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+        [d] usado: Boolean()
+            @
+                [e] cn
+                    [v] usado
+                [e] title
+                    [e] pt
+                        [v] Usado
+                    [e] en
+                        [v] Used
+                [e] description
+                    [e] pt
+                        [v] Indica que o token já foi trocado por um novo (rotação). Reapresentá-lo é reuso e indica vazamento.
+                    [e] en
+                        [v] Marks that the token was already exchanged for a new one (rotation). Presenting it again is reuse and signals a leak.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] false
+        [d] revogado: Boolean()
+            @
+                [e] cn
+                    [v] revogado
+                [e] title
+                    [e] pt
+                        [v] Revogado
+                    [e] en
+                        [v] Revoked
+                [e] description
+                    [e] pt
+                        [v] Indica revogação explícita, por logout, troca de senha ou detecção de reuso.
+                    [e] en
+                        [v] Marks explicit revocation, by logout, password change or reuse detection.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] false
+        [d] dataUso: DataHora()
+            @
+                [e] cn
+                    [v] data_uso
+                [e] title
+                    [e] pt
+                        [v] Data do Uso
+                    [e] en
+                        [v] Use Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o token foi trocado por um novo. Vazia enquanto não usado.
+                    [e] en
+                        [v] Date and time the token was exchanged for a new one. Empty while unused.
+        [d] dataRevogacao: DataHora()
+            @
+                [e] cn
+                    [v] data_revogacao
+                [e] title
+                    [e] pt
+                        [v] Data da Revogação
+                    [e] en
+                        [v] Revocation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da revogação. Vazia enquanto não revogado.
+                    [e] en
+                        [v] Date and time of revocation. Empty while not revoked.
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno do registro (UUID).
+                    [e] en
+                        [v] Internal record identifier (UUID).
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o registro foi gravado.
+                    [e] en
+                        [v] Date and time the record was stored.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true
+    [g] relacionamentos
+        [r] usuario: Usuario()
+            @
+                [e] cn
+                    [v] usuario_id
+                [e] title
+                    [e] pt
+                        [v] Usuário
+                    [e] en
+                        [v] User
+                [e] description
+                    [e] pt
+                        [v] Usuário dono da sessão.
+                    [e] en
+                        [v] User owning the session.
+                [e] required
+                    [v] true
+        [r] emitente: Emitente()
+            @
+                [e] cn
+                    [v] emitente_id
+                [e] title
+                    [e] pt
+                        [v] Emitente
+                    [e] en
+                        [v] Issuer
+                [e] description
+                    [e] pt
+                        [v] Emitente escolhido na sessão e tenant do registro. O JWT renovado carrega a claim deste emitente.
+                    [e] en
+                        [v] Issuer chosen in the session and tenant of the record. The renewed JWT carries this issuer claim.
+                [e] required
+                    [v] true
+                [e] tenantKey
+                    [v] true

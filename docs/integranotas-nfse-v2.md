@@ -69,6 +69,13 @@ de preenchimento.
 - **`informacoes`**: `documento_tecnico`, `documento_ref`, `numero_pedido`, `itens_pedido_compra[].item`.
 - **`tomador`**: `cnpj` ou `cpf` (informar um), `nif`, `dispensa_nif`, `caepf`, `im`, **`razao_social` (obrig.)**,
   `telefone`, `email` (60), `tipo_ente_governamental`, `tipo_destinatario`, `endereco`.
+- **Tomador — tamanhos e valores do schema oficial**: `razao_social` 1 a 300; `nif` 1 a 40; `dispensa_nif` 0 Não informado
+  na nota de origem, 1 Dispensado, 2 Não exigência; `caepf` 14; `im` 1 a 15; `telefone` 6 a 20 dígitos; `email` até 60;
+  `tipo_ente_governamental` 1 União, 2 Estado, 3 Distrito Federal, 4 Município; `tipo_destinatario` (indDest) **0** = o
+  destinatário é o próprio tomador/adquirente (padrão), **1** = o destinatário não é o próprio adquirente (outra pessoa ou
+  outro estabelecimento). Endereço: `logradouro` 1 a 255, `numero` 1 a 60, `complemento` 1 a 256, `bairro` 1 a 60, `cep` 8,
+  `codigo_municipio` 7; exportação: `codigo_pais` **3 a 4 dígitos**, `codigo_postal` 1 a 11, `nome_municipio` 1 a 60,
+  `nome_provincia` 1 a 60.
 - **`endereco`** (padrão repetido em tomador, destinatário, intermediário, emitente de dedução):
   **`logradouro`, `numero`, `bairro`, `uf` obrigatórios**; `complemento`, `codigo_municipio` (IBGE, 7 dígitos), `cep`
   (8), e para exportação `codigo_pais`, `codigo_postal`, `nome_municipio`, `nome_provincia`. `uf` = `EX` em exportação.

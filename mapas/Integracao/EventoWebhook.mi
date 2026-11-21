@@ -1,0 +1,338 @@
+[b] EventoWebhook
+    @
+        [e] title
+            [e] pt
+                [v] Evento de Webhook
+            [e] en
+                [v] Webhook Event
+        [e] description
+            [e] pt
+                [v] Cada notificação recebida do gateway no endpoint de webhook do sistema. Registro de auditoria e de idempotência.
+                  | ATENÇÃO: o corpo exato do webhook de emissão de NFS-e AINDA NÃO FOI CONFIRMADO (as páginas Notificação com sucesso e Notificação com falha não foram lidas). Este modelo cobre só o envelope comum conhecido (origem, cnpj_cpf, tipo) e os campos chave, sucesso, código, mensagem e identificação. Quando o corpo for confirmado, o mapa será revisado.
+                  | O XML e o PDF do webhook NÃO são guardados aqui: a Nota guarda os documentos.
+                  | Idempotência: a mesma notificação pode chegar até 3 vezes. Chave de deduplicação sugerida: (emitente, ambiente, chave, código). O mapa não expressa unicidade composta, ela precisa virar constraint única no banco, e uma repetição deve ser reconhecida e marcada como ignorada em vez de reprocessada.
+                  | O emitente é resolvido pelo cnpj_cpf e pelo ambiente. A validade da assinatura é registrada, mas não há validação por header e a assinatura na v2 não está confirmada.
+            [e] en
+                [v] Each notification received from the gateway at the system webhook endpoint. Audit and idempotency record.
+                  | ATTENTION: the exact body of the NFS-e issuance webhook is NOT CONFIRMED YET (the pages Success notification and Failure notification were not read). This model covers only the known common envelope (origem, cnpj_cpf, tipo) and the fields chave, sucesso, codigo, mensagem and identificacao. Once the body is confirmed, the map will be revised.
+                  | The webhook XML and PDF are NOT stored here: the Nota keeps the documents.
+                  | Idempotency: the same notification may arrive up to 3 times. Suggested deduplication key: (emitente, ambiente, chave, codigo). The map cannot express composite uniqueness, it must become a unique constraint in the database, and a repeat must be recognized and marked as ignored instead of reprocessed.
+                  | The issuer is resolved by cnpj_cpf and environment. Signature validity is recorded, but there is no header authentication and the v2 signature is not confirmed.
+    [g] envelope
+        [d] origem: Texto(30)
+            @
+                [e] cn
+                    [v] origem
+                [e] title
+                    [e] pt
+                        [v] Origem
+                    [e] en
+                        [v] Origin
+                [e] description
+                    [e] pt
+                        [v] Origem da notificação, como informada no envelope do gateway. Os valores possíveis não estão confirmados.
+                    [e] en
+                        [v] Origin of the notification, as given in the gateway envelope. The possible values are not confirmed.
+        [d] cnpjCpf: Texto(14)
+            @
+                [e] cn
+                    [v] cnpj_cpf
+                [e] title
+                    [e] pt
+                        [v] CNPJ ou CPF
+                    [e] en
+                        [v] CNPJ or CPF
+                [e] description
+                    [e] pt
+                        [v] CNPJ ou CPF do emitente a que a notificação se refere, só dígitos.
+                    [e] en
+                        [v] CNPJ or CPF of the issuer the notification refers to, digits only.
+                [e] searchable
+                    [v] true
+        [d] tipo: Texto(30)
+            @
+                [e] cn
+                    [v] tipo
+                [e] title
+                    [e] pt
+                        [v] Tipo
+                    [e] en
+                        [v] Type
+                [e] description
+                    [e] pt
+                        [v] Tipo da notificação, como informado no envelope. Os valores possíveis não estão confirmados.
+                    [e] en
+                        [v] Notification type, as given in the envelope. The possible values are not confirmed.
+        [d] chave: Texto(50)
+            @
+                [e] cn
+                    [v] chave
+                [e] title
+                    [e] pt
+                        [v] Chave
+                    [e] en
+                        [v] Key
+                [e] description
+                    [e] pt
+                        [v] Chave da nota, 50 dígitos. Parte da chave de deduplicação.
+                    [e] en
+                        [v] Note key, 50 digits. Part of the deduplication key.
+                [e] searchable
+                    [v] true
+        [d] sucesso: Boolean()
+            @
+                [e] cn
+                    [v] sucesso
+                [e] title
+                    [e] pt
+                        [v] Sucesso
+                    [e] en
+                        [v] Success
+                [e] description
+                    [e] pt
+                        [v] Indica se a notificação informa sucesso na emissão.
+                    [e] en
+                        [v] Indicates whether the notification reports issuance success.
+        [d] codigo: Inteiro(4)
+            @
+                [e] cn
+                    [v] codigo
+                [e] title
+                    [e] pt
+                        [v] Código
+                    [e] en
+                        [v] Code
+                [e] description
+                    [e] pt
+                        [v] Código de retorno do gateway na notificação. Parte da chave de deduplicação.
+                    [e] en
+                        [v] Gateway return code in the notification. Part of the deduplication key.
+        [d] mensagem: Texto(500)
+            @
+                [e] cn
+                    [v] mensagem
+                [e] title
+                    [e] pt
+                        [v] Mensagem
+                    [e] en
+                        [v] Message
+                [e] description
+                    [e] pt
+                        [v] Mensagem da notificação, truncada em 500 caracteres.
+                    [e] en
+                        [v] Notification message, truncated to 500 characters.
+        [d] identificacao: Texto(40)
+            @
+                [e] cn
+                    [v] identificacao
+                [e] title
+                    [e] pt
+                        [v] Identificação
+                    [e] en
+                        [v] Identification
+                [e] description
+                    [e] pt
+                        [v] Chave de correlação do sistema emissor, de 1 a 40 caracteres, devolvida na notificação.
+                    [e] en
+                        [v] Correlation key of the issuing system, 1 to 40 characters, returned in the notification.
+    [g] recebimento
+        [d] dataRecebimento: DataHora()
+            @
+                [e] cn
+                    [v] data_recebimento
+                [e] title
+                    [e] pt
+                        [v] Data e Hora do Recebimento
+                    [e] en
+                        [v] Receipt Date and Time
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o sistema recebeu a notificação.
+                    [e] en
+                        [v] Date and time the system received the notification.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+        [d] resultadoAssinatura: Texto(15)
+            @
+                [e] cn
+                    [v] resultado_assinatura
+                [e] title
+                    [e] pt
+                        [v] Resultado da Assinatura
+                    [e] en
+                        [v] Signature Result
+                [e] description
+                    [e] pt
+                        [v] Resultado da validação da assinatura da notificação. A assinatura em si não é guardada.
+                    [e] en
+                        [v] Result of the notification signature validation. The signature itself is not stored.
+                [e] required
+                    [v] true
+                [e] values
+                    [e] valida
+                        [v] valida
+                        [v] Assinatura válida
+                    [e] invalida
+                        [v] invalida
+                        [v] Assinatura inválida
+                    [e] expirada
+                        [v] expirada
+                        [v] Assinatura expirada
+        [d] estadoProcessamento: Texto(15)
+            @
+                [e] cn
+                    [v] estado_processamento
+                [e] title
+                    [e] pt
+                        [v] Estado do Processamento
+                    [e] en
+                        [v] Processing State
+                [e] description
+                    [e] pt
+                        [v] Estado do tratamento da notificação. Nasce recebido, vira processado quando atualiza a nota, ignorado quando é repetição ou descartada, e com_erro quando o tratamento falha.
+                    [e] en
+                        [v] State of the notification handling. Starts as recebido, becomes processado when it updates the note, ignorado when it is a repeat or discarded, and com_erro when handling fails.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+                [e] defaultValue
+                    [v] recebido
+                [e] values
+                    [e] recebido
+                        [v] recebido
+                        [v] Recebido, aguardando tratamento
+                    [e] processado
+                        [v] processado
+                        [v] Processado
+                    [e] ignorado
+                        [v] ignorado
+                        [v] Ignorado
+                    [e] comErro
+                        [v] com_erro
+                        [v] Com erro no tratamento
+        [d] dataProcessamento: DataHora()
+            @
+                [e] cn
+                    [v] data_processamento
+                [e] title
+                    [e] pt
+                        [v] Data e Hora do Processamento
+                    [e] en
+                        [v] Processing Date and Time
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o tratamento terminou. Vazia enquanto estiver recebido.
+                    [e] en
+                        [v] Date and time handling finished. Empty while still recebido.
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno do evento (UUID).
+                    [e] en
+                        [v] Internal event identifier (UUID).
+                [e] required
+                    [v] true
+        [d] ambiente: Texto(15)
+            @
+                [e] cn
+                    [v] ambiente
+                [e] title
+                    [e] pt
+                        [v] Ambiente
+                    [e] en
+                        [v] Environment
+                [e] description
+                    [e] pt
+                        [v] Ambiente do gateway de que veio a notificação. Parte da chave de deduplicação.
+                    [e] en
+                        [v] Gateway environment the notification came from. Part of the deduplication key.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+                [e] defaultValue
+                    [v] homologacao
+                [e] values
+                    [e] homologacao
+                        [v] homologacao
+                        [v] Homologação, ambiente de testes
+                    [e] producao
+                        [v] producao
+                        [v] Produção, ambiente real
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o registro foi gravado.
+                    [e] en
+                        [v] Date and time the record was stored.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro, inclusive a mudança de estado do processamento.
+                    [e] en
+                        [v] Date and time of the last change to the record, including the processing state change.
+                [e] required
+                    [v] true
+    [g] relacionamentos
+        [r] emitente: Emitente()
+            @
+                [e] cn
+                    [v] emitente_id
+                [e] title
+                    [e] pt
+                        [v] Emitente
+                    [e] en
+                        [v] Issuer
+                [e] description
+                    [e] pt
+                        [v] Emitente dono deste evento e tenant do registro, resolvido pelo cnpj_cpf e pelo ambiente. Notificação de emitente desconhecido não vira registro.
+                    [e] en
+                        [v] Issuer that owns this event and tenant of the record, resolved by cnpj_cpf and environment. A notification from an unknown issuer does not become a record.
+                [e] required
+                    [v] true
+                [e] tenantKey
+                    [v] true
+        [r] nota: Nota()
+            @
+                [e] cn
+                    [v] nota_id
+                [e] title
+                    [e] pt
+                        [v] Nota
+                    [e] en
+                        [v] Invoice
+                [e] description
+                    [e] pt
+                        [v] Nota a que a notificação se refere, localizada pela chave. Opcional: a notificação pode chegar antes de a nota ser localizada.
+                    [e] en
+                        [v] Note the notification refers to, found by key. Optional: the notification may arrive before the note is found.

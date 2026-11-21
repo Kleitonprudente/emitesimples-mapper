@@ -148,3 +148,69 @@
             [b] Emitente
                 #
                     Cadastro/Emitente.mi
+            [b] Tomador
+                #
+                    Cadastro/Tomador.mi
+            [b] Servico
+                #
+                    Cadastro/Servico.mi
+        [p] emissao
+            @
+                [e] title
+                    [e] pt
+                        [v] Emissão
+                    [e] en
+                        [v] Issuing
+                [e] description
+                    [e] pt
+                        [v] Contexto que depende de Cadastro, com Nota e Cancelamento. Entre contextos a relação é sempre referência.
+                    [e] en
+                        [v] Context that depends on Registry, with Nota and Cancelamento. Between contexts the relation is always a reference.
+            [b] Nota
+                #
+                    Emissao/Nota.mi
+            [b] Cancelamento
+                #
+                    Emissao/Cancelamento.mi
+        [p] integracao
+            @
+                [e] title
+                    [e] pt
+                        [v] Integração
+                    [e] en
+                        [v] Integration
+                [e] description
+                    [e] pt
+                        [v] Contexto que depende de Cadastro e Emissão, com ChamadaGateway e EventoWebhook. Entre contextos a relação é sempre referência.
+                    [e] en
+                        [v] Context that depends on Registry and Issuing, with ChamadaGateway and EventoWebhook. Between contexts the relation is always a reference.
+            [b] ChamadaGateway
+                #
+                    Integracao/ChamadaGateway.mi
+            [b] EventoWebhook
+                #
+                    Integracao/EventoWebhook.mi
+        [p] acesso
+            @
+                [e] title
+                    [e] pt
+                        [v] Acesso
+                    [e] en
+                        [v] Access
+                [e] description
+                    [e] pt
+                        [v] Contexto que depende de Cadastro, com Usuario, VinculoUsuario, ClienteAcesso e TokenRenovacao. Entre contextos a relação é sempre referência.
+                    [e] en
+                        [v] Context that depends on Registry, with Usuario, VinculoUsuario, ClienteAcesso and TokenRenovacao. Between contexts the relation is always a reference.
+            [b] Usuario
+                #
+                    Acesso/Usuario.mi
+            [b] VinculoUsuario
+                #
+                    Acesso/VinculoUsuario.mi
+            [b] ClienteAcesso
+                #
+                    Acesso/ClienteAcesso.mi
+            [b] TokenRenovacao
+                #
+                    Acesso/TokenRenovacao.mi

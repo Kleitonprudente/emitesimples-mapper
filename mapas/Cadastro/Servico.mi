@@ -1,0 +1,309 @@
+[b] Servico
+    @
+        [e] title
+            [e] pt
+                [v] Serviço
+            [e] en
+                [v] Service
+        [e] description
+            [e] pt
+                [v] Cadastro de serviço prestado, próprio de cada emitente e reutilizável na emissão. Guarda o enquadramento fiscal padrão
+                  | (código da LC 116, ISS e PIS/COFINS) e valores padrão que a nota pode sobrescrever.
+            [e] en
+                [v] Registry of a provided service, owned by each issuer and reusable on issuing. Holds the default tax classification
+                  | (LC 116 code, ISS and PIS/COFINS) and default values that the note may override.
+    [g] identificacao
+        [d] nome: Texto(100)
+            @
+                [e] cn
+                    [v] nome
+                [e] title
+                    [e] pt
+                        [v] Nome do Serviço
+                    [e] en
+                        [v] Service Name
+                [e] description
+                    [e] pt
+                        [v] Nome interno para reconhecer o serviço em telas e listas. Não vai no envio ao gateway.
+                    [e] en
+                        [v] Internal name to recognize the service on screens and lists. Not sent to the gateway.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+        [d] codigoInterno: Texto(20)
+            @
+                [e] cn
+                    [v] codigo_interno
+                [e] title
+                    [e] pt
+                        [v] Código Interno
+                    [e] en
+                        [v] Internal Code
+                [e] description
+                    [e] pt
+                        [v] Código do serviço no sistema do emitente, até 20 caracteres (campo codigo_interno do envio). Opcional.
+                    [e] en
+                        [v] Service code in the issuer system, up to 20 characters (the codigo_interno field of the submission). Optional.
+        [d] ativo: Boolean()
+            @
+                [e] cn
+                    [v] ativo
+                [e] title
+                    [e] pt
+                        [v] Ativo
+                    [e] en
+                        [v] Active
+                [e] description
+                    [e] pt
+                        [v] Indica se o serviço pode ser escolhido em novas emissões. Serviço desativado some das listas, mas permanece
+                          | nas notas já emitidas, que guardam o que foi enviado.
+                    [e] en
+                        [v] Tells whether the service can be chosen for new issues. A deactivated service leaves the lists but stays
+                          | on notes already issued, which keep what was sent.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] true
+    [g] classificacao
+        [d] codigoServico: Texto(6)
+            @
+                [e] cn
+                    [v] codigo_servico
+                [e] title
+                    [e] pt
+                        [v] Código do Serviço
+                    [e] en
+                        [v] Service Code
+                [e] description
+                    [e] pt
+                        [v] Código do serviço da LC 116/2003, exatamente 6 dígitos (campo servico.codigo do envio). Obrigatório.
+                          | Texto para preservar zeros à esquerda.
+                    [e] en
+                        [v] Service code from LC 116/2003, exactly 6 digits (the servico.codigo field of the submission). Required.
+                          | Text to preserve leading zeros.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+        [d] codigoTributacaoMunicipio: Texto(3)
+            @
+                [e] cn
+                    [v] codigo_tributacao_municipio
+                [e] title
+                    [e] pt
+                        [v] Código de Tributação Municipal
+                    [e] en
+                        [v] Municipal Taxation Code
+                [e] description
+                    [e] pt
+                        [v] Código de tributação do município, 3 dígitos (campo codigo_tributacao_municipio do envio). Opcional.
+                    [e] en
+                        [v] Municipality taxation code, 3 digits (the codigo_tributacao_municipio field of the submission). Optional.
+        [d] codigoNbs: Texto(9)
+            @
+                [e] cn
+                    [v] codigo_nbs
+                [e] title
+                    [e] pt
+                        [v] Código NBS
+                    [e] en
+                        [v] NBS Code
+                [e] description
+                    [e] pt
+                        [v] Nomenclatura Brasileira de Serviços, 9 dígitos (campo codigo_nbs do envio). Opcional.
+                    [e] en
+                        [v] Brazilian Services Nomenclature, 9 digits (the codigo_nbs field of the submission). Optional.
+    [g] descricao
+        [d] descricaoCurta: Texto(200)
+            @
+                [e] cn
+                    [v] descricao_curta
+                [e] title
+                    [e] pt
+                        [v] Descrição Curta
+                    [e] en
+                        [v] Short Description
+                [e] description
+                    [e] pt
+                        [v] Descrição de até 200 caracteres (campo descricao do envio), usada só no PDF. Opcional.
+                    [e] en
+                        [v] Description up to 200 characters (the descricao field of the submission), used only in the PDF. Optional.
+        [d] discriminacaoPadrao: Texto(2000)
+            @
+                [e] cn
+                    [v] discriminacao_padrao
+                [e] title
+                    [e] pt
+                        [v] Discriminação Padrão
+                    [e] en
+                        [v] Default Breakdown
+                [e] description
+                    [e] pt
+                        [v] Texto padrão da discriminação do serviço, até 2000 caracteres (campo discriminacao do envio, obrigatório na nota).
+                          | Quebra de linha só com \n. Opcional no cadastro, a nota pode informar a sua.
+                    [e] en
+                        [v] Default service breakdown text, up to 2000 characters (the discriminacao field of the submission, required on the note).
+                          | Line break only with \n. Optional in the registry, the note may provide its own.
+    [g] tributacao
+        [d] valorPadrao: ValorMonetario(15,2)
+            @
+                [e] cn
+                    [v] valor_padrao
+                [e] title
+                    [e] pt
+                        [v] Valor Padrão
+                    [e] en
+                        [v] Default Amount
+                [e] description
+                    [e] pt
+                        [v] Valor sugerido do serviço (valor_servicos do envio, mínimo 0.01 na nota). Opcional, a nota pode alterar.
+                    [e] en
+                        [v] Suggested service amount (valor_servicos of the submission, minimum 0.01 on the note). Optional, the note may change it.
+        [d] aliquotaIss: Decimal(5,2)
+            @
+                [e] cn
+                    [v] aliquota_iss
+                [e] title
+                    [e] pt
+                        [v] Alíquota do ISS
+                    [e] en
+                        [v] ISS Rate
+                [e] description
+                    [e] pt
+                        [v] Alíquota do ISS em pontos percentuais, de 0 a 100 (5.00 significa 5%). Campo aliquota_iss do envio. Opcional.
+                    [e] en
+                        [v] ISS rate in percentage points, from 0 to 100 (5.00 means 5%). The aliquota_iss field of the submission. Optional.
+        [d] issRetido: Boolean()
+            @
+                [e] cn
+                    [v] iss_retido
+                [e] title
+                    [e] pt
+                        [v] ISS Retido
+                    [e] en
+                        [v] ISS Withheld
+                [e] description
+                    [e] pt
+                        [v] Indica se o ISS é retido pelo tomador (campo iss_retido do envio). Padrão não.
+                    [e] en
+                        [v] Tells whether ISS is withheld by the taker (the iss_retido field of the submission). Default no.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] false
+        [d] tipoOperacaoIss: Inteiro(1)
+            @
+                [e] cn
+                    [v] tipo_operacao_iss
+                [e] title
+                    [e] pt
+                        [v] Tipo da Operação do ISS
+                    [e] en
+                        [v] ISS Operation Type
+                [e] description
+                    [e] pt
+                        [v] Tipo da operação para o ISS (campo tributos_municipais.tipo_operacao do envio). Padrão 1, tributável.
+                    [e] en
+                        [v] Operation type for ISS (the tributos_municipais.tipo_operacao field of the submission). Default 1, taxable.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] 1
+                [e] values
+                    [e] tributavel
+                        [v] 1
+                        [v] Tributável
+                    [e] imunidade
+                        [v] 2
+                        [v] Imunidade
+                    [e] exportacao
+                        [v] 3
+                        [v] Exportação
+                    [e] naoIncidencia
+                        [v] 4
+                        [v] Não incidência
+        [d] cstPisCofins: Texto(2)
+            @
+                [e] cn
+                    [v] cst_pis_cofins
+                [e] title
+                    [e] pt
+                        [v] Situação PIS/COFINS Padrão
+                    [e] en
+                        [v] Default PIS/COFINS Status
+                [e] description
+                    [e] pt
+                        [v] CST do PIS/COFINS, 2 dígitos (campo tributos_nacionais.cst do envio, obrigatório na nota). Texto porque a lista é longa
+                          | e vem da tabela de CST PIS/COFINS da documentação do IntegraNotas. Opcional no cadastro, a nota informa se faltar.
+                    [e] en
+                        [v] PIS/COFINS CST, 2 digits (the tributos_nacionais.cst field of the submission, required on the note). Text because the list is long
+                          | and comes from the PIS/COFINS CST table in the IntegraNotas documentation. Optional in the registry, the note provides it if missing.
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno do serviço (UUID).
+                    [e] en
+                        [v] Internal service identifier (UUID).
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o serviço foi cadastrado.
+                    [e] en
+                        [v] Date and time the service was registered.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true
+    [g] relacionamentos
+        [r] emitente: Emitente()
+            @
+                [e] cn
+                    [v] emitente_id
+                [e] title
+                    [e] pt
+                        [v] Emitente
+                    [e] en
+                        [v] Issuer
+                [e] description
+                    [e] pt
+                        [v] Emitente dono deste serviço e tenant do registro. Todo acesso é filtrado por ele.
+                    [e] en
+                        [v] Issuer that owns this service and tenant of the record. Every access is filtered by it.
+                [e] required
+                    [v] true
+                [e] tenantKey
+                    [v] true
