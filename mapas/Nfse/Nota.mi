@@ -151,49 +151,49 @@
                         [v] Special taxation regime, from 0 to 9 (the regime_tributacao field of the submission). Default 0, none. Optional.
                 [e] defaultValue
                     [v] 0
-    [g] tomadorEmissao
-        [d] tomadorCnpj: Texto(14)
+    [g] pessoaEmissao
+        [d] cnpjPessoa:Texto(14)
             @
                 [e] cn
-                    [v] tomador_cnpj
+                    [v] pessoa_cnpj
                 [e] title
                     [e] pt
-                        [v] CNPJ do Tomador na Emissão
+                        [v] CNPJ da Pessoa na Emissão
                     [e] en
-                        [v] Taker CNPJ at Issuance
+                        [v] Person CNPJ at Issuance
                 [e] description
                     [e] pt
-                        [v] Retrato do CNPJ do tomador no momento da emissão, só dígitos. Opcional: informe CNPJ ou CPF. Não muda se o cadastro da Pessoa mudar depois.
+                        [v] Retrato do CNPJ da pessoa no momento da emissão, só dígitos. Opcional: informe CNPJ ou CPF. Não muda se o cadastro da Pessoa mudar depois.
                     [e] en
-                        [v] Snapshot of the taker CNPJ at the moment of issuance, digits only. Optional: provide CNPJ or CPF. Does not change if the Pessoa record changes later.
-        [d] tomadorCpf: Texto(11)
+                        [v] Snapshot of the person CNPJ at the moment of issuance, digits only. Optional: provide CNPJ or CPF. Does not change if the Pessoa record changes later.
+        [d] cpfPessoa:Texto(11)
             @
                 [e] cn
-                    [v] tomador_cpf
+                    [v] pessoa_cpf
                 [e] title
                     [e] pt
-                        [v] CPF do Tomador na Emissão
+                        [v] CPF da Pessoa na Emissão
                     [e] en
-                        [v] Taker CPF at Issuance
+                        [v] Person CPF at Issuance
                 [e] description
                     [e] pt
-                        [v] Retrato do CPF do tomador no momento da emissão, só dígitos. Opcional: informe CNPJ ou CPF. Não muda se o cadastro da Pessoa mudar depois.
+                        [v] Retrato do CPF da pessoa no momento da emissão, só dígitos. Opcional: informe CNPJ ou CPF. Não muda se o cadastro da Pessoa mudar depois.
                     [e] en
-                        [v] Snapshot of the taker CPF at the moment of issuance, digits only. Optional: provide CNPJ or CPF. Does not change if the Pessoa record changes later.
-        [d] tomadorRazaoSocial: Texto(300)
+                        [v] Snapshot of the person CPF at the moment of issuance, digits only. Optional: provide CNPJ or CPF. Does not change if the Pessoa record changes later.
+        [d] razaoSocialPessoa:Texto(300)
             @
                 [e] cn
-                    [v] tomador_razao_social
+                    [v] pessoa_razao_social
                 [e] title
                     [e] pt
-                        [v] Razão Social do Tomador na Emissão
+                        [v] Razão Social da Pessoa na Emissão
                     [e] en
-                        [v] Taker Legal Name at Issuance
+                        [v] Person Legal Name at Issuance
                 [e] description
                     [e] pt
-                        [v] Retrato da razão social ou nome do tomador no momento da emissão. É o que valeu na nota, mesmo que o cadastro da Pessoa mude depois.
+                        [v] Retrato da razão social ou nome da pessoa no momento da emissão. É o que valeu na nota, mesmo que o cadastro da Pessoa mude depois.
                     [e] en
-                        [v] Snapshot of the taker legal name at the moment of issuance. It is what applied to the note, even if the Pessoa record changes later.
+                        [v] Snapshot of the person legal name at the moment of issuance. It is what applied to the note, even if the Pessoa record changes later.
                 [e] required
                     [v] true
     [g] servico
@@ -915,20 +915,20 @@
                     [v] true
                 [e] tenantKey
                     [v] true
-        [r] tomador: Pessoa()
+        [r] pessoa: Pessoa()
             @
                 [e] cn
-                    [v] tomador_id
+                    [v] pessoa_id
                 [e] title
                     [e] pt
-                        [v] Tomador
+                        [v] Pessoa
                     [e] en
-                        [v] Taker
+                        [v] Person
                 [e] description
                     [e] pt
-                        [v] Pessoa no papel de tomador do serviço, da mesma empresa. É referência de origem, os dados fiscais enviados ficam na nota. O nome do papel é mantido (tomador) porque é o papel da pessoa nesta nota.
+                        [v] Pessoa da mesma empresa que é a tomadora do serviço nesta nota. É referência de origem, os dados fiscais enviados ficam na nota.
                     [e] en
-                        [v] Person in the role of service taker, of the same company. It is an origin reference, the tax data sent stays on the note.
+                        [v] Person of the same company who is the service taker on this note. It is an origin reference, the tax data sent stays on the note.
                 [e] required
                     [v] true
         [r] servico: Servico()

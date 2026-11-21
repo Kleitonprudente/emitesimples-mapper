@@ -16,3 +16,9 @@ Tier B. Fatos verificados em 2026-11-20.
 - Você não fala com a API do IntegraNotas e não emite nota.
 - Parâmetros do `generate` divergem por gerador: `struct` usa `className`+`packageName`; os `quarkus` usam `modelName`+`package` (pacote COMPLETO do DOM, ex.: `br.com.emitesimples.domain.cadastros`). Param errado = saída vazia, sem erro. `swagger restAPI` usa `packageName`.
 - Validação 4 (2026-11-20): segundo push feito (ValorTeste desregistrado, EMI9001 do swagger corrigido); escada e 8 compiles OK. Não há mais push autorizado sem novo aval.
+- **Prova de compilação (2026-11-20)**: o código gerado vive no projeto irmão `emitesimples-api` (`scripts/gerar.sh` gera 72
+  arquivos Java + 5 OpenAPI a partir do mapa na nuvem, sem push). Com JDK 25.0.5.1 + Maven 3.10.1 + Quarkus 3.33.4.2,
+  `mvn -B compile` e `mvn -B package -DskipTests` dão BUILD SUCCESS (76 fontes). Só o `javac` pega erros que o `struct` e o
+  `generate` não pegam (ex.: parâmetros duplicados `<relação><Campo>`). Para rodar o Maven sem mexer no PATH do Windows:
+  `export JAVA_HOME="/c/Program Files/Java/jdk-25.0.5.1"; export PATH="$JAVA_HOME/bin:/c/Program Files/apache-maven/apache-maven-3.10.1/bin:$PATH"`.
+  Se o `clean` falhar com "Failed to delete target\classes", é lock de processo: apague `target/` e rode sem `clean`.

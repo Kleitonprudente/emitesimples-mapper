@@ -20,7 +20,7 @@ Tier B. Fontes principais: `docs/integranotas-nfse-v2.md` (NFS-e: envio v2, cons
 
 ## O que a API v2 exige no envio (resumo; detalhe no doc)
 - Raiz obrigatória: `data_emissao`, `numero` (1 a 9 dígitos), `serie` (1 a 5 dígitos).
-- Tomador: `razao_social` e endereço (`logradouro`, `numero`, `bairro`, `uf`); `cnpj` ou `cpf`.
+- Tomador (hoje a entidade `Pessoa`): `razao_social` e endereço (`logradouro`, `numero`, `bairro`, `uf`); `cnpj` ou `cpf`.
 - Serviço: `codigo` (6 dígitos, LC 116), `discriminacao` (até 2000), `valor_servicos` (mínimo 0.01).
 - `tributos_nacionais.cst` e o bloco `ibs_cbs` têm campos obrigatórios; se os blocos são obrigatórios por si, o schema
   não diz: confirmar em homologação antes de tornar opcional no mapa.
@@ -71,4 +71,10 @@ Corpo da notificação do webhook, compactação do XML/PDF dele; rotas auxiliar
 
 ## Regras
 - Ambiente (homologação ou produção) é campo de controle. Segredos (token, senha do certificado) nunca em entidade.
+- **NUNCA nomeie um atributo como `<nomeDaRelação><Campo>`** (descoberto no primeiro `mvn compile`, 2026-11-20). Para cada
+  campo pesquisável da classe alvo de uma relação `[r] pessoa`, os geradores `repository` e `resource` criam um parâmetro
+  de filtro `pessoaCnpj`, `pessoaCpf`, `pessoaRazaoSocial`; um atributo da mesma classe com esse nome gera "variable is
+  already defined" e o Java não compila. O `struct` e o `generate` NÃO pegam isso: só o `javac`. Por isso o retrato da pessoa
+  na Nota se chama `cnpjPessoa`, `cpfPessoa`, `razaoSocialPessoa` (o sufixo evita o prefixo da relação), e a relação da
+  Nota com a Pessoa é `[r] pessoa` (antes `tomador`). **Confirmado: `mvn compile` e `mvn package` passam (2026-11-20).**
 - Nenhum agente emite nota, exceto para testar, em homologação.
