@@ -8,13 +8,15 @@
         [e] description
             [e] pt
                 [v] Município brasileiro identificado pelo código IBGE de 7 dígitos. Dado de referência compartilhado:
-                  | endereço de Empresa e Pessoa aponta para ele. Nenhum município existe sem código IBGE.
+                  | endereço de Empresa aponta para ele, e a Pessoa o referencia por cidade e UF (relação cidade): a tela mostra cidade e UF e esconde o IBGE, que está direto aqui.
+                  | O par (nome, UF) é único, regra documentada e não expressa no mapa. O Municipio é buscado por nome e UF. Nenhum município existe sem código IBGE.
                   | Vive no contexto cadastros (domain.cadastros). Há dependência mútua entre os contextos configuracao e cadastros:
                   | a Empresa (configuracao) referencia o Municipio, e Pessoa e Servico (cadastros) referenciam a Empresa.
                   | Municipio e Empresa devem ser modelados juntos.
             [e] en
                 [v] Brazilian municipality identified by its 7-digit IBGE code. Shared reference data:
-                  | the address of Empresa and Pessoa points to it. No municipality exists without an IBGE code.
+                  | the address of Empresa points to it, and Pessoa references it by city and state (city relation): the screen shows city and state and hides the IBGE, which lives right here.
+                  | The pair (name, state) is unique, a documented rule not expressed in the map. Municipio is looked up by name and state. No municipality exists without an IBGE code.
                   | Lives in the cadastros context (domain.cadastros). There is a mutual dependency between the configuracao and cadastros contexts:
                   | Empresa (configuracao) references Municipio, and Pessoa and Servico (cadastros) reference Empresa.
                   | Municipio and Empresa must be modeled together.
@@ -72,6 +74,8 @@
                     [e] en
                         [v] Federative unit abbreviation of the municipality, 2 uppercase letters (e.g. SP).
                 [e] required
+                    [v] true
+                [e] searchable
                     [v] true
     [g] controle
         [d] id: Texto(36)

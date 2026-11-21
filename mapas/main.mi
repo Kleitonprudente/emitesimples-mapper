@@ -166,6 +166,9 @@
             [b] Servico
                 #
                     Cadastros/Servico.mi
+            [b] Contato
+                #
+                    Cadastros/Contato.mi
         [p] usuarios
             @
                 [e] title

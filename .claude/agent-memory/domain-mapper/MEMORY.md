@@ -66,6 +66,23 @@ e `rps_numero`/`rps_serie` (atributos opcionais da Nota, não entidade).
 - Pack Quarkus: pacote no padrão `<raiz>.domain.<contexto>`; `id: Texto(36)` em toda entidade; `cn` também nas
   relações; `Inteiro(n)` com tamanho; sem `:` em description de pacote.
 
+## Cadastro de Pessoa (pedido do usuário em 2026-11-21; fonte: `docs/historias-cadastro-pessoa.md`)
+- `Pessoa` (13 entidades no mapa): `documento` único (Texto(14), só dígitos; 14 é CNPJ, 11 é CPF; no envio ao IntegraNotas
+  o sistema separa em `cnpj` ou `cpf`, que lá são campos distintos, mas só UM é enviado), `rgInscricaoEstadual` único,
+  `nome` (= razão social), `nomeFantasia`, `inscricaoMunicipal`, `tipoPessoa` (`fisica` ou `juridica`), `consumidorFinal`
+  (Boolean, defaultValue true; pessoa jurídica com inscrição estadual vira não: regra de aplicação), `tipoDestinatario`,
+  endereço, e-mail e telefone. Retirados: nif, dispensaNif, caepf, tipoEnteGovernamental. **Mantidos** os 4 campos de
+  exportação (decisão do usuário).
+- **Cidade**: relação `[r] cidade` (opcional, por causa da exportação) para `Municipio`, que guarda nome, UF e o **IBGE**. O
+  IBGE NÃO é visível ao usuário: sai de cidade+UF. A Pessoa não tem `uf` nem IBGE. (nome, UF) é único (só documentado).
+- **Contato** (`[m] pessoa`, coleção `[o] contatos`; `[r] empresa` com tenantKey): `tipoContato` (socio, financeiro,
+  comercial, fiscal, outro: confirmados pelo usuário), `nome` (acrescentado porque os sócios do QSA do CNPJ.ws entram como
+  contatos), `whatsapp`, `email`. Vários contatos por pessoa.
+- Retrato da pessoa na Nota: `documentoPessoa` (documento único, decisão do usuário) e `razaoSocialPessoa`.
+- Pendente (fora do mapa): carga da tabela de cidades com as ~5.570 cidades e o IBGE; integrações CNPJ.ws e BrasilAPI (CEP)
+  ainda não lidas.
+- Estado: `mvn compile` e `mvn package` passam com 13 entidades, 82 fontes (2026-11-21).
+
 ## Não confirmado
 Corpo da notificação do webhook, compactação do XML/PDF dele; rotas auxiliares da v2; quais blocos do envio são obrigatórios por si; prazos de cancelamento por município.
 

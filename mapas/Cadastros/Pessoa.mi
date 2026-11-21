@@ -7,122 +7,95 @@
                 [v] Person
         [e] description
             [e] pt
-                [v] Cadastro de pessoa, reutilizável nas emissões, que na nota assume o papel de tomador do serviço. É por empresa: o mesmo CNPJ ou CPF pode existir
-                  | uma vez em cada empresa, e uma empresa nunca enxerga a pessoa de outra. Identifica-se por CNPJ ou CPF, um ou outro.
-                  | Na exportação o endereço não tem município brasileiro e usa os campos de exterior.
+                [v] Cadastro de cliente, física ou jurídica, reutilizável nas emissões, que na nota assume o papel de tomador do serviço. É por empresa: o mesmo documento pode existir
+                  | uma vez em cada empresa, e uma empresa nunca enxerga a pessoa de outra.
+                  | Tem um só documento (CNPJ ou CPF, um ou outro). Ao enviar a NFS-e, o sistema separa o documento em cnpj ou cpf, que no IntegraNotas são campos distintos.
+                  | A cidade é uma referência ao Municipio, que já traz a UF e o código IBGE: a tela mostra cidade e UF e esconde o IBGE.
+                  | Os contatos são uma lista (Contato), com vários por pessoa. Na exportação o endereço não tem município brasileiro e usa os campos de exterior.
                   | Vive no contexto cadastros (domain.cadastros), que referencia a Empresa (configuracao) e tem dependência mútua com ele, pois a Empresa referencia o Municipio, que está em cadastros.
             [e] en
-                [v] Registry of a person, reusable across issues, who takes the role of service taker (tomador) on the note. It is per company: the same CNPJ or CPF may exist
-                  | once in each company, and a company never sees another company person. Identified by CNPJ or CPF, one or the other.
-                  | On export the address has no Brazilian municipality and uses the foreign fields.
+                [v] Registry of a customer, individual or legal entity, reusable across issues, who takes the role of service taker (tomador) on the note. It is per company: the same document may exist
+                  | once in each company, and a company never sees another company person.
+                  | It has a single document (CNPJ or CPF, one or the other). When sending the NFS-e, the system splits the document into cnpj or cpf, which are distinct fields in IntegraNotas.
+                  | The city is a reference to Municipio, which already carries the state and the IBGE code: the screen shows city and state and hides the IBGE.
+                  | Contacts are a list (Contato), several per person. On export the address has no Brazilian municipality and uses the foreign fields.
                   | Lives in the cadastros context (domain.cadastros), which references Empresa (configuracao) and has a mutual dependency with it, since Empresa references Municipio, which is in cadastros.
     [g] identificacao
-        [d] razaoSocial: Texto(300)
+        [d] tipoPessoa: Texto(10)
             @
                 [e] cn
-                    [v] razao_social
+                    [v] tipo_pessoa
                 [e] title
                     [e] pt
-                        [v] Razão Social
+                        [v] Tipo de Pessoa
                     [e] en
-                        [v] Legal Name
+                        [v] Person Type
                 [e] description
                     [e] pt
-                        [v] Nome ou razão social do tomador (campo razao_social do envio). Obrigatório.
+                        [v] Física ou jurídica. Define como se lê o documento: jurídica tem CNPJ de 14 dígitos, física tem CPF de 11 dígitos. Obrigatório.
                     [e] en
-                        [v] Name or legal name of the taker (the razao_social field of the submission). Required.
+                        [v] Individual or legal entity. It defines how the document is read: legal entity has a 14-digit CNPJ, individual has an 11-digit CPF. Required.
+                [e] values
+                    [e] fisica
+                        [v] fisica
+                        [v] Pessoa física (documento CPF, 11 dígitos)
+                    [e] juridica
+                        [v] juridica
+                        [v] Pessoa jurídica (documento CNPJ, 14 dígitos)
+                [e] required
+                    [v] true
+        [d] documento: Texto(14)
+            @
+                [e] cn
+                    [v] documento
+                [e] title
+                    [e] pt
+                        [v] CNPJ / CPF
+                    [e] en
+                        [v] CNPJ / CPF
+                [e] description
+                    [e] pt
+                        [v] Documento da pessoa, só dígitos, sem formatação: 14 dígitos é CNPJ (pessoa jurídica) e 11 dígitos é CPF (pessoa física), coerente com o tipo de pessoa.
+                          | É um ou outro, nunca os dois. Ao enviar a NFS-e vai como cnpj ou cpf conforme o tamanho. CPF é dado pessoal, sujeito a mascaramento nas respostas. Único dentro da empresa.
+                    [e] en
+                        [v] Document of the person, digits only, unformatted: 14 digits is a CNPJ (legal entity) and 11 digits is a CPF (individual), consistent with the person type.
+                          | One or the other, never both. When sending the NFS-e it goes as cnpj or cpf according to its length. CPF is personal data, subject to masking in responses. Unique within the company.
+                [e] searchable
+                    [v] true
+        [d] nome: Texto(300)
+            @
+                [e] cn
+                    [v] nome
+                [e] title
+                    [e] pt
+                        [v] Nome / Razão Social
+                    [e] en
+                        [v] Name / Legal Name
+                [e] description
+                    [e] pt
+                        [v] Nome da pessoa física ou razão social da pessoa jurídica (vai no campo razao_social do envio). Obrigatório.
+                    [e] en
+                        [v] Name of the individual or legal name of the legal entity (goes in the razao_social field of the submission). Required.
                 [e] required
                     [v] true
                 [e] searchable
                     [v] true
-        [d] cnpj: Texto(14)
+        [d] nomeFantasia: Texto(300)
             @
                 [e] cn
-                    [v] cnpj
+                    [v] nome_fantasia
                 [e] title
                     [e] pt
-                        [v] CNPJ
+                        [v] Nome Fantasia
                     [e] en
-                        [v] CNPJ
+                        [v] Trade Name
                 [e] description
                     [e] pt
-                        [v] CNPJ do tomador pessoa jurídica, 14 dígitos sem formatação. Informe CNPJ ou CPF, um ou outro, nunca os dois.
-                          | Pode ficar vazio nos dois quando o tomador é do exterior e se identifica por NIF. Único dentro da empresa.
+                        [v] Nome fantasia da pessoa jurídica. Opcional. O nome nomeFantasia é o que já consta na lista de busca do projeto (nondeterministicSearchField), por isso o campo é pesquisável.
                     [e] en
-                        [v] CNPJ of a legal-entity taker, 14 digits without formatting. Provide CNPJ or CPF, one or the other, never both.
-                          | May be empty in both when the taker is foreign and identified by NIF. Unique within the company.
+                        [v] Trade name of the legal entity. Optional. The name nomeFantasia is the one already in the project search list (nondeterministicSearchField), so the field is searchable.
                 [e] searchable
                     [v] true
-        [d] cpf: Texto(11)
-            @
-                [e] cn
-                    [v] cpf
-                [e] title
-                    [e] pt
-                        [v] CPF
-                    [e] en
-                        [v] CPF
-                [e] description
-                    [e] pt
-                        [v] CPF do tomador pessoa física, 11 dígitos sem formatação. Informe CNPJ ou CPF, um ou outro, nunca os dois.
-                          | Dado pessoal, sujeito a mascaramento nas respostas. Único dentro da empresa.
-                    [e] en
-                        [v] CPF of an individual taker, 11 digits without formatting. Provide CNPJ or CPF, one or the other, never both.
-                          | Personal data, subject to masking in responses. Unique within the company.
-                [e] searchable
-                    [v] true
-        [d] nif: Texto(40)
-            @
-                [e] cn
-                    [v] nif
-                [e] title
-                    [e] pt
-                        [v] NIF
-                    [e] en
-                        [v] Foreign Tax ID
-                [e] description
-                    [e] pt
-                        [v] Número de identificação fiscal do tomador estrangeiro (campo nif do envio). Opcional.
-                    [e] en
-                        [v] Tax identification number of a foreign taker (the nif field of the submission). Optional.
-        [d] dispensaNif: Inteiro(1)
-            @
-                [e] cn
-                    [v] dispensa_nif
-                [e] title
-                    [e] pt
-                        [v] Motivo da Dispensa do NIF
-                    [e] en
-                        [v] NIF Waiver Reason
-                [e] description
-                    [e] pt
-                        [v] Indica a dispensa do NIF (campo dispensa_nif do envio), valores 0, 1 e 2. Opcional. Confirmado pelo schema oficial.
-                    [e] en
-                        [v] Indicates the NIF waiver (the dispensa_nif field of the submission), values 0, 1 and 2. Optional. Confirmed by the official schema.
-                [e] values
-                    [e] naoInformado
-                        [v] 0
-                        [v] Não informado na nota de origem
-                    [e] dispensado
-                        [v] 1
-                        [v] Dispensado do NIF
-                    [e] naoExigencia
-                        [v] 2
-                        [v] Não exigência do NIF
-        [d] caepf: Texto(14)
-            @
-                [e] cn
-                    [v] caepf
-                [e] title
-                    [e] pt
-                        [v] CAEPF
-                    [e] en
-                        [v] CAEPF
-                [e] description
-                    [e] pt
-                        [v] Cadastro de Atividade Econômica da Pessoa Física do tomador (campo caepf do envio). Opcional.
-                    [e] en
-                        [v] Individual economic activity registry of the taker (the caepf field of the submission). Optional.
         [d] inscricaoMunicipal: Texto(15)
             @
                 [e] cn
@@ -134,36 +107,25 @@
                         [v] Municipal Registration
                 [e] description
                     [e] pt
-                        [v] Inscrição municipal do tomador (campo im do envio). Opcional.
+                        [v] Inscrição municipal da pessoa (campo im do envio). Opcional.
                     [e] en
-                        [v] Municipal registration of the taker (the im field of the submission). Optional.
-        [d] tipoEnteGovernamental: Inteiro(1)
+                        [v] Municipal registration of the person (the im field of the submission). Optional.
+        [d] rgInscricaoEstadual: Texto(20)
             @
                 [e] cn
-                    [v] tipo_ente_governamental
+                    [v] rg_inscricao_estadual
                 [e] title
                     [e] pt
-                        [v] Tipo de Ente Governamental
+                        [v] RG / Inscrição Estadual
                     [e] en
-                        [v] Government Entity Type
+                        [v] RG / State Registration
                 [e] description
                     [e] pt
-                        [v] Esfera do tomador quando é ente governamental (campo tipo_ente_governamental do envio). Opcional.
+                        [v] Um só campo: RG quando a pessoa é física, inscrição estadual quando é jurídica. Opcional.
+                          | Regra de aplicação: pessoa jurídica com inscrição estadual preenchida marca consumidorFinal como não.
                     [e] en
-                        [v] Sphere of the taker when it is a government entity (the tipo_ente_governamental field of the submission). Optional.
-                [e] values
-                    [e] uniao
-                        [v] 1
-                        [v] União
-                    [e] estado
-                        [v] 2
-                        [v] Estado
-                    [e] distritoFederal
-                        [v] 3
-                        [v] Distrito Federal
-                    [e] municipio
-                        [v] 4
-                        [v] Município
+                        [v] A single field: RG when the person is an individual, state registration when it is a legal entity. Optional.
+                          | Application rule: a legal entity with the state registration filled sets consumidorFinal to no.
         [d] tipoDestinatario: Inteiro(1)
             @
                 [e] cn
@@ -185,6 +147,24 @@
                     [e] outroDestinatario
                         [v] 1
                         [v] O destinatário não é o próprio adquirente (outra pessoa ou outro estabelecimento)
+        [d] consumidorFinal: Boolean()
+            @
+                [e] cn
+                    [v] consumidor_final
+                [e] title
+                    [e] pt
+                        [v] Consumidor Final
+                    [e] en
+                        [v] End Consumer
+                [e] description
+                    [e] pt
+                        [v] Indica se a pessoa é consumidora final, sim ou não. Padrão sim (true), que é o da pessoa física.
+                          | Regra de aplicação, não do mapa: pessoa jurídica com inscrição estadual preenchida passa a não.
+                    [e] en
+                        [v] Tells whether the person is an end consumer, yes or no. Default yes (true), which is the individual default.
+                          | Application rule, not a map rule: a legal entity with the state registration filled becomes no.
+                [e] defaultValue
+                    [v] true
     [g] contato
         [d] telefone: Texto(20)
             @
@@ -197,9 +177,9 @@
                         [v] Phone
                 [e] description
                     [e] pt
-                        [v] Telefone do tomador, só números. Opcional.
+                        [v] Telefone principal da pessoa, só números. Opcional. Outros contatos ficam na lista de contatos.
                     [e] en
-                        [v] Phone of the taker, numbers only. Optional.
+                        [v] Main phone of the person, numbers only. Optional. Other contacts go in the contact list.
         [d] email: Texto(60)
             @
                 [e] cn
@@ -211,9 +191,9 @@
                         [v] Email
                 [e] description
                     [e] pt
-                        [v] E-mail do tomador, até 60 caracteres. Opcional.
+                        [v] E-mail principal da pessoa, até 60 caracteres. Opcional. Outros contatos ficam na lista de contatos.
                     [e] en
-                        [v] Email of the taker, up to 60 characters. Optional.
+                        [v] Main email of the person, up to 60 characters. Optional. Other contacts go in the contact list.
     [g] endereco
         [d] logradouro: Texto(255)
             @
@@ -226,9 +206,9 @@
                         [v] Street
                 [e] description
                     [e] pt
-                        [v] Rua, avenida ou similar do endereço do tomador. Obrigatório.
+                        [v] Rua, avenida ou similar do endereço da pessoa. Obrigatório.
                     [e] en
-                        [v] Street of the taker address. Required.
+                        [v] Street of the person address. Required.
                 [e] required
                     [v] true
         [d] numeroEndereco: Texto(60)
@@ -288,9 +268,9 @@
                         [v] Postal Code
                 [e] description
                     [e] pt
-                        [v] CEP de 8 dígitos sem hífen, texto para preservar zeros à esquerda. Opcional.
+                        [v] CEP de 8 dígitos sem hífen, texto para preservar zeros à esquerda. Opcional. A consulta de CEP (BrasilAPI) preenche o endereço e a cidade.
                     [e] en
-                        [v] Postal code of 8 digits without hyphen, text to preserve leading zeros. Optional.
+                        [v] Postal code of 8 digits without hyphen, text to preserve leading zeros. Optional. The postal code lookup (BrasilAPI) fills in the address and the city.
     [g] exterior
         [d] codigoPais: Texto(4)
             @
@@ -303,10 +283,10 @@
                         [v] Country Code
                 [e] description
                     [e] pt
-                        [v] Código do país do endereço no exterior, de 3 a 4 dígitos (campo codigo_pais do envio). Só na exportação. Quando preenchido e sem município,
+                        [v] Código do país do endereço no exterior, de 3 a 4 dígitos (campo codigo_pais do envio). Só na exportação. Quando preenchido e sem cidade,
                           | o endereço é de exportação e a UF enviada ao gateway é EX, derivada pelo sistema na montagem do envio, sem atributo uf.
                     [e] en
-                        [v] Country code of the foreign address (the codigo_pais field of the submission). Export only. When filled and with no municipality,
+                        [v] Country code of the foreign address (the codigo_pais field of the submission). Export only. When filled and with no city,
                           | the address is an export address and the state sent to the gateway is EX, derived by the system when building the submission, with no uf attribute.
         [d] codigoPostal: Texto(11)
             @
@@ -418,19 +398,35 @@
                     [v] true
                 [e] tenantKey
                     [v] true
-        [r] municipio: Municipio()
+        [r] cidade: Municipio()
             @
                 [e] cn
-                    [v] municipio_id
+                    [v] cidade_id
                 [e] title
                     [e] pt
-                        [v] Município
+                        [v] Cidade
                     [e] en
-                        [v] Municipality
+                        [v] City
                 [e] description
                     [e] pt
-                        [v] Município brasileiro do endereço. Traz código IBGE, nome e UF (campos codigo_municipio e uf do envio).
+                        [v] Cidade do endereço, referência ao Municipio, que traz nome, UF e código IBGE (campos codigo_municipio e uf do envio).
+                          | A tela mostra cidade e UF e esconde o IBGE, que é obtido do Municipio buscado por nome e UF. Não há atributos uf nem IBGE na pessoa.
                           | Opcional apenas porque na exportação o endereço não tem município brasileiro.
                     [e] en
-                        [v] Brazilian municipality of the address. It carries IBGE code, name and state (the codigo_municipio and uf fields of the submission).
+                        [v] City of the address, a reference to Municipio, which carries name, state and IBGE code (the codigo_municipio and uf fields of the submission).
+                          | The screen shows city and state and hides the IBGE, which comes from the Municipio looked up by name and state. There are no uf or IBGE attributes on the person.
                           | Optional only because on export the address has no Brazilian municipality.
+        [o] contatos: Contato()
+            @
+                [e] cn
+                    [v] contatos
+                [e] title
+                    [e] pt
+                        [v] Contatos
+                    [e] en
+                        [v] Contacts
+                [e] description
+                    [e] pt
+                        [v] Lista de contatos da pessoa, com vários itens. Só existem dentro da pessoa, no mesmo contexto. Os sócios do QSA da consulta de CNPJ entram aqui.
+                    [e] en
+                        [v] List of contacts of the person, with several items. They only exist within the person, in the same context. The partners from the CNPJ lookup (QSA) go here.

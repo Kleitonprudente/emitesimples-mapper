@@ -152,34 +152,20 @@
                 [e] defaultValue
                     [v] 0
     [g] pessoaEmissao
-        [d] cnpjPessoa:Texto(14)
+        [d] documentoPessoa:Texto(14)
             @
                 [e] cn
-                    [v] pessoa_cnpj
+                    [v] pessoa_documento
                 [e] title
                     [e] pt
-                        [v] CNPJ da Pessoa na Emissão
+                        [v] Documento da Pessoa na Emissão
                     [e] en
-                        [v] Person CNPJ at Issuance
+                        [v] Person Document at Issuance
                 [e] description
                     [e] pt
-                        [v] Retrato do CNPJ da pessoa no momento da emissão, só dígitos. Opcional: informe CNPJ ou CPF. Não muda se o cadastro da Pessoa mudar depois.
+                        [v] Retrato do documento da Pessoa no momento da emissão, só dígitos (14 dígitos é CNPJ, 11 é CPF). No envio ao IntegraNotas o sistema o separa em cnpj ou cpf, que lá são campos distintos de que só um é enviado. Opcional porque uma pessoa estrangeira (exportação) pode não ter documento. Não muda se o cadastro da Pessoa mudar depois.
                     [e] en
-                        [v] Snapshot of the person CNPJ at the moment of issuance, digits only. Optional: provide CNPJ or CPF. Does not change if the Pessoa record changes later.
-        [d] cpfPessoa:Texto(11)
-            @
-                [e] cn
-                    [v] pessoa_cpf
-                [e] title
-                    [e] pt
-                        [v] CPF da Pessoa na Emissão
-                    [e] en
-                        [v] Person CPF at Issuance
-                [e] description
-                    [e] pt
-                        [v] Retrato do CPF da pessoa no momento da emissão, só dígitos. Opcional: informe CNPJ ou CPF. Não muda se o cadastro da Pessoa mudar depois.
-                    [e] en
-                        [v] Snapshot of the person CPF at the moment of issuance, digits only. Optional: provide CNPJ or CPF. Does not change if the Pessoa record changes later.
+                        [v] Snapshot of the Pessoa document at the moment of issuance, digits only (14 digits is CNPJ, 11 is CPF). When submitting to IntegraNotas the system splits it into cnpj or cpf, which there are distinct fields of which only one is sent. Optional because a foreign person (export) may have no document. Does not change if the Pessoa record changes later.
         [d] razaoSocialPessoa:Texto(300)
             @
                 [e] cn
