@@ -576,19 +576,19 @@
                 [e] body
                     [e] vars
                         [e] var
-                            [v] pacote
-                            [e] expr
-                                [v] substring-before(.,'.')
-                        [e] var
                             [v] tipo
                             [e] expr
-                                [v] substring-after(.,'.')
+                                [v] functx:substring-after-last(., '.')
+                        [e] var
+                            [v] pacote
+                            [e] expr
+                                [v] mi:if-else(contains(., '.'), substring-before(., concat('.', $tipo)), '')
                         [e] var
                             [v] class
                             [e] expr
-                                [v] $classes/class[@name = $tipo and ends-with(@package,$pacote)]
+                                [v] ($classes/class[@name = $tipo and ($pacote = '' or ends-with(@package, concat('.', $pacote)))])[1]
                     [e] if
-                        [v] $class/@package != $inPackage
+                        [v] exists($class) and $class/@package != $inPackage
                         [e] then
                             [e] write-pattern
                                 [v] import

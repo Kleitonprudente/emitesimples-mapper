@@ -690,7 +690,7 @@
                 [v]       {{ @name }}:
                 [v]         type: array
                 [v]         items:
-                [v]           $ref: '#/definitions/{{ @type }}'
+                [v]           $ref: '#/definitions/{{ mi:if-else(exists($class), concat(substring-after($class/@package,'.domain.'),'.',$class/@name), string(@type)) }}'
             [e] defineAttributeMap
                 [v]       {{ @name }}:
                 [v]         type: object
@@ -1198,6 +1198,19 @@
                 [e] match
                     [v] attribute[not(contains($nativeTypes,@type)) and contains(@mode,'oneToMany')]
                 [e] body
+                    [e] vars
+                        [e] var
+                            [v] tipo
+                            [e] expr
+                                [v] functx:substring-after-last(@type, '.')
+                        [e] var
+                            [v] pacote
+                            [e] expr
+                                [v] mi:if-else(contains(@type, '.'), substring-before(@type, concat('.', $tipo)), '')
+                        [e] var
+                            [v] class
+                            [e] expr
+                                [v] (/classes/class[@name = $tipo and ($pacote = '' or ends-with(@package, concat('.', $pacote)))])[1]
                     [e] write-pattern
                         [v] defineAttributeCollection
                     [e] write-pattern
