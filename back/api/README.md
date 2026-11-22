@@ -145,6 +145,8 @@ tudo é negado (`padrao-negar`), e um endpoint novo sob `/api` nasce **fechado p
 | `VinculoUsuario`, `ClienteAcesso` | autenticado | negado (vínculos: só por `/api/admin/usuarios/{id}/vinculos`; `ClienteAcesso` ainda sem endpoint à mão) | negado |
 | `/api/cep/*` | autenticado (qualquer papel) | negado | negado |
 | `/api/configuracao/nfse` (NFS-e da empresa) | administrador, operador, consulta (plat. sem empresa: 403) | só PUT, só administrador da empresa; POST/PATCH negados | negado |
+| `/api/configuracao/empresa` (dados da empresa da sessão) | administrador, operador, consulta (plat. sem empresa: 403) | só PUT, só administrador da empresa; POST/PATCH negados | negado |
+| `/api/configuracao/empresa/certificado` (certificado A1, multipart) | negado | só POST, só administrador da empresa (10/min por usuário); PUT/PATCH negados | negado |
 | `POST /api/webhooks/integranotas/{empresaId}/{token}` | negado | **público** (anônimo; só POST; token HMAC no caminho) | negado; GET/PUT/PATCH e todo o resto de `/api/webhooks/*` negados |
 | `/api/admin/*` (importação de municípios, usuários e vínculos por usuário e por empresa `/api/admin/empresas/{id}/vinculos`) | só plat. | só plat. | negado (usuário e vínculo nunca se apagam) |
 | `/api/admin/configuracoes/integranotas` (config do IntegraNotas) | só plat. (GET lê; PUT grava) | só plat.: só PUT; POST/PATCH negados | negado |
@@ -535,8 +537,7 @@ Decide **sempre pelo `codigo`** do JSON, nunca pelo texto:
 | timeout, rede, DNS | 504 `integranotas_indisponivel` |
 | JSON inválido, corpo > 1 MB, 3xx, 5xx, `sucesso` ausente, sucesso sem `token` | 502 `integranotas_resposta_invalida` |
 
-Pronta para as próximas fases (certificado, envio, consulta, cancelamento): reaproveitam `chamar(metodo, urlBase, caminho, token, corpo)` e
-`interpretar`; nada disso está implementado.
+Operações adicionais sobre `chamar`/`interpretar`: `enviarCertificado` (ver "Certificado digital A1"). Envio, consulta e cancelamento de NFS-e: ainda não implementados.
 
 ### API da empresa: `GET` e `PUT /api/configuracao/nfse`
 
@@ -545,7 +546,7 @@ sessão: 403 `empresa_nao_selecionada` (no PUT, 403 pelo papel). A empresa é se
 
 `GET` -> `{ habilitada, serie|null, ultimoNumero, proximoNumero, ambiente, statusCadastro, dataCadastroGateway|null, emitenteTokenConfigurado,
 certificadoSituacao, validadeCertificado|null, integracaoDisponivel }`. `PUT {habilitada, serie?, ultimoNumero?}` -> 200 com o mesmo corpo.
-O token do emitente **nunca** sai por API (só o boolean).
+O token do emitente **nunca** sai por API (só o boolean). `certificadoSituacao` agora é sempre preenchido (`nao_enviado` sem certificado) e a resposta do PUT pode trazer `avisos` (ver "Certificado digital A1").
 
 **Habilitar** (`habilitada:true`), nesta ordem de validação:
 1. `serie` `^[0-9]{1,5}$` e `ultimoNumero` 0..999999999: senão 400 `requisicao_invalida` (`detalhes.campos`).
@@ -599,6 +600,86 @@ A escrita da Empresa é à mão (EntityManager, RLS ativa); o `/api/Empresa` ger
 - A URL do webhook é uma capacidade (quem a conhece chama o webhook): trate como segredo; trocar a chave-mestra do cofre invalida as URLs já registradas.
 - Sem assinatura verificada, um evento aceito só prova que quem chamou conhece a URL: por isso nasce `pendente`/`nao_verificada` e nada é processado ainda.
 - `integracaoDisponivel` só é exigido quando é preciso criar o emitente (reabilitar com emitente existente funciona mesmo sem o token da softhouse).
+
+## Dados da empresa (administrador da empresa)
+
+Código à mão em `nfseconfig/EmpresaDadosResource` e `EmpresaDadosService`. Provado em `EmpresaDadosTest`. A empresa é sempre a do token; a escrita é à
+mão (EntityManager sob a RLS da empresa); o `/api/Empresa` gerado continua só plataforma (403 para o administrador da empresa).
+`plataforma_admin` sem empresa na sessão: 403 `empresa_nao_selecionada` (no PUT, 403 pelo papel).
+
+**`GET /api/configuracao/empresa`** (administrador, operador, consulta) -> `{ razaoSocial, nomeFantasia, documento, inscricaoMunicipal|null,
+rgInscricaoEstadual|null, email|null, whatsapp|null, telefone|null, cep, logradouro, numeroEndereco, complemento|null, bairro,
+municipio: {id, nome, uf, codigoIbge}|null, regimeTributario, regimeIbsCbs|null, documentoEditavel, certificado: {situacao, validade|null,
+pendenteDeEnvio, venceEmDias|null} }`. `documentoEditavel=false` quando `statusCadastro='cadastrado'` (o emitente já existe no gateway).
+
+**`PUT /api/configuracao/empresa`** (**só administrador**; POST/PATCH/DELETE negados) -> 200 com o mesmo corpo do GET. O PUT substitui os campos
+editáveis (envie todos): `razaoSocial` 1-60, `nomeFantasia` 1-60, `documento` 11 ou 14 dígitos (pontuação aceita e removida), `inscricaoMunicipal` ≤ 20,
+`rgInscricaoEstadual` ≤ 20, `email` ≤ 60 válido, `whatsapp` ≤ 20, `telefone` 6-14 dígitos (normalizado para só dígitos), `cep` 8 dígitos (normalizado),
+`logradouro`/`numeroEndereco`/`complemento`/`bairro` ≤ 60, `municipio {id}` existente, `regimeTributario` 1..4, `regimeIbsCbs` 0..4 ou null.
+Obrigatórios: razão, fantasia, documento, cep, logradouro, número, bairro, município, regime tributário; os demais vazios viram `null`.
+**Não altera** ambiente, situação, referências do cofre, `statusCadastro`/gateway, certificado nem `nfse*` (campos extras no corpo são ignorados).
+
+| Erro | HTTP / `codigo` |
+|---|---|
+| campos inválidos (todos de uma vez) | 400 `requisicao_invalida`, `detalhes.campos [{campo, mensagem}]` (inclui "Município não encontrado.") |
+| documento diferente do atual com `documentoEditavel=false` (depois dos erros de campo) | 409 `documento_bloqueado` (mesmo documento ou ausente passa) |
+| documento já usado por outra empresa no mesmo ambiente (índice único; o texto da constraint nunca vaza) | 409 `documento_duplicado` |
+
+## Certificado digital A1 (`POST /api/configuracao/empresa/certificado`)
+
+Código à mão em `nfseconfig/Certificado*` e `gateway/IntegraNotasCliente.enviarCertificado`. Provado em `CertificadoTest` (stub HTTP local do IntegraNotas,
+PFX de teste em `src/test/resources/certificados/` com os comandos `keytool` no README da pasta). **Só administrador da empresa**; GET/PUT/PATCH/DELETE
+negados no caminho. Multipart: `arquivo` (.pfx ou .p12) e `senha` (texto). Limite 10/min por usuário (429 `muitas_tentativas` + `Retry-After`; conta também as
+tentativas inválidas). O corpo multipart não é logado; arquivo e senha nunca vão para log, exceção, resposta ou `toString`.
+
+**Passos (e o erro de cada um)**
+1. Forma: arquivo ausente 400 `arquivo_obrigatorio`; > 256 KB (`emitesimples.certificado.max-bytes`) 413 `arquivo_grande`; nome sem `.pfx`/`.p12` 400 `arquivo_tipo_invalido`;
+   senha fora de `^[A-Za-z0-9]{1,60}$` 400 `certificado_senha_invalida` ("A senha do certificado deve ter só letras e números, sem acentos, até 60 caracteres. A IntegraNotas não
+   aceita outros caracteres."), **antes** de abrir o arquivo.
+2. Abre como PKCS12 (`java.security.KeyStore`) em memória: senha errada / falha de integridade 400 `certificado_senha_incorreta`; não é PKCS12 ou sem chave privada 400 `certificado_invalido`.
+3. Certificado FINAL (o da chave privada): `notAfter` no passado 400 `certificado_vencido`; `notBefore` no futuro 400 `certificado_invalido`.
+4. CNPJ do titular: 14 dígitos no Subject (puro ou formatado) e/ou na SAN (otherName 2.16.76.1.3.3). Achou e a empresa tem CNPJ diferente: 400 `certificado_nao_pertence`
+   ("O certificado pertence a outro CNPJ."). Não achou nenhum (ou a empresa é CPF): aceita e responde `avisos: ["nao_foi_possivel_conferir_cnpj"]`.
+5. Guarda **um** segredo cifrado (AES-256-GCM, `SegredoService`) com JSON `{"pfx":"<base64>","senha":"..."}`; o id vai em `referenciaCertificado` (o anterior é apagado);
+   grava `validadeCertificado` (data do `notAfter`, fuso de Brasília) e `situacaoCertificado='nao_enviado'`. Só metadados ficam na linha da empresa.
+6. Se `nfseHabilitada` **e** o emitente tem token no cofre: envia ao gateway e grava a situação. Senão fica **pendente** (200, `pendenteDeEnvio:true`) e é enviado quando a NFS-e for habilitada.
+
+**Resposta 200**: `{ situacao, validade, pendenteDeEnvio, venceEmDias, avisos: [...] }`. `situacao`: `nao_enviado` (guardado, o gateway ainda não aceitou) | `valido` (aceito pelo gateway) | `vencido` |
+`invalido` | `nao_pertence`. `pendenteDeEnvio` = guardado e situação gravada diferente de `valido`. `venceEmDias` negativo se já venceu; uma situação gravada `valido`/`nao_enviado` com validade no
+passado é exibida como `vencido`. O mesmo bloco (sem `avisos`) vem em `GET /api/configuracao/empresa` (`certificado`) e a situação/validade em `GET /api/configuracao/nfse` (`certificadoSituacao`, `validadeCertificado`):
+os três usam `CertificadoSituacao`. Sem certificado a situação é `nao_enviado` com `pendenteDeEnvio:false`.
+
+**Gateway** (`IntegraNotasCliente.enviarCertificado(urlBase, tokenEmitente, pfx, senha)`): `POST {urlBase}/v1/certificado`, JSON `{certificado: <Base64>, senha}`, `Authorization: <token do emitente>` CRU.
+Mesmas defesas e códigos estáveis do `criarEmitente`; decide pelo `codigo`, nunca pelo texto.
+
+| Retorno do gateway | Efeito |
+|---|---|
+| sucesso (`sucesso:true`, HTTP 200; `codigo` ausente ou 200) | situação `valido` |
+| `codigo` 5003 | 400 `certificado_invalido_gateway` ("A IntegraNotas não conseguiu abrir o certificado (arquivo corrompido ou senha incorreta)."), situação `invalido` |
+| 5011 | 400 `certificado_vencido_gateway`, situação `vencido` |
+| 5029 | 400 `certificado_nao_pertence_gateway`, situação `nao_pertence` |
+| token recusado (6000-6003, HTTP 401/403) | 502 `integranotas_token_recusado` ("token do emitente"); situação **não muda** (`nao_enviado`) |
+| timeout/rede | 504 `integranotas_indisponivel`; situação não muda |
+| JSON inválido, 5xx, 3xx, corpo > 1 MB, `sucesso` ausente | 502 `integranotas_resposta_invalida`; situação não muda |
+
+Nas falhas de transporte (3 últimas linhas) o certificado **segue guardado** (`detalhes.certificadoGuardado:true`) para nova tentativa (basta enviar de novo, ou habilitar a NFS-e).
+Nas recusas do gateway a situação grava o motivo e o certificado também segue guardado.
+
+**Envio pendente ao habilitar a NFS-e** (`PUT /api/configuracao/nfse` com `habilitada:true`): depois de habilitar com sucesso, se há certificado guardado com situação gravada ≠ `valido`, envia-o
+(lê do cofre só nesse instante). Falha **não desfaz** a habilitação: a resposta é 200 com o estado atual e o campo opcional novo `avisos` (ausente quando vazio): `certificado_nao_enviado`
+(token recusado, indisponível, resposta inválida) ou `certificado_recusado` (5003/5011/5029; veja `certificadoSituacao`). Se o PUT cria um emitente novo (outro ambiente), um certificado `valido`
+volta a `nao_enviado` (o emitente novo não o conhece) e é reenviado.
+
+**O que falta**: consultar o certificado no gateway (`GET /v1/certificado`, vencimento real), renovação/alerta de vencimento (hoje só `venceEmDias`), e confirmar na doc oficial o corpo de sucesso
+(`codigo` pode vir ausente) e o formato do arquivo (a doc fala "conteúdo do arquivo em Base64"; enviamos o .pfx cru em Base64).
+
+### Riscos e decisões (certificado)
+
+- O cofre é provisório (chave-mestra em variável de ambiente): quem tem a chave e o banco decifra o PFX **e** a senha. O PFX de um A1 é uma chave privada: restringir quem lê a tabela `segredo`.
+- Mudar o `documento` da empresa (permitido até o emitente ser cadastrado) **não** revalida um certificado já guardado; o gateway acusa 5029 no envio.
+- "Integração disponível" para o certificado exige só o token do **emitente** e a URL do ambiente; o token da softhouse (usado só para criar o emitente) não é exigido.
+- O mutex por empresa (`TravaEmpresa`) vale por JVM, como no cadastro do emitente; com várias instâncias dois envios simultâneos podem se cruzar (o último a gravar vence).
+- Upload: o limite de 256 KB é conferido pelo tamanho informado pelo multipart e de novo depois da leitura; o arquivo temporário do upload é apagado pelo framework.
 
 ## Pontos em aberto
 

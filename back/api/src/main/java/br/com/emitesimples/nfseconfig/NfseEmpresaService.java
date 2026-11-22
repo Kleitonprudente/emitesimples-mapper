@@ -12,6 +12,7 @@ import br.com.emitesimples.plataforma.SegredoService;
 import br.com.emitesimples.security.ApiException;
 import br.com.emitesimples.tenant.EscopoTenant;
 import io.quarkus.narayana.jta.QuarkusTransaction;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
@@ -22,8 +23,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
+
+
 import java.util.regex.Pattern;
 import org.jboss.logging.Logger;
 
@@ -43,17 +44,16 @@ public class NfseEmpresaService {
     private static final Logger LOG = Logger.getLogger(NfseEmpresaService.class);
     static final Pattern SERIE = Pattern.compile("^[0-9]{1,5}$");
     static final long MAX_NUMERO = 999_999_999L;
-    private static final ReentrantLock[] TRAVAS = new ReentrantLock[64];
 
-    static {
-        for (int i = 0; i < TRAVAS.length; i++) {
-            TRAVAS[i] = new ReentrantLock();
-        }
-    }
-
+    /**
+     * {@code avisos} so aparece quando ha algo a avisar (campo opcional): {@code certificado_nao_enviado} (certificado guardado
+     * que nao chegou ao gateway: falha de rede/token, tente de novo) e {@code certificado_recusado} (o gateway recusou o
+     * certificado; veja {@code certificadoSituacao}).
+     */
     public record NfseDto(boolean habilitada, String serie, int ultimoNumero, long proximoNumero, String ambiente,
                           String statusCadastro, LocalDateTime dataCadastroGateway, boolean emitenteTokenConfigurado,
-                          String certificadoSituacao, LocalDate validadeCertificado, boolean integracaoDisponivel) {
+                          String certificadoSituacao, LocalDate validadeCertificado, boolean integracaoDisponivel,
+                          @JsonInclude(JsonInclude.Include.NON_EMPTY) List<String> avisos) {
     }
 
     public record NfseEntrada(Boolean habilitada, String serie, Long ultimoNumero) {
@@ -81,6 +81,12 @@ public class NfseEmpresaService {
     @Inject
     WebhookToken webhookToken;
 
+    @Inject
+    TravaEmpresa trava;
+
+    @Inject
+    CertificadoEnvioService certificados;
+
     // ------------------------------------------------------------------------------------------- GET
 
     public NfseDto obter() {
@@ -96,23 +102,7 @@ public class NfseEmpresaService {
         if (in == null || in.habilitada() == null) {
             throw invalido(List.of(erro("habilitada", "Informe se a NFS-e fica habilitada (true ou false).")));
         }
-        ReentrantLock trava = TRAVAS[Math.floorMod(empresaId.hashCode(), TRAVAS.length)];
-        boolean obtida;
-        try {
-            obtida = trava.tryLock(30, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            obtida = false;
-        }
-        if (!obtida) {
-            throw new ApiException(409, "operacao_em_andamento",
-                    "Já há uma alteração da NFS-e desta empresa em andamento. Tente novamente em instantes.");
-        }
-        try {
-            return in.habilitada() ? habilitar(empresaId, in) : desabilitar(empresaId);
-        } finally {
-            trava.unlock();
-        }
+        return trava.executar(empresaId, () -> in.habilitada() ? habilitar(empresaId, in) : desabilitar(empresaId));
     }
 
     private NfseDto desabilitar(String empresaId) {
@@ -149,8 +139,9 @@ public class NfseEmpresaService {
             novoSegredo = segredos.guardar(criado.token());
         }
         String segredoParaGravar = novoSegredo;
+        NfseDto gravado;
         try {
-            return gravar(empresaId, serie, ultimo, plano.ambiente(), segredoParaGravar, integracao);
+            gravado = gravar(empresaId, serie, ultimo, plano.ambiente(), segredoParaGravar, integracao);
         } catch (RuntimeException e) {
             if (novoSegredo != null) {
                 // o emitente JA existe no gateway: o segredo fica no cofre (recuperavel pelo suporte); nada do valor no log
@@ -159,6 +150,25 @@ public class NfseEmpresaService {
             }
             throw e;
         }
+        return enviarCertificadoPendente(empresaId, gravado, integracao);
+    }
+
+    /**
+     * Habilitou com sucesso: se ha certificado guardado que o gateway ainda nao aceitou, envia agora. Falha NAO desfaz a
+     * habilitacao: o estado volta no DTO (situacao do certificado) e em {@code avisos}.
+     */
+    private NfseDto enviarCertificadoPendente(String empresaId, NfseDto gravado, boolean integracao) {
+        boolean pendente = QuarkusTransaction.requiringNew().call(() -> CertificadoSituacao.pendenteDeEnvio(carregar(empresaId, false)));
+        if (!pendente) {
+            return gravado;
+        }
+        var desfecho = certificados.enviarGuardado(empresaId);
+        List<String> avisos = new ArrayList<>();
+        if (!desfecho.enviado()) {
+            String c = desfecho.falha().getCodigo();
+            avisos.add(c.endsWith("_gateway") ? "certificado_recusado" : "certificado_nao_enviado");
+        }
+        return QuarkusTransaction.requiringNew().call(() -> dto(carregar(empresaId, false), integracao, avisos));
     }
 
     /** Transacao 1 (com lock): valida tudo e decide se o emitente precisa ser criado. */
@@ -211,6 +221,10 @@ public class NfseEmpresaService {
                 e.setStatusCadastro("cadastrado");
                 e.setDataCadastroGateway(agora);
                 e.setAmbiente(ambiente);
+                if (CertificadoSituacao.guardado(e) && CertificadoSituacao.VALIDO.equals(e.getSituacaoCertificado())) {
+                    // emitente novo (outro ambiente): ele ainda nao conhece o certificado
+                    e.setSituacaoCertificado(CertificadoSituacao.NAO_ENVIADO);
+                }
             }
             e.setNfseHabilitada(true);
             e.setSerieNfse(serie);
@@ -369,10 +383,14 @@ public class NfseEmpresaService {
     }
 
     private static NfseDto dto(EmpresaEntity e, boolean integracao) {
+        return dto(e, integracao, List.of());
+    }
+
+    private static NfseDto dto(EmpresaEntity e, boolean integracao, List<String> avisos) {
         int ultimo = e.getUltimoNumeroNfse() == null ? 0 : e.getUltimoNumeroNfse();
         return new NfseDto(Boolean.TRUE.equals(e.getNfseHabilitada()), e.getSerieNfse(), ultimo, ultimo + 1L,
                 e.getAmbiente(), e.getStatusCadastro(), e.getDataCadastroGateway(), e.getReferenciaTokenEmpresa() != null,
-                e.getSituacaoCertificado(), e.getValidadeCertificado(), integracao);
+                CertificadoSituacao.situacao(e), e.getValidadeCertificado(), integracao, avisos);
     }
 
     private static boolean vazio(String s) {

@@ -44,6 +44,10 @@ public class IntegraNotasStubResource implements QuarkusTestResourceLifecycleMan
     private HttpServer servidor;
     private final AtomicInteger contagem = new AtomicInteger();
     private volatile String ultima = "{}";
+    private final AtomicInteger contagemCertificado = new AtomicInteger();
+    private volatile String ultimoCertificado = "{}";
+    private volatile String modoCertificado = MODO_OK;
+    private final java.util.Set<String> tokensEmitidos = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     @Override
     public Map<String, String> start() {
@@ -67,6 +71,23 @@ public class IntegraNotasStubResource implements QuarkusTestResourceLifecycleMan
             }
             if (path.equals("/_contagem")) {
                 responder(ex, 200, String.valueOf(contagem.get()));
+                return;
+            }
+            if (path.equals("/_modo_certificado") && "POST".equals(ex.getRequestMethod())) {
+                modoCertificado = new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8).strip();
+                responder(ex, 200, "{}");
+                return;
+            }
+            if (path.equals("/_ultimo_certificado")) {
+                responder(ex, 200, ultimoCertificado);
+                return;
+            }
+            if (path.equals("/_contagem_certificado")) {
+                responder(ex, 200, String.valueOf(contagemCertificado.get()));
+                return;
+            }
+            if (path.equals("/v1/certificado") && "POST".equals(ex.getRequestMethod())) {
+                certificado(ex);
                 return;
             }
             if (!path.equals("/v1/soft/emitente") || !"POST".equals(ex.getRequestMethod())) {
@@ -143,12 +164,44 @@ public class IntegraNotasStubResource implements QuarkusTestResourceLifecycleMan
                 return;
             }
             String token = "emitente-" + UUID.randomUUID();
+            tokensEmitidos.add(token);
             ultima = JSON.writeValueAsString(Map.of("authorization", auth, "corpo", corpo, "tokenDevolvido", token));
             responder(ex, 200, "{\"sucesso\":true,\"codigo\":200,\"mensagem\":\"Sucesso.\",\"token\":\"" + token + "\"}");
         } catch (IOException e) {
             // cliente desistiu (timeout ou corpo cortado): normal nos testes
         } finally {
             ex.close();
+        }
+    }
+
+    /** Modos do {@code POST /v1/certificado} (escolhidos por {@code POST /_modo_certificado}): ok, 5003, 5011, 5029, 6001, 500, lento, json, semcodigo, 5003http400. */
+    public static final String MODO_OK = "ok";
+
+    private void certificado(HttpExchange ex) throws IOException {
+        contagemCertificado.incrementAndGet();
+        byte[] bytes = ex.getRequestBody().readAllBytes();
+        String auth = ex.getRequestHeaders().getFirst("Authorization");
+        String modo = modoCertificado;
+        if (auth == null || auth.isBlank() || !tokensEmitidos.contains(auth) || modo.equals("6001")) {
+            responder(ex, 200, "{\"sucesso\":false,\"codigo\":6001,\"mensagem\":\"Token inválido.\"}");
+            return;
+        }
+        JsonNode corpo = JSON.readTree(bytes);
+        ultimoCertificado = JSON.writeValueAsString(Map.of("authorization", auth, "certificado", corpo.path("certificado").asText(""),
+                "senha", corpo.path("senha").asText(""), "contentType", String.valueOf(ex.getRequestHeaders().getFirst("Content-Type"))));
+        switch (modo) {
+            case "5003" -> responder(ex, 200, "{\"sucesso\":false,\"codigo\":5003,\"mensagem\":\"Certificado inválido.\"}");
+            case "5003http400" -> responder(ex, 400, "{\"sucesso\":false,\"codigo\":5003,\"mensagem\":\"Certificado inválido.\"}");
+            case "5011" -> responder(ex, 200, "{\"sucesso\":false,\"codigo\":5011,\"mensagem\":\"Certificado vencido.\"}");
+            case "5029" -> responder(ex, 200, "{\"sucesso\":false,\"codigo\":5029,\"mensagem\":\"Certificado de outro CNPJ.\"}");
+            case "500" -> responder(ex, 500, "{\"erro\":\"interno\"}");
+            case "lento" -> {
+                dormir(4000);
+                responder(ex, 200, "{\"sucesso\":true,\"codigo\":200,\"mensagem\":\"Sucesso.\"}");
+            }
+            case "json" -> responder(ex, 200, "<html>nao e json</html>");
+            case "semcodigo" -> responder(ex, 200, "{\"sucesso\":true,\"mensagem\":\"Sucesso.\"}");
+            default -> responder(ex, 200, "{\"sucesso\":true,\"codigo\":200,\"mensagem\":\"Sucesso.\"}");
         }
     }
 

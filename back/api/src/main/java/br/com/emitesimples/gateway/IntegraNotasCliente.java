@@ -142,6 +142,45 @@ public class IntegraNotasCliente {
         return new EmitenteCriado(token);
     }
 
+    /** Codigos do gateway para certificado recusado (decide-se pelo codigo, nunca pelo texto). */
+    static final int GW_CERTIFICADO_INVALIDO = 5003;
+    static final int GW_CERTIFICADO_VENCIDO = 5011;
+    static final int GW_CERTIFICADO_NAO_PERTENCE = 5029;
+
+    /**
+     * {@code POST {urlBase}/v1/certificado} com o token do EMITENTE: {@code {certificado: <Base64 do .pfx>, senha}}. Sucesso: o
+     * metodo volta sem excecao. Recusas do certificado ({@code sucesso:false}): 5003 -> 400 {@code certificado_invalido_gateway};
+     * 5011 -> 400 {@code certificado_vencido_gateway}; 5029 -> 400 {@code certificado_nao_pertence_gateway}. Token recusado,
+     * indisponivel e resposta invalida seguem os codigos estaveis do cadastro do emitente. O pfx e a senha so existem como
+     * parametro: nunca vao para log, excecao ou toString.
+     */
+    public void enviarCertificado(String urlBase, String tokenEmitente, byte[] pfx, String senha) {
+        ObjectNode corpo = JSON.createObjectNode();
+        corpo.put("certificado", java.util.Base64.getEncoder().encodeToString(pfx));
+        corpo.put("senha", senha);
+        Resposta r = chamar("POST", urlBase, "/v1/certificado", tokenEmitente, corpo);
+        JsonNode raiz = r.raiz();
+        int status = r.status();
+        if (raiz != null && raiz.isObject() && (status == 200 || status >= 400 && status < 500 && status != 401 && status != 403)
+                && raiz.path("sucesso").isBoolean() && !raiz.path("sucesso").asBoolean()
+                && raiz.path("codigo").isIntegralNumber()) {
+            int codigo = raiz.path("codigo").asInt();
+            if (codigo == GW_CERTIFICADO_INVALIDO) {
+                throw new ApiException(400, "certificado_invalido_gateway",
+                        "A IntegraNotas não conseguiu abrir o certificado (arquivo corrompido ou senha incorreta).");
+            }
+            if (codigo == GW_CERTIFICADO_VENCIDO) {
+                throw new ApiException(400, "certificado_vencido_gateway",
+                        "A IntegraNotas informou que o certificado está vencido.");
+            }
+            if (codigo == GW_CERTIFICADO_NAO_PERTENCE) {
+                throw new ApiException(400, "certificado_nao_pertence_gateway",
+                        "A IntegraNotas informou que o certificado não pertence ao CNPJ/CPF do emitente.");
+            }
+        }
+        interpretar(r, "envio do certificado", true);
+    }
+
     // ------------------------------------------------------------------------------------- nucleo
 
     /**
@@ -150,15 +189,23 @@ public class IntegraNotasCliente {
      * Decide pelo {@code codigo}, nunca pelo texto.
      */
     static JsonNode interpretar(Resposta r, String operacao) {
+        return interpretar(r, operacao, false);
+    }
+
+    /**
+     * {@code doEmitente=true}: a operacao usa o token do EMITENTE (mensagem de token recusado propria) e aceita sucesso sem
+     * {@code codigo} (a doc do certificado nao mostra o corpo de sucesso); se o {@code codigo} vier, tem de ser 200.
+     */
+    static JsonNode interpretar(Resposta r, String operacao, boolean doEmitente) {
         int status = r.status();
         JsonNode raiz = r.raiz();
         Integer codigo = raiz != null && raiz.path("codigo").canConvertToInt() && raiz.path("codigo").isNumber()
                 ? raiz.path("codigo").asInt() : null;
         if (codigo != null && codigo >= 6000 && codigo <= 6003) {
-            throw tokenRecusado();
+            throw tokenRecusado(doEmitente);
         }
         if (status == 401 || status == 403) {
-            throw tokenRecusado();
+            throw tokenRecusado(doEmitente);
         }
         if (raiz == null || !raiz.isObject() || !(status == 200 || status >= 400 && status < 500)) {
             throw respostaInvalida(); // 3xx (nao seguido), 5xx, corpo que nao e objeto
@@ -170,7 +217,7 @@ public class IntegraNotasCliente {
         if (!sucesso.asBoolean()) {
             throw recusou(raiz, codigo, operacao);
         }
-        if (status != 200 || codigo == null || codigo != 200) {
+        if (status != 200 || (codigo == null ? !doEmitente : codigo != 200)) {
             throw respostaInvalida();
         }
         return raiz;
@@ -338,9 +385,10 @@ public class IntegraNotasCliente {
         return t.length() > MAX_TEXTO ? t.substring(0, MAX_TEXTO) + "..." : t;
     }
 
-    private static ApiException tokenRecusado() {
-        return new ApiException(502, "integranotas_token_recusado",
-                "O IntegraNotas recusou o token da softhouse. Fale com o suporte.");
+    private static ApiException tokenRecusado(boolean doEmitente) {
+        return new ApiException(502, "integranotas_token_recusado", doEmitente
+                ? "O IntegraNotas recusou o token do emitente. Fale com o suporte."
+                : "O IntegraNotas recusou o token da softhouse. Fale com o suporte.");
     }
 
     private static ApiException respostaInvalida() {
