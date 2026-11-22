@@ -19,4 +19,6 @@ export const screens: ScreenEntry[] = [
   { name: 'FormularioPessoa', title: 'Cadastro de pessoa', stereo: 'editor', route: '/pessoas/$id', icon: 'user-pen', role: 'operador' },
   { name: 'GestaoMunicipios', title: 'Gestão de Municípios', stereo: 'list', route: '/municipios', icon: 'settings', group: 'Administração', order: 79, platformOnly: true },
   { name: 'FormularioMunicipio', title: 'Cadastro de município', stereo: 'editor', route: '/municipios/$id', icon: 'settings', platformOnly: true },
+  { name: 'GestaoEmpresas', title: 'Gestão de Empresas', stereo: 'list', route: '/empresas', icon: 'settings', group: 'Administração', order: 78, platformOnly: true },
+  { name: 'FormularioEmpresa', title: 'Cadastro de empresa', stereo: 'editor', route: '/empresas/$id', icon: 'settings', platformOnly: true },
 ]

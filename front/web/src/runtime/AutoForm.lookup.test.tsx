@@ -165,6 +165,34 @@ describe('AutoForm: lookup de CEP', () => {
     expect(apiMock).toHaveBeenCalledTimes(1)
   })
 
+  it('preenche o FK de municipio mesmo quando o campo se chama `municipio` (Empresa), nao so `cidade`', async () => {
+    apiMock.mockResolvedValue(RESPOSTA)
+    const user = userEvent.setup()
+    const s2 = z.object({ cep: z.string().optional(), logradouro: z.string().optional(), municipio: z.object({ id: z.string() }).optional() })
+    const onSubmit = vi.fn()
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={qc}>
+        <AutoForm
+          schema={s2}
+          fields={[
+            { name: 'cep', label: 'CEP', mask: 'postalCode', lookup: 'cep' },
+            { name: 'logradouro', label: 'Logradouro' },
+            { name: 'municipio', label: 'Município', fk },
+          ]}
+          defaults={{ cep: '', logradouro: '' }}
+          onSubmit={onSubmit}
+        />
+      </QueryClientProvider>,
+    )
+    await user.type(screen.getByLabelText('CEP'), '85980000')
+    await user.tab()
+    await waitFor(() => expect(screen.getByRole('combobox', { name: /Município/ })).toHaveTextContent('Guaíra - PR'))
+    await user.click(screen.getByRole('button', { name: 'Salvar' }))
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1))
+    expect(onSubmit.mock.calls[0]![0].municipio).toEqual({ id: 'mun-4108809' })
+  })
+
   it('campos irmaos ausentes do layout sao ignorados', async () => {
     apiMock.mockResolvedValue(RESPOSTA)
     const user = userEvent.setup()

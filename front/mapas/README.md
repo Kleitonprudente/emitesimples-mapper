@@ -8,6 +8,7 @@ dominio/<Contexto>/*.mi         COPIA SOMENTE-LEITURA de back/mapas/<Contexto>/ 
 generators/struct.mi            copia do struct do back (necessario para validar com `struct`)
 window/cadastros/pessoa/        mapas de tela: GestaoPessoas (list) e FormularioPessoa (editor, formulario UNICO)
 window/cadastros/municipio/     GestaoMunicipios (list, platformOnly, sem exclusao) e FormularioMunicipio (editor)
+window/configuracao/empresa/    GestaoEmpresas (list, platformOnly, sem exclusao) e FormularioEmpresa (editor, platformOnly)
 scripts/sincronizar-dominio.sh  copia/verifica o dominio
 ```
 
@@ -63,6 +64,18 @@ Propriedades do campo no layout do form (`form/rows//field/@`):
   Sem acao `link` a saida da lista e identica a anterior (Pessoa nao muda).
 - `gerar.sh` usa a funcao `entidade <Entidade> <contexto> <slug> <rota> <Lista> <Formulario>`; Pessoa e Municipio saem dela.
 - Icone `map-pin` nao existe em `runtime/icons.tsx`; as janelas de Municipio usam `settings`. Para trocar, acrescente o icone la.
+
+## Empresa (tenant, so administrador da plataforma)
+
+- `GestaoEmpresas` (`/empresas`, grupo Administracao, order 78, `platformOnly`, icone `settings` porque `building` nao existe em
+  `runtime/icons.tsx`) e `FormularioEmpresa` (`/empresas/$id`, `platformOnly`). Sem acao de excluir: a empresa nunca e apagada,
+  so desativada pelo campo `situacao` (no formulario, secao Conta).
+- Fora do formulario de proposito: `storageOnly` (`referenciaTokenEmpresa`, `referenciaCredenciaisPrefeitura`,
+  `referenciaCertificado`), `logo`, controle (`id`, `ambiente`, datas), gateway e certificado.
+- `gerar.sh`: `entidade Empresa configuracao empresa empresas GestaoEmpresas FormularioEmpresa` (a funcao ja deriva o pacote de dominio
+  de `<contexto>`; Pessoa e Municipio nao mudam).
+- Lookup de CEP: o runtime (`AutoForm`) agora preenche o campo FK cuja fonte e `Municipio` (`fk.key`), seja `cidade` (Pessoa) ou
+  `municipio` (Empresa); sem fk declarado, cai em `cidade`.
 
 ## Lacunas encontradas
 

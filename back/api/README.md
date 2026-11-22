@@ -311,4 +311,22 @@ efêmero), `src/test/resources/db/init-role-app-teste.sql` cria `emitesimples_ap
 ## Pontos em aberto
 
 - **Subir a aplicação** exige banco PostgreSQL (com a extensão `unaccent`) e as chaves JWT; ver `application.properties`. Para
-  compilar não é preciso nada disso. Em dev o Dev Services sobe o banco sozinho.
+  compilar não é preciso nada disso. Em dev use o banco persistente da seção abaixo.
+
+## Banco de desenvolvimento persistente
+
+`dev/compose.yaml` sobe um Postgres 18 só do projeto (contêiner `emitesimples-dev-postgres`, porta **5433**, volume
+`emitesimples-dev-pgdata`), com o dono `emitesimples` (Flyway) e o role de aplicação `emitesimples_app` (sem BYPASSRLS):
+no perfil dev a RLS vale, como em produção. Os dados sobrevivem a reinícios do back.
+
+```bash
+cd back/api
+docker compose -f dev/compose.yaml up -d --wait   # sobe o banco
+mvn quarkus:dev                                   # sobe o back (cria o admin de dev, abaixo)
+docker compose -f dev/compose.yaml down           # desliga e MANTÉM os dados
+docker compose -f dev/compose.yaml down -v        # desliga e APAGA os dados
+```
+
+Administrador de dev (só no perfil dev; sobrescrevível por `EMITESIMPLES_ADMIN_EMAIL`/`EMITESIMPLES_ADMIN_SENHA`):
+`plataforma@exemplo.com.br` / `senha1234`. As senhas do banco em `dev/` e no `application.properties` são só de dev.
+Os testes (`mvn test`) continuam usando o Dev Services efêmero, sem tocar nesse banco.

@@ -58,6 +58,7 @@ rm -f "$F/CriarPessoa.tsx" "$F/EditarPessoa.tsx" "$F/EditarPessoaScreen.tsx"
 
 entidade Pessoa    cadastros pessoa    pessoas    GestaoPessoas    FormularioPessoa
 entidade Municipio cadastros municipio municipios GestaoMunicipios FormularioMunicipio
+entidade Empresa   configuracao empresa empresas   GestaoEmpresas   FormularioEmpresa
 
 # manifesto (um para o projeto todo)
 gerar "$WEB/gen/screens.ts" screenManifest

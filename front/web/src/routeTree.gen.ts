@@ -16,6 +16,8 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedAdminMunicipiosRouteImport } from './routes/_authenticated/admin/municipios'
 import { Route as AuthenticatedAdminUsuariosRouteImport } from './routes/_authenticated/admin/usuarios'
+import { Route as AuthenticatedEmpresasIndexRouteImport } from './routes/_authenticated/empresas/index'
+import { Route as AuthenticatedEmpresasIdRouteImport } from './routes/_authenticated/empresas/$id'
 import { Route as AuthenticatedExemplosPessoasRouteImport } from './routes/_authenticated/exemplos/pessoas'
 import { Route as AuthenticatedMunicipiosIndexRouteImport } from './routes/_authenticated/municipios/index'
 import { Route as AuthenticatedMunicipiosIdRouteImport } from './routes/_authenticated/municipios/$id'
@@ -58,6 +60,17 @@ const AuthenticatedAdminUsuariosRoute =
     path: '/admin/usuarios',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedEmpresasIndexRoute =
+  AuthenticatedEmpresasIndexRouteImport.update({
+    id: '/empresas/',
+    path: '/empresas/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedEmpresasIdRoute = AuthenticatedEmpresasIdRouteImport.update({
+  id: '/empresas/$id',
+  path: '/empresas/$id',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedExemplosPessoasRoute =
   AuthenticatedExemplosPessoasRouteImport.update({
     id: '/exemplos/pessoas',
@@ -95,9 +108,11 @@ export interface FileRoutesByFullPath {
   '/perfil': typeof AuthenticatedPerfilRoute
   '/admin/municipios': typeof AuthenticatedAdminMunicipiosRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
+  '/empresas/$id': typeof AuthenticatedEmpresasIdRoute
   '/exemplos/pessoas': typeof AuthenticatedExemplosPessoasRoute
   '/municipios/$id': typeof AuthenticatedMunicipiosIdRoute
   '/pessoas/$id': typeof AuthenticatedPessoasIdRoute
+  '/empresas/': typeof AuthenticatedEmpresasIndexRoute
   '/municipios/': typeof AuthenticatedMunicipiosIndexRoute
   '/pessoas/': typeof AuthenticatedPessoasIndexRoute
 }
@@ -108,9 +123,11 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/admin/municipios': typeof AuthenticatedAdminMunicipiosRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
+  '/empresas/$id': typeof AuthenticatedEmpresasIdRoute
   '/exemplos/pessoas': typeof AuthenticatedExemplosPessoasRoute
   '/municipios/$id': typeof AuthenticatedMunicipiosIdRoute
   '/pessoas/$id': typeof AuthenticatedPessoasIdRoute
+  '/empresas': typeof AuthenticatedEmpresasIndexRoute
   '/municipios': typeof AuthenticatedMunicipiosIndexRoute
   '/pessoas': typeof AuthenticatedPessoasIndexRoute
 }
@@ -123,9 +140,11 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/admin/municipios': typeof AuthenticatedAdminMunicipiosRoute
   '/_authenticated/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
+  '/_authenticated/empresas/$id': typeof AuthenticatedEmpresasIdRoute
   '/_authenticated/exemplos/pessoas': typeof AuthenticatedExemplosPessoasRoute
   '/_authenticated/municipios/$id': typeof AuthenticatedMunicipiosIdRoute
   '/_authenticated/pessoas/$id': typeof AuthenticatedPessoasIdRoute
+  '/_authenticated/empresas/': typeof AuthenticatedEmpresasIndexRoute
   '/_authenticated/municipios/': typeof AuthenticatedMunicipiosIndexRoute
   '/_authenticated/pessoas/': typeof AuthenticatedPessoasIndexRoute
 }
@@ -138,9 +157,11 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/admin/municipios'
     | '/admin/usuarios'
+    | '/empresas/$id'
     | '/exemplos/pessoas'
     | '/municipios/$id'
     | '/pessoas/$id'
+    | '/empresas/'
     | '/municipios/'
     | '/pessoas/'
   fileRoutesByTo: FileRoutesByTo
@@ -151,9 +172,11 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/municipios'
     | '/admin/usuarios'
+    | '/empresas/$id'
     | '/exemplos/pessoas'
     | '/municipios/$id'
     | '/pessoas/$id'
+    | '/empresas'
     | '/municipios'
     | '/pessoas'
   id:
@@ -165,9 +188,11 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/admin/municipios'
     | '/_authenticated/admin/usuarios'
+    | '/_authenticated/empresas/$id'
     | '/_authenticated/exemplos/pessoas'
     | '/_authenticated/municipios/$id'
     | '/_authenticated/pessoas/$id'
+    | '/_authenticated/empresas/'
     | '/_authenticated/municipios/'
     | '/_authenticated/pessoas/'
   fileRoutesById: FileRoutesById
@@ -229,6 +254,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminUsuariosRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/empresas/': {
+      id: '/_authenticated/empresas/'
+      path: '/empresas'
+      fullPath: '/empresas/'
+      preLoaderRoute: typeof AuthenticatedEmpresasIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/empresas/$id': {
+      id: '/_authenticated/empresas/$id'
+      path: '/empresas/$id'
+      fullPath: '/empresas/$id'
+      preLoaderRoute: typeof AuthenticatedEmpresasIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/exemplos/pessoas': {
       id: '/_authenticated/exemplos/pessoas'
       path: '/exemplos/pessoas'
@@ -272,9 +311,11 @@ interface AuthenticatedRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAdminMunicipiosRoute: typeof AuthenticatedAdminMunicipiosRoute
   AuthenticatedAdminUsuariosRoute: typeof AuthenticatedAdminUsuariosRoute
+  AuthenticatedEmpresasIdRoute: typeof AuthenticatedEmpresasIdRoute
   AuthenticatedExemplosPessoasRoute: typeof AuthenticatedExemplosPessoasRoute
   AuthenticatedMunicipiosIdRoute: typeof AuthenticatedMunicipiosIdRoute
   AuthenticatedPessoasIdRoute: typeof AuthenticatedPessoasIdRoute
+  AuthenticatedEmpresasIndexRoute: typeof AuthenticatedEmpresasIndexRoute
   AuthenticatedMunicipiosIndexRoute: typeof AuthenticatedMunicipiosIndexRoute
   AuthenticatedPessoasIndexRoute: typeof AuthenticatedPessoasIndexRoute
 }
@@ -284,9 +325,11 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAdminMunicipiosRoute: AuthenticatedAdminMunicipiosRoute,
   AuthenticatedAdminUsuariosRoute: AuthenticatedAdminUsuariosRoute,
+  AuthenticatedEmpresasIdRoute: AuthenticatedEmpresasIdRoute,
   AuthenticatedExemplosPessoasRoute: AuthenticatedExemplosPessoasRoute,
   AuthenticatedMunicipiosIdRoute: AuthenticatedMunicipiosIdRoute,
   AuthenticatedPessoasIdRoute: AuthenticatedPessoasIdRoute,
+  AuthenticatedEmpresasIndexRoute: AuthenticatedEmpresasIndexRoute,
   AuthenticatedMunicipiosIndexRoute: AuthenticatedMunicipiosIndexRoute,
   AuthenticatedPessoasIndexRoute: AuthenticatedPessoasIndexRoute,
 }

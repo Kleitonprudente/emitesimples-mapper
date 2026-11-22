@@ -1,0 +1,109 @@
+[Descriptor.window.editor] FormularioEmpresa
+    @
+        [e] title
+            [e] pt
+                [v] Cadastro de empresa
+        [e] route
+            [v] /empresas/$id
+        [e] platformOnly
+            [v] true
+        [e] icon
+            [v] settings
+    [g] source
+        [r] object: Empresa()
+    [e] form
+        [e] rows
+            [e] section
+                [v] Identificação
+            [e] row
+                [e] field
+                    [v] .razaoSocial
+                    @
+                        [e] width
+                            [v] 60
+                [e] field
+                    [v] .nomeFantasia
+                    @
+                        [e] width
+                            [v] 40
+            [e] row
+                [e] field
+                    [v] .documento
+                [e] field
+                    [v] .inscricaoMunicipal
+                [e] field
+                    [v] .rgInscricaoEstadual
+            [e] section
+                [v] Contato
+            [e] row
+                [e] field
+                    [v] .email
+                [e] field
+                    [v] .whatsapp
+                    @
+                        [e] mask
+                            [v] phone
+                [e] field
+                    [v] .telefone
+                    @
+                        [e] mask
+                            [v] phone
+            [e] section
+                [v] Endereço
+            [e] row
+                [e] field
+                    [v] .cep
+                    @
+                        [e] mask
+                            [v] postalCode
+                        [e] width
+                            [v] 30
+                        [e] hint
+                            [e] pt
+                                [v] Ao sair do campo, o endereço é preenchido.
+                        [e] lookup
+                            [v] cep
+                [e] field
+                    [v] .logradouro
+                    @
+                        [e] width
+                            [v] 50
+                [e] field
+                    [v] .numeroEndereco
+                    @
+                        [e] width
+                            [v] 20
+            [e] row
+                [e] field
+                    [v] .complemento
+                [e] field
+                    [v] .bairro
+                [e] field
+                    [v] .municipio
+                    @
+                        [e] label
+                            [e] pt
+                                [v] Município
+            [e] section
+                [v] Tributação
+            [e] row
+                [e] field
+                    [v] .regimeTributario
+                [e] field
+                    [v] .regimeIbsCbs
+            [e] section
+                [v] Conta
+            [e] row
+                [e] field
+                    [v] .situacao
+                [e] field
+                    [v] .urlWebhook
+    [e] actions
+        [e] action
+            [v] salvar
+            @
+                [e] type
+                    [v] primary
+                [e] label
+                    [e] pt
+                        [v] Salvar

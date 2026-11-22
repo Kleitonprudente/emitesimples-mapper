@@ -1,0 +1,28 @@
+# Banco PERSISTENTE de desenvolvimento do emitesimples (so para a sua maquina).
+#   docker compose -f dev/compose.yaml up -d      # sobe (dados ficam no volume emitesimples-dev-pgdata)
+#   docker compose -f dev/compose.yaml down       # desliga e MANTEM os dados
+#   docker compose -f dev/compose.yaml down -v    # desliga e APAGA os dados (recomeca do zero)
+# Porta 5433 de proposito: a 5432 costuma ser de outro Postgres da maquina. Senhas abaixo sao so de dev.
+name: emitesimples-dev
+services:
+  postgres:
+    image: postgres:18
+    container_name: emitesimples-dev-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: emitesimples        # dono do schema (usado pelo Flyway)
+      POSTGRES_PASSWORD: dev-dono
+      POSTGRES_DB: emitesimples
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U emitesimples -d emitesimples"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+volumes:
+  pgdata:
+    name: emitesimples-dev-pgdata

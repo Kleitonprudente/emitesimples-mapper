@@ -1,0 +1,76 @@
+[Descriptor.window.list] GestaoEmpresas
+    @
+        [e] title
+            [e] pt
+                [v] Gestão de Empresas
+        [e] route
+            [v] /empresas
+        [e] platformOnly
+            [v] true
+        [e] icon
+            [v] settings
+        [e] group
+            [v] Administração
+        [e] order
+            [v] 78
+    [g] source
+        [r] object: Empresa()
+    [e] columns
+        [e] field
+            [v] .documento
+        [e] field
+            [v] .razaoSocial
+        [e] field
+            [v] .nomeFantasia
+        [e] field
+            [v] .situacao
+            @
+                [e] display
+                    [v] badge
+        [e] field
+            [v] .regimeTributario
+    [e] search
+        @
+            [e] placeholder
+                [e] pt
+                    [v] Buscar por razão social…
+        [e] field
+            [v] .razaoSocial
+    [e] filters
+        [e] filter
+            [v] .situacao
+            @
+                [e] type
+                    [v] faceted
+    [e] actions
+        [e] action
+            [v] criarEmpresa
+            @
+                [e] type
+                    [v] primary
+                [e] label
+                    [e] pt
+                        [v] Nova empresa
+                [e] icon
+                    [v] plus
+                [e] opens
+                    [v] FormularioEmpresa
+        [e] action
+            [v] editarEmpresa
+            @
+                [e] type
+                    [v] row
+                [e] label
+                    [e] pt
+                        [v] Editar
+                [e] icon
+                    [v] pencil
+                [e] opens
+                    [v] FormularioEmpresa
+    [e] emptyState
+        @
+            [e] message
+                [e] pt
+                    [v] Nenhuma empresa cadastrada ainda.
+            [e] action
+                [v] criarEmpresa

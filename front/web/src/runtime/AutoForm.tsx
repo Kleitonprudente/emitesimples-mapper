@@ -97,6 +97,12 @@ export function AutoForm<T extends FieldValues>({
 
   /* ----- lookup de CEP: ao sair do campo com 8 digitos, preenche os irmaos por convencao de nome ----- */
   const names = useMemo(() => new Set(specs.map((s) => s.name)), [specs])
+  // Campo FK de municipio irmao: o que aponta para a fonte 'Municipio' (`cidade` em Pessoa, `municipio` em Empresa);
+  // sem fk declarado, cai no nome `cidade` por compatibilidade.
+  const municipioName = useMemo(
+    () => specs.find((s) => s.fk?.key === 'Municipio')?.name ?? (names.has('cidade') ? 'cidade' : undefined),
+    [specs, names],
+  )
   const [lookups, setLookups] = useState<Record<string, LookupUi>>({})
   const seqRef = useRef<Record<string, number>>({})
   const focusRef = useRef<Record<string, string>>({})
@@ -112,13 +118,13 @@ export function AutoForm<T extends FieldValues>({
       if (r.logradouro) put('logradouro', r.logradouro)
       if (r.bairro) put('bairro', r.bairro)
       if (r.complemento && !form.getValues('complemento' as Path<T>)) put('complemento', r.complemento)
-      if (names.has('cidade')) {
-        if (r.municipio?.id) put('cidade', r.municipio)
+      if (municipioName) {
+        if (r.municipio?.id) put(municipioName, r.municipio)
         else return AVISO_MUNICIPIO
       }
       return undefined
     },
-    [form, names],
+    [form, names, municipioName],
   )
 
   const lookupFor = (spec: FieldSpec): LookupState | undefined => {

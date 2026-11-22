@@ -46,7 +46,7 @@ describe('telas geradas de Pessoa (fumaca de renderizacao)', () => {
     expect(editar).toHaveBeenCalledWith(row)
   })
 
-  it('manifesto traz as telas de Pessoa e Municipio e so as de rota sem $ viram menu', () => {
-    expect(screens.map((s) => s.name)).toEqual(['GestaoPessoas', 'FormularioPessoa', 'GestaoMunicipios', 'FormularioMunicipio'])
+  it('manifesto traz as telas do mapa e so as de rota sem $ viram menu', () => {
+    expect(screens.map((s) => s.name)).toEqual(['GestaoPessoas', 'FormularioPessoa', 'GestaoMunicipios', 'FormularioMunicipio', 'GestaoEmpresas', 'FormularioEmpresa'])
   })
 })
