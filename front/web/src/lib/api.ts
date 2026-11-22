@@ -86,6 +86,8 @@ export interface RequestOptions {
   signal?: AbortSignal
   /** Rotas publicas de auth (login/refresh/logout): sem Bearer e sem ciclo de refresh. */
   skipAuth?: boolean
+  /** Cabecalho Accept (padrao application/json); use para baixar arquivos (ex.: application/pdf). */
+  accept?: string
 }
 
 const MENSAGEM_PADRAO = 'Não foi possível concluir a operação. Tente novamente.'
@@ -108,7 +110,7 @@ async function send(path: string, opts: RequestOptions, token: string | null): P
     const { handleMock } = await import('@/mocks/registry')
     return handleMock({ method, path, query: opts.query, body: opts.body, token })
   }
-  const headers: Record<string, string> = { Accept: 'application/json' }
+  const headers: Record<string, string> = { Accept: opts.accept ?? 'application/json' }
   // FormData (upload): o navegador define o Content-Type com o boundary; nunca forcamos JSON.
   const isForm = typeof FormData !== 'undefined' && opts.body instanceof FormData
   if (opts.body !== undefined && !isForm) headers['Content-Type'] = 'application/json'
@@ -206,4 +208,35 @@ export async function api<T = unknown>(path: string, opts: RequestOptions = {}):
 
   if (!res.ok) throw await toError(res)
   return parse<T>(res)
+}
+
+/** Baixa um arquivo binario (com Bearer e o mesmo ciclo de refresh de pi). Erro vira ApiError. */
+export async function apiBlob(path: string, accept = 'application/pdf'): Promise<Blob> {
+  const opts: RequestOptions = { accept }
+  let res = await send(path, opts, accessToken)
+  if (res.status === 401) {
+    const session = await refreshSession()
+    if (session) res = await send(path, opts, accessToken)
+    if (!session || res.status === 401) {
+      endSession()
+      throw await toError(res)
+    }
+  }
+  if (!res.ok) throw await toError(res)
+  return res.blob()
+}
+
+/** Abre um PDF da API em nova aba, baixando-o com a sessao. A aba abre ja no clique (evita bloqueio de pop-up) e fecha se falhar. */
+export async function abrirPdf(path: string): Promise<void> {
+  const aba = window.open('', '_blank')
+  try {
+    const blob = await apiBlob(path, 'application/pdf')
+    const url = URL.createObjectURL(blob)
+    if (aba) aba.location.href = url
+    else window.open(url, '_blank')
+    setTimeout(() => URL.revokeObjectURL(url), 60_000)
+  } catch (e) {
+    aba?.close()
+    throw e
+  }
 }

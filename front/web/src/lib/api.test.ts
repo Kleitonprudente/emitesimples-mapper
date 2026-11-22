@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, api, configureApi, getAccessToken, setAccessToken } from '@/lib/api'
+import { ApiError, abrirPdf, api, apiBlob, configureApi, getAccessToken, setAccessToken } from '@/lib/api'
 
 const sessao = {
   usuario: { id: 'u1', nome: 'Ana', email: 'ana@exemplo.com.br' },
@@ -153,5 +153,55 @@ describe('lib/api', () => {
     const init = fetchMock.mock.calls[0]![1] as RequestInit
     expect(init.body).toBe('{"nome":"A"}')
     expect((init.headers as Record<string, string>)['Content-Type']).toBe('application/json')
+  })
+})
+
+describe('apiBlob e abrirPdf', () => {
+  const pdf = () => new Response('%PDF-1.4 teste', { status: 200, headers: { 'Content-Type': 'application/pdf' } })
+
+  it('apiBlob envia Bearer e Accept do arquivo e devolve o blob', async () => {
+    fetchMock.mockResolvedValueOnce(pdf())
+    const blob = await apiBlob('/nfse/notas/n1/pdf')
+    expect(await blob.text()).toContain('%PDF')
+    const init = fetchMock.mock.calls[0]![1] as RequestInit
+    expect((init.headers as Record<string, string>).Accept).toBe('application/pdf')
+    expect(authHeader(fetchMock.mock.calls[0]!)).toBe('Bearer t-old')
+  })
+
+  it('apiBlob renova a sessao no 401 e repete', async () => {
+    fetchMock.mockResolvedValueOnce(erro(401, 'sessao_invalida')).mockResolvedValueOnce(refreshOk('t-new')).mockResolvedValueOnce(pdf())
+    await apiBlob('/x/pdf')
+    expect(authHeader(fetchMock.mock.calls[2]!)).toBe('Bearer t-new')
+  })
+
+  it('apiBlob lanca ApiError com o codigo do back (404 pdf_indisponivel)', async () => {
+    fetchMock.mockResolvedValueOnce(erro(404, 'pdf_indisponivel'))
+    await expect(apiBlob('/x/pdf')).rejects.toMatchObject({ status: 404, codigo: 'pdf_indisponivel' })
+  })
+
+  it('abrirPdf abre a aba, aponta para o blob e agenda a liberacao', async () => {
+    const aba = { location: { href: '' }, close: vi.fn() }
+    const open = vi.spyOn(window, 'open').mockReturnValue(aba as unknown as Window)
+    const create = vi.fn(() => 'blob:abc')
+    const revoke = vi.fn()
+    const orig = { c: URL.createObjectURL, r: URL.revokeObjectURL }
+    URL.createObjectURL = create
+    URL.revokeObjectURL = revoke
+    fetchMock.mockResolvedValueOnce(pdf())
+    await abrirPdf('/x/pdf')
+    expect(open).toHaveBeenCalledWith('', '_blank')
+    expect(aba.location.href).toBe('blob:abc')
+    URL.createObjectURL = orig.c
+    URL.revokeObjectURL = orig.r
+    open.mockRestore()
+  })
+
+  it('abrirPdf fecha a aba e repassa o erro quando o download falha', async () => {
+    const aba = { location: { href: '' }, close: vi.fn() }
+    const open = vi.spyOn(window, 'open').mockReturnValue(aba as unknown as Window)
+    fetchMock.mockResolvedValueOnce(erro(404, 'pdf_indisponivel'))
+    await expect(abrirPdf('/x/pdf')).rejects.toMatchObject({ codigo: 'pdf_indisponivel' })
+    expect(aba.close).toHaveBeenCalled()
+    open.mockRestore()
   })
 })

@@ -28,6 +28,7 @@ export const menu: MenuItem[] = [
   { name: 'Inicio', route: '/', title: 'Início', icon: 'home', order: 0 },
   { name: 'PessoasExemplo', route: '/exemplos/pessoas', title: 'Pessoas (exemplo)', icon: 'users', group: 'Exemplos', order: 10, role: 'consulta' },
   ...doMapa,
+  { name: 'NotasNfse', route: '/notas', title: 'NFS-e', icon: 'file-text', group: 'Notas Fiscais', order: 30, role: 'consulta' },
   { name: 'ImportarMunicipios', route: '/admin/municipios', title: 'Importar municípios', icon: 'upload', group: 'Administração', order: 80, platformOnly: true },
   { name: 'GuiaDeEstilo', route: '/admin/theme', title: 'Guia de estilo', icon: 'palette', group: 'Administração', order: 82, platformOnly: true },
   { name: 'UsuariosAdmin', route: '/admin/usuarios', title: 'Usuários', icon: 'user-cog', group: 'Administração', order: 81, platformOnly: true },

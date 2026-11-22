@@ -29,6 +29,10 @@ export const TELAS_A_MAO = new Set([
   'features/admin/IntegraNotasAdmin.tsx',
   // Configuracao > NFS-e da empresa: tela de configuracao singleton da empresa, fora do padrao lista+formulario (decisao explicita do usuario).
   'features/empresa-config/NfseConfig.tsx',
+  // Notas Fiscais > NFS-e (lista, nova nota, detalhe): as telas de nota tem fluxo proprio de envio e acompanhamento, fora do padrao lista+formulario (decisao explicita do usuario).
+  'features/notas/NotasLista.tsx',
+  'features/notas/NotaNova.tsx',
+  'features/notas/NotaDetalhe.tsx',
   // Configuracao > Empresa da empresa (dados + certificado digital): tela de configuracao singleton, fora do padrao lista+formulario (decisao explicita do usuario).
   'features/empresa-config/EmpresaConfig.tsx',
   // componente à mão montado como aba extra do cadastro de Empresa (gerador extraTabs); decisão explícita do usuário

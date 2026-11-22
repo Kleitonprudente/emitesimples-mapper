@@ -1,0 +1,324 @@
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { z } from 'zod'
+import type { BadgeTone } from '@/components/ui/badge'
+import { ApiError, api } from '@/lib/api'
+import { fkSource } from '@/lib/fk-sources'
+import type { FieldLayout } from '@/runtime/AutoForm'
+import type { TableState } from '@/runtime/table-state'
+
+/* ---------------------------------------------------------------------------
+ * notasApi.ts: chamadas, tipos, formulario e mensagens da tela Notas Fiscais > NFS-e. Contrato (back em paralelo; todos exigem empresa):
+ *   GET  /nfse/notas/{from}/{to}?estado=&busca=  -> NotaItem[] (mais recentes primeiro, ate 100)
+ *   GET  /nfse/notas/count?estado=&busca=        -> {count}
+ *   GET  /nfse/notas/{id}                        -> NotaDetalhe
+ *   POST /nfse/notas {pessoaId, servicoId, valorServicos, informacoesComplementares?, discriminacao?} -> 200 NotaDetalhe (cria E envia)
+ *   POST /nfse/notas/{id}/enviar  (corpo opcional, mesmos campos: aplica e reenvia, mantendo o numero) -> NotaDetalhe
+ *   POST /nfse/notas/{id}/atualizar              -> NotaDetalhe (consulta o gateway agora)
+ *   GET  /nfse/notas/{id}/pdf                    -> application/pdf (404 pdf_indisponivel)
+ * Erros {codigo, mensagem, detalhes?}: 409 nfse_nao_habilitada|emitente_nao_cadastrado|emitente_de_outro_ambiente|certificado_nao_valido|
+ *   servico_inativo|nota_em_processamento|nota_nao_editavel|nota_em_conflito; 422 tomador_incompleto (detalhes.campos);
+ *   400 requisicao_invalida (detalhes.campos)|discriminacao_obrigatoria; 404; 403; 429. Leitura tolerante (campo ausente = padrao seguro).
+ * ------------------------------------------------------------------------- */
+
+export type EstadoNota = 'rascunho' | 'processando' | 'emitida_offline' | 'autorizada' | 'rejeitada' | 'em_conflito' | 'cancelada' | 'descartada'
+
+export const ESTADOS: readonly EstadoNota[] = ['rascunho', 'processando', 'emitida_offline', 'autorizada', 'rejeitada', 'em_conflito', 'cancelada', 'descartada']
+
+export const ESTADO: Record<EstadoNota, { rotulo: string; tone: BadgeTone }> = {
+  rascunho: { rotulo: 'Rascunho', tone: 'neutral' },
+  processando: { rotulo: 'Processando', tone: 'info' },
+  emitida_offline: { rotulo: 'Emitida offline', tone: 'info' },
+  autorizada: { rotulo: 'Autorizada', tone: 'success' },
+  rejeitada: { rotulo: 'Rejeitada', tone: 'danger' },
+  em_conflito: { rotulo: 'Em conflito', tone: 'warning' },
+  cancelada: { rotulo: 'Cancelada', tone: 'neutral' },
+  descartada: { rotulo: 'Descartada', tone: 'neutral' },
+}
+
+export interface NotaItem {
+  id: string
+  numero: number
+  serie: string
+  estado: EstadoNota
+  dataEmissao?: string
+  valorServicos: number
+  pessoa: { id: string; nome: string; documento?: string }
+  servico: { id: string; nome: string }
+  chave?: string
+  numeroNfse?: string
+  codigoRetorno?: string
+  mensagemRetorno?: string
+  temPdf: boolean
+  dataCriacao?: string
+}
+
+export interface ErroRetorno {
+  campo: string
+  erro: string
+  descricao: string
+}
+
+export interface NotaDetalhe extends NotaItem {
+  informacoesComplementares?: string
+  discriminacao: string
+  descricao?: string
+  codigoServico?: string
+  errosRetorno: ErroRetorno[]
+  linkPdf?: string
+  codigoVerificacao?: string
+  dataHoraEvento?: string
+  editavel: boolean
+  podeReenviar: boolean
+  podeAtualizar: boolean
+}
+
+export interface CorpoNota {
+  pessoaId: string
+  servicoId: string
+  valorServicos: number
+  informacoesComplementares?: string
+  discriminacao?: string
+}
+
+const rec = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' ? (v as Record<string, unknown>) : {})
+const str = (v: unknown): string | undefined => (typeof v === 'string' && v !== '' ? v : undefined)
+const num = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? v : 0)
+
+export function lerNota(raw: unknown): NotaItem {
+  const r = rec(raw)
+  const p = rec(r.pessoa)
+  const s = rec(r.servico)
+  return {
+    id: String(r.id ?? ''),
+    numero: num(r.numero),
+    serie: str(r.serie) ?? '',
+    estado: ESTADOS.includes(r.estado as EstadoNota) ? (r.estado as EstadoNota) : 'rascunho',
+    dataEmissao: str(r.dataEmissao),
+    valorServicos: num(r.valorServicos),
+    pessoa: { id: String(p.id ?? ''), nome: str(p.nome) ?? '', documento: str(p.documento) },
+    servico: { id: String(s.id ?? ''), nome: str(s.nome) ?? '' },
+    chave: str(r.chave),
+    numeroNfse: str(r.numeroNfse),
+    codigoRetorno: str(r.codigoRetorno),
+    mensagemRetorno: str(r.mensagemRetorno),
+    temPdf: r.temPdf === true,
+    dataCriacao: str(r.dataCriacao),
+  }
+}
+
+export function lerDetalhe(raw: unknown): NotaDetalhe {
+  const r = rec(raw)
+  return {
+    ...lerNota(raw),
+    informacoesComplementares: str(r.informacoesComplementares),
+    discriminacao: str(r.discriminacao) ?? '',
+    descricao: str(r.descricao),
+    codigoServico: str(r.codigoServico),
+    errosRetorno: Array.isArray(r.errosRetorno)
+      ? r.errosRetorno.map((e) => ({ campo: str(rec(e).campo) ?? '', erro: str(rec(e).erro) ?? '', descricao: str(rec(e).descricao) ?? '' }))
+      : [],
+    linkPdf: str(r.linkPdf),
+    codigoVerificacao: str(r.codigoVerificacao),
+    dataHoraEvento: str(r.dataHoraEvento),
+    editavel: r.editavel === true,
+    podeReenviar: r.podeReenviar === true,
+    podeAtualizar: r.podeAtualizar === true,
+  }
+}
+
+export const aguardaPrefeitura = (e: EstadoNota): boolean => e === 'processando' || e === 'emitida_offline'
+
+/* ----- consultas ----- */
+
+export const notasKeys = {
+  all: ['nfse', 'notas'] as const,
+  list: (s: TableState) => ['nfse', 'notas', 'list', s] as const,
+  one: (id: string) => ['nfse', 'notas', 'id', id] as const,
+}
+
+/** Intervalos de atualizacao automatica (ms). */
+export const INTERVALO_LISTA_MS = 10_000
+export const INTERVALO_DETALHE_MS = 3_000
+
+/** Lista paginada no servidor; recarrega sozinha a cada 10 s enquanto houver nota `processando`. */
+export function useNotas(state: TableState) {
+  const from = state.page * state.pageSize
+  const to = from + state.pageSize - 1
+  const query = { estado: state.filters.estado || undefined, busca: state.search.trim() || undefined }
+  const q = useQuery({
+    queryKey: notasKeys.list(state),
+    queryFn: async () => {
+      const [data, count] = await Promise.all([api<unknown[]>(`/nfse/notas/${from}/${to}`, { query }), api<{ count: number }>('/nfse/notas/count', { query })])
+      return { data: data.map(lerNota), count: num(count?.count) }
+    },
+    placeholderData: keepPreviousData,
+    refetchInterval: (cq) => (cq.state.data?.data.some((n) => n.estado === 'processando') ? INTERVALO_LISTA_MS : false),
+  })
+  return { data: q.data?.data, count: q.data?.count, isLoading: q.isLoading, isFetching: q.isFetching, isError: q.isError, error: q.error, refetch: () => void q.refetch() }
+}
+
+/** Detalhe; consulta a cada 3 s enquanto a nota aguarda a prefeitura (processando / emitida offline). */
+export function useNota(id: string) {
+  return useQuery({
+    queryKey: notasKeys.one(id),
+    queryFn: async () => lerDetalhe(await api<unknown>(`/nfse/notas/${encodeURIComponent(id)}`)),
+    refetchInterval: (cq) => (cq.state.data && aguardaPrefeitura(cq.state.data.estado) ? INTERVALO_DETALHE_MS : false),
+  })
+}
+
+export function useCriarNota() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (v: CorpoNota) => lerDetalhe(await api<unknown>('/nfse/notas', { method: 'POST', body: v })),
+    onSuccess: (nota) => {
+      qc.setQueryData(notasKeys.one(nota.id), nota)
+      return qc.invalidateQueries({ queryKey: ['nfse', 'notas', 'list'] })
+    },
+  })
+}
+
+export function useReenviarNota(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (v: CorpoNota) => lerDetalhe(await api<unknown>(`/nfse/notas/${encodeURIComponent(id)}/enviar`, { method: 'POST', body: v })),
+    onSuccess: (nota) => {
+      qc.setQueryData(notasKeys.one(id), nota)
+      return qc.invalidateQueries({ queryKey: ['nfse', 'notas', 'list'] })
+    },
+  })
+}
+
+export function useAtualizarNota(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async () => lerDetalhe(await api<unknown>(`/nfse/notas/${encodeURIComponent(id)}/atualizar`, { method: 'POST' })),
+    onSuccess: (nota) => {
+      qc.setQueryData(notasKeys.one(id), nota)
+      return qc.invalidateQueries({ queryKey: ['nfse', 'notas', 'list'] })
+    },
+  })
+}
+
+export const urlPdf = (id: string) => `/nfse/notas/${encodeURIComponent(id)}/pdf`
+
+/** Texto padrao do servico (discriminacaoPadrao do cadastro) para preencher a descricao da nota. */
+export async function buscarDiscriminacaoPadrao(servicoId: string): Promise<string> {
+  const s = rec(await api<unknown>(`/Servico/id/${encodeURIComponent(servicoId)}`))
+  return str(s.discriminacaoPadrao) ?? ''
+}
+
+/* ----- formulario (nova nota e edicao para reenvio) ----- */
+
+const fk = z.looseObject({ id: z.string().min(1) })
+
+export const notaSchema = z.object({
+  pessoa: fk,
+  servico: fk,
+  valorServicos: z.number().min(0.01, 'O valor deve ser de pelo menos R$ 0,01.'),
+  discriminacao: z.string().trim().min(1, 'Campo obrigatório').max(2000),
+  informacoesComplementares: z.string().max(2000).optional(),
+})
+
+export type NotaValues = z.infer<typeof notaSchema>
+
+export const notaLayout: FieldLayout = [
+  { section: 'Nota', description: 'Escolha o cliente e o serviço. A nota só é emitida quando você clica em enviar.' },
+  [
+    { name: 'pessoa', label: 'Cliente', kind: 'fk', fk: fkSource('Cliente'), required: true, size: 'l' },
+    { name: 'servico', label: 'Serviço', kind: 'fk', fk: fkSource('Servico'), required: true, size: 'l' },
+  ],
+  [{ name: 'valorServicos', label: 'Valor dos serviços', kind: 'currency', required: true, size: 'm' }],
+  [{ name: 'discriminacao', label: 'Descrição do serviço', kind: 'textarea', required: true, maxLength: 2000, size: 'full', hint: 'Preenchida com o texto padrão do serviço; você pode editar.' }],
+  [{ name: 'informacoesComplementares', label: 'Informações complementares', kind: 'textarea', maxLength: 2000, size: 'full' }],
+]
+
+export function corpoDaNota(v: NotaValues): CorpoNota {
+  const corpo: CorpoNota = { pessoaId: v.pessoa.id, servicoId: v.servico.id, valorServicos: v.valorServicos, discriminacao: v.discriminacao.trim() }
+  const info = (v.informacoesComplementares ?? '').trim()
+  if (info !== '') corpo.informacoesComplementares = info
+  return corpo
+}
+
+export function valoresDaNota(n: NotaDetalhe): NotaValues {
+  return {
+    pessoa: { id: n.pessoa.id, nome: n.pessoa.nome, documento: n.pessoa.documento },
+    servico: { id: n.servico.id, nome: n.servico.nome },
+    valorServicos: n.valorServicos,
+    discriminacao: n.discriminacao,
+    informacoesComplementares: n.informacoesComplementares,
+  }
+}
+
+/* ----- mensagens ----- */
+
+const CAMPOS: Record<string, string> = {
+  documento: 'CPF/CNPJ',
+  nome: 'nome',
+  email: 'e-mail',
+  telefone: 'telefone',
+  cep: 'CEP',
+  logradouro: 'logradouro',
+  numeroEndereco: 'número do endereço',
+  bairro: 'bairro',
+  cidade: 'município',
+  municipio: 'município',
+  codigoMunicipio: 'município',
+  uf: 'UF',
+  pessoaId: 'cliente',
+  servicoId: 'serviço',
+  valorServicos: 'valor dos serviços',
+  discriminacao: 'descrição do serviço',
+  informacoesComplementares: 'informações complementares',
+}
+
+function nomesDosCampos(detalhes?: Record<string, unknown>): string[] {
+  const campos = detalhes?.campos
+  const lista: unknown[] = Array.isArray(campos) ? campos : campos && typeof campos === 'object' ? Object.keys(campos) : []
+  const nomes = lista
+    .map((c) => (typeof c === 'string' ? c : (str(rec(c).campo) ?? str(rec(c).mensagem))))
+    .filter((c): c is string => !!c)
+    .map((c) => CAMPOS[c] ?? c)
+  return [...new Set(nomes)]
+}
+
+/** Mensagem amigavel por codigo de erro; codigo desconhecido cai na mensagem do back. */
+export function mensagemErroNota(e: ApiError): string {
+  switch (e.codigo) {
+    case 'nfse_nao_habilitada':
+      return 'A emissão de NFS-e não está habilitada. Habilite em Configuração > NFS-e.'
+    case 'emitente_nao_cadastrado':
+      return 'A empresa ainda não está cadastrada como emitente na IntegraNotas. Conclua em Configuração > NFS-e.'
+    case 'emitente_de_outro_ambiente':
+      return 'O cadastro do emitente é de outro ambiente (homologação ou produção). Refaça o cadastro em Configuração > NFS-e.'
+    case 'certificado_nao_valido':
+      return 'O certificado digital não está válido. Envie em Configuração > Empresa.'
+    case 'servico_inativo':
+      return 'O serviço escolhido está inativo. Escolha outro serviço.'
+    case 'nota_em_processamento':
+      return 'A nota está em processamento. Aguarde a resposta da prefeitura.'
+    case 'nota_nao_editavel':
+      return 'Esta nota não pode mais ser editada.'
+    case 'nota_em_conflito':
+      return 'A prefeitura indicou conflito nesta nota. Não reenvie: use Atualizar agora.'
+    case 'discriminacao_obrigatoria':
+      return 'Informe a descrição do serviço.'
+    case 'tomador_incompleto': {
+      const nomes = nomesDosCampos(e.detalhes)
+      return `${nomes.length > 0 ? `Faltam dados do cliente: ${nomes.join(', ')}.` : 'Faltam dados do cliente.'} Complete o cadastro do cliente.`
+    }
+    case 'requisicao_invalida': {
+      const nomes = nomesDosCampos(e.detalhes)
+      return nomes.length > 0 ? `Revise os campos: ${nomes.join(', ')}.` : e.mensagem
+    }
+    default:
+      if (e.status === 403) return 'Você não tem permissão para esta ação.'
+      if (e.status === 404) return 'Nota não encontrada.'
+      return e.mensagem
+  }
+}
+
+/** Troca a mensagem do ApiError pela amigavel (para o `serverError` do AutoForm e dos Alerts); outros erros passam como vieram. */
+export function erroAmigavel(e: unknown): unknown {
+  if (!(e instanceof ApiError)) return e
+  return new ApiError(e.status, e.codigo, mensagemErroNota(e), e.detalhes, e.retryAfter)
+}

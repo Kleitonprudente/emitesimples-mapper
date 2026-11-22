@@ -1,5 +1,6 @@
 import { api } from '@/lib/api'
 import type { FkSource } from '@/runtime/Combobox'
+import { maskDocumento } from '@/runtime/format'
 
 /* ---------------------------------------------------------------------------
  * Registro de fontes de chave estrangeira (Combobox com busca assincrona).
@@ -24,7 +25,30 @@ function buscaPorCampo(entidade: string, campo: string, rotulo: (r: Linha) => st
 const rotuloMunicipio = (v: { nome?: unknown; uf?: unknown }): string | undefined =>
   v.nome ? `${v.nome}${v.uf ? ` - ${v.uf}` : ''}` : undefined
 
+/** Busca com filtro fixo na lista paginada (`/{Entidade}/0/49`): para fontes que so oferecem parte dos registros. */
+function buscaFiltrada(entidade: string, filtro: Record<string, string | boolean>, rotulo: (r: Linha) => string): FkSource['search'] {
+  return async (term) => {
+    const rows = await api<Linha[]>(`/${entidade}/0/49`, { query: { ...filtro, nome: term.trim() ? `*${term.trim()}*` : undefined, sortBy: 'nome' } })
+    return rows.map((r) => ({ id: r.id, label: rotulo(r) }))
+  }
+}
+
+const rotuloCliente = (v: { nome?: unknown; documento?: unknown }): string | undefined =>
+  v.nome ? `${v.nome}${v.documento ? ` - ${maskDocumento(v.documento)}` : ''}` : undefined
+
 const REGISTRO: Record<string, FkSource> = {
+  /** Cliente: Pessoa com cliente=true; rotulo 'Nome - documento mascarado'. */
+  Cliente: {
+    key: 'Cliente',
+    search: buscaFiltrada('Pessoa', { cliente: true }, (p) => rotuloCliente(p) ?? p.id),
+    labelOf: rotuloCliente,
+  },
+  /** Servico: so os ativos; rotulo 'nome'. */
+  Servico: {
+    key: 'Servico',
+    search: buscaFiltrada('Servico', { ativo: true }, (s) => String(s.nome ?? s.id)),
+    labelOf: (v) => (v.nome ? String(v.nome) : undefined),
+  },
   Municipio: {
     key: 'Municipio',
     search: buscaPorCampo('Municipio', 'nome', (m) => rotuloMunicipio(m) ?? m.id),

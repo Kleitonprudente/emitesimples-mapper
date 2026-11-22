@@ -79,6 +79,8 @@ export interface AutoFormProps<T extends FieldValues> {
   serverError?: unknown
   /** Campos que voltam ao valor inicial logo depois do envio (com sucesso ou nao). Uso: senha nunca fica no formulario. */
   clearAfterSubmit?: string[]
+  /** Avisa de cada mudanca de valor (name = campo alterado; indefinido em reset). setValue altera outro campo (ex.: preencher a descricao ao escolher o servico). */
+  onValuesChange?: (values: Partial<T>, ctx: { name?: string; setValue: (name: string, value: unknown) => void }) => void
 }
 
 /** Resposta de GET /cep/{cep} (o back consulta o ViaCEP). */
@@ -243,6 +245,7 @@ export function AutoForm<T extends FieldValues>({
   onCancel,
   serverError,
   clearAfterSubmit,
+  onValuesChange,
 }: AutoFormProps<T>) {
   const specs = useMemo(() => flatten(fields), [fields])
   const fkNames = useMemo(() => specs.filter((s) => resolveKind(s) === 'fk').map((s) => s.name), [specs])
@@ -281,6 +284,15 @@ export function AutoForm<T extends FieldValues>({
     values,
     mode: 'onTouched',
   })
+
+  const onValuesChangeRef = useRef(onValuesChange)
+  useEffect(() => {
+    onValuesChangeRef.current = onValuesChange
+  })
+  useEffect(() => {
+    const sub = form.watch((vals, info) => onValuesChangeRef.current?.(vals as Partial<T>, { name: info.name, setValue: (n, v) => form.setValue(n as Path<T>, v as never, { shouldDirty: true, shouldValidate: true }) }))
+    return () => sub.unsubscribe()
+  }, [form])
 
   /* ----- lookup de CEP: ao sair do campo com 8 digitos, preenche os irmaos por convencao de nome ----- */
   const names = useMemo(() => new Set(specs.map((s) => s.name)), [specs])

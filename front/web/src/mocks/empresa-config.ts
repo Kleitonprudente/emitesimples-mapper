@@ -1,7 +1,7 @@
 import type { Papel } from '@/lib/api'
 import { erro, json } from '@/mocks/http'
 import { getMunicipios } from '@/mocks/admin'
-import { nfseHabilitadaMock } from '@/mocks/nfse-config'
+import { nfseHabilitadaMock, vincularCertificadoNfse } from '@/mocks/nfse-config'
 import { isValidCnpj } from '@/runtime/format'
 
 /* ---------------------------------------------------------------------------
@@ -101,6 +101,11 @@ function statusCertificado() {
   const { situacao, validade, pendenteDeEnvio } = estado.certificado
   return { situacao, validade, pendenteDeEnvio, venceEmDias: validade ? diasAte(validade) : null }
 }
+
+vincularCertificadoNfse(() => {
+  const { situacao, validade } = statusCertificado()
+  return { situacao, validade }
+})
 
 function corpo() {
   const { documentoBloqueado, ...dados } = estado

@@ -41,17 +41,38 @@ let estado = inicial()
 
 export function resetNfseConfig(): void {
   estado = inicial()
+  certificadoDe = certificadoPadrao
 }
 
 /** Para testes e cenarios: ajusta o estado em memoria. */
 export function ajustarNfseConfig(parcial: Partial<Estado>): void {
+  if ('certificadoSituacao' in parcial) certificadoDe = null
   estado = { ...estado, ...parcial }
 }
 
 /** Para outros mocks (ex.: certificado da empresa, que so segue ao gateway com a NFS-e habilitada). */
 export const nfseHabilitadaMock = (): boolean => estado.habilitada
 
-const corpo = () => ({ ...estado, proximoNumero: estado.ultimoNumero + 1 })
+/** O certificado vive no mock de Empresa (src/mocks/empresa-config.ts); ele se vincula aqui para o GET refletir o que foi enviado. */
+type ProvedorCertificado = (() => { situacao: Estado['certificadoSituacao']; validade: string | null }) | null
+let certificadoDe: ProvedorCertificado = null
+let certificadoPadrao: ProvedorCertificado = null
+export function vincularCertificadoNfse(fn: ProvedorCertificado): void {
+  certificadoDe = fn
+  certificadoPadrao = fn
+}
+
+/** Para o mock de notas: situacao atual da configuracao e alocacao do proximo numero da serie (incrementa o ultimo numero). */
+export const nfseConfigMock = () => ({ ...estado, ...(certificadoDe ? { certificadoSituacao: certificadoDe().situacao } : {}) })
+export function alocarNumeroNfseMock(): { serie: string; numero: number } {
+  estado = { ...estado, ultimoNumero: estado.ultimoNumero + 1 }
+  return { serie: estado.serie ?? '1', numero: estado.ultimoNumero }
+}
+
+const corpo = () => {
+  const cert = certificadoDe?.()
+  return { ...estado, ...(cert ? { certificadoSituacao: cert.situacao, validadeCertificado: cert.validade } : {}), proximoNumero: estado.ultimoNumero + 1 }
+}
 
 const FALHAS_GATEWAY: Record<string, () => Response> = {
   '422': () =>

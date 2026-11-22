@@ -50,6 +50,20 @@ describe('menu Configuracao > NFS-e da empresa', () => {
   })
 })
 
+describe('menu Notas Fiscais > NFS-e', () => {
+  const rotas = (s: SessionData) => visibleMenu(s, menu).flatMap((g) => g.items.map((i) => i.route))
+
+  it('item no grupo Notas Fiscais, ordem 30, papel consulta, icone file-text', () => {
+    const item = menu.find((i) => i.route === '/notas')
+    expect(item).toMatchObject({ title: 'NFS-e', group: 'Notas Fiscais', order: 30, role: 'consulta', icon: 'file-text' })
+    expect(item?.platformOnly).toBeUndefined()
+  })
+  it('qualquer papel da empresa ve; plataforma sem empresa nao', () => {
+    for (const papel of ['consulta', 'operador', 'administrador'] as const) expect(rotas({ ...base, papel })).toContain('/notas')
+    expect(rotas({ ...base, papel: null, plataformaAdmin: true })).not.toContain('/notas')
+  })
+})
+
 describe('menu Configuracao > Empresa da empresa', () => {
   const rotas = (s: SessionData) => visibleMenu(s, menu).flatMap((g) => g.items.map((i) => i.route))
 

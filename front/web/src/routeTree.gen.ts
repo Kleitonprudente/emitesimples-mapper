@@ -29,6 +29,9 @@ import { Route as AuthenticatedFornecedoresIndexRouteImport } from './routes/_au
 import { Route as AuthenticatedFornecedoresIdRouteImport } from './routes/_authenticated/fornecedores/$id'
 import { Route as AuthenticatedMunicipiosIndexRouteImport } from './routes/_authenticated/municipios/index'
 import { Route as AuthenticatedMunicipiosIdRouteImport } from './routes/_authenticated/municipios/$id'
+import { Route as AuthenticatedNotasIndexRouteImport } from './routes/_authenticated/notas/index'
+import { Route as AuthenticatedNotasIdRouteImport } from './routes/_authenticated/notas/$id'
+import { Route as AuthenticatedNotasNovoRouteImport } from './routes/_authenticated/notas/novo'
 import { Route as AuthenticatedServicosIndexRouteImport } from './routes/_authenticated/servicos/index'
 import { Route as AuthenticatedServicosIdRouteImport } from './routes/_authenticated/servicos/$id'
 
@@ -144,6 +147,21 @@ const AuthenticatedMunicipiosIdRoute =
     path: '/municipios/$id',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedNotasIndexRoute = AuthenticatedNotasIndexRouteImport.update({
+  id: '/notas/',
+  path: '/notas/',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedNotasIdRoute = AuthenticatedNotasIdRouteImport.update({
+  id: '/notas/$id',
+  path: '/notas/$id',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedNotasNovoRoute = AuthenticatedNotasNovoRouteImport.update({
+  id: '/notas/novo',
+  path: '/notas/novo',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedServicosIndexRoute =
   AuthenticatedServicosIndexRouteImport.update({
     id: '/servicos/',
@@ -172,11 +190,14 @@ export interface FileRoutesByFullPath {
   '/exemplos/pessoas': typeof AuthenticatedExemplosPessoasRoute
   '/fornecedores/$id': typeof AuthenticatedFornecedoresIdRoute
   '/municipios/$id': typeof AuthenticatedMunicipiosIdRoute
+  '/notas/$id': typeof AuthenticatedNotasIdRoute
+  '/notas/novo': typeof AuthenticatedNotasNovoRoute
   '/servicos/$id': typeof AuthenticatedServicosIdRoute
   '/clientes/': typeof AuthenticatedClientesIndexRoute
   '/empresas/': typeof AuthenticatedEmpresasIndexRoute
   '/fornecedores/': typeof AuthenticatedFornecedoresIndexRoute
   '/municipios/': typeof AuthenticatedMunicipiosIndexRoute
+  '/notas/': typeof AuthenticatedNotasIndexRoute
   '/servicos/': typeof AuthenticatedServicosIndexRoute
 }
 export interface FileRoutesByTo {
@@ -195,11 +216,14 @@ export interface FileRoutesByTo {
   '/exemplos/pessoas': typeof AuthenticatedExemplosPessoasRoute
   '/fornecedores/$id': typeof AuthenticatedFornecedoresIdRoute
   '/municipios/$id': typeof AuthenticatedMunicipiosIdRoute
+  '/notas/$id': typeof AuthenticatedNotasIdRoute
+  '/notas/novo': typeof AuthenticatedNotasNovoRoute
   '/servicos/$id': typeof AuthenticatedServicosIdRoute
   '/clientes': typeof AuthenticatedClientesIndexRoute
   '/empresas': typeof AuthenticatedEmpresasIndexRoute
   '/fornecedores': typeof AuthenticatedFornecedoresIndexRoute
   '/municipios': typeof AuthenticatedMunicipiosIndexRoute
+  '/notas': typeof AuthenticatedNotasIndexRoute
   '/servicos': typeof AuthenticatedServicosIndexRoute
 }
 export interface FileRoutesById {
@@ -220,11 +244,14 @@ export interface FileRoutesById {
   '/_authenticated/exemplos/pessoas': typeof AuthenticatedExemplosPessoasRoute
   '/_authenticated/fornecedores/$id': typeof AuthenticatedFornecedoresIdRoute
   '/_authenticated/municipios/$id': typeof AuthenticatedMunicipiosIdRoute
+  '/_authenticated/notas/$id': typeof AuthenticatedNotasIdRoute
+  '/_authenticated/notas/novo': typeof AuthenticatedNotasNovoRoute
   '/_authenticated/servicos/$id': typeof AuthenticatedServicosIdRoute
   '/_authenticated/clientes/': typeof AuthenticatedClientesIndexRoute
   '/_authenticated/empresas/': typeof AuthenticatedEmpresasIndexRoute
   '/_authenticated/fornecedores/': typeof AuthenticatedFornecedoresIndexRoute
   '/_authenticated/municipios/': typeof AuthenticatedMunicipiosIndexRoute
+  '/_authenticated/notas/': typeof AuthenticatedNotasIndexRoute
   '/_authenticated/servicos/': typeof AuthenticatedServicosIndexRoute
 }
 export interface FileRouteTypes {
@@ -245,11 +272,14 @@ export interface FileRouteTypes {
     | '/exemplos/pessoas'
     | '/fornecedores/$id'
     | '/municipios/$id'
+    | '/notas/$id'
+    | '/notas/novo'
     | '/servicos/$id'
     | '/clientes/'
     | '/empresas/'
     | '/fornecedores/'
     | '/municipios/'
+    | '/notas/'
     | '/servicos/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -268,11 +298,14 @@ export interface FileRouteTypes {
     | '/exemplos/pessoas'
     | '/fornecedores/$id'
     | '/municipios/$id'
+    | '/notas/$id'
+    | '/notas/novo'
     | '/servicos/$id'
     | '/clientes'
     | '/empresas'
     | '/fornecedores'
     | '/municipios'
+    | '/notas'
     | '/servicos'
   id:
     | '__root__'
@@ -292,11 +325,14 @@ export interface FileRouteTypes {
     | '/_authenticated/exemplos/pessoas'
     | '/_authenticated/fornecedores/$id'
     | '/_authenticated/municipios/$id'
+    | '/_authenticated/notas/$id'
+    | '/_authenticated/notas/novo'
     | '/_authenticated/servicos/$id'
     | '/_authenticated/clientes/'
     | '/_authenticated/empresas/'
     | '/_authenticated/fornecedores/'
     | '/_authenticated/municipios/'
+    | '/_authenticated/notas/'
     | '/_authenticated/servicos/'
   fileRoutesById: FileRoutesById
 }
@@ -447,6 +483,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMunicipiosIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/notas/': {
+      id: '/_authenticated/notas/'
+      path: '/notas'
+      fullPath: '/notas/'
+      preLoaderRoute: typeof AuthenticatedNotasIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/notas/$id': {
+      id: '/_authenticated/notas/$id'
+      path: '/notas/$id'
+      fullPath: '/notas/$id'
+      preLoaderRoute: typeof AuthenticatedNotasIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/notas/novo': {
+      id: '/_authenticated/notas/novo'
+      path: '/notas/novo'
+      fullPath: '/notas/novo'
+      preLoaderRoute: typeof AuthenticatedNotasNovoRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/servicos/': {
       id: '/_authenticated/servicos/'
       path: '/servicos'
@@ -479,11 +536,14 @@ interface AuthenticatedRouteChildren {
   AuthenticatedExemplosPessoasRoute: typeof AuthenticatedExemplosPessoasRoute
   AuthenticatedFornecedoresIdRoute: typeof AuthenticatedFornecedoresIdRoute
   AuthenticatedMunicipiosIdRoute: typeof AuthenticatedMunicipiosIdRoute
+  AuthenticatedNotasIdRoute: typeof AuthenticatedNotasIdRoute
+  AuthenticatedNotasNovoRoute: typeof AuthenticatedNotasNovoRoute
   AuthenticatedServicosIdRoute: typeof AuthenticatedServicosIdRoute
   AuthenticatedClientesIndexRoute: typeof AuthenticatedClientesIndexRoute
   AuthenticatedEmpresasIndexRoute: typeof AuthenticatedEmpresasIndexRoute
   AuthenticatedFornecedoresIndexRoute: typeof AuthenticatedFornecedoresIndexRoute
   AuthenticatedMunicipiosIndexRoute: typeof AuthenticatedMunicipiosIndexRoute
+  AuthenticatedNotasIndexRoute: typeof AuthenticatedNotasIndexRoute
   AuthenticatedServicosIndexRoute: typeof AuthenticatedServicosIndexRoute
 }
 
@@ -502,11 +562,14 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedExemplosPessoasRoute: AuthenticatedExemplosPessoasRoute,
   AuthenticatedFornecedoresIdRoute: AuthenticatedFornecedoresIdRoute,
   AuthenticatedMunicipiosIdRoute: AuthenticatedMunicipiosIdRoute,
+  AuthenticatedNotasIdRoute: AuthenticatedNotasIdRoute,
+  AuthenticatedNotasNovoRoute: AuthenticatedNotasNovoRoute,
   AuthenticatedServicosIdRoute: AuthenticatedServicosIdRoute,
   AuthenticatedClientesIndexRoute: AuthenticatedClientesIndexRoute,
   AuthenticatedEmpresasIndexRoute: AuthenticatedEmpresasIndexRoute,
   AuthenticatedFornecedoresIndexRoute: AuthenticatedFornecedoresIndexRoute,
   AuthenticatedMunicipiosIndexRoute: AuthenticatedMunicipiosIndexRoute,
+  AuthenticatedNotasIndexRoute: AuthenticatedNotasIndexRoute,
   AuthenticatedServicosIndexRoute: AuthenticatedServicosIndexRoute,
 }
 
