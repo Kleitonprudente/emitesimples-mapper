@@ -139,7 +139,7 @@ tudo é negado (`padrao-negar`), e um endpoint novo sob `/api` nasce **fechado p
 | `Usuario` (global, sem filtro de empresa) | só plat. | só plat. | negado |
 | `Municipio`, `Plano`, `AssinaturaEmpresa`, `Empresa`, `AtividadeEmpresa`, `QsaEmpresa` | autenticado | só plat. | negado |
 | `Pessoa`, `Servico` | autenticado | administrador, operador, plat.; `consulta` não | negado |
-| `Contato` | autenticado | administrador, operador, plat. | administrador, operador, plat. |
+| `Contato` (CRUD gerado) | autenticado | **negado a todos** (escrita só por `PUT /api/Pessoa/{id}/contatos`) | negado |
 | `VinculoUsuario`, `ClienteAcesso` | autenticado | negado (vínculos: só por `/api/admin/usuarios/{id}/vinculos`; `ClienteAcesso` ainda sem endpoint à mão) | negado |
 | `/api/cep/*` | autenticado (qualquer papel) | negado | negado |
 | `/api/admin/*` (importação de municípios, usuários e vínculos por usuário e por empresa `/api/admin/empresas/{id}/vinculos`) | só plat. | só plat. | negado (usuário e vínculo nunca se apagam) |
@@ -442,6 +442,30 @@ distinto do `/api/Empresa` gerado, que não muda. Classes: `VinculoEmpresaAdminR
 vira `cliente = true` (o cadastro nasceu só para clientes); a mesma pessoa pode ser as duas coisas. Índices `ix_pessoa_empresa_cliente` e
 `ix_pessoa_empresa_fornecedor` (`empresa_id`, coluna) para a listagem por empresa e papel. RLS e GRANTs (V3, por tabela) já cobrem a coluna nova.
 O código gerado (entity/builder/mapper/resource) só ganha os campos depois do `mi push` e do `gerar.sh`; até lá o DEFAULT cobre as inserções.
+
+## Contatos de uma Pessoa (`GET` e `PUT /api/Pessoa/{id}/contatos`, provado em `ContatosDaPessoaTest`)
+
+Os contatos de um cliente/fornecedor são gerenciados **só** por estes dois endpoints (código à mão em `plataforma/ContatosDaPessoa*`).
+`/api/Contato` (CRUD gerado) é **somente leitura**: POST, PUT, PATCH e DELETE são negados a todos (403; 401 sem token), por regra em
+`application.properties`. Motivo: o gerado ignora o filtro `pessoa.id`, o PUT sobrescrevia os dados da Pessoa e nada era validado.
+
+**`GET /api/Pessoa/{id}/contatos`** (administrador, operador, consulta e plataforma) devolve `[ {id, tipoContato, nome, whatsapp|null, email|null} ]`
+ordenado por nome (sem diferenciar maiúsculas). Pessoa inexistente ou de outra empresa: 404 `nao_encontrado`.
+
+**`PUT /api/Pessoa/{id}/contatos`** (administrador, operador e plataforma; `consulta` 403) recebe a lista DESEJADA completa
+`[ {id?, tipoContato, nome, whatsapp?, email?} ]` e devolve 200 com a lista salva (com ids, ordenada por nome). Tudo numa única
+transação (tudo ou nada; a Pessoa é travada, então PUTs concorrentes se serializam):
+- item sem `id` é inserido; com `id` da própria pessoa, atualizado (só se algo mudou); contato atual ausente da lista é apagado; `[]` apaga todos;
+- `id` que não pertence àquela pessoa (de outra pessoa, de outra empresa ou inexistente) ou repetido: 400 `requisicao_invalida` em `contatos[i].id`, nada muda;
+- reenviar a lista devolvida (com ids) não muda nada; reenviar itens sem id (corpo sem ids) recria sem duplicar (os antigos saem).
+
+Validação (400 `requisicao_invalida`, `detalhes.campos: [{campo, mensagem}]`, todos os erros de uma vez, campo como `contatos[2].nome`):
+`tipoContato` em socio|financeiro|comercial|fiscal|outro; `nome` obrigatório (após trim) até 300; `whatsapp` opcional, só dígitos e `( ) + - .` e espaço,
+normalizado para dígitos (até 20); `email` opcional, formato válido, até 60; no máximo 50 itens (erro em `contatos`); corpo ausente 400. Vazio vira `null`.
+A `empresa` é sempre a da sessão; `empresa` e `pessoa` no corpo são ignoradas. Administrador da plataforma (sem empresa na sessão): vê/altera qualquer
+Pessoa e os contatos herdam a empresa dela.
+
+Resta de lacuna do gerado (só GET direto de `/api/Contato`, que o front não usa): o filtro `pessoa.id` é ignorado (coberto por `ContatoPorPessoaTest`).
 
 ## Pontos em aberto
 

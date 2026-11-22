@@ -45,7 +45,7 @@ class PoliticaAcessoTest extends BaseApiTest {
             "HistoricoSituacaoEmpresa", "ImportacaoMunicipio");
     private static final List<String> SO_PLATAFORMA_ESCRITA = List.of("Municipio", "Plano", "AssinaturaEmpresa", "Empresa",
             "AtividadeEmpresa", "QsaEmpresa");
-    private static final List<String> CADASTROS = List.of("Pessoa", "Servico", "Contato");
+    private static final List<String> CADASTROS = List.of("Pessoa", "Servico");
 
     private static final Map<String, Object> CORPO = Map.of();
 
@@ -146,7 +146,7 @@ class PoliticaAcessoTest extends BaseApiTest {
         todas.addAll(FLUXO);
         todas.addAll(SO_PLATAFORMA_ESCRITA);
         todas.addAll(CADASTROS);
-        todas.addAll(List.of("VinculoUsuario", "ClienteAcesso"));
+        todas.addAll(List.of("VinculoUsuario", "ClienteAcesso", "Contato"));
         for (String e : todas) {
             porPapel(falhas, "GET", "/api/" + e, false, true, true, true, true);
             porPapel(falhas, "GET", "/api/" + e + "/count", false, true, true, true, true);
@@ -195,6 +195,16 @@ class PoliticaAcessoTest extends BaseApiTest {
     }
 
     @Test
+    void escritaDiretaDeContatoNegadaATodos() {
+        List<String> falhas = new ArrayList<>();
+        porPapel(falhas, "POST", "/api/Contato", false, false, false, false, false);
+        porPapel(falhas, "PUT", "/api/Contato/id/qualquer", false, false, false, false, false);
+        porPapel(falhas, "PATCH", "/api/Contato/id/qualquer", false, false, false, false, false);
+        porPapel(falhas, "DELETE", "/api/Contato/id/qualquer", false, false, false, false, false);
+        semFalhas(falhas);
+    }
+
+    @Test
     void escritaDeCadastrosAdministradorOuOperadorEConsultaSoLe() {
         List<String> falhas = new ArrayList<>();
         for (String e : CADASTROS) {
@@ -206,7 +216,7 @@ class PoliticaAcessoTest extends BaseApiTest {
     }
 
     @Test
-    void deleteNegadoEmTudoExcetoContato() {
+    void deleteNegadoEmTudo() {
         List<String> falhas = new ArrayList<>();
         porPapel(falhas, "DELETE", "/api/Pessoa/id/qualquer", false, false, false, false, false);
         porPapel(falhas, "DELETE", "/api/Servico/id/qualquer", false, false, false, false, false);
@@ -217,8 +227,8 @@ class PoliticaAcessoTest extends BaseApiTest {
         porPapel(falhas, "DELETE", "/api/ClienteAcesso/id/qualquer", false, false, false, false, false);
         porPapel(falhas, "DELETE", "/api/Pessoa", false, false, false, false, false);
         porPapel(falhas, "DELETE", "/api/Qualquer/Coisa/Nova", false, false, false, false, false);
-        // exceção: Contato (administrador ou operador, e plataforma)
-        porPapel(falhas, "DELETE", "/api/Contato/id/qualquer", false, false, true, true, true);
+        // Contato tambem: so se gerencia pela Pessoa (PUT /api/Pessoa/{id}/contatos)
+        porPapel(falhas, "DELETE", "/api/Contato/id/qualquer", false, false, false, false, false);
         semFalhas(falhas);
     }
 
@@ -296,16 +306,14 @@ class PoliticaAcessoTest extends BaseApiTest {
         assertEquals(ibge, criado.jsonPath().getString("codigoIbge"));
         assertEquals(200, status("GET", "/api/Municipio/id/" + criado.jsonPath().getString("id"), consulta, null));
 
-        // DELETE de Contato: consulta 403 (e o registro continua), operador apaga de verdade
+        // DELETE direto de Contato: negado a todos (o registro continua)
         String empresa = dados.empresaAtiva();
         String tk = token(dados.usuarioComPapel(empresa, "operador").email());
         String tkConsulta = token(dados.usuarioComPapel(empresa, "consulta").email());
         String contato = dados.contato(empresa, dados.pessoa(empresa, "Dona do contato"), "Contato a apagar");
         assertEquals(403, status("DELETE", "/api/Contato/id/" + contato, tkConsulta, null));
+        assertEquals(403, status("DELETE", "/api/Contato/id/" + contato, tk, null));
         assertEquals(200, status("GET", "/api/Contato/id/" + contato, tk, null));
-        int del = status("DELETE", "/api/Contato/id/" + contato, tk, null);
-        assertTrue(del == 200 || del == 204, "DELETE de Contato por operador devolveu " + del);
-        assertEquals(404, status("GET", "/api/Contato/id/" + contato, tk, null));
 
         // DELETE da Empresa negado até para o administrador da plataforma, e a empresa continua lá
         assertEquals(403, status("DELETE", "/api/Empresa/id/" + empresa, plataforma, null));

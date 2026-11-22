@@ -124,7 +124,7 @@ class IsolamentoEmpresaTest extends BaseApiTest {
         Map<String, Object> corpo = Map.of("tipoPessoa", "fisica", "nome", "INVADIDA", "empresa", Map.of("id", empB));
         comToken(tokenA).body(corpo).put("/api/Pessoa/id/" + pesB).then().statusCode(404);
         comToken(tokenA).body(Map.of("nome", "INVADIDA")).patch("/api/Pessoa/id/" + pesB).then().statusCode(404);
-        comToken(tokenA).delete("/api/Contato/id/" + conB).then().statusCode(org.hamcrest.Matchers.anyOf(equalTo(204), equalTo(404)));
+        comToken(tokenA).delete("/api/Contato/id/" + conB).then().statusCode(403);
         // nada mudou na B
         comToken(tokenB).get("/api/Pessoa/id/" + pesB).then().statusCode(200).body("nome", equalTo("Pessoa da B"));
         comToken(tokenB).get("/api/Contato/id/" + conB).then().statusCode(200).body("nome", equalTo("Contato da B"));

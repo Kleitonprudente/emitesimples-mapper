@@ -304,8 +304,6 @@ class RlsTest extends BaseApiTest {
         // controles: o MESMO corpo apontando para a propria empresa funciona (logo, a falha abaixo e a RLS, nao o corpo)
         assertEquals(200, chamar("POST", "/api/Pessoa", tokenA, corpoPessoa("Controle A", empA)).statusCode());
         assertEquals(200, chamar("POST", "/api/Servico", tokenA, corpoServico("Controle A", empA)).statusCode());
-        Response ctrlContato = chamar("POST", "/api/Contato", tokenA, corpoContato("Controle A", pesA, empA));
-        assertEquals(200, ctrlContato.statusCode(), ctrlContato.asString());
 
         long pessoasB = contarSuper("select count(*) from pessoa where empresa_id = ?", empB);
         long servicosB = contarSuper("select count(*) from servico where empresa_id = ?", empB);
@@ -314,8 +312,8 @@ class RlsTest extends BaseApiTest {
         Response rp = chamar("POST", "/api/Pessoa", tokenA, corpoPessoa("INJETADA", empB));
         Response rs = chamar("POST", "/api/Servico", tokenA, corpoServico("INJETADO", empB));
         Response rc = chamar("POST", "/api/Contato", tokenA, corpoContato("INJETADO", pesB, empB));
-        // Contato aponta para uma Pessoa da B, que nem e visivel para A: o gerador responde 404 antes de chegar na empresa
-        assertEquals(404, rc.statusCode(), rc.asString());
+        // Contato: a escrita direta e negada pela politica de acesso (403); a RLS de contato segue provada nos testes de SQL direto
+        assertEquals(403, rc.statusCode(), rc.asString());
         for (Response r : List.of(rp, rs)) {
             assertEquals(403, r.statusCode(), r.asString());
             // a camada Java gerada barra primeiro (acesso_negado); a RLS e a segunda camada, provada nos testes de SQL direto
