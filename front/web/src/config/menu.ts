@@ -34,6 +34,7 @@ export const menu: MenuItem[] = [
   { name: 'ConsultaCnpjAdmin', route: '/admin/consulta-cnpj', title: 'Consulta de CNPJ', icon: 'settings', group: 'Administração', order: 83, platformOnly: true },
   { name: 'IntegraNotasAdmin', route: '/admin/integranotas', title: 'Integração IntegraNotas', icon: 'settings', group: 'Administração', order: 84, platformOnly: true },
   { name: 'NfseConfig', route: '/configuracao/nfse', title: 'NFS-e', icon: 'file-text', group: 'Configuração', order: 70, role: 'administrador' },
+  { name: 'EmpresaConfig', route: '/configuracao/empresa', title: 'Empresa', icon: 'settings', group: 'Configuração', order: 71, role: 'administrador' },
   { name: 'Perfil', route: '/perfil', title: 'Meu perfil', icon: 'user', group: 'Conta', order: 90 },
 ]
 

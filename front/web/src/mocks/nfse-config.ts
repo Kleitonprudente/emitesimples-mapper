@@ -48,6 +48,9 @@ export function ajustarNfseConfig(parcial: Partial<Estado>): void {
   estado = { ...estado, ...parcial }
 }
 
+/** Para outros mocks (ex.: certificado da empresa, que so segue ao gateway com a NFS-e habilitada). */
+export const nfseHabilitadaMock = (): boolean => estado.habilitada
+
 const corpo = () => ({ ...estado, proximoNumero: estado.ultimoNumero + 1 })
 
 const FALHAS_GATEWAY: Record<string, () => Response> = {
