@@ -1,0 +1,365 @@
+package br.com.emitesimples.gateway;
+
+import br.com.emitesimples.plataforma.ConfiguracaoConsultaCnpjService;
+import br.com.emitesimples.security.ApiException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import jakarta.annotation.PostConstruct;
+import jakarta.enterprise.context.ApplicationScoped;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.InetAddress;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.jboss.logging.Logger;
+
+/**
+ * Cliente HTTP do gateway IntegraNotas (auth: header {@code Authorization: <token>} CRU, sem Bearer). Mesmas defesas de
+ * {@code ConsultaCnpjCliente}: sem redirecionamento, timeout de conexao e de resposta (inclusive na leitura do corpo),
+ * corpo limitado a 1 MB, so https (exceto {@code emitesimples.integranotas.permitir-url-local}, dev/test) e todo IP resolvido
+ * do host conferido ANTES de conectar (janela residual de DNS rebinding: ver {@code ConsultaCnpjCliente}).
+ *
+ * <p>Os tokens so existem como parametro/variavel local: nunca sao campo, nunca vao para log nem para excecao, e o corpo da
+ * resposta (que pode trazer o token do emitente) nunca e registrado. Decide-se SEMPRE pelo {@code codigo} do JSON (nunca pelo
+ * texto da mensagem). Codigos estaveis de erro: {@code integranotas_token_recusado}, {@code integranotas_recusou},
+ * {@code integranotas_indisponivel}, {@code integranotas_resposta_invalida}.
+ *
+ * <p>Proximas fases (certificado, envio, consulta, cancelamento) reaproveitam {@link #chamar} e {@link #interpretar}: so
+ * montam o corpo e leem os campos do sucesso. NAO implementadas aqui.
+ */
+@ApplicationScoped
+public class IntegraNotasCliente {
+
+    private static final Logger LOG = Logger.getLogger(IntegraNotasCliente.class);
+    static final int MAX_BYTES = 1024 * 1024;
+    private static final ObjectMapper JSON = new ObjectMapper();
+    private static final int MAX_ERROS = 10;
+    private static final int MAX_TEXTO = 200;
+
+    @ConfigProperty(name = "emitesimples.integranotas.permitir-url-local", defaultValue = "false")
+    boolean permitirUrlLocal;
+
+    @ConfigProperty(name = "emitesimples.integranotas.timeout-conexao", defaultValue = "5s")
+    Duration timeoutConexao;
+
+    @ConfigProperty(name = "emitesimples.integranotas.timeout-resposta", defaultValue = "10s")
+    Duration timeoutResposta;
+
+    private HttpClient http;
+
+    @PostConstruct
+    void iniciar() {
+        http = HttpClient.newBuilder()
+                .connectTimeout(timeoutConexao)
+                .followRedirects(HttpClient.Redirect.NEVER)
+                .build();
+    }
+
+    // ------------------------------------------------------------------------------------- dados
+
+    /** Dados do cadastro do emitente. {@code cnpj} OU {@code cpf}; opcionais podem ser null. */
+    public record EmitenteNovo(String nome, String razao, int crt, String telefone, String rua, String numero,
+                               String bairro, String cmun, String municipio, String uf, String cep, String cnpj,
+                               String cpf, String im, String email, String complemento, Integer regimeCibs,
+                               String webhook) {
+    }
+
+    /** Token do emitente devolvido pelo gateway: segredo, por isso o toString o esconde. */
+    public record EmitenteCriado(String token) {
+        @Override
+        public String toString() {
+            return "EmitenteCriado[token=***]";
+        }
+    }
+
+    /** Resposta ja lida e parseada (objeto JSON); {@code codigo} pode ser null se o gateway nao o enviou. */
+    public record Resposta(int status, JsonNode raiz) {
+    }
+
+    // ------------------------------------------------------------------------------------- operacoes
+
+    /**
+     * {@code POST {urlBase}/v1/soft/emitente} com o token da SOFTHOUSE. Sucesso: {@code {sucesso:true, codigo:200, token}}.
+     *
+     * @param urlBase URL base ja validada (sem barra final)
+     * @param tokenSofthouse token da softhouse em claro (usado so aqui, nunca guardado)
+     */
+    public EmitenteCriado criarEmitente(String urlBase, String tokenSofthouse, EmitenteNovo d) {
+        ObjectNode corpo = JSON.createObjectNode();
+        corpo.put("nome", d.nome());
+        corpo.put("razao", d.razao());
+        corpo.put("crt", d.crt());
+        corpo.put("telefone", d.telefone());
+        corpo.put("rua", d.rua());
+        corpo.put("numero", d.numero());
+        corpo.put("bairro", d.bairro());
+        corpo.put("cmun", d.cmun());
+        corpo.put("municipio", d.municipio());
+        corpo.put("uf", d.uf());
+        corpo.put("cep", d.cep());
+        if (d.cnpj() != null) {
+            corpo.put("cnpj", d.cnpj());
+        }
+        if (d.cpf() != null) {
+            corpo.put("cpf", d.cpf());
+        }
+        if (d.im() != null) {
+            corpo.put("im", d.im());
+        }
+        if (d.email() != null) {
+            corpo.put("email", d.email());
+        }
+        if (d.complemento() != null) {
+            corpo.put("complemento", d.complemento());
+        }
+        if (d.regimeCibs() != null) {
+            corpo.put("regime_cibs", d.regimeCibs().intValue());
+        }
+        if (d.webhook() != null) {
+            corpo.put("webhook", d.webhook());
+        }
+        corpo.putObject("documentos").put("nfse", true);
+
+        Resposta r = chamar("POST", urlBase, "/v1/soft/emitente", tokenSofthouse, corpo);
+        JsonNode raiz = interpretar(r, "cadastro do emitente");
+        String token = raiz.path("token").isTextual() ? raiz.path("token").asText().trim() : "";
+        if (token.isEmpty()) {
+            throw respostaInvalida();
+        }
+        return new EmitenteCriado(token);
+    }
+
+    // ------------------------------------------------------------------------------------- nucleo
+
+    /**
+     * Interpreta uma resposta do gateway: devolve a raiz quando e SUCESSO ({@code sucesso:true} e {@code codigo} 2xx ou
+     * 5023/100/101 etc. que a operacao aceitar: aqui, so 200) e lanca a excecao de dominio nos demais casos.
+     * Decide pelo {@code codigo}, nunca pelo texto.
+     */
+    static JsonNode interpretar(Resposta r, String operacao) {
+        int status = r.status();
+        JsonNode raiz = r.raiz();
+        Integer codigo = raiz != null && raiz.path("codigo").canConvertToInt() && raiz.path("codigo").isNumber()
+                ? raiz.path("codigo").asInt() : null;
+        if (codigo != null && codigo >= 6000 && codigo <= 6003) {
+            throw tokenRecusado();
+        }
+        if (status == 401 || status == 403) {
+            throw tokenRecusado();
+        }
+        if (raiz == null || !raiz.isObject() || !(status == 200 || status >= 400 && status < 500)) {
+            throw respostaInvalida(); // 3xx (nao seguido), 5xx, corpo que nao e objeto
+        }
+        JsonNode sucesso = raiz.get("sucesso");
+        if (sucesso == null || !sucesso.isBoolean()) {
+            throw respostaInvalida();
+        }
+        if (!sucesso.asBoolean()) {
+            throw recusou(raiz, codigo, operacao);
+        }
+        if (status != 200 || codigo == null || codigo != 200) {
+            throw respostaInvalida();
+        }
+        return raiz;
+    }
+
+    /** Faz a chamada com TODAS as defesas e devolve status + JSON parseado. Nunca registra corpo, token ou cabecalhos. */
+    public Resposta chamar(String metodo, String urlBase, String caminho, String token, JsonNode corpo) {
+        URI base;
+        try {
+            base = URI.create(urlBase);
+        } catch (IllegalArgumentException e) {
+            throw urlNaoPermitida();
+        }
+        String esquema = base.getScheme() == null ? "" : base.getScheme().toLowerCase(Locale.ROOT);
+        String host = base.getHost();
+        if (host == null || !(esquema.equals("https") || permitirUrlLocal && esquema.equals("http"))) {
+            throw urlNaoPermitida();
+        }
+        verificarHost(host);
+
+        long inicio = System.nanoTime();
+        int status = -1;
+        try {
+            HttpRequest.Builder b;
+            try {
+                b = HttpRequest.newBuilder(URI.create(urlBase + caminho));
+            } catch (IllegalArgumentException e) {
+                throw urlNaoPermitida();
+            }
+            b.timeout(timeoutResposta).header("Accept", "application/json").header("Authorization", token);
+            if (corpo == null) {
+                b.method(metodo, HttpRequest.BodyPublishers.noBody());
+            } else {
+                b.header("Content-Type", "application/json");
+                b.method(metodo, HttpRequest.BodyPublishers.ofByteArray(JSON.writeValueAsBytes(corpo)));
+            }
+            HttpResponse<InputStream> resp = http.send(b.build(), HttpResponse.BodyHandlers.ofInputStream());
+            status = resp.statusCode();
+            try (InputStream in = resp.body()) {
+                // HttpRequest.timeout cobre so ate os cabecalhos: o relogio do corpo e um fechamento agendado do stream.
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        in.close();
+                    } catch (IOException ignorada) {
+                        // ja fechado
+                    }
+                }, CompletableFuture.delayedExecutor(timeoutResposta.toMillis(), TimeUnit.MILLISECONDS));
+                if (status >= 300 && status < 400) {
+                    throw respostaInvalida();
+                }
+                if (resp.headers().firstValueAsLong("Content-Length").orElse(0) > MAX_BYTES) {
+                    throw respostaInvalida();
+                }
+                byte[] bytes = in.readNBytes(MAX_BYTES + 1);
+                if (bytes.length > MAX_BYTES) {
+                    throw respostaInvalida();
+                }
+                JsonNode raiz = null;
+                if (bytes.length > 0) {
+                    try {
+                        raiz = JSON.readTree(bytes);
+                    } catch (IOException e) {
+                        raiz = null; // sem a causa: ela cita trecho do corpo
+                    }
+                }
+                int ms = (int) TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - inicio);
+                LOG.infof("IntegraNotas: %s host=%s %s status=%d (%d ms)", metodo, host, caminho, status, ms);
+                return new Resposta(status, raiz);
+            }
+        } catch (ApiException e) {
+            LOG.infof("IntegraNotas: %s host=%s %s status=%d -> %s", metodo, host, caminho, status, e.getCodigo());
+            throw e;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            LOG.warnf("IntegraNotas: %s host=%s %s interrompida", metodo, host, caminho);
+            throw indisponivel();
+        } catch (JsonProcessingException e) {
+            LOG.warnf("IntegraNotas: %s host=%s %s corpo nao serializavel", metodo, host, caminho);
+            throw indisponivel();
+        } catch (IOException | RuntimeException e) {
+            LOG.warnf("IntegraNotas: %s host=%s %s falhou (%s)", metodo, host, caminho, e.getClass().getSimpleName());
+            throw indisponivel();
+        }
+    }
+
+    // ------------------------------------------------------------------------------------- host / SSRF
+
+    /** Resolve o host e recusa se QUALQUER IP for interno. Sem efeito com permitir-url-local. */
+    void verificarHost(String host) {
+        if (permitirUrlLocal) {
+            return;
+        }
+        InetAddress[] ips;
+        try {
+            ips = InetAddress.getAllByName(host);
+        } catch (IOException | RuntimeException e) {
+            LOG.warnf("IntegraNotas: host=%s nao resolvido", host);
+            throw indisponivel();
+        }
+        verificarEnderecos(ips);
+    }
+
+    static void verificarEnderecos(InetAddress[] ips) {
+        if (ips == null || ips.length == 0) {
+            throw urlNaoPermitida();
+        }
+        for (InetAddress ip : ips) {
+            if (ConfiguracaoConsultaCnpjService.ipProibido(ip)) {
+                throw urlNaoPermitida();
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------------------------- erros de dominio
+
+    private static ApiException recusou(JsonNode raiz, Integer codigo, String operacao) {
+        String msg = limpar(raiz.path("mensagem").isTextual() ? raiz.path("mensagem").asText() : null);
+        List<String> resumo = new ArrayList<>();
+        JsonNode erros = raiz.get("erros");
+        if (erros != null && erros.isArray()) {
+            for (JsonNode e : erros) {
+                if (resumo.size() >= MAX_ERROS) {
+                    break;
+                }
+                String campo = limpar(texto(e, "campo"));
+                String desc = limpar(texto(e, "descricao"));
+                if (desc == null) {
+                    desc = limpar(texto(e, "erro"));
+                }
+                if (campo != null && desc != null) {
+                    resumo.add(campo + ": " + desc);
+                } else if (desc != null || campo != null) {
+                    resumo.add(desc != null ? desc : campo);
+                }
+            }
+        }
+        StringBuilder m = new StringBuilder("O IntegraNotas recusou o ").append(operacao).append('.');
+        if (msg != null) {
+            m.append(' ').append(msg);
+        }
+        Map<String, Object> det = new LinkedHashMap<>();
+        if (codigo != null) {
+            det.put("codigoGateway", codigo);
+        }
+        if (!resumo.isEmpty()) {
+            det.put("erros", resumo);
+        }
+        return new ApiException(502, "integranotas_recusou", m.toString(), det.isEmpty() ? null : det);
+    }
+
+    private static String texto(JsonNode n, String campo) {
+        JsonNode v = n == null ? null : n.get(campo);
+        return v != null && v.isValueNode() && !v.isNull() ? v.asText() : null;
+    }
+
+    /** Remove controles, apara e limita: texto do gateway e dado nao confiavel. */
+    static String limpar(String s) {
+        if (s == null) {
+            return null;
+        }
+        String t = s.replaceAll("[\\p{Cntrl}]", " ").strip();
+        if (t.isEmpty()) {
+            return null;
+        }
+        return t.length() > MAX_TEXTO ? t.substring(0, MAX_TEXTO) + "..." : t;
+    }
+
+    private static ApiException tokenRecusado() {
+        return new ApiException(502, "integranotas_token_recusado",
+                "O IntegraNotas recusou o token da softhouse. Fale com o suporte.");
+    }
+
+    private static ApiException respostaInvalida() {
+        return new ApiException(502, "integranotas_resposta_invalida", "O IntegraNotas devolveu uma resposta inesperada.");
+    }
+
+    private static ApiException indisponivel() {
+        return new ApiException(504, "integranotas_indisponivel",
+                "Não foi possível falar com o IntegraNotas agora (tempo esgotado ou falha de rede). Tente novamente.");
+    }
+
+    private static ApiException urlNaoPermitida() {
+        return new ApiException(409, "url_base_nao_permitida",
+                "A URL base do IntegraNotas não é permitida. Fale com o suporte.");
+    }
+
+    @Override
+    public String toString() {
+        return "IntegraNotasCliente";
+    }
+
+}

@@ -15,6 +15,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @QuarkusTestResource(ChavesJwtTestResource.class)
 @QuarkusTestResource(ViaCepStubResource.class)
 @QuarkusTestResource(CnpjWsStubResource.class)
+@QuarkusTestResource(IntegraNotasStubResource.class)
 public abstract class BaseApiTest {
 
     @Inject

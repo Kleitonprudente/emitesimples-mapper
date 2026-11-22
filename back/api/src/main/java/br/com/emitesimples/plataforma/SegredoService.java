@@ -119,7 +119,7 @@ public class SegredoService {
         }
     }
 
-    SecretKeySpec chave() {
+    public SecretKeySpec chave() {
         String b64 = chaveBase64.map(String::trim).orElse("");
         if (b64.isEmpty()) {
             throw erroChave("a chave-mestra dos segredos não está configurada");

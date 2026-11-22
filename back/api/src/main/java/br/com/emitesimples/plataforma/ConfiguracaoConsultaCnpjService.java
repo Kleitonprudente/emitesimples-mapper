@@ -164,7 +164,7 @@ public class ConfiguracaoConsultaCnpjService {
     }
 
     /** localhost e loopback (os unicos liberados, e so quando emitesimples.cnpj.permitir-url-local=true). */
-    static boolean hostLocal(String host) {
+    public static boolean hostLocal(String host) {
         String h = limparHost(host);
         if (h.equals("localhost") || h.endsWith(".localhost")) {
             return true;
@@ -173,7 +173,7 @@ public class ConfiguracaoConsultaCnpjService {
         return ip != null && ip.isLoopbackAddress();
     }
 
-    static boolean hostProibido(String host) {
+    public static boolean hostProibido(String host) {
         String h = limparHost(host);
         if (h.equals("localhost") || h.endsWith(".localhost") || h.endsWith(".local") || h.endsWith(".internal")
                 || h.equals("local") || h.equals("internal") || !h.contains(".") && !h.contains(":")) {
@@ -194,7 +194,7 @@ public class ConfiguracaoConsultaCnpjService {
      * privado (site-local), multicast, 0/8, CGNAT 100.64/10, reservados (&gt;= 224) e ULA fc00::/7. IPv4 mapeado em IPv6
      * ja chega aqui como IPv4 (o Java converte).
      */
-    static boolean ipProibido(InetAddress ip) {
+    public static boolean ipProibido(InetAddress ip) {
         if (ip.isAnyLocalAddress() || ip.isLoopbackAddress() || ip.isLinkLocalAddress() || ip.isSiteLocalAddress()
                 || ip.isMulticastAddress()) {
             return true;

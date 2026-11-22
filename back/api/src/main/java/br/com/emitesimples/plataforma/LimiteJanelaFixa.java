@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.IntSupplier;
 
 /** Limite por chave em janela fixa de 1 minuto, em memoria (com varias instancias o limite efetivo e N x). */
-final class LimiteJanelaFixa {
+public final class LimiteJanelaFixa {
 
     static final Duration JANELA = Duration.ofMinutes(1);
     private static final int LIMITE_DO_MAPA = 10_000;
@@ -23,16 +23,16 @@ final class LimiteJanelaFixa {
     private final Map<String, Janela> janelas = new ConcurrentHashMap<>();
     private volatile Clock relogio = Clock.systemUTC();
 
-    LimiteJanelaFixa(IntSupplier limite) {
+    public LimiteJanelaFixa(IntSupplier limite) {
         this.limite = limite;
     }
 
-    void limparTudo() {
+    public void limparTudo() {
         janelas.clear();
         this.relogio = Clock.systemUTC();
     }
 
-    void consumir(String chave) {
+    public void consumir(String chave) {
         Instant agora = relogio.instant();
         if (janelas.size() > LIMITE_DO_MAPA) {
             janelas.entrySet().removeIf(e -> {

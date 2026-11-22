@@ -40,6 +40,8 @@ devolve 0 mesmo quando falha.
 | `br.com.emitesimples.auth` | login, refresh, logout, perfil, troca de senha, força bruta, administrador inicial (à mão) |
 | `br.com.emitesimples.cep` | consulta de CEP: `CepResource`, `CepService` (cache e cruzamento com `Municipio`), `ViaCepCliente` (java.net.http), `LimiteTaxa` (à mão) |
 | `br.com.emitesimples.plataforma` | área do administrador da plataforma: importação de municípios (`ArquivoMunicipios`, `ImportacaoMunicipioService`) e usuários/vínculos (`UsuarioAdminService`) (à mão). **Não use o pacote `admin/`**: o `gerar.sh` o apaga (é o contexto gerado `admin`) |
+| `br.com.emitesimples.gateway` | cliente HTTP do IntegraNotas (`IntegraNotasCliente`) e webhook público (`WebhookIntegraNotasResource`, `WebhookToken`, `LimiteWebhook`) (à mão) |
+| `br.com.emitesimples.nfseconfig` | `GET/PUT /api/configuracao/nfse`: habilitar a NFS-e e cadastrar o emitente (à mão) |
 | `br.com.emitesimples.security` | emissão do JWT, erros uniformes (`ErrosHandler`), 401 em JSON (`DesafioJsonMechanism`) (à mão) |
 | `docs/openapi/` | OpenAPI gerado por contexto |
 
@@ -142,6 +144,8 @@ tudo é negado (`padrao-negar`), e um endpoint novo sob `/api` nasce **fechado p
 | `Contato` (CRUD gerado) | autenticado | **negado a todos** (escrita só por `PUT /api/Pessoa/{id}/contatos`) | negado |
 | `VinculoUsuario`, `ClienteAcesso` | autenticado | negado (vínculos: só por `/api/admin/usuarios/{id}/vinculos`; `ClienteAcesso` ainda sem endpoint à mão) | negado |
 | `/api/cep/*` | autenticado (qualquer papel) | negado | negado |
+| `/api/configuracao/nfse` (NFS-e da empresa) | administrador, operador, consulta (plat. sem empresa: 403) | só PUT, só administrador da empresa; POST/PATCH negados | negado |
+| `POST /api/webhooks/integranotas/{empresaId}/{token}` | negado | **público** (anônimo; só POST; token HMAC no caminho) | negado; GET/PUT/PATCH e todo o resto de `/api/webhooks/*` negados |
 | `/api/admin/*` (importação de municípios, usuários e vínculos por usuário e por empresa `/api/admin/empresas/{id}/vinculos`) | só plat. | só plat. | negado (usuário e vínculo nunca se apagam) |
 | `/api/admin/configuracoes/integranotas` (config do IntegraNotas) | só plat. (GET lê; PUT grava) | só plat.: só PUT; POST/PATCH negados | negado |
 | `/api/admin/configuracoes/consulta-cnpj` (config) e `.../testar` | só plat. (GET lê; PUT grava) | só plat.: PUT na config; POST só em `/testar` | negado |
@@ -507,6 +511,94 @@ A `empresa` é sempre a da sessão; `empresa` e `pessoa` no corpo são ignoradas
 Pessoa e os contatos herdam a empresa dela.
 
 Resta de lacuna do gerado (só GET direto de `/api/Contato`, que o front não usa): o filtro `pessoa.id` é ignorado (coberto por `ContatoPorPessoaTest`).
+
+## NFS-e da empresa (habilitar e cadastrar o emitente)
+
+Código à mão em `nfseconfig/` (API da empresa) e `gateway/` (cliente do IntegraNotas e webhook). **Não use os nomes `configuracao`, `cadastros`,
+`usuarios`, `nfse`, `integranotas`, `admin` para código à mão: o `gerar.sh` apaga esses pacotes.** Provado em `NfseEmpresaTest` e
+`WebhookIntegraNotasTest`, sempre contra o stub local `IntegraNotasStubResource` (nenhuma chamada externa).
+
+### Cliente do gateway (`gateway/IntegraNotasCliente`)
+
+`criarEmitente(urlBase, tokenSofthouse, EmitenteNovo) -> EmitenteCriado{token}` = `POST {urlBase}/v1/soft/emitente`, header
+`Authorization: <token>` CRU. Corpo: `nome, razao, crt, telefone, rua, numero, bairro, cmun, municipio, uf, cep, cnpj|cpf, im?, email?, complemento?,
+regime_cibs?, webhook?, documentos:{nfse:true}`. Mesmas defesas de `ConsultaCnpjCliente`: `java.net.http`, sem redirecionamento, conexão 5 s e
+resposta 10 s (`emitesimples.integranotas.timeout-conexao/-resposta`, o corpo também tem relógio), corpo máx. 1 MB lido com limite, só https
+(exceto `emitesimples.integranotas.permitir-url-local`, dev/test), todo IP resolvido é validado antes de conectar. Tokens só como parâmetro;
+nunca em log, exceção ou `toString`; o corpo da resposta (traz o token do emitente) nunca é registrado.
+Decide **sempre pelo `codigo`** do JSON, nunca pelo texto:
+
+| Situação | Exceção (HTTP, `codigo`) |
+|---|---|
+| `codigo` 6000-6003 (ou HTTP 401/403) | 502 `integranotas_token_recusado` |
+| `sucesso:false` | 502 `integranotas_recusou`: `mensagem` do gateway (limpa, 200 chars) e `detalhes.erros: ["campo: descricao"]` (máx. 10) + `detalhes.codigoGateway` |
+| timeout, rede, DNS | 504 `integranotas_indisponivel` |
+| JSON inválido, corpo > 1 MB, 3xx, 5xx, `sucesso` ausente, sucesso sem `token` | 502 `integranotas_resposta_invalida` |
+
+Pronta para as próximas fases (certificado, envio, consulta, cancelamento): reaproveitam `chamar(metodo, urlBase, caminho, token, corpo)` e
+`interpretar`; nada disso está implementado.
+
+### API da empresa: `GET` e `PUT /api/configuracao/nfse`
+
+`GET` (administrador, operador, consulta) e `PUT` (**só administrador da empresa**). POST/PATCH/DELETE negados. `plataforma_admin` sem empresa na
+sessão: 403 `empresa_nao_selecionada` (no PUT, 403 pelo papel). A empresa é sempre a do token; `empresa`/`empresaId` no corpo são ignorados.
+
+`GET` -> `{ habilitada, serie|null, ultimoNumero, proximoNumero, ambiente, statusCadastro, dataCadastroGateway|null, emitenteTokenConfigurado,
+certificadoSituacao, validadeCertificado|null, integracaoDisponivel }`. `PUT {habilitada, serie?, ultimoNumero?}` -> 200 com o mesmo corpo.
+O token do emitente **nunca** sai por API (só o boolean).
+
+**Habilitar** (`habilitada:true`), nesta ordem de validação:
+1. `serie` `^[0-9]{1,5}$` e `ultimoNumero` 0..999999999: senão 400 `requisicao_invalida` (`detalhes.campos`).
+2. Se o emitente precisa ser criado e não há token da softhouse para o ambiente ativo: 409 `integranotas_nao_configurada`.
+3. Dados da empresa (razão social, fantasia, documento 11/14 dígitos, regime 1-4, telefone 6-14 dígitos, logradouro, número, bairro, CEP 8, município
+   com IBGE 7 e UF): senão 422 `cadastro_incompleto`, `detalhes.campos [{campo, mensagem}]`, "Complete os dados da empresa para habilitar a NFS-e."
+4. Numeração (abaixo): 409 `numeracao_invalida`.
+5. Se a empresa ainda não tem emitente no ambiente ativo (`statusCadastro != cadastrado`, sem token no cofre ou ambiente diferente): chama
+   `criarEmitente` (nome=fantasia, razao, crt=regimeTributario, cnpj ou cpf pelo tamanho, cmun=IBGE, telefone só dígitos, `regime_cibs` se a empresa
+   tem, `webhook` só se há `urlPublicaWebhook` configurada). Sucesso: token no cofre (`SegredoService`; id em `referenciaTokenEmpresa`),
+   `statusCadastro=cadastrado`, `dataCadastroGateway=agora`, `ambiente`=ativo. Falha: `statusCadastro=erro`, **não habilita**, responde 502/504 com o código
+   estável acima; um novo PUT depois de corrigido recupera. Já cadastrado: **não recria** (idempotente).
+6. Grava `nfseHabilitada=true`, `serieNfse`, `ultimoNumeroNfse`.
+
+**Numeração**: `ultimoNumero` nunca menor que o atual nem que o maior número de nota da empresa na série (tabela `nota`; sem notas, a lista é vazia).
+Mudar de série só se a empresa não tem nenhuma nota (a numeração da série nova é livre). **Desabilitar** (`false`) só grava a flag: mantém emitente, token e série.
+Reabilitar não recria o emitente. Trocar o ambiente ativo (hoje só homologação é possível) cadastra um emitente novo no ambiente e substitui a referência do token.
+
+**Transação e concorrência**: a chamada externa fica **fora** de transação do banco: (1) transação curta com lock na linha da empresa valida; (2) chamada;
+(3) token ao cofre; (4) transação curta com lock grava (e revalida a numeração). PUTs concorrentes da mesma empresa se serializam num mutex em memória
+(64 faixas por hash do id, espera até 30 s, senão 409 `operacao_em_andamento`) além do lock da linha; provado com 4 PUTs simultâneos = 1 emitente.
+A escrita da Empresa é à mão (EntityManager, RLS ativa); o `/api/Empresa` gerado continua só plataforma.
+
+### Webhook: `POST /api/webhooks/integranotas/{empresaId}/{token}`
+
+**Público** (regra `webhook-integranotas`, só POST nesse caminho; qualquer outro método, e todo o resto de `/api/webhooks/*`, é negado: 401 anônimo, 403 logado).
+- `token` = HMAC-SHA256 de `empresaId` em base64url (43 caracteres), com sub-chave derivada da chave-mestra do cofre (`WebhookToken.gerar`, também usado para montar a URL
+  registrada no cadastro do emitente). Comparação em tempo constante. Inválido, empresa inexistente ou de outra empresa: 404 `nao_encontrado`, sem dizer o motivo.
+- Corpo até 4 MB (413 `corpo_grande_demais`; teto global do servidor 6 MB). Token confere: **200 `{ok:true}`** sempre (corpo que não é objeto JSON incluso). A chamada de
+  teste do gateway (`origem` = `TESTE`) responde 200 e **não** grava evento.
+- **Persiste** em `EventoWebhook`: `origem, cnpjCpf (só dígitos), tipo, chave, sucesso, codigo, mensagem (500), identificacao, dataRecebimento,
+  resultadoAssinatura=nao_verificada, estadoProcessamento=pendente, ambiente` (o da empresa), `empresa`. **Nunca** xml, pdf, `signature` nem o corpo inteiro. Campos longos
+  são truncados ao tamanho da coluna. O banco é aberto como a empresa do caminho (`comoEmpresa`, RLS), não como sistema.
+- Limite de taxa em janela de 1 min, em memória: por IP de origem (`emitesimples.webhook.limite-por-ip-por-minuto`, padrão 120, **antes** do token) e por empresa
+  (`...-por-empresa-por-minuto`, 120, depois do token); excesso: 429 + `Retry-After`. Testes usam 20 e 5. Nenhum token/URL/corpo em log.
+- **O que falta**: processar o evento (atualizar a nota; estado `pendente`), verificar a assinatura (`signature`: HMAC-SHA256 + AES/CBC, ainda não confirmada para a v2),
+  conhecer o corpo real da notificação (a documentação ainda não foi lida), descompactar xml/pdf, reprocessar eventos pendentes.
+
+### Códigos de erro desta fase
+
+`integranotas_nao_configurada` (409), `cadastro_incompleto` (422), `numeracao_invalida` (409), `operacao_em_andamento` (409), `empresa_nao_selecionada` (403),
+`url_webhook_muito_longa` (409), `url_base_nao_permitida` (409), `integranotas_token_recusado|recusou|resposta_invalida` (502), `integranotas_indisponivel` (504),
+`corpo_grande_demais` (413), 429 no webhook, `requisicao_invalida` (400).
+
+### Riscos e decisões
+
+- **Várias instâncias do back**: o mutex é por JVM; o lock da linha só cobre as transações curtas. Duas instâncias podem chamar `criarEmitente` ao mesmo tempo para a mesma empresa
+  (o segundo cadastro no gateway pode duplicar ou falhar). Fechar de vez exige uma marca no banco (ex.: status `cadastrando`) numa migração futura.
+- **Token perdido**: se o gateway cria o emitente e a gravação final falha, o token fica no cofre sem referência (o id vai no log, nunca o valor) para o suporte recuperar.
+- **IP de origem do webhook** vem do socket; atrás de proxy/balanceador todos parecem um IP só (ajustar `quarkus.http.proxy.*` com um proxy confiável) e o limite por IP vira global.
+- A URL do webhook é uma capacidade (quem a conhece chama o webhook): trate como segredo; trocar a chave-mestra do cofre invalida as URLs já registradas.
+- Sem assinatura verificada, um evento aceito só prova que quem chamou conhece a URL: por isso nasce `pendente`/`nao_verificada` e nada é processado ainda.
+- `integracaoDisponivel` só é exigido quando é preciso criar o emitente (reabilitar com emitente existente funciona mesmo sem o token da softhouse).
 
 ## Pontos em aberto
 
