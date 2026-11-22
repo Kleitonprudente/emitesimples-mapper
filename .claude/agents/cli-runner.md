@@ -48,6 +48,11 @@ export HOME="$MIHOME" PATH="$PATH:$MIHOME/bin"
 
 ## Responsabilidades
 
+- **Front (projeto `emitesimples-front`):** ao validar janelas ou geradores do front, conferir o padrão de UI
+  (`front/docs/padroes-de-ui.md`): cada campo com `size`, cada linha somando 12, cadastro com lista + um editor em
+  página, só componentes do catálogo. Depois do `gerar.sh`, rodar `npm run verificar:ui` em `front/web` e reportar as
+  violações. Nunca rode `mi push` sem autorização explícita da pessoa responsável.
+
 - **Enviar com `mi push emitesimples`** a cada alteração de `.mi`. O `push` **não valida** — só leva
   os mapas para a nuvem, onde todo o resto acontece. `"Map structure pushed!"` quer dizer "chegou", não
   "está certo".

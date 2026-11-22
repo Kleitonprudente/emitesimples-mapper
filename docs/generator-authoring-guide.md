@@ -428,3 +428,21 @@ todo mundo mexe, e o que considerar em cada um:
 - **A convenção de nomes.** `patterns` com nome `field-<familia>` e modos com nome de seção do arquivo de
   saída é convenção deste pack, não regra do DSL. Mantenha *alguma* convenção: geradores grandes viram
   ilegíveis sem ela.
+
+## 12. Geradores do front: o padrão de UI é parte do contrato
+
+Os geradores de `front/mapas/generators/frontend/**` não são livres: eles materializam o padrão de UI de
+`front/docs/padroes-de-ui.md` e **só podem usar componentes do catálogo** (`front/docs/catalogo-componentes.md`). Vale
+para quem escreve um gerador ou uma janela `.mi` do front:
+
+1. **Nada de componente novo.** O código gerado só importa de `@/components/ui`, `@/runtime`, `@/lib`, `@/gen`. Se o
+   catálogo não resolve, pare e peça decisão; componente novo entra por decisão explícita, junto com o catálogo e a
+   vitrine `/admin/theme`.
+2. **O gerador impõe, não só gera.** Regra violada no mapa vira `ERRO NO MODELO` dentro da saída (o `gerar.sh` já falha
+   nesse marcador): campo de formulário sem `size`, linha que não soma 12 colunas, seção sem título, `lookup` diferente de
+   `cep`, criação em diálogo a partir de uma lista de cadastro.
+3. **Verificação em duas pontas.** Depois do generate, `npm run verificar:ui` (em `front/web`) confere o resultado (sem
+   componente fora do catálogo, imports permitidos, sem cor fixa, linhas somando 12, sem criação separada). Ele roda no
+   fim do `gerar.sh` e como teste do vitest.
+4. **Agentes.** `domain-mapper` e `generator-author` carregam a skill `padroes-ui`; o `cli-runner` confere, ao validar um
+   mapa de front, que as janelas respeitam essas regras.

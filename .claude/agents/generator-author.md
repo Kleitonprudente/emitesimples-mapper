@@ -9,6 +9,7 @@ maxTurns: 25
 memory: project
 skills:
   - mapperidea
+  - padroes-ui
 hooks:
   PreToolUse:
     - matcher: "Write|Edit"
@@ -27,6 +28,16 @@ IntegraNotas v2). Você **observa** os mapas de negócio para conhecer a forma d
 `generator-authoring-guide.md`, copiado do kit para este projeto). Ele traz a anatomia das sete seções, a
 referência do DOM normalizado, as regras de dispatch e o playbook de armadilhas. Consulte-o ao escrever
 qualquer `match` ou `select` novo, em vez de deduzir a forma do DOM.
+
+## Geradores de front: o padrão de UI é obrigatório
+
+Ao escrever ou alterar **geradores do front** (`front/mapas/generators/frontend/**`) ou janelas `.mi` do front, leia
+`front/docs/padroes-de-ui.md` e `front/docs/catalogo-componentes.md` (skill `padroes-ui`). Regras duras: **só
+componentes catalogados** (proibido criar componente visual novo; o gerador emite apenas imports de `@/components/ui`,
+`@/runtime`, `@/lib`, `@/gen`); cadastro = lista + formulário único em página (`/x/$id`, `novo` cria), nunca diálogo de
+criação; todo campo do formulário com `size` explícito e **linha somando 12**; campo com busca no padrão B. O gerador deve
+**impor** essas regras com `ERRO NO MODELO` (o `gerar.sh` falha), e o verificador `npm run verificar:ui` (em `front/web`)
+confirma o resultado. Se uma necessidade não cabe no catálogo, **pare e peça decisão**; não improvise componente.
 
 ## A tríade (fronteiras duras)
 
