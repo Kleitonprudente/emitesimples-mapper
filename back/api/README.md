@@ -7,7 +7,7 @@ Projeto Quarkus que **compila e (no futuro) executa** o código gerado a partir 
 
 - **Não edite o código gerado.** Ele é sobrescrito por inteiro a cada geração. Corrija o mapa (`domain-mapper`) ou o
   gerador (`generator-author`) em `../mapas`.
-- O que é escrito à mão fica em `exceptions/`, `results/`, `tenant/`, `auth/` e `security/` (em `src/main/java/br/com/emitesimples/`) e
+- O que é escrito à mão fica em `exceptions/`, `results/`, `tenant/`, `auth/`, `security/`, `cep/` e `plataforma/` (em `src/main/java/br/com/emitesimples/`) e
   nunca é apagado pelo script de geração.
 - **Nunca** aponte para a produção do IntegraNotas por padrão. O padrão é homologação.
 
@@ -38,6 +38,8 @@ devolve 0 mesmo quando falha.
 | `br.com.emitesimples.results` | `CountResult` (escrita à mão) |
 | `br.com.emitesimples.tenant` | `EscopoTenant`: filtro multi-tenant por empresa; lê as claims `empresa_id` e `plataforma_admin` do JWT. `ContextoTenantBanco` e `RlsPoolInterceptor`: escopo da RLS no banco (seção RLS) |
 | `br.com.emitesimples.auth` | login, refresh, logout, perfil, troca de senha, força bruta, administrador inicial (à mão) |
+| `br.com.emitesimples.cep` | consulta de CEP: `CepResource`, `CepService` (cache e cruzamento com `Municipio`), `ViaCepCliente` (java.net.http), `LimiteTaxa` (à mão) |
+| `br.com.emitesimples.plataforma` | área do administrador da plataforma: importação de municípios (`ArquivoMunicipios`, `ImportacaoMunicipioService`) e usuários/vínculos (`UsuarioAdminService`) (à mão). **Não use o pacote `admin/`**: o `gerar.sh` o apaga (é o contexto gerado `admin`) |
 | `br.com.emitesimples.security` | emissão do JWT, erros uniformes (`ErrosHandler`), 401 em JSON (`DesafioJsonMechanism`) (à mão) |
 | `docs/openapi/` | OpenAPI gerado por contexto |
 
@@ -118,6 +120,7 @@ sem administrador, registra um WARN (sem a senha). Depois de criado, troque a se
 | `EMITESIMPLES_CORS_ORIGINS` | `http://localhost:5173,http://localhost:3000` | origens do front permitidas (CORS) |
 | `EMITESIMPLES_COOKIE_SECURE` | `true` (e `false` em dev e test) | atributo `Secure` do cookie do refresh; só desligue em http puro de desenvolvimento |
 | `EMITESIMPLES_ADMIN_EMAIL`, `EMITESIMPLES_ADMIN_SENHA` | vazias | administrador inicial |
+| `EMITESIMPLES_CEP_URL_BASE` | `https://viacep.com.br/ws` | URL base do ViaCEP (os testes usam um servidor simulado local) |
 | `EMITESIMPLES_JWT_PRIVATE_KEY`, `EMITESIMPLES_JWT_PUBLIC_KEY` | `keys/private.pem`, `keys/public.pem` | caminhos das chaves (dev e prod) |
 | `QUARKUS_DATASOURCE_JDBC_URL`, `..._USERNAME`, `..._PASSWORD` | sem padrão | banco (fora de dev/test); usuário = role comum `emitesimples_app` (RLS) |
 | `QUARKUS_FLYWAY_USERNAME`, `QUARKUS_FLYWAY_PASSWORD` | sem padrão | dono das tabelas, só para migrar (RLS) |
@@ -137,12 +140,68 @@ tudo é negado (`padrao-negar`), e um endpoint novo sob `/api` nasce **fechado p
 | `Municipio`, `Plano`, `AssinaturaEmpresa`, `Empresa`, `AtividadeEmpresa`, `QsaEmpresa` | autenticado | só plat. | negado |
 | `Pessoa`, `Servico` | autenticado | administrador, operador, plat.; `consulta` não | negado |
 | `Contato` | autenticado | administrador, operador, plat. | administrador, operador, plat. |
-| `VinculoUsuario`, `ClienteAcesso` | autenticado | negado (endpoints à mão depois) | negado |
+| `VinculoUsuario`, `ClienteAcesso` | autenticado | negado (vínculos: só por `/api/admin/usuarios/{id}/vinculos`; `ClienteAcesso` ainda sem endpoint à mão) | negado |
+| `/api/cep/*` | autenticado (qualquer papel) | negado | negado |
+| `/api/admin/*` (importação de municípios, usuários e vínculos) | só plat. | só plat. | negado (usuário e vínculo nunca se apagam) |
 | outro caminho sob `/api` | autenticado | negado | negado |
 
 **Como o Quarkus combina as regras** (provado, ver comentário em `application.properties`): vence o caminho mais específico;
 no mesmo caminho vale a regra que declara o método. Se o caminho específico casa mas nenhuma regra dele declara o método,
 **não** volta para `/api/*`: cai no `padrao-negar`. Por isso cada entidade tem regra explícita para todos os métodos.
+
+### CEP (`GET /api/cep/{cep}`)
+
+Qualquer usuário autenticado. O **back** chama o ViaCEP (`{emitesimples.cep.url-base}/{cep}/json/`, padrão `https://viacep.com.br/ws`,
+`EMITESIMPLES_CEP_URL_BASE`) com `java.net.http` (timeout total `emitesimples.cep.timeout-ms`=3000, sem redirecionamento, resposta
+limitada a 16 KB). Aceita 8 dígitos com ou sem hífen (`01001000`, `01001-000`).
+
+- 200 `{cep (8 dígitos), logradouro, complemento, bairro, uf, codigoIbge, municipio: {id, nome, uf, codigoIbge} | null}`; `municipio` é a
+  linha de `Municipio` com esse IBGE (sempre consultada na hora; `null` se a tabela ainda não a tem). Campos ausentes no ViaCEP viram `""`.
+- 400 `cep_invalido` (formato); 404 `cep_nao_encontrado` (ViaCEP devolve `{"erro": true}` ou `"true"`); 502 `servico_cep_indisponivel`
+  (timeout, falha de rede, HTTP diferente de 200, corpo que não é JSON; mensagem genérica, sem URL nem pilha); 429 `muitas_tentativas` com `Retry-After`.
+- **Cache** em memória (LRU de 5.000 CEPs): achado 24 h, não achado 1 h; falha nunca entra no cache. **Limite por usuário:** 30 consultas por
+  minuto (janela fixa, `emitesimples.cep.limite-por-minuto`), contadas também quando a resposta vem do cache. Ambos na memória da instância
+  (com várias instâncias o limite efetivo é N x; mesma limitação do `ForcaBruta`).
+- O CEP nunca vai a log completo (só os 5 primeiros dígitos, em DEBUG). Testes: `ViaCepStubResource` sobe um ViaCEP simulado local; nenhum teste chama a internet.
+
+### Administrador da plataforma: `/api/admin/*` (só `plataforma_admin`; erros `{codigo, mensagem, detalhes?}`)
+
+**Importação de municípios** (`docs/carga-municipios.md`):
+
+| Endpoint | O que faz |
+|---|---|
+| `POST /api/admin/municipios/importacao` (`multipart/form-data`, campo `arquivo`) | importa o CSV. Detecta UTF-8 (com ou sem BOM) ou Windows-1252, separador `;` `,` ou tab, colunas **pelo nome** (`CÓDIGO DO MUNICÍPIO - IBGE`, `MUNICÍPIO - IBGE`, `UF`; sem acento/caixa; as TOM e colunas extras são ignoradas). Upsert por `codigoIbge`, nunca apaga. Limite de `emitesimples.municipios.max-bytes` (2 MB; 413 `arquivo_grande_demais`). |
+| `GET /api/admin/municipios/importacoes?limite=20` | últimas importações (1 a 100), da mais recente para a mais antiga, com `usuario` e `resumoRejeicoes`. |
+
+Resposta do POST (200): `{id, nomeArquivo, estado, codificacao, separador (";" "," "tab"), dataHoraInicio, dataHoraFim, linhasLidas, criados, atualizados, inalterados, totalRejeitados, rejeitados:[{linha,motivo}], rejeitadosOmitidos?}`
+(`criados` = "inseridas" do documento, `inalterados` = "iguais"). `estado` = `concluida` | `concluida_com_rejeicoes` | `falhou` (o ciclo da entidade). Erros: 400 `arquivo_obrigatorio`,
+400 `arquivo_invalido` (vazio, cabeçalho sem as colunas obrigatórias; grava histórico `falhou`), 413, 415 `tipo_nao_suportado` (corpo que não é multipart).
+
+- **Aceita** a linha se: IBGE com 7 dígitos (ou `Exterior`: UF `EX` e código `0`; o nome vira `Exterior`), UF entre as 27 e `EX`, nome não vazio (até 100). **Rejeita** (relatado com a linha física do arquivo, cabeçalho = 1) código fora do padrão, UF inválida, nome vazio, código repetido no arquivo (vale a primeira), `EX` com código diferente de 0 e, **além do documento**, "já existe outro município com o mesmo nome e UF" (o índice único `UX_MUNICIPIO_NOME_UF` do banco; sem isso o envio inteiro cairia em 500). UF em caixa baixa é normalizada para maiúscula.
+- **Transação:** as linhas válidas e o registro de `ImportacaoMunicipio` entram na mesma transação (lock consultivo: um envio por vez); erro inesperado desfaz tudo (500 `erro_interno`) e grava um histórico `falhou` em transação própria. Linhas rejeitadas não desfazem as válidas.
+- Campos entre aspas são aceitos; quebra de linha dentro de campo não.
+- `GET /api/ImportacaoMunicipio` (gerado) continua legível por qualquer usuário autenticado. A correção manual de município (`POST`/`PUT`/`PATCH /api/Municipio`) é só do administrador da plataforma; `DELETE` é negado a todos.
+
+**Usuários e vínculos** (`/api/admin/usuarios`). Nunca devolve `senhaHash` nem hash de token (`temSenha` diz só se há senha). **Não existe DELETE**: usuário e vínculo só se desativam.
+`UsuarioAdmin` = `{id, nome, email, whatsapp, ativo, administradorPlataforma, temSenha, dataUltimoAcesso, dataCriacao, dataAtualizacao, vinculos?}`.
+`VinculoAdmin` = `{id, usuarioId, empresa:{id, razaoSocial, nomeFantasia, situacao}, papel, ativo, dataCriacao, dataAtualizacao}`.
+
+| Endpoint | Corpo | Resposta |
+|---|---|---|
+| `GET /api/admin/usuarios?busca=&ativo=` | | até 100 `UsuarioAdmin` por nome |
+| `GET /api/admin/usuarios/{from}/{to}?busca=&ativo=` e `GET /api/admin/usuarios/count?busca=&ativo=` | | faixa (máx. 100; 400 se `from` > `to`) e `{count}`. `busca` casa nome (sem acento/caixa) ou e-mail |
+| `GET /api/admin/usuarios/{id}` | | `UsuarioAdmin`; 404 `usuario_nao_encontrado` |
+| `POST /api/admin/usuarios` | `{nome, email, whatsapp?, senha, ativo? (padrão true), vinculos?:[{empresaId, papel, ativo?}]}` | 201 + `Location` + `UsuarioAdmin` com `vinculos`. Tudo ou nada. Nunca cria administrador da plataforma. |
+| `PATCH /api/admin/usuarios/{id}` | `{nome?, whatsapp?, ativo?}` (ausente = não muda; `whatsapp:""` apaga) | `UsuarioAdmin`. 400 `auto_desativacao` se o admin desativa a si mesmo |
+| `POST /api/admin/usuarios/{id}/senha` | `{senha}` (temporária) | 204; troca o hash, **revoga todos os refresh tokens** e zera o bloqueio de força bruta do e-mail |
+| `GET /api/admin/usuarios/{id}/vinculos` | | lista de `VinculoAdmin` (ativos e inativos) |
+| `POST /api/admin/usuarios/{id}/vinculos` | `{empresaId, papel, ativo?}` | 201 + `VinculoAdmin`; 409 `vinculo_ja_existe` (um por par usuário/empresa: reative ou altere o existente) |
+| `PATCH /api/admin/usuarios/{id}/vinculos/{vinculoId}` | `{papel?, ativo?}` | `VinculoAdmin`; `ativo:false` revoga os refresh tokens daquele usuário naquela empresa; 404 `vinculo_nao_encontrado` |
+
+Códigos: 400 `requisicao_invalida` (`detalhes.campos`), 400 `senha_invalida` (política de 8 a 72 bytes; `detalhes.campos[0].campo = "senha"`), 400 `papel_invalido`
+(`administrador`, `operador` ou `consulta`, exatos), 400 `vinculos_duplicados`, 404 `empresa_nao_encontrada`, 409 `email_ja_cadastrado` (único sem diferença de caixa; o e-mail é gravado em minúsculas e sem espaços nas pontas).
+O usuário criado entra com a senha temporária; **o fluxo "o usuário define a própria senha" continua em aberto** (não há troca forçada no primeiro acesso). Esses serviços rodam com o escopo do **próprio token** do administrador
+(`plataforma_admin` vira irrestrito na RLS), e não em `comoSistema`: se alguém sem a claim chegasse ali, o banco ainda barraria `VINCULOUSUARIO` e `TOKENRENOVACAO`.
 
 ### OpenAPI
 
@@ -241,7 +300,7 @@ efêmero), `src/test/resources/db/init-role-app-teste.sql` cria `emitesimples_ap
 ### Pendente
 
 - Signup e confirmação de e-mail (serão públicos: acrescentar em `application.properties`, seção "PUBLICO").
-- Endpoints à mão para `VinculoUsuario` (papéis) e `ClienteAcesso` (segredos): hoje a escrita está negada.
+- Endpoint à mão para `ClienteAcesso` (segredos): hoje a escrita está negada. (`VinculoUsuario` já tem: `/api/admin/usuarios/{id}/vinculos`.)
 - Refresh token para administrador da plataforma sem empresa (depende de relaxar `TokenRenovacao.empresa` no mapa).
 - Força bruta compartilhada entre instâncias e limite por IP.
 - **Achados no código gerado (com o `generator-author`)**: o POST de `Pessoa`/`Servico`/`Contato` grava a empresa que vier no
