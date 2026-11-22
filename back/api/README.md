@@ -142,7 +142,9 @@ tudo é negado (`padrao-negar`), e um endpoint novo sob `/api` nasce **fechado p
 | `Contato` | autenticado | administrador, operador, plat. | administrador, operador, plat. |
 | `VinculoUsuario`, `ClienteAcesso` | autenticado | negado (vínculos: só por `/api/admin/usuarios/{id}/vinculos`; `ClienteAcesso` ainda sem endpoint à mão) | negado |
 | `/api/cep/*` | autenticado (qualquer papel) | negado | negado |
-| `/api/admin/*` (importação de municípios, usuários e vínculos) | só plat. | só plat. | negado (usuário e vínculo nunca se apagam) |
+| `/api/admin/*` (importação de municípios, usuários e vínculos por usuário e por empresa `/api/admin/empresas/{id}/vinculos`) | só plat. | só plat. | negado (usuário e vínculo nunca se apagam) |
+| `/api/admin/configuracoes/consulta-cnpj` (config) e `.../testar` | só plat. (GET lê; PUT grava) | só plat.: PUT na config; POST só em `/testar` | negado |
+| `/api/admin/consulta-cnpj/{cnpj}` (consulta para preencher o cadastro) | só plat. | negado | negado |
 | outro caminho sob `/api` | autenticado | negado | negado |
 
 **Como o Quarkus combina as regras** (provado, ver comentário em `application.properties`): vence o caminho mais específico;
@@ -307,6 +309,121 @@ efêmero), `src/test/resources/db/init-role-app-teste.sql` cria `emitesimples_ap
   body (cria registro em OUTRA empresa; **hoje barrado só pela RLS**, 403 `isolamento_empresa`); o PUT gerado copia a `empresa`
   aninhada do corpo para a Empresa real (um PUT de `Pessoa` com `empresa` parcial tenta zerar o `documento` da própria Empresa: 500); violação de unicidade vira 500 em vez de 409; listagens fixam 100 registros;
   parâmetros de consulta de relações com nome repetido (`nome`, `documento`...).
+
+## Configuração da consulta de CNPJ (CNPJ.ws) e cofre de segredos
+
+URL base e token da consulta de CNPJ são editáveis pelo administrador da plataforma (migração `V4`, código à mão em
+`plataforma/`: `ConfiguracaoConsultaCnpjResource`, `ConfiguracaoConsultaCnpjService`, `SegredoService`).
+
+**API** (só `plataforma_admin`; as regras `admin-configuracoes*` do `application.properties` liberam GET/HEAD/PUT e negam o resto):
+
+- `GET /api/admin/configuracoes/consulta-cnpj` -> `{ urlBase, tokenConfigurado, dataAtualizacao, atualizadoPor: {id, nome} | null }`.
+  **O token nunca volta**, só `tokenConfigurado`.
+- `PUT /api/admin/configuracoes/consulta-cnpj` com `{ urlBase, token? }` -> 204. `token` ausente (ou `null`) mantém o atual; texto não
+  vazio grava/substitui (cifrado); `""` remove o token e apaga o segredo.
+- 400 `url_invalida`: precisa ser `https://` com host, sem usuário/senha, sem query/fragmento, sem barra final dupla, até 200
+  caracteres (a barra final simples é removida). Proteção SSRF básica: bloqueia `localhost`, IPs literais privados/loopback/link-local/
+  CGNAT/ULA, formas obscuras de IP (decimal, hexadecimal), nomes sem ponto e nomes `.local`/`.internal`. Com
+  `emitesimples.cnpj.permitir-url-local=true` (padrão `false`; `true` em dev/test) liberam-se `http(s)://localhost` e `127.0.0.1`.
+  Limite: o host é checado como texto/IP literal, **sem resolver DNS**; um nome público que resolva para IP interno (e DNS rebinding)
+  só é barrado no momento do teste da consulta (veja abaixo: o IP resolvido é validado a cada chamada).
+- 400 `token_invalido`: mais de 500 caracteres ou com espaço/quebra de linha.
+- Auditoria mínima: `atualizado_por` e `data_atualizacao` na tabela `configuracao_consulta_cnpj` (singleton, id `unica`).
+
+**Teste da consulta (`POST /api/admin/configuracoes/consulta-cnpj/testar`)** (só `plataforma_admin`; é o ÚNICO POST liberado em
+`/api/admin/configuracoes/*`, por regra de caminho exato `admin-configuracoes-testar`; classes `ConsultaCnpjCliente`,
+`ConsultaCnpjTesteService`, `LimiteTesteCnpj`). Corpo `{ "cnpj": "27865757000102" }` (aceita pontuação; normaliza para 14 dígitos e
+confere os dígitos verificadores). O back chama `GET {urlBase}/{cnpj14}?token={token}` com a URL e o token **salvos** e devolve só um
+resumo (200): `cnpj, razaoSocial, nomeFantasia, situacaoCadastral, dataInicioAtividade, porte, naturezaJuridica,
+atividadePrincipal {codigo, descricao}, capitalSocial, endereco {logradouro, numero, complemento, bairro, cep, municipio, uf}, email,
+telefone, simples, mei, quantidadeSocios, duracaoMs, urlConsultada`. Campo ausente no CNPJ.ws vira `null` (mapeamento tolerante, ignora
+campos desconhecidos). **O token nunca aparece** em resposta, log, exceção nem em `urlConsultada` (ex.: `https://comercial.cnpj.ws/cnpj/27865757000102`).
+**Cada teste consome uma consulta do plano do CNPJ.ws.**
+
+| HTTP | `codigo` | Quando |
+|---|---|---|
+| 400 | `cnpj_invalido` | formato ou dígito verificador inválido |
+| 409 | `token_nao_configurado` | não há token salvo |
+| 409 | `url_base_nao_permitida` | URL salva reprovada na revalidação ou host resolve para IP interno |
+| 404 | `cnpj_nao_encontrado` | CNPJ.ws respondeu 404 |
+| 502 | `token_recusado` | CNPJ.ws respondeu 401/403 |
+| 429 | `limite_consulta_excedido` | CNPJ.ws respondeu 429; `detalhes.esperaSegundos` se vier `Retry-After` em segundos |
+| 504 | `servico_cnpj_indisponivel` | timeout, host não resolvido ou erro de rede |
+| 502 | `resposta_invalida` | status inesperado (inclui 5xx e 3xx), JSON inválido, corpo > 1 MB |
+| 429 | `muitas_tentativas` | limite PRÓPRIO: 10 testes/min por usuário (`emitesimples.cnpj.limite-teste-por-minuto`; janela fixa, em memória) |
+
+**Defesas da chamada externa**: `HttpClient` com `followRedirects(NEVER)` (um 302 vira `resposta_invalida`); timeout de conexão 5 s
+(`emitesimples.cnpj.timeout-conexao`) e de resposta 10 s (`emitesimples.cnpj.timeout-resposta`, também aplicado à leitura do corpo;
+1 s em teste); corpo lido até 1 MB (checa `Content-Length` e corta o stream); só `https` (exceto com `permitir-url-local=true`); a URL
+salva é revalidada a cada teste; **antes de chamar, o host é resolvido (`InetAddress.getAllByName`) e a chamada é recusada se QUALQUER
+IP for loopback/privado/link-local/CGNAT/ULA/multicast** (mesma regra do `PUT`, método compartilhado `ipProibido`; desligada com
+`permitir-url-local`). Log só com host, CNPJ mascarado (`27.865.757/****-**`) e status; a URL com token é montada só no instante da
+chamada e falhas de rede registram apenas a classe da exceção. **Janela residual de DNS rebinding**: a verificação do IP e a conexão
+do `HttpClient` resolvem o nome separadamente, então um DNS malicioso pode responder IP público na checagem e interno na conexão.
+Mitigado (URL editável só pelo administrador da plataforma, sem redirecionamento, corpo nunca devolvido, limite de taxa), não eliminado;
+fechar exige conectar no IP já validado ou um proxy de saída com lista de destinos permitidos. CNPJ alfanumérico (novo formato) não é
+aceito: o contrato é de 14 dígitos.
+
+**Cofre (`SegredoService`)**: `guardar`, `substituir`, `ler` (uso interno futuro) e `remover`. Cifra AES-256-GCM, IV aleatório de 12
+bytes por gravação, id do segredo como dado associado (AAD); guarda `valor_cifrado` + `iv` na tabela `segredo` (sem coluna de texto
+puro). O valor nunca vai para log, exceção ou `toString`; o corpo do PUT é lido como texto para que um erro de parse não cite o token.
+
+**Chave-mestra**: `emitesimples.segredos.chave` (variável `EMITESIMPLES_SEGREDOS_CHAVE`), 32 bytes em base64. Gere com
+
+```bash
+openssl rand -base64 32
+```
+
+Em dev e test há chaves fixas e PÚBLICAS no `application.properties` (nunca use em produção). Fora delas não há padrão: a aplicação sobe,
+mas guardar/ler um segredo falha com 500 `segredos_chave_invalida` e mensagem clara (chave ausente, não-base64 ou de tamanho errado).
+**Perder ou trocar a chave torna os segredos já gravados ilegíveis** (grave o token de novo pela API).
+
+**O cofre é provisório**: hoje cifra em tabela do próprio banco; a referência `segredo_token_id` permite trocar por um cofre externo
+(KMS/Vault) sem mudar a API. **Falta**: o uso da consulta de CNPJ no signup público (a consulta para preencher o cadastro da Empresa já existe, só plataforma),
+a rotação da chave-mestra (recifrar tudo com chave nova; hoje sem versão de chave) e fechar a janela de DNS rebinding.
+
+## Consulta de CNPJ para preencher o cadastro: `GET /api/admin/consulta-cnpj/{cnpj}`
+
+Só `plataforma_admin` (regras `admin-consulta-cnpj*`: só GET/HEAD; POST/PUT/PATCH/DELETE negados). Classes em `plataforma/`:
+`ConsultaCnpjCadastroResource`, `ConsultaCnpjCadastroService`, `ConsultaCnpjCadastro`, `LimiteConsultaCnpj`. Reusa
+`ConsultaCnpjCliente.consultarBruto` (devolve o JSON já parseado; mesmas defesas do `/testar`: sem redirecionamento, corpo ≤ 1 MB,
+timeouts, IP resolvido validado, URL/token nunca em log ou erro) e a URL/token salvos. CNPJ com 14 dígitos, com ou sem pontuação
+(use só dígitos ou `.` e `-`; a barra `/`, mesmo codificada, não chega ao recurso e dá 400), dígito verificador validado. CNPJ só mascarado em log. Sem cache; **cada chamada gasta uma
+consulta do plano do CNPJ.ws**. Limite: 30/min por usuário (`emitesimples.cnpj.limite-consulta-por-minuto`, janela fixa em memória,
+separado do limite de 10/min do teste) -> 429 `muitas_tentativas` com `Retry-After`.
+
+200: `{ cnpj, razaoSocial, nomeFantasia, email, telefone, cep, logradouro, numeroEndereco, complemento, bairro, municipio, uf,
+codigoIbge, regimeTributario, inscricaoEstadual, situacaoCadastral, dataInicioAtividade }`; toda chave sempre presente, ausente = `null`.
+
+| Campo | Origem no CNPJ.ws |
+|---|---|
+| `razaoSocial` | `razao_social` |
+| `nomeFantasia`, `email`, `complemento`, `bairro`, `situacaoCadastral`, `dataInicioAtividade` | `estabelecimento.*` (`nome_fantasia`, `email`, `complemento`, `bairro`, `situacao_cadastral`, `data_inicio_atividade`) |
+| `telefone` | `estabelecimento.ddd1 + telefone1`, só dígitos |
+| `cep` | `estabelecimento.cep`, só dígitos (8) |
+| `logradouro` | `tipo_logradouro + ' ' + logradouro` |
+| `numeroEndereco` | `estabelecimento.numero` |
+| `uf` | `estabelecimento.estado.sigla` |
+| `codigoIbge` | `estabelecimento.cidade.ibge_id` |
+| `municipio` | `{id, nome, uf, codigoIbge}` da tabela `Municipio` com esse `codigo_ibge`; `null` se não existir (uf e codigoIbge continuam) |
+| `inscricaoEstadual` | `estabelecimento.inscricoes_estaduais`: a de `ativo=true` cujo `estado.sigla` é a UF do estabelecimento; senão `null` |
+| `regimeTributario` | sugestão pelo `simples` (códigos do enum `regimeTributario` de `Empresa.mi`): `mei == "Sim"` -> 4 (MEI); senão `simples == "Sim"` -> 1 (Simples Nacional); senão `null`. Regime normal (3) e excesso de sublimite (2) **não** são deduzidos |
+
+Erros (mesmos do `/testar`): 400 `cnpj_invalido`, 409 `token_nao_configurado`, 409 `url_base_nao_permitida`, 404 `cnpj_nao_encontrado`,
+502 `token_recusado`, 429 `limite_consulta_excedido` (CNPJ.ws; `detalhes.esperaSegundos`), 504 `servico_cnpj_indisponivel`,
+502 `resposta_invalida`, 429 `muitas_tentativas` (limite próprio).
+
+## Vínculos de usuário vistos pela empresa: `/api/admin/empresas/{empresaId}/vinculos`
+
+Só `plataforma_admin` (regras `admin-empresas*`: GET/POST/PATCH; PUT e DELETE negados; vínculo nunca se apaga, só se desativa). Caminho
+distinto do `/api/Empresa` gerado, que não muda. Classes: `VinculoEmpresaAdminResource`, `VinculoEmpresaAdminService`; criar e alterar
+**delegam** ao `UsuarioAdminService` (mesmas regras e mensagens; desativar revoga os refresh tokens do usuário naquela empresa).
+
+- `GET` -> `[ { id, usuario: {id, nome, email, ativo}, papel, ativo, dataCriacao } ]`, ordenado por nome do usuário. 404 `empresa_nao_encontrada`.
+- `POST` `{ usuarioId, papel, ativo? }` (`ativo` padrão true) -> 201 com o vínculo e `Location`. 409 `vinculo_ja_existe`,
+  404 `usuario_nao_encontrado`, 404 `empresa_nao_encontrada`, 400 `papel_invalido` (administrador, operador, consulta), 400 campos obrigatórios.
+- `PATCH /{vinculoId}` `{ papel?, ativo? }` -> 200 com o vínculo. 404 `vinculo_nao_encontrado` (inclusive se pertence a outra empresa),
+  404 `empresa_nao_encontrada`, 400 `papel_invalido`.
 
 ## Pontos em aberto
 

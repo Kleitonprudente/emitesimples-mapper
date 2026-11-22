@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 /** Apoio comum: chaves JWT em memória, dados de teste e chamadas HTTP reais contra a aplicação. */
 @QuarkusTestResource(ChavesJwtTestResource.class)
 @QuarkusTestResource(ViaCepStubResource.class)
+@QuarkusTestResource(CnpjWsStubResource.class)
 public abstract class BaseApiTest {
 
     @Inject
