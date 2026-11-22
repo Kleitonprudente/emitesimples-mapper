@@ -45,6 +45,8 @@ public class PessoaMapper {
         pessoa.setRgInscricaoEstadual( entity.getRgInscricaoEstadual() );
         pessoa.setTipoDestinatario( entity.getTipoDestinatario() );
         pessoa.setConsumidorFinal( entity.getConsumidorFinal() );
+        pessoa.setCliente( entity.getCliente() );
+        pessoa.setFornecedor( entity.getFornecedor() );
         pessoa.setTelefone( entity.getTelefone() );
         pessoa.setEmail( entity.getEmail() );
         pessoa.setLogradouro( entity.getLogradouro() );
@@ -89,6 +91,8 @@ public class PessoaMapper {
             pessoaBuilder.rgInscricaoEstadual = api.getRgInscricaoEstadual();
             pessoaBuilder.tipoDestinatario = api.getTipoDestinatario();
             pessoaBuilder.consumidorFinal = api.getConsumidorFinal();
+            pessoaBuilder.cliente = api.getCliente();
+            pessoaBuilder.fornecedor = api.getFornecedor();
             pessoaBuilder.telefone = api.getTelefone();
             pessoaBuilder.email = api.getEmail();
             pessoaBuilder.logradouro = api.getLogradouro();
@@ -152,6 +156,8 @@ public class PessoaMapper {
         api.setRgInscricaoEstadual( entity.getRgInscricaoEstadual() );
         api.setTipoDestinatario( entity.getTipoDestinatario() );
         api.setConsumidorFinal( entity.getConsumidorFinal() );
+        api.setCliente( entity.getCliente() );
+        api.setFornecedor( entity.getFornecedor() );
         api.setTelefone( entity.getTelefone() );
         api.setEmail( entity.getEmail() );
         api.setLogradouro( entity.getLogradouro() );
@@ -211,6 +217,8 @@ public class PessoaMapper {
             entity.setRgInscricaoEstadual( api.getRgInscricaoEstadual() );
             entity.setTipoDestinatario( api.getTipoDestinatario() );
             entity.setConsumidorFinal( api.getConsumidorFinal() );
+            entity.setCliente( api.getCliente() );
+            entity.setFornecedor( api.getFornecedor() );
             entity.setTelefone( api.getTelefone() );
             entity.setEmail( api.getEmail() );
             entity.setLogradouro( api.getLogradouro() );
@@ -255,6 +263,8 @@ public class PessoaMapper {
         if (api.getRgInscricaoEstadual() != null) entity.setRgInscricaoEstadual( api.getRgInscricaoEstadual() ); 
         if (api.getTipoDestinatario() != null) entity.setTipoDestinatario( api.getTipoDestinatario() ); 
         if (api.getConsumidorFinal() != null) entity.setConsumidorFinal( api.getConsumidorFinal() ); 
+        if (api.getCliente() != null) entity.setCliente( api.getCliente() ); 
+        if (api.getFornecedor() != null) entity.setFornecedor( api.getFornecedor() ); 
         if (api.getTelefone() != null) entity.setTelefone( api.getTelefone() ); 
         if (api.getEmail() != null) entity.setEmail( api.getEmail() ); 
         if (api.getLogradouro() != null) entity.setLogradouro( api.getLogradouro() ); 
@@ -288,6 +298,12 @@ public class PessoaMapper {
         if (entity.getConsumidorFinal() == null) {
             entity.setConsumidorFinal(true);
         }
+        if (entity.getCliente() == null) {
+            entity.setCliente(false);
+        }
+        if (entity.getFornecedor() == null) {
+            entity.setFornecedor(false);
+        }
 
         return entity;
     }
@@ -299,6 +315,12 @@ public class PessoaMapper {
 
         if (api.getConsumidorFinal() == null) {
             api.setConsumidorFinal(true);
+        }
+        if (api.getCliente() == null) {
+            api.setCliente(false);
+        }
+        if (api.getFornecedor() == null) {
+            api.setFornecedor(false);
         }
 
         return api;

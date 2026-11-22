@@ -114,6 +114,7 @@ public class DadosDeTeste {
         return QuarkusTransaction.requiringNew().call(() -> {
             PessoaEntity p = PessoaEntity.builderOf()
                     .withTipoPessoa("fisica").withNome(nome).withDocumento(digitos(11))
+                    .withCliente(true).withFornecedor(false)
                     .withEmpresa(em.getReference(EmpresaEntity.class, empresaId)).build();
             em.persist(p);
             return p.getId();

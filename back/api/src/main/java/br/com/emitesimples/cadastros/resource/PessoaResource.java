@@ -50,6 +50,8 @@ public class PessoaResource {
         @QueryParam("rgInscricaoEstadual") String rgInscricaoEstadual,
         @QueryParam("tipoDestinatario") String tipoDestinatario,
         @QueryParam("consumidorFinal") String consumidorFinal,
+        @QueryParam("cliente") String cliente,
+        @QueryParam("fornecedor") String fornecedor,
         @QueryParam("telefone") String telefone,
         @QueryParam("email") String email,
         @QueryParam("logradouro") String logradouro,
@@ -77,7 +79,7 @@ public class PessoaResource {
         Sort sort = Sort.by(sortBy != null ? sortBy : "id")
                         .direction(sortDirection.equalsIgnoreCase("desc") ?
                                    Sort.Direction.Descending : Sort.Direction.Ascending);
-        List<PessoaEntity> entityList = repository.findWithFilters(0, 100, sort, tipoPessoa, documento, nome, nomeFantasia, inscricaoMunicipal, rgInscricaoEstadual, tipoDestinatario, consumidorFinal, telefone, email, logradouro, numeroEndereco, complemento, bairro, cep, codigoPais, codigoPostal, nomeMunicipioExterior, nomeProvincia, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, cidadeCodigoIbge, cidadeNome, cidadeUf, cidadeId);
+        List<PessoaEntity> entityList = repository.findWithFilters(0, 100, sort, tipoPessoa, documento, nome, nomeFantasia, inscricaoMunicipal, rgInscricaoEstadual, tipoDestinatario, consumidorFinal, cliente, fornecedor, telefone, email, logradouro, numeroEndereco, complemento, bairro, cep, codigoPais, codigoPostal, nomeMunicipioExterior, nomeProvincia, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, cidadeCodigoIbge, cidadeNome, cidadeUf, cidadeId);
 
         return mapper.entityListToApiList(entityList);
     }
@@ -113,6 +115,8 @@ public class PessoaResource {
         @QueryParam("rgInscricaoEstadual") String rgInscricaoEstadual,
         @QueryParam("tipoDestinatario") String tipoDestinatario,
         @QueryParam("consumidorFinal") String consumidorFinal,
+        @QueryParam("cliente") String cliente,
+        @QueryParam("fornecedor") String fornecedor,
         @QueryParam("telefone") String telefone,
         @QueryParam("email") String email,
         @QueryParam("logradouro") String logradouro,
@@ -139,7 +143,7 @@ public class PessoaResource {
     ) {
 
         CountResult countResult = new CountResult();
-        countResult.setCount(repository.countWithFilters( tipoPessoa, documento, nome, nomeFantasia, inscricaoMunicipal, rgInscricaoEstadual, tipoDestinatario, consumidorFinal, telefone, email, logradouro, numeroEndereco, complemento, bairro, cep, codigoPais, codigoPostal, nomeMunicipioExterior, nomeProvincia, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, cidadeCodigoIbge, cidadeNome, cidadeUf, cidadeId));
+        countResult.setCount(repository.countWithFilters( tipoPessoa, documento, nome, nomeFantasia, inscricaoMunicipal, rgInscricaoEstadual, tipoDestinatario, consumidorFinal, cliente, fornecedor, telefone, email, logradouro, numeroEndereco, complemento, bairro, cep, codigoPais, codigoPostal, nomeMunicipioExterior, nomeProvincia, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, cidadeCodigoIbge, cidadeNome, cidadeUf, cidadeId));
         return countResult;
     }
 
@@ -161,6 +165,8 @@ public class PessoaResource {
         @QueryParam("rgInscricaoEstadual") String rgInscricaoEstadual,
         @QueryParam("tipoDestinatario") String tipoDestinatario,
         @QueryParam("consumidorFinal") String consumidorFinal,
+        @QueryParam("cliente") String cliente,
+        @QueryParam("fornecedor") String fornecedor,
         @QueryParam("telefone") String telefone,
         @QueryParam("email") String email,
         @QueryParam("logradouro") String logradouro,
@@ -196,7 +202,7 @@ public class PessoaResource {
         Sort sort = Sort.by(sortBy != null ? sortBy : "id")
                         .direction(sortDirection.equalsIgnoreCase("desc") ?
                                    Sort.Direction.Descending : Sort.Direction.Ascending);
-        List<PessoaEntity> entityList = repository.findWithFilters(from, limit, sort, tipoPessoa, documento, nome, nomeFantasia, inscricaoMunicipal, rgInscricaoEstadual, tipoDestinatario, consumidorFinal, telefone, email, logradouro, numeroEndereco, complemento, bairro, cep, codigoPais, codigoPostal, nomeMunicipioExterior, nomeProvincia, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, cidadeCodigoIbge, cidadeNome, cidadeUf, cidadeId);
+        List<PessoaEntity> entityList = repository.findWithFilters(from, limit, sort, tipoPessoa, documento, nome, nomeFantasia, inscricaoMunicipal, rgInscricaoEstadual, tipoDestinatario, consumidorFinal, cliente, fornecedor, telefone, email, logradouro, numeroEndereco, complemento, bairro, cep, codigoPais, codigoPostal, nomeMunicipioExterior, nomeProvincia, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, cidadeCodigoIbge, cidadeNome, cidadeUf, cidadeId);
 
         return mapper.entityListToApiList(entityList);
     }

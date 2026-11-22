@@ -9,7 +9,8 @@ import jakarta.validation.constraints.Size;
 import br.com.emitesimples.configuracao.domain.Empresa;
 
 /*
-* Cadastro de cliente, física ou jurídica, reutilizável nas emissões, que na nota 
+* Cadastro de pessoa, física ou jurídica, que pode ser cliente, fornecedor ou 
+* ambos (atributos cliente e fornecedor), reutilizável nas emissões, que na nota 
 * assume o papel de tomador do serviço. É por empresa: o mesmo documento pode 
 * existir
  * uma vez em cada empresa, e uma empresa nunca enxerga a pessoa de outra.
@@ -52,6 +53,12 @@ public class Pessoa {
     private Integer tipoDestinatario;
 
     private Boolean consumidorFinal;
+
+    @NotNull(message = "The attribute cliente can't be null.")
+    private Boolean cliente;
+
+    @NotNull(message = "The attribute fornecedor can't be null.")
+    private Boolean fornecedor;
 
     @Size(max = 20, message = "Attribute telefone must have 20 characters maximum.")
     private String telefone;
@@ -116,6 +123,8 @@ public class Pessoa {
         this.rgInscricaoEstadual = null;
         this.tipoDestinatario = null;
         this.consumidorFinal = null;
+        this.cliente = null;
+        this.fornecedor = null;
         this.telefone = null;
         this.email = null;
         this.logradouro = null;
@@ -143,6 +152,8 @@ public class Pessoa {
         String rgInscricaoEstadual,
         Integer tipoDestinatario,
         Boolean consumidorFinal,
+        Boolean cliente,
+        Boolean fornecedor,
         String telefone,
         String email,
         String logradouro,
@@ -169,6 +180,8 @@ public class Pessoa {
         this.rgInscricaoEstadual = rgInscricaoEstadual;
         this.tipoDestinatario = tipoDestinatario;
         this.consumidorFinal = consumidorFinal;
+        this.cliente = cliente;
+        this.fornecedor = fornecedor;
         this.telefone = telefone;
         this.email = email;
         this.logradouro = logradouro;
@@ -256,6 +269,22 @@ public class Pessoa {
 
     public Boolean getConsumidorFinal() {
         return this.consumidorFinal;
+    }
+
+    public void setCliente(Boolean cliente) {
+        this.cliente = cliente;
+    }
+
+    public Boolean getCliente() {
+        return this.cliente;
+    }
+
+    public void setFornecedor(Boolean fornecedor) {
+        this.fornecedor = fornecedor;
+    }
+
+    public Boolean getFornecedor() {
+        return this.fornecedor;
     }
 
     public void setTelefone(String telefone) {
@@ -409,6 +438,8 @@ public class Pessoa {
             this.rgInscricaoEstadual != null || 
             this.tipoDestinatario != null || 
             this.consumidorFinal != null || 
+            this.cliente != null || 
+            this.fornecedor != null || 
             this.telefone != null || 
             this.email != null || 
             this.logradouro != null || 

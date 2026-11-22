@@ -145,6 +145,7 @@ tudo é negado (`padrao-negar`), e um endpoint novo sob `/api` nasce **fechado p
 | `/api/admin/*` (importação de municípios, usuários e vínculos por usuário e por empresa `/api/admin/empresas/{id}/vinculos`) | só plat. | só plat. | negado (usuário e vínculo nunca se apagam) |
 | `/api/admin/configuracoes/consulta-cnpj` (config) e `.../testar` | só plat. (GET lê; PUT grava) | só plat.: PUT na config; POST só em `/testar` | negado |
 | `/api/admin/consulta-cnpj/{cnpj}` (consulta para preencher o cadastro) | só plat. | negado | negado |
+| `/api/consulta-cnpj/{cnpj}` (mesma consulta, para a empresa) | administrador, operador e plat. (`consulta` não) | negado | negado |
 | outro caminho sob `/api` | autenticado | negado | negado |
 
 **Como o Quarkus combina as regras** (provado, ver comentário em `application.properties`): vence o caminho mais específico;
@@ -393,7 +394,8 @@ consulta do plano do CNPJ.ws**. Limite: 30/min por usuário (`emitesimples.cnpj.
 separado do limite de 10/min do teste) -> 429 `muitas_tentativas` com `Retry-After`.
 
 200: `{ cnpj, razaoSocial, nomeFantasia, email, telefone, cep, logradouro, numeroEndereco, complemento, bairro, municipio, uf,
-codigoIbge, regimeTributario, inscricaoEstadual, situacaoCadastral, dataInicioAtividade }`; toda chave sempre presente, ausente = `null`.
+codigoIbge, regimeTributario, inscricaoEstadual, situacaoCadastral, dataInicioAtividade, socios }`; toda chave sempre presente, ausente = `null`
+(`socios` é lista, vazia se não houver).
 
 | Campo | Origem no CNPJ.ws |
 |---|---|
@@ -407,11 +409,20 @@ codigoIbge, regimeTributario, inscricaoEstadual, situacaoCadastral, dataInicioAt
 | `codigoIbge` | `estabelecimento.cidade.ibge_id` |
 | `municipio` | `{id, nome, uf, codigoIbge}` da tabela `Municipio` com esse `codigo_ibge`; `null` se não existir (uf e codigoIbge continuam) |
 | `inscricaoEstadual` | `estabelecimento.inscricoes_estaduais`: a de `ativo=true` cujo `estado.sigla` é a UF do estabelecimento; senão `null` |
+| `socios` | `socios[]` -> `[{ nome, tipo | null, qualificacao | null }]` (`nome`, `tipo`, `qualificacao_socio.descricao`); item sem `nome` é ignorado; sem a lista, `[]`. O front por ora ignora (uso futuro: contatos) |
 | `regimeTributario` | sugestão pelo `simples` (códigos do enum `regimeTributario` de `Empresa.mi`): `mei == "Sim"` -> 4 (MEI); senão `simples == "Sim"` -> 1 (Simples Nacional); senão `null`. Regime normal (3) e excesso de sublimite (2) **não** são deduzidos |
 
 Erros (mesmos do `/testar`): 400 `cnpj_invalido`, 409 `token_nao_configurado`, 409 `url_base_nao_permitida`, 404 `cnpj_nao_encontrado`,
 502 `token_recusado`, 429 `limite_consulta_excedido` (CNPJ.ws; `detalhes.esperaSegundos`), 504 `servico_cnpj_indisponivel`,
 502 `resposta_invalida`, 429 `muitas_tentativas` (limite próprio).
+
+### Mesma consulta para usuários da empresa: `GET /api/consulta-cnpj/{cnpj}`
+
+Mesmo corpo, erros e defesas da rota admin (mesmo `ConsultaCnpjCadastroService`; recurso `ConsultaCnpjEmpresaResource`). Quem pode: papel
+`administrador` ou `operador` na empresa da sessão e `plataforma_admin`; `consulta` -> 403, anônimo -> 401. Regras `consulta-cnpj*` em
+`application.properties`: só GET/HEAD; POST/PUT/PATCH/DELETE negados. **Consome a cota do CNPJ.ws da PLATAFORMA** (token único salvo pelo administrador
+da plataforma), não uma cota da empresa. O limite de 30/min por usuário é o mesmo `LimiteConsultaCnpj`: o contador é **compartilhado** entre
+`/api/consulta-cnpj` e `/api/admin/consulta-cnpj` (a chave é o usuário; 30 no total por minuto, somando as duas rotas).
 
 ## Vínculos de usuário vistos pela empresa: `/api/admin/empresas/{empresaId}/vinculos`
 
@@ -424,6 +435,13 @@ distinto do `/api/Empresa` gerado, que não muda. Classes: `VinculoEmpresaAdminR
   404 `usuario_nao_encontrado`, 404 `empresa_nao_encontrada`, 400 `papel_invalido` (administrador, operador, consulta), 400 campos obrigatórios.
 - `PATCH /{vinculoId}` `{ papel?, ativo? }` -> 200 com o vínculo. 404 `vinculo_nao_encontrado` (inclusive se pertence a outra empresa),
   404 `empresa_nao_encontrada`, 400 `papel_invalido`.
+
+## Migração V5: Pessoa cliente e/ou fornecedor
+
+`V5__pessoa_cliente_fornecedor.sql` acrescenta `cliente` e `fornecedor` (`boolean not null default false`) à `pessoa`; toda pessoa existente
+vira `cliente = true` (o cadastro nasceu só para clientes); a mesma pessoa pode ser as duas coisas. Índices `ix_pessoa_empresa_cliente` e
+`ix_pessoa_empresa_fornecedor` (`empresa_id`, coluna) para a listagem por empresa e papel. RLS e GRANTs (V3, por tabela) já cobrem a coluna nova.
+O código gerado (entity/builder/mapper/resource) só ganha os campos depois do `mi push` e do `gerar.sh`; até lá o DEFAULT cobre as inserções.
 
 ## Pontos em aberto
 

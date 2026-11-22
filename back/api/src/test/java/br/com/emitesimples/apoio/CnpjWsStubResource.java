@@ -193,10 +193,17 @@ public class CnpjWsStubResource implements QuarkusTestResourceLifecycleManager {
                   {"inscricao_estadual": "222222222", "ativo": true, "estado": {"sigla": "SP"}},
                   {"inscricao_estadual": "333333333", "ativo": true, "estado": {"sigla": "RJ"}}
                 ]""" : "[]";
+        String socios = comIes ? """
+                [
+                  {"nome": "MARIA SOCIA", "tipo": "Pessoa Física", "qualificacao_socio": {"id": 49, "descricao": "Sócio-Administrador"}},
+                  {"nome": "JOAO SEM QUALIFICACAO"},
+                  {"tipo": "Pessoa Física"}
+                ]""" : "[]";
         return """
                 {
                   "razao_social": "CADASTRO TESTE LTDA",
                   "simples": {"simples": "%s", "mei": "%s"},
+                  "socios": %s,
                   "estabelecimento": {
                     "nome_fantasia": "CADASTRO FANTASIA",
                     "situacao_cadastral": "Ativa",
@@ -215,7 +222,7 @@ public class CnpjWsStubResource implements QuarkusTestResourceLifecycleManager {
                     "inscricoes_estaduais": %s
                   }
                 }
-                """.formatted(simples, mei, ibge, ies);
+                """.formatted(simples, mei, socios, ibge, ies);
     }
 
     private static final String COMPLETO = """

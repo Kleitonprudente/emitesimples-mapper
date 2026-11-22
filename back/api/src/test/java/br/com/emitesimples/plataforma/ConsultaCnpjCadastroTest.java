@@ -116,7 +116,15 @@ class ConsultaCnpjCadastroTest extends BaseApiTest {
                 .body("regimeTributario", equalTo(1))
                 .body("inscricaoEstadual", equalTo("333333333"))
                 .body("situacaoCadastral", equalTo("Ativa"))
-                .body("dataInicioAtividade", equalTo("2010-03-15"));
+                .body("dataInicioAtividade", equalTo("2010-03-15"))
+                .body("socios.size()", equalTo(2))
+                .body("socios[0].nome", equalTo("MARIA SOCIA"))
+                .body("socios[0].tipo", equalTo("Pessoa Física"))
+                .body("socios[0].qualificacao", equalTo("Sócio-Administrador"))
+                .body("socios[1].nome", equalTo("JOAO SEM QUALIFICACAO"))
+                .body("socios[1].tipo", nullValue())
+                .body("socios[1].qualificacao", nullValue());
+        consultar(cnpj(CnpjWsStubResource.RAIZ_MINIMO)).then().statusCode(200).body("socios", equalTo(List.of()));
     }
 
     @Test

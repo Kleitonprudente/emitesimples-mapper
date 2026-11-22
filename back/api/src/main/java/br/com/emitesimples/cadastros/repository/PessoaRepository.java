@@ -145,6 +145,8 @@ public class PessoaRepository implements PanacheRepositoryBase<PessoaEntity, Str
         String rgInscricaoEstadual,
         String tipoDestinatario,
         String consumidorFinal,
+        String cliente,
+        String fornecedor,
         String telefone,
         String email,
         String logradouro,
@@ -172,7 +174,7 @@ public class PessoaRepository implements PanacheRepositoryBase<PessoaEntity, Str
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<PessoaEntity> cq = cb.createQuery(PessoaEntity.class);
         Root<PessoaEntity> root = cq.from(PessoaEntity.class);
-        List<Predicate> predicates = buildPredicates(cb, root, tipoPessoa, documento, nome, nomeFantasia, inscricaoMunicipal, rgInscricaoEstadual, tipoDestinatario, consumidorFinal, telefone, email, logradouro, numeroEndereco, complemento, bairro, cep, codigoPais, codigoPostal, nomeMunicipioExterior, nomeProvincia, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, cidadeCodigoIbge, cidadeNome, cidadeUf, cidadeId);
+        List<Predicate> predicates = buildPredicates(cb, root, tipoPessoa, documento, nome, nomeFantasia, inscricaoMunicipal, rgInscricaoEstadual, tipoDestinatario, consumidorFinal, cliente, fornecedor, telefone, email, logradouro, numeroEndereco, complemento, bairro, cep, codigoPais, codigoPostal, nomeMunicipioExterior, nomeProvincia, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, cidadeCodigoIbge, cidadeNome, cidadeUf, cidadeId);
         cq.where(cb.and(predicates.toArray(new Predicate[0])));
 
         if (sort != null) {
@@ -199,6 +201,8 @@ public class PessoaRepository implements PanacheRepositoryBase<PessoaEntity, Str
         String rgInscricaoEstadual,
         String tipoDestinatario,
         String consumidorFinal,
+        String cliente,
+        String fornecedor,
         String telefone,
         String email,
         String logradouro,
@@ -226,7 +230,7 @@ public class PessoaRepository implements PanacheRepositoryBase<PessoaEntity, Str
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<PessoaEntity> root = cq.from(PessoaEntity.class);
-        List<Predicate> predicates = buildPredicates(cb, root, tipoPessoa, documento, nome, nomeFantasia, inscricaoMunicipal, rgInscricaoEstadual, tipoDestinatario, consumidorFinal, telefone, email, logradouro, numeroEndereco, complemento, bairro, cep, codigoPais, codigoPostal, nomeMunicipioExterior, nomeProvincia, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, cidadeCodigoIbge, cidadeNome, cidadeUf, cidadeId);
+        List<Predicate> predicates = buildPredicates(cb, root, tipoPessoa, documento, nome, nomeFantasia, inscricaoMunicipal, rgInscricaoEstadual, tipoDestinatario, consumidorFinal, cliente, fornecedor, telefone, email, logradouro, numeroEndereco, complemento, bairro, cep, codigoPais, codigoPostal, nomeMunicipioExterior, nomeProvincia, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, cidadeCodigoIbge, cidadeNome, cidadeUf, cidadeId);
         cq.select(cb.count(root)).where(cb.and(predicates.toArray(new Predicate[0])));
 
         return em.createQuery(cq).getSingleResult();
@@ -243,6 +247,8 @@ public class PessoaRepository implements PanacheRepositoryBase<PessoaEntity, Str
         String rgInscricaoEstadual,
         String tipoDestinatario,
         String consumidorFinal,
+        String cliente,
+        String fornecedor,
         String telefone,
         String email,
         String logradouro,
@@ -281,6 +287,8 @@ public class PessoaRepository implements PanacheRepositoryBase<PessoaEntity, Str
         if (rgInscricaoEstadual != null) getPredicateFromField(predicates, "rgInscricaoEstadual", rgInscricaoEstadual, root, cb, false);
         if (tipoDestinatario != null) getPredicateFromField(predicates, "tipoDestinatario", tipoDestinatario, root, cb, false);
         if (consumidorFinal != null) getPredicateFromField(predicates, "consumidorFinal", consumidorFinal, root, cb, false);
+        if (cliente != null) getPredicateFromField(predicates, "cliente", cliente, root, cb, false);
+        if (fornecedor != null) getPredicateFromField(predicates, "fornecedor", fornecedor, root, cb, false);
         if (telefone != null) getPredicateFromField(predicates, "telefone", telefone, root, cb, false);
         if (email != null) getPredicateFromField(predicates, "email", email, root, cb, false);
         if (logradouro != null) getPredicateFromField(predicates, "logradouro", logradouro, root, cb, false);

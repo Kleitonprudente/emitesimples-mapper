@@ -3496,7 +3496,8 @@ definitions:
           - $ref: '#/definitions/IdReference'
   cadastros.Pessoa:
     description: |
-            Cadastro de cliente, física ou jurídica, reutilizável nas emissões, que na nota 
+            Cadastro de pessoa, física ou jurídica, que pode ser cliente, fornecedor ou 
+            ambos (atributos cliente e fornecedor), reutilizável nas emissões, que na nota 
             assume o papel de tomador do serviço. É por empresa: o mesmo documento pode 
             existir
              uma vez em cada empresa, e uma empresa nunca enxerga a pessoa de outra.
@@ -3514,6 +3515,8 @@ definitions:
     required:
       - tipoPessoa
       - nome
+      - cliente
+      - fornecedor
       - logradouro
       - numeroEndereco
       - bairro
@@ -3614,6 +3617,20 @@ definitions:
             da pessoa física.
              Regra de aplicação, não do mapa: pessoa jurídica com inscrição estadual 
             preenchida passa a não.
+
+      cliente:
+        type: boolean
+        description: |
+            Indica se a pessoa é cliente da empresa (toma serviços; aparece no menu Clientes 
+            e é a que a NFS-e usa como tomador). Padrão não (false). Uma mesma pessoa pode 
+            ser cliente e fornecedor ao mesmo tempo.
+
+      fornecedor:
+        type: boolean
+        description: |
+            Indica se a pessoa é fornecedora da empresa (presta serviços ou vende à empresa; 
+            aparece no menu Fornecedores). Padrão não (false). Uma mesma pessoa pode ser 
+            cliente e fornecedor ao mesmo tempo.
 
       telefone:
         type: string

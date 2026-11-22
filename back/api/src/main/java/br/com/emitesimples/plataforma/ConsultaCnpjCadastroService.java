@@ -2,11 +2,14 @@ package br.com.emitesimples.plataforma;
 
 import br.com.emitesimples.cadastros.entity.MunicipioEntity;
 import br.com.emitesimples.plataforma.ConsultaCnpjCadastro.MunicipioRef;
+import br.com.emitesimples.plataforma.ConsultaCnpjCadastro.Socio;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.quarkus.narayana.jta.QuarkusTransaction;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Consulta de CNPJ para PREENCHER o cadastro da empresa. Reusa o {@link ConsultaCnpjCliente} (todas as defesas) e a
@@ -51,7 +54,21 @@ public class ConsultaCnpjCadastroService {
                 texto(est, "email"), telefone, cep, logradouro, texto(est, "numero"), texto(est, "complemento"),
                 texto(est, "bairro"), municipio(ibge), uf, ibge, regime(r.path("simples")),
                 inscricao(est.path("inscricoes_estaduais"), uf), texto(est, "situacao_cadastral"),
-                texto(est, "data_inicio_atividade"));
+                texto(est, "data_inicio_atividade"), socios(r.path("socios")));
+    }
+
+    /** socios[] do CNPJ.ws: nome, tipo e qualificacao_socio.descricao; item sem nome e ignorado; sem lista, vazia. */
+    static List<Socio> socios(JsonNode lista) {
+        List<Socio> out = new ArrayList<>();
+        if (lista.isArray()) {
+            for (JsonNode s : lista) {
+                String nome = texto(s, "nome");
+                if (nome != null) {
+                    out.add(new Socio(nome, texto(s, "tipo"), texto(s.path("qualificacao_socio"), "descricao")));
+                }
+            }
+        }
+        return out;
     }
 
     /** Sugestao pelo Simples do CNPJ.ws: MEI, depois Simples Nacional; senao null (regime normal nao se adivinha). */

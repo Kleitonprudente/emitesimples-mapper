@@ -18,7 +18,8 @@ import jakarta.persistence.ManyToOne;
 import br.com.emitesimples.configuracao.entity.EmpresaEntity;
 
 /*
-* Cadastro de cliente, física ou jurídica, reutilizável nas emissões, que na nota 
+* Cadastro de pessoa, física ou jurídica, que pode ser cliente, fornecedor ou 
+* ambos (atributos cliente e fornecedor), reutilizável nas emissões, que na nota 
 * assume o papel de tomador do serviço. É por empresa: o mesmo documento pode 
 * existir
  * uma vez em cada empresa, e uma empresa nunca enxerga a pessoa de outra.
@@ -63,6 +64,12 @@ public class PessoaEntity {
 
     @Column(name="CONSUMIDOR_FINAL")
     private Boolean consumidorFinal;
+
+    @Column(name="CLIENTE")
+    private Boolean cliente;
+
+    @Column(name="FORNECEDOR")
+    private Boolean fornecedor;
 
     @Column(name="TELEFONE", length=20)
     private String telefone;
@@ -130,6 +137,8 @@ public class PessoaEntity {
         String rgInscricaoEstadual,
         Integer tipoDestinatario,
         Boolean consumidorFinal,
+        Boolean cliente,
+        Boolean fornecedor,
         String telefone,
         String email,
         String logradouro,
@@ -156,6 +165,8 @@ public class PessoaEntity {
         this.rgInscricaoEstadual = rgInscricaoEstadual;
         this.tipoDestinatario = tipoDestinatario;
         this.consumidorFinal = consumidorFinal;
+        this.cliente = cliente;
+        this.fornecedor = fornecedor;
         this.telefone = telefone;
         this.email = email;
         this.logradouro = logradouro;
@@ -185,6 +196,8 @@ public class PessoaEntity {
         this.rgInscricaoEstadual = builder.rgInscricaoEstadual;
         this.tipoDestinatario = builder.tipoDestinatario;
         this.consumidorFinal = builder.consumidorFinal;
+        this.cliente = builder.cliente;
+        this.fornecedor = builder.fornecedor;
         this.telefone = builder.telefone;
         this.email = builder.email;
         this.logradouro = builder.logradouro;
@@ -277,6 +290,22 @@ public class PessoaEntity {
 
     public Boolean getConsumidorFinal() {
         return this.consumidorFinal;
+    }
+
+    public void setCliente(Boolean cliente) {
+        this.cliente = cliente;
+    }
+
+    public Boolean getCliente() {
+        return this.cliente;
+    }
+
+    public void setFornecedor(Boolean fornecedor) {
+        this.fornecedor = fornecedor;
+    }
+
+    public Boolean getFornecedor() {
+        return this.fornecedor;
     }
 
     public void setTelefone(String telefone) {

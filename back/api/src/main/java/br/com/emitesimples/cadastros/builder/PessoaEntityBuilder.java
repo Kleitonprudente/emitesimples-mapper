@@ -22,6 +22,8 @@ public class PessoaEntityBuilder {
     public String rgInscricaoEstadual;
     public Integer tipoDestinatario;
     public Boolean consumidorFinal;
+    public Boolean cliente;
+    public Boolean fornecedor;
     public String telefone;
     public String email;
     public String logradouro;
@@ -84,6 +86,16 @@ public class PessoaEntityBuilder {
 
     public PessoaEntityBuilder withConsumidorFinal(Boolean consumidorFinal) {
         this.consumidorFinal = consumidorFinal;
+        return this;
+    }
+
+    public PessoaEntityBuilder withCliente(Boolean cliente) {
+        this.cliente = cliente;
+        return this;
+    }
+
+    public PessoaEntityBuilder withFornecedor(Boolean fornecedor) {
+        this.fornecedor = fornecedor;
         return this;
     }
 
@@ -186,6 +198,8 @@ public class PessoaEntityBuilder {
                 .withRgInscricaoEstadual(pessoa.getRgInscricaoEstadual())
                 .withTipoDestinatario(pessoa.getTipoDestinatario())
                 .withConsumidorFinal(pessoa.getConsumidorFinal())
+                .withCliente(pessoa.getCliente())
+                .withFornecedor(pessoa.getFornecedor())
                 .withTelefone(pessoa.getTelefone())
                 .withEmail(pessoa.getEmail())
                 .withLogradouro(pessoa.getLogradouro())
