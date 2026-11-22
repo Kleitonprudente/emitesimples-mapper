@@ -62,7 +62,8 @@ Propriedades do campo no layout do form (`form/rows//field/@`):
   faltando ou invalido e ERRO NO MODELO. (O tamanho automatico do runtime fica so como rede de seguranca.) `width` esta DEPRECADO: mapa antigo que ainda o
   declare e aceito, mas ele e ignorado (nao emite nada); remova.
 - `mask`, `label/pt`: como antes. `label/pt` tambem vale para relacao (senao usa o `title/pt` da relacao no dominio).
-- `hint/pt` -> `hint: '...'` (texto de ajuda); `lookup` (valor `cep`) -> `lookup: 'cep'`.
+- `hint/pt` -> `hint: '...'` (texto de ajuda); `lookup` (valor `cep` ou `cnpj`) -> `lookup: 'cep'` / `lookup: 'cnpj'`
+  (botao de busca padrao B; `cnpj` e usado em `FormularioEmpresa.documento`, junto de `mask documento`, que o gerador emite como `mask: 'documento'`).
 - campo de relacao to-one (`[r]`, mode oneToOne/manyToOne) -> `fk: fkSource('<Entidade>')` (import de `@/lib/fk-sources`);
   o zod da relacao e `z.looseObject({ id: z.string() })`, opcional exceto relacao `required` que nao seja `tenantKey`.
 - `[e] section` + `[v] Titulo` direto em `rows` (irmao de `row`/`field`): secao; emite o item de layout
@@ -100,7 +101,15 @@ O verificador `web/scripts/verificar-padrao-ui.mjs` (se existir) roda ao final d
 | `campo <.nome> com size '<x>' invalido em <Janela> ...` | use um de `xs, s, m, l, xl, full`. |
 | `linha [<campos>] soma N colunas (esperado 12) em <Janela>` | ajuste os `size` da linha (ou mova campo de linha) ate somar 12. So e emitido quando todos os campos da linha tem size valido. |
 | `secao sem titulo em <Janela> (informe o titulo da secao)` | coloque o titulo em `[v]` direto na `section`. |
-| `campo <.nome> com lookup '<x>' em <Janela> (so 'cep' e aceito)` | `lookup` so aceita `cep`; remova ou troque. |
+| `campo <.nome> com lookup '<x>' em <Janela> (so 'cep' e 'cnpj' sao aceitos)` | `lookup` so aceita `cep` ou `cnpj`; remova ou troque. |
+
+`screenEditorById` (abas extras; veja "Abas extras no editor"):
+
+| Mensagem | Como corrigir |
+|---|---|
+| `aba '<T>' sem component em <Janela> (declare o nome do componente escrito a mao)` | declare `[e] component` no bloco `@` da `tab`. |
+| `aba '<T>' sem from em <Janela> (declare o caminho de import em @/features/)` | declare `[e] from` no bloco `@` da `tab`. |
+| `aba '<T>' com from '<x>' invalido em <Janela> (so componentes escritos a mao em @/features/ sao aceitos)` | `from` deve comecar com `@/features/`. |
 
 `screenPage` (lista):
 
@@ -132,6 +141,36 @@ partir de uma lista" agora e ERRO (o codigo e gerado, junto do erro, so para dia
   de `<contexto>`; Pessoa e Municipio nao mudam).
 - Lookup de CEP: o runtime (`AutoForm`) agora preenche o campo FK cuja fonte e `Municipio` (`fk.key`), seja `cidade` (Pessoa) ou
   `municipio` (Empresa); sem fk declarado, cai em `cidade`.
+
+## Abas extras no editor
+
+A janela `window.editor` pode declarar, como filho direto (irmao de `form` e `actions`):
+
+```
+[e] mainTabTitle          // opcional; titulo da aba do formulario (padrao 'Dados')
+    [v] Dados
+[e] extraTabs
+    [e] tab
+        [v] Usuários      // titulo da aba
+        @
+            [e] component
+                [v] VinculosDaEmpresa
+            [e] from
+                [v] @/features/admin/VinculosDaEmpresa
+```
+
+Saida em `Formulario<X>Screen` (so no `screenEditorById`): em EDICAO (`id !== 'novo'`) a pagina vira `Tabs` (`@/components/ui/tabs`),
+com a aba do formulario primeiro e uma aba por `tab`, cada uma renderizando `<Componente <entidade>Id={id} />` (ex.: `empresaId`).
+Em CRIACAO (`id === 'novo'`) os gatilhos extras saem `disabled` e aparece o texto "Salve a empresa para continuar.". Sem `extraTabs` a
+saida e identica a anterior (Pessoa e Municipio nao mudam). O formulario continua com suas secoes: nao e preciso (nem permitido) criar
+secoes para ativar abas.
+
+Regras:
+- O componente e escrito a mao em `src/features/admin/*` e **precisa estar em `TELAS_A_MAO`** de `web/scripts/verificar-padrao-ui.mjs`
+  (decisao explicita, como qualquer tela a mao). O gerador nao cria componente visual: so emite o import e o JSX com
+  `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` do catalogo.
+- `from` deve comecar com `@/features/`; o componente recebe a prop `<entidade>Id` (primeira letra minuscula do bean + `Id`).
+- Erros no modelo: ver tabela de `screenEditorById` acima.
 
 ## Lacunas encontradas
 

@@ -196,3 +196,5 @@ Regras (ignoram `*.test.*`, `routeTree.gen.ts`, `components/ui/**`, `test/**` e 
 **Registrar uma tela escrita à mão legítima**: só por decisão explícita da pessoa responsável. Acrescente o caminho
 (relativo a `src/`) em `TELAS_A_MAO` no script, com um comentário de justificativa, e inclua o componente no catálogo e na
 vitrine na mesma entrega. Nunca amplie a lista para fazer a verificação passar.
+
+Telas escritas à mão registradas hoje: vitrine (`GuiaDeEstilo*`, `GuiaComponentes*`, `GuiaFormulario`), `ImportarMunicipios`, `PlatformOnly`, `UsuariosAdmin` e `ConsultaCnpjAdmin` (configuração singleton da plataforma, `/admin/consulta-cnpj`, fora do padrão lista+formulário; inclui a seção "Testar consulta" com `SearchInput` padrão B, que consulta o CNPJ.ws com a configuração já salva).

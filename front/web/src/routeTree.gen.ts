@@ -13,6 +13,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
+import { Route as AuthenticatedAdminConsultaCnpjRouteImport } from './routes/_authenticated/admin/consulta-cnpj'
 import { Route as AuthenticatedAdminMunicipiosRouteImport } from './routes/_authenticated/admin/municipios'
 import { Route as AuthenticatedAdminThemeRouteImport } from './routes/_authenticated/admin/theme'
 import { Route as AuthenticatedAdminUsuariosRouteImport } from './routes/_authenticated/admin/usuarios'
@@ -43,6 +44,12 @@ const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
   path: '/perfil',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAdminConsultaCnpjRoute =
+  AuthenticatedAdminConsultaCnpjRouteImport.update({
+    id: '/admin/consulta-cnpj',
+    path: '/admin/consulta-cnpj',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAdminMunicipiosRoute =
   AuthenticatedAdminMunicipiosRouteImport.update({
     id: '/admin/municipios',
@@ -105,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/login': typeof LoginRoute
   '/perfil': typeof AuthenticatedPerfilRoute
+  '/admin/consulta-cnpj': typeof AuthenticatedAdminConsultaCnpjRoute
   '/admin/municipios': typeof AuthenticatedAdminMunicipiosRoute
   '/admin/theme': typeof AuthenticatedAdminThemeRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
@@ -120,6 +128,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/': typeof AuthenticatedIndexRoute
+  '/admin/consulta-cnpj': typeof AuthenticatedAdminConsultaCnpjRoute
   '/admin/municipios': typeof AuthenticatedAdminMunicipiosRoute
   '/admin/theme': typeof AuthenticatedAdminThemeRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
@@ -137,6 +146,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/admin/consulta-cnpj': typeof AuthenticatedAdminConsultaCnpjRoute
   '/_authenticated/admin/municipios': typeof AuthenticatedAdminMunicipiosRoute
   '/_authenticated/admin/theme': typeof AuthenticatedAdminThemeRoute
   '/_authenticated/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
@@ -154,6 +164,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/perfil'
+    | '/admin/consulta-cnpj'
     | '/admin/municipios'
     | '/admin/theme'
     | '/admin/usuarios'
@@ -169,6 +180,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/perfil'
     | '/'
+    | '/admin/consulta-cnpj'
     | '/admin/municipios'
     | '/admin/theme'
     | '/admin/usuarios'
@@ -185,6 +197,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/_authenticated/perfil'
     | '/_authenticated/'
+    | '/_authenticated/admin/consulta-cnpj'
     | '/_authenticated/admin/municipios'
     | '/_authenticated/admin/theme'
     | '/_authenticated/admin/usuarios'
@@ -230,6 +243,13 @@ declare module '@tanstack/react-router' {
       path: '/perfil'
       fullPath: '/perfil'
       preLoaderRoute: typeof AuthenticatedPerfilRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/admin/consulta-cnpj': {
+      id: '/_authenticated/admin/consulta-cnpj'
+      path: '/admin/consulta-cnpj'
+      fullPath: '/admin/consulta-cnpj'
+      preLoaderRoute: typeof AuthenticatedAdminConsultaCnpjRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/admin/municipios': {
@@ -308,6 +328,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteChildren {
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedAdminConsultaCnpjRoute: typeof AuthenticatedAdminConsultaCnpjRoute
   AuthenticatedAdminMunicipiosRoute: typeof AuthenticatedAdminMunicipiosRoute
   AuthenticatedAdminThemeRoute: typeof AuthenticatedAdminThemeRoute
   AuthenticatedAdminUsuariosRoute: typeof AuthenticatedAdminUsuariosRoute
@@ -323,6 +344,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedAdminConsultaCnpjRoute: AuthenticatedAdminConsultaCnpjRoute,
   AuthenticatedAdminMunicipiosRoute: AuthenticatedAdminMunicipiosRoute,
   AuthenticatedAdminThemeRoute: AuthenticatedAdminThemeRoute,
   AuthenticatedAdminUsuariosRoute: AuthenticatedAdminUsuariosRoute,

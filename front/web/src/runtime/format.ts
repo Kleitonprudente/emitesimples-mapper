@@ -2,7 +2,23 @@ import type { BadgeTone } from '@/components/ui/badge'
 
 /* Formatacao pt-BR. Mascaras sao SOMENTE de apresentacao: o dado trafega cru (so digitos). */
 
-export const onlyDigits = (v: unknown): string => String(v ?? '').replace(/\D/g, '')
+/** CNPJ com 14 digitos e digitos verificadores corretos (sem todos iguais). Recebe so digitos. */
+export function isValidCnpj(c: string): boolean {
+  if (!/^\d{14}$/.test(c) || /^(\d)\1{13}$/.test(c)) return false
+  const dv = (n: number) => {
+    let soma = 0
+    let peso = n - 7
+    for (let i = 0; i < n; i++) {
+      soma += Number(c[i]) * peso--
+      if (peso < 2) peso = 9
+    }
+    const r = soma % 11
+    return r < 2 ? 0 : 11 - r
+  }
+  return dv(12) === Number(c[12]) && dv(13) === Number(c[13])
+}
+
+export const onlyDigits =(v: unknown): string => String(v ?? '').replace(/\D/g, '')
 
 export type MaskKind = 'cpf' | 'cnpj' | 'documento' | 'phone' | 'postalCode'
 

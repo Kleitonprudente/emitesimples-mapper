@@ -22,12 +22,12 @@ describe('menu por papel (so UX)', () => {
 })
 
 describe('menu de administracao da plataforma', () => {
-  const admins = ['/admin/municipios', '/admin/usuarios']
+  const admins = ['/admin/municipios', '/admin/usuarios', '/admin/consulta-cnpj']
   const rotas = (s: SessionData) => visibleMenu(s, menu).flatMap((g) => g.items.map((i) => i.route))
 
   it('itens do grupo Administracao sao platformOnly', () => {
     const itens = menu.filter((i) => admins.includes(i.route))
-    expect(itens.map((i) => [i.group, i.platformOnly])).toEqual([['Administração', true], ['Administração', true]])
+    expect(itens.map((i) => [i.group, i.platformOnly])).toEqual([['Administração', true], ['Administração', true], ['Administração', true]])
   })
   it('so o administrador da plataforma os ve', () => {
     expect(rotas({ ...base, papel: 'administrador' })).not.toEqual(expect.arrayContaining(admins))

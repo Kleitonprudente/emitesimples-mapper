@@ -30,8 +30,15 @@
                 [e] field
                     [v] .documento
                     @
+                        [e] mask
+                            [v] documento
                         [e] size
                             [v] m
+                        [e] hint
+                            [e] pt
+                                [v] Ao sair do campo, os dados da empresa são preenchidos pelo CNPJ.ws.
+                        [e] lookup
+                            [v] cnpj
                 [e] field
                     [v] .inscricaoMunicipal
                     @
@@ -134,6 +141,14 @@
                     @
                         [e] size
                             [v] xl
+    [e] extraTabs
+        [e] tab
+            [v] Usuários
+            @
+                [e] component
+                    [v] VinculosDaEmpresa
+                [e] from
+                    [v] @/features/admin/VinculosDaEmpresa
     [e] actions
         [e] action
             [v] salvar

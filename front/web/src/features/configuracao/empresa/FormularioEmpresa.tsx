@@ -22,7 +22,7 @@ const FIELDS: FieldLayout = [
     { name: 'nomeFantasia', label: 'Nome Fantasia', maxLength: 60, required: true, size: 'l' },
   ],
   [
-    { name: 'documento', label: 'CNPJ / CPF', maxLength: 14, required: true, size: 'm' },
+    { name: 'documento', label: 'CNPJ / CPF', maxLength: 14, required: true, mask: 'documento', size: 'm', hint: 'Ao sair do campo, os dados da empresa são preenchidos pelo CNPJ.ws.', lookup: 'cnpj' },
     { name: 'inscricaoMunicipal', label: 'Inscrição Municipal', maxLength: 20, size: 'm' },
     { name: 'rgInscricaoEstadual', label: 'RG / Inscrição Estadual', maxLength: 20, size: 'm' },
   ],

@@ -45,8 +45,11 @@ export interface FieldSpec {
    * Busca de endereco por CEP. Ao SAIR do campo com 8 digitos o AutoForm chama `GET /cep/{cep}` e preenche, por
    * convencao de nome, os campos irmaos que existirem no layout: `logradouro`, `bairro`, `complemento` (so se vazio)
    * e `cidade` (objeto `municipio` devolvido). Use junto com `mask: 'postalCode'`.
+   * `'cnpj'`: consulta `GET /admin/consulta-cnpj/{cnpj}` (14 digitos validos) e preenche, por nome, razaoSocial,
+   * nomeFantasia, email, telefone, cep, logradouro, numeroEndereco, complemento, bairro, municipio (FK),
+   * regimeTributario e rgInscricaoEstadual. Use junto com `mask: 'documento'` ou `'cnpj'`.
    */
-  lookup?: 'cep'
+  lookup?: 'cep' | 'cnpj'
   readOnly?: boolean
   /** `value` numerico (enum numerico do back) volta como numero em `onChange`: o select so trafega texto. */
   options?: { value: string | number; label: string }[]
@@ -70,6 +73,8 @@ export interface LookupState {
   notice?: string
   onFocus: () => void
   onBlur: () => void
+  /** Tipo da busca: define os textos do botao e do estado de carregando. */
+  kind?: 'cep' | 'cnpj'
   /** Busca explicita (botao de busca ou Enter): consulta mesmo que o CEP nao tenha mudado; com menos de 8 digitos avisa no campo. */
   onSearch: () => void
 }
@@ -233,13 +238,13 @@ export function FormField<T extends FieldValues>({
                     }}
                     ref={field.ref}
                   />
-                  <InputGroupButton type="button" variant="default" aria-label="Buscar endereço pelo CEP" disabled={isDisabled || loading} className={SEARCH_BUTTON_CLASS} onClick={lookupState.onSearch}>
+                  <InputGroupButton type="button" variant="default" aria-label={lookupState.kind === 'cnpj' ? 'Consultar CNPJ' : 'Buscar endereço pelo CEP'} disabled={isDisabled || loading} className={SEARCH_BUTTON_CLASS} onClick={lookupState.onSearch}>
                     {loading ? <Loader2 className="animate-spin" aria-hidden /> : <Search aria-hidden />}
                   </InputGroupButton>
                 </InputGroup>
                 {loading && (
                   <span className="sr-only" role="status">
-                    Buscando endereço…
+                    {lookupState.kind === 'cnpj' ? 'Consultando CNPJ…' : 'Buscando endereço…'}
                   </span>
                 )}
               </>

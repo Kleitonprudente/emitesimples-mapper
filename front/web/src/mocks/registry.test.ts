@@ -190,3 +190,61 @@ describe('mock registry: admin da plataforma', () => {
     expect((await call('POST', '/admin/municipios/importacao', new FormData(), token)).body.codigo).toBe('arquivo_obrigatorio')
   })
 })
+describe('mock registry: consulta de CNPJ', () => {
+  beforeEach(() => resetMock())
+  const URL_CFG = '/admin/configuracoes/consulta-cnpj'
+
+  it('403 para quem nao e plataforma', async () => {
+    const token = await loginToken()
+    expect((await call('GET', URL_CFG, undefined, token)).status).toBe(403)
+  })
+
+  it('valida https, aplica a semantica do token e nunca devolve o token', async () => {
+    const r = await call('POST', '/auth/login', { email: 'plataforma@exemplo.com.br', senha: 'senha1234' })
+    const token = r.body.accessToken as string
+    const inicial = await call('GET', URL_CFG, undefined, token)
+    expect(inicial.body).toMatchObject({ tokenConfigurado: false, atualizadoPor: null })
+    for (const ruim of ['http://x.com/cnpj', 'https://x.com/cnpj/', 'https://u:p@x.com/cnpj', 'https://x.com/cnpj?a=1']) {
+      expect((await call('PUT', URL_CFG, { urlBase: ruim }, token)).body.codigo).toBe('url_invalida')
+    }
+    expect((await call('PUT', URL_CFG, { urlBase: 'https://x.com/cnpj', token: 'abc' }, token)).status).toBe(204)
+    const g1 = await call('GET', URL_CFG, undefined, token)
+    expect(g1.body).toMatchObject({ urlBase: 'https://x.com/cnpj', tokenConfigurado: true })
+    expect(JSON.stringify(g1.body)).not.toContain('abc')
+    expect(g1.body.atualizadoPor.nome).toBeTruthy()
+    await call('PUT', URL_CFG, { urlBase: 'https://y.com/cnpj' }, token) // ausente = mantem
+    expect((await call('GET', URL_CFG, undefined, token)).body.tokenConfigurado).toBe(true)
+    await call('PUT', URL_CFG, { urlBase: 'https://y.com/cnpj', token: '' }, token) // vazio = remove
+    expect((await call('GET', URL_CFG, undefined, token)).body.tokenConfigurado).toBe(false)
+  })
+
+  it('testar: valida CNPJ, exige token e devolve resumo/erros sem vazar o token', async () => {
+    const r = await call('POST', '/auth/login', { email: 'plataforma@exemplo.com.br', senha: 'senha1234' })
+    const token = r.body.accessToken as string
+    const testar = (cnpj: unknown) => call('POST', `${URL_CFG}/testar`, { cnpj }, token)
+    expect((await testar('123')).body.codigo).toBe('cnpj_invalido')
+    expect((await testar('11111111111111')).status).toBe(400)
+    const semToken = await testar('27865757000102')
+    expect([semToken.status, semToken.body.codigo]).toEqual([409, 'token_nao_configurado'])
+    await call('PUT', URL_CFG, { urlBase: 'https://x.com/cnpj', token: 'segredo-xyz' }, token)
+    const ok = await testar('27865757000102')
+    expect(ok.status).toBe(200)
+    expect(ok.body).toMatchObject({
+      cnpj: '27865757000102',
+      atividadePrincipal: { codigo: '6201-5/01' },
+      endereco: { municipio: 'Guaíra', uf: 'PR' },
+      urlConsultada: 'https://x.com/cnpj/27865757000102',
+    })
+    expect(JSON.stringify(ok.body)).not.toContain('segredo-xyz')
+    expect((await testar('00000000000191')).body.codigo).toBe('cnpj_nao_encontrado')
+    expect((await testar('00000000000191')).status).toBe(404)
+    const recusado = await testar('11222333000181')
+    expect([recusado.status, recusado.body.codigo]).toEqual([502, 'token_recusado'])
+    const limite = await testar('11444777000161')
+    expect([limite.status, limite.body.codigo]).toEqual([429, 'limite_consulta_excedido'])
+    const generico = await testar('45723174000110')
+    expect(generico.status).toBe(200)
+    expect(generico.body.razaoSocial).toBeTruthy()
+    expect(JSON.stringify(generico.body)).not.toContain('segredo-xyz')
+  })
+})

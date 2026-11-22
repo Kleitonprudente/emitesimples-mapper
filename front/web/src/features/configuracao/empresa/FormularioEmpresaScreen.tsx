@@ -5,6 +5,8 @@ import { useAtualizarEmpresa, useCriarEmpresa, useEmpresa } from '@/gen/api/empr
 import { mutationFeedback } from '@/runtime/feedback'
 import { ErrorState, LoadingState } from '@/runtime/states'
 import { FormularioEmpresaForm, FormularioEmpresaFieldNames, type FormularioEmpresaValues } from './FormularioEmpresa'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { VinculosDaEmpresa } from '@/features/admin/VinculosDaEmpresa'
 
 // Rota unica: o id literal 'novo' cria; qualquer outro id edita. Dois componentes para os hooks nao dependerem do id.
 export function FormularioEmpresaScreen({ id }: { id: string }) {
@@ -19,12 +21,21 @@ function FormularioEmpresaNovo() {
   return (
     <div className="flex max-w-5xl flex-col gap-4">
       <h1 className="text-2xl font-semibold">Nova empresa</h1>
+      <Tabs defaultValue="dados">
+        <TabsList>
+          <TabsTrigger value="dados">Dados</TabsTrigger>
+          <TabsTrigger value="vinculosDaEmpresa" disabled>Usuários</TabsTrigger>
+        </TabsList>
+        <p className="text-sm text-muted-foreground">Salve a empresa para continuar.</p>
+        <TabsContent value="dados">
       <FormularioEmpresaForm
         isSubmitting={criar.isPending}
         serverError={criar.error}
         onCancel={voltar}
         onSubmit={(v) => criar.mutateAsync(v).then(fb.onSuccess, () => {})}
       />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
@@ -44,6 +55,12 @@ function FormularioEmpresaEditar({ id }: { id: string }) {
   return (
     <div className="flex max-w-5xl flex-col gap-4">
       <h1 className="text-2xl font-semibold">Cadastro de empresa</h1>
+      <Tabs defaultValue="dados">
+        <TabsList>
+          <TabsTrigger value="dados">Dados</TabsTrigger>
+          <TabsTrigger value="vinculosDaEmpresa">Usuários</TabsTrigger>
+        </TabsList>
+        <TabsContent value="dados">
       <FormularioEmpresaForm
         values={values}
         isSubmitting={salvar.isPending}
@@ -51,6 +68,11 @@ function FormularioEmpresaEditar({ id }: { id: string }) {
         onCancel={voltar}
         onSubmit={(v) => salvar.mutateAsync({ ...preservar, ...v } as typeof v).then(fb.onSuccess, () => {})}
       />
+        </TabsContent>
+        <TabsContent value="vinculosDaEmpresa">
+          <VinculosDaEmpresa empresaId={id} />
+        </TabsContent>
+      </Tabs>
       {loaded.data.dataCriacao && (
         <p className="text-xs text-muted-foreground">
           Criado em {formatDateTime(loaded.data.dataCriacao)}{loaded.data.dataAtualizacao ? <> &middot; Atualizado em {formatDateTime(loaded.data.dataAtualizacao)}</> : null}

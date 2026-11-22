@@ -29,7 +29,7 @@
         [e] err-size-invalid
             [v] // ERRO NO MODELO: campo {{ $fname }} com size '{{ $sz }}' invalido em {{ $janela }} (declare xs|s|m|l|xl|full)
         [e] err-lookup
-            [v] // ERRO NO MODELO: campo {{ $fname }} com lookup '{{ $lk }}' em {{ $janela }} (so 'cep' e aceito)
+            [v] // ERRO NO MODELO: campo {{ $fname }} com lookup '{{ $lk }}' em {{ $janela }} (so 'cep' e 'cnpj' sao aceitos)
         [e] err-row-sum
             [v] // ERRO NO MODELO: linha {{ concat('[', $names, ']') }} soma {{ $total }} colunas (esperado 12) em {{ $janela }}
         [e] err-section-title
@@ -245,7 +245,7 @@
                                 [e] write-pattern
                                     [v] err-size-invalid
                     [e] if
-                        [v] $hasLookup and $lk != 'cep'
+                        [v] $hasLookup and not($lk = ('cep', 'cnpj'))
                         [e] then
                             [e] write-pattern
                                 [v] err-lookup

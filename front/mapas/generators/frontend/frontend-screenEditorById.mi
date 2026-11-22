@@ -30,19 +30,61 @@
             [v] {{ '' }}
             [v] function {{ @name }}Novo() {
             [v]   const criar = useCriar{{ $bean }}()
-        [e] novo-body
+        [e] novo-head
             [v]   return (
             [v]     <div className="flex max-w-5xl flex-col gap-4">
             [v]       <h1 className="text-2xl font-semibold">{{ $newTitle }}</h1>
+        [e] novo-form
             [v]       <{{ @name }}Form
             [v]         isSubmitting={criar.isPending}
             [v]         serverError={criar.error}
         [e] novo-end
             [v]         onSubmit={(v) => criar.mutateAsync(v).then(fb.onSuccess, () => {})}
             [v]       />
+        [e] novo-close
             [v]     </div>
             [v]   )
             [v] }
+        [e] import-tabs
+            [v] import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+        [e] tab-import
+            [v] import { {{ $comp }} } from '{{ $from }}'
+        [e] tabs-novo-open
+            [v]       <Tabs defaultValue="dados">
+            [v]         <TabsList>
+            [v]           <TabsTrigger value="dados">{{ $mainTitle }}</TabsTrigger>
+        [e] tab-trigger-novo
+            [v]           <TabsTrigger value="{{ $tabId }}" disabled>{{ $tabTitle }}</TabsTrigger>
+        [e] tabs-novo-mid
+            [v]         </TabsList>
+            [v]         <p className="text-sm text-muted-foreground">{{ $saveMsg }}</p>
+            [v]         <TabsContent value="dados">
+        [e] tabs-novo-close
+            [v]         </TabsContent>
+            [v]       </Tabs>
+        [e] tabs-edit-open
+            [v]       <Tabs defaultValue="dados">
+            [v]         <TabsList>
+            [v]           <TabsTrigger value="dados">{{ $mainTitle }}</TabsTrigger>
+        [e] tab-trigger-edit
+            [v]           <TabsTrigger value="{{ $tabId }}">{{ $tabTitle }}</TabsTrigger>
+        [e] tabs-edit-mid
+            [v]         </TabsList>
+            [v]         <TabsContent value="dados">
+        [e] tab-content-edit
+            [v]         <TabsContent value="{{ $tabId }}">
+            [v]           <{{ $comp }} {{ $idProp }}={id} />
+            [v]         </TabsContent>
+        [e] tabs-edit-dados-end
+            [v]         </TabsContent>
+        [e] tabs-edit-close
+            [v]       </Tabs>
+        [e] err-tab-component
+            [v] // ERRO NO MODELO: aba '{{ $tabTitle }}' sem component em {{ $janela }} (declare o nome do componente escrito a mao)
+        [e] err-tab-from
+            [v] // ERRO NO MODELO: aba '{{ $tabTitle }}' sem from em {{ $janela }} (declare o caminho de import em @/features/)
+        [e] err-tab-from-invalid
+            [v] // ERRO NO MODELO: aba '{{ $tabTitle }}' com from '{{ $from }}' invalido em {{ $janela }} (so componentes escritos a mao em @/features/ sao aceitos)
         [e] editar-start
             [v] {{ '' }}
             [v] function {{ @name }}Editar({ id }: { id: string }) {
@@ -61,9 +103,11 @@
             [v]   const values = Object.fromEntries(Object.entries(loaded.data).filter(([, v]) => v !== null)) as {{ @name }}Values
             [v]   // O PUT substitui o registro inteiro: o que o formulario nao edita (ex.: referencias de integracao) segue como veio.
             [v]   const preservar = Object.fromEntries(Object.entries(values).filter(([k]) => !{{ @name }}FieldNames.includes(k)))
+        [e] body-head
             [v]   return (
             [v]     <div className="flex max-w-5xl flex-col gap-4">
             [v]       <h1 className="text-2xl font-semibold">{{ $title }}</h1>
+        [e] body-form
             [v]       <{{ @name }}Form
             [v]         values={values}
             [v]         isSubmitting={salvar.isPending}
@@ -122,6 +166,22 @@
                     [v] hasAudit
                     [e] expr
                         [v] exists($classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = 'dataCriacao']) and exists($classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = 'dataAtualizacao'])
+                [e] var
+                    [v] hasTabs
+                    [e] expr
+                        [v] exists(extraTabs/tab)
+                [e] var
+                    [v] mainTitle
+                    [e] expr
+                        [v] if (normalize-space((mainTabTitle/value)[1]) != '') then replace(normalize-space((mainTabTitle/value)[1]), "'", "\\'") else 'Dados'
+                [e] var
+                    [v] idProp
+                    [e] expr
+                        [v] concat(mi:first-lower($bean), 'Id')
+                [e] var
+                    [v] saveMsg
+                    [e] expr
+                        [v] concat('Salve ', if (ends-with($bean, 'a') or ends-with($bean, 'A')) then 'a ' else 'o ', lower-case($bean), ' para continuar.')
             [e] write-pattern
                 [v] header
             [e] if
@@ -137,8 +197,27 @@
                         [e] then
                             [e] write-pattern
                                 [v] import-format
+                    [e] apply-templates
+                        [e] select
+                            [v] extraTabs/tab
+                        [e] parameters
+                            [e] janela
+                                [e] expr
+                                    [v] string(@name)
+                        [e] mode
+                            [v] tabErro
                     [e] write-pattern
                         [v] imports
+                    [e] if
+                        [v] $hasTabs
+                        [e] then
+                            [e] write-pattern
+                                [v] import-tabs
+                            [e] apply-templates
+                                [e] select
+                                    [v] extraTabs/tab
+                                [e] mode
+                                    [v] tabImport
                     [e] write-pattern
                         [v] component-start
                     [e] write-pattern
@@ -152,7 +231,21 @@
                             [e] write-pattern
                                 [v] back-none
                     [e] write-pattern
-                        [v] novo-body
+                        [v] novo-head
+                    [e] if
+                        [v] $hasTabs
+                        [e] then
+                            [e] write-pattern
+                                [v] tabs-novo-open
+                            [e] apply-templates
+                                [e] select
+                                    [v] extraTabs/tab
+                                [e] mode
+                                    [v] tabTriggerNovo
+                            [e] write-pattern
+                                [v] tabs-novo-mid
+                    [e] write-pattern
+                        [v] novo-form
                     [e] if
                         [v] $listRoute != ''
                         [e] then
@@ -160,6 +253,13 @@
                                 [v] cancel-with-list
                     [e] write-pattern
                         [v] novo-end
+                    [e] if
+                        [v] $hasTabs
+                        [e] then
+                            [e] write-pattern
+                                [v] tabs-novo-close
+                    [e] write-pattern
+                        [v] novo-close
                     [e] write-pattern
                         [v] editar-start
                     [e] if
@@ -172,6 +272,22 @@
                                 [v] back-none
                     [e] write-pattern
                         [v] body
+                    [e] write-pattern
+                        [v] body-head
+                    [e] if
+                        [v] $hasTabs
+                        [e] then
+                            [e] write-pattern
+                                [v] tabs-edit-open
+                            [e] apply-templates
+                                [e] select
+                                    [v] extraTabs/tab
+                                [e] mode
+                                    [v] tabTriggerEdit
+                            [e] write-pattern
+                                [v] tabs-edit-mid
+                    [e] write-pattern
+                        [v] body-form
                     [e] if
                         [v] $listRoute != ''
                         [e] then
@@ -179,6 +295,22 @@
                                 [v] cancel-with-list
                     [e] write-pattern
                         [v] body-end
+                    [e] if
+                        [v] $hasTabs
+                        [e] then
+                            [e] write-pattern
+                                [v] tabs-edit-dados-end
+                            [e] apply-templates
+                                [e] select
+                                    [v] extraTabs/tab
+                                [e] parameters
+                                    [e] idProp
+                                        [e] expr
+                                            [v] $idProp
+                                [e] mode
+                                    [v] tabContentEdit
+                            [e] write-pattern
+                                [v] tabs-edit-close
                     [e] if
                         [v] $hasAudit
                         [e] then
@@ -189,3 +321,112 @@
                 [e] else
                     [e] write-pattern
                         [v] todo-route
+    [e] templates
+        [e] mode
+            [v] tabErro
+            [e] template
+                [e] match
+                    [v] tab
+                [e] parameters
+                    [e] janela
+                        [v] NOT_DEFINED
+                [e] body
+                    [e] vars
+                        [e] var
+                            [v] tabTitle
+                            [e] expr
+                                [v] normalize-space(value)
+                        [e] var
+                            [v] comp
+                            [e] expr
+                                [v] normalize-space(properties/component/value)
+                        [e] var
+                            [v] from
+                            [e] expr
+                                [v] normalize-space(properties/from/value)
+                    [e] if
+                        [v] $comp = ''
+                        [e] then
+                            [e] write-pattern
+                                [v] err-tab-component
+                    [e] if
+                        [v] $from = ''
+                        [e] then
+                            [e] write-pattern
+                                [v] err-tab-from
+                        [e] else-if
+                            [v] not(starts-with($from, '@/features/'))
+                            [e] then
+                                [e] write-pattern
+                                    [v] err-tab-from-invalid
+        [e] mode
+            [v] tabImport
+            [e] template
+                [e] match
+                    [v] tab
+                [e] body
+                    [e] vars
+                        [e] var
+                            [v] comp
+                            [e] expr
+                                [v] normalize-space(properties/component/value)
+                        [e] var
+                            [v] from
+                            [e] expr
+                                [v] normalize-space(properties/from/value)
+                    [e] write-pattern
+                        [v] tab-import
+        [e] mode
+            [v] tabTriggerNovo
+            [e] template
+                [e] match
+                    [v] tab
+                [e] body
+                    [e] vars
+                        [e] var
+                            [v] tabTitle
+                            [e] expr
+                                [v] normalize-space(value)
+                        [e] var
+                            [v] tabId
+                            [e] expr
+                                [v] mi:first-lower(normalize-space(properties/component/value))
+                    [e] write-pattern
+                        [v] tab-trigger-novo
+        [e] mode
+            [v] tabTriggerEdit
+            [e] template
+                [e] match
+                    [v] tab
+                [e] body
+                    [e] vars
+                        [e] var
+                            [v] tabTitle
+                            [e] expr
+                                [v] normalize-space(value)
+                        [e] var
+                            [v] tabId
+                            [e] expr
+                                [v] mi:first-lower(normalize-space(properties/component/value))
+                    [e] write-pattern
+                        [v] tab-trigger-edit
+        [e] mode
+            [v] tabContentEdit
+            [e] template
+                [e] match
+                    [v] tab
+                [e] parameters
+                    [e] idProp
+                        [v] NOT_DEFINED
+                [e] body
+                    [e] vars
+                        [e] var
+                            [v] tabId
+                            [e] expr
+                                [v] mi:first-lower(normalize-space(properties/component/value))
+                        [e] var
+                            [v] comp
+                            [e] expr
+                                [v] normalize-space(properties/component/value)
+                    [e] write-pattern
+                        [v] tab-content-edit

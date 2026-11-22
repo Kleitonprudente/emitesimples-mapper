@@ -23,6 +23,10 @@ export const TELAS_A_MAO = new Set([
   'features/admin/ImportarMunicipios.tsx',
   'features/admin/PlatformOnly.tsx',
   'features/admin/UsuariosAdmin.tsx',
+  // Consulta de CNPJ: tela de configuracao singleton da plataforma, fora do padrao lista+formulario (decisao explicita do usuario).
+  'features/admin/ConsultaCnpjAdmin.tsx',
+  // componente à mão montado como aba extra do cadastro de Empresa (gerador extraTabs); decisão explícita do usuário
+  'features/admin/VinculosDaEmpresa.tsx',
   // Exemplo de referencia da lista com DataTable.
   'examples/PessoasExample.tsx',
 ])

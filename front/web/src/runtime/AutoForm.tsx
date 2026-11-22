@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 import { ApiError, api } from '@/lib/api'
 import { errorMessage } from '@/runtime/feedback'
 import { FormField, SIZE_CLASS, SIZE_COLS, resolveKind, resolveSize, type FieldSpec, type LookupState } from '@/runtime/FormField'
-import { onlyDigits } from '@/runtime/format'
+import { isValidCnpj, onlyDigits } from '@/runtime/format'
 
 // Mensagens de validacao do zod em portugues.
 z.config(z.locales.pt())
@@ -89,6 +89,46 @@ export interface CepResult {
   uf?: string
   codigoIbge?: string
   municipio?: { id: string; nome?: string; uf?: string; codigoIbge?: string } | null
+}
+
+/** Resposta de GET /admin/consulta-cnpj/{cnpj} (o back consulta o CNPJ.ws). Todo campo pode faltar. */
+export interface CnpjResult {
+  cnpj?: string
+  razaoSocial?: string | null
+  nomeFantasia?: string | null
+  email?: string | null
+  telefone?: string | null
+  cep?: string | null
+  logradouro?: string | null
+  numeroEndereco?: string | null
+  complemento?: string | null
+  bairro?: string | null
+  municipio?: { id: string; nome?: string; uf?: string; codigoIbge?: string } | null
+  uf?: string | null
+  codigoIbge?: string | null
+  regimeTributario?: number | null
+  inscricaoEstadual?: string | null
+  situacaoCadastral?: string | null
+  dataInicioAtividade?: string | null
+}
+
+export const AVISO_CNPJ = 'Dados preenchidos pelo CNPJ.ws. Confira antes de salvar.'
+
+/** Mensagens amigaveis por codigo de erro da consulta de CNPJ; sem codigo conhecido, vale a mensagem do back. */
+const ERRO_CNPJ: Record<string, string> = {
+  cnpj_nao_encontrado: 'CNPJ não encontrado no CNPJ.ws.',
+  token_nao_configurado: 'Configure o token do CNPJ.ws em Administração > Consulta de CNPJ.',
+  token_recusado: 'O CNPJ.ws recusou o token. Revise-o em Administração > Consulta de CNPJ.',
+  limite_consulta_excedido: 'Limite de consultas do CNPJ.ws excedido. Tente novamente mais tarde.',
+  servico_cnpj_indisponivel: 'Serviço de consulta de CNPJ indisponível. Tente novamente em instantes.',
+}
+
+function cnpjErrorMessage(e: unknown): string {
+  if (e instanceof ApiError) {
+    if (e.codigo === 'muitas_tentativas' && !e.retryAfter) return 'Muitas consultas seguidas. Aguarde um instante e tente novamente.'
+    if (e.codigo !== 'muitas_tentativas' && ERRO_CNPJ[e.codigo]) return ERRO_CNPJ[e.codigo]!
+  }
+  return errorMessage(e)
 }
 
 interface LookupUi {
@@ -176,39 +216,81 @@ export function AutoForm<T extends FieldValues>({
     [form, names, municipioName],
   )
 
+  /** Preenche os campos irmaos com o resultado da consulta de CNPJ; devolve o aviso exibido sob o campo. */
+  const applyCnpj = useCallback(
+    (r: CnpjResult): string | undefined => {
+      const opts = { shouldDirty: true, shouldValidate: true }
+      const put = (n: string, v: unknown) => names.has(n) && form.setValue(n as Path<T>, v as never, opts)
+      // Valor ausente/vazio da resposta nao apaga o digitado; valor presente sobrescreve.
+      const text = (n: string, v: string | null | undefined) => {
+        if (v) put(n, v)
+      }
+      text('razaoSocial', r.razaoSocial)
+      text('nomeFantasia', r.nomeFantasia)
+      text('email', r.email)
+      text('telefone', onlyDigits(r.telefone))
+      text('cep', onlyDigits(r.cep))
+      text('logradouro', r.logradouro)
+      text('numeroEndereco', r.numeroEndereco)
+      text('bairro', r.bairro)
+      text('rgInscricaoEstadual', r.inscricaoEstadual)
+      if (r.complemento && !form.getValues('complemento' as Path<T>)) put('complemento', r.complemento)
+      if (r.regimeTributario !== null && r.regimeTributario !== undefined) put('regimeTributario', r.regimeTributario)
+      let semMunicipio = false
+      if (municipioName) {
+        if (r.municipio?.id) put(municipioName, r.municipio)
+        else semMunicipio = true
+      }
+      return semMunicipio ? `${AVISO_CNPJ} ${AVISO_MUNICIPIO}` : AVISO_CNPJ
+    },
+    [form, names, municipioName],
+  )
+
   const lookupFor = (spec: FieldSpec): LookupState | undefined => {
-    if (spec.lookup !== 'cep') return undefined
+    const kind = spec.lookup
+    if (kind !== 'cep' && kind !== 'cnpj') return undefined
     const name = spec.name
-    const cepNow = () => onlyDigits(String(form.getValues(name as Path<T>) ?? ''))
-    // forcar=false (sair do campo): so consulta CEP completo e diferente do que havia ao entrar. forcar=true (botao ou Enter): consulta sempre.
+    const digitsNow = () => onlyDigits(String(form.getValues(name as Path<T>) ?? ''))
+    const tamanho = kind === 'cep' ? 8 : 14
+    // forcar=false (sair do campo): so consulta documento completo e diferente do que havia ao entrar. forcar=true (botao ou Enter): consulta sempre.
     const buscar = (forcar: boolean) => {
-      const cep = cepNow()
-      if (cep.length !== 8) {
-        if (forcar) setLookup(name, { loading: false, error: 'Informe os 8 dígitos do CEP.' })
+      const digits = digitsNow()
+      if (digits.length !== tamanho) {
+        // CPF (11 digitos) num campo de documento: ao sair do campo nao e erro, so nao ha o que consultar.
+        if (forcar) setLookup(name, { loading: false, error: kind === 'cep' ? 'Informe os 8 dígitos do CEP.' : 'Informe os 14 dígitos do CNPJ.' })
         return
       }
-      if (!forcar && cep === focusRef.current[name] && !erroredRef.current.has(name)) return
+      if (kind === 'cnpj' && !isValidCnpj(digits)) {
+        if (forcar) setLookup(name, { loading: false, error: 'CNPJ inválido.' })
+        return
+      }
+      if (!forcar && digits === focusRef.current[name] && !erroredRef.current.has(name)) return
       const n = (seqRef.current[name] = (seqRef.current[name] ?? 0) + 1)
       erroredRef.current.delete(name)
       setLookup(name, { loading: true })
-      api<CepResult>(`/cep/${cep}`).then(
-        (r) => {
+      const request: Promise<{ notice?: string }> =
+        kind === 'cep'
+          ? api<CepResult>(`/cep/${digits}`).then((r) => ({ notice: applyCep(r) }))
+          : api<CnpjResult>(`/admin/consulta-cnpj/${digits}`).then((r) => ({ notice: applyCnpj(r) }))
+      request.then(
+        ({ notice }) => {
           if (seqRef.current[name] !== n) return // resposta de uma busca antiga
-          setLookup(name, { loading: false, notice: applyCep(r) })
+          setLookup(name, { loading: false, notice })
         },
         (e: unknown) => {
           if (seqRef.current[name] !== n) return
           erroredRef.current.add(name)
-          setLookup(name, { loading: false, error: errorMessage(e) })
+          setLookup(name, { loading: false, error: kind === 'cep' ? errorMessage(e) : cnpjErrorMessage(e) })
         },
       )
     }
     return {
+      kind,
       loading: !!lookups[name]?.loading,
       error: lookups[name]?.error,
       notice: lookups[name]?.notice,
       onFocus: () => {
-        focusRef.current[name] = cepNow()
+        focusRef.current[name] = digitsNow()
         // Ao voltar ao campo some a mensagem anterior; `erroredRef` lembra que a ultima busca falhou (deixa repetir).
         setLookups((s) => (s[name]?.error || s[name]?.notice ? { ...s, [name]: { loading: false } } : s))
       },

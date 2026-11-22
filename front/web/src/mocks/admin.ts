@@ -8,6 +8,8 @@ import { erro, json } from '@/mocks/http'
  *   POST /admin/usuarios                         PATCH /admin/usuarios/{id}
  *   POST /admin/usuarios/{id}/senha              GET|POST /admin/usuarios/{id}/vinculos
  *   PATCH /admin/usuarios/{id}/vinculos/{vid}
+ *   GET|PUT /admin/configuracoes/consulta-cnpj (token nunca volta; PUT: token ausente mantem, '' remove)
+ *   POST /admin/configuracoes/consulta-cnpj/testar {cnpj} (27865757000102 completo; 00000000000191 404; 11222333000181 502 token_recusado; 11444777000161 429)
  *   POST /admin/municipios/importacao (multipart, campo `arquivo`)   GET /admin/municipios/importacoes
  * Login de teste: plataforma@exemplo.com.br / senha1234.
  * ------------------------------------------------------------------------- */
@@ -64,12 +66,82 @@ let importacoes: ImportacaoRow[] = [
 ]
 let seq = 100
 
+/** Configuracao da consulta de CNPJ (singleton). O token fica so aqui, em memoria: nunca sai nas respostas. */
+interface ConfigCnpjRow {
+  urlBase: string
+  token: string | null
+  dataAtualizacao: string | null
+  atualizadoPor: { id: string; nome: string } | null
+}
+const configCnpjInicial = (): ConfigCnpjRow => ({ urlBase: 'https://comercial.cnpj.ws/cnpj', token: null, dataAtualizacao: null, atualizadoPor: null })
+let configCnpj = configCnpjInicial()
+
+function cnpjValido(c: string): boolean {
+  if (!/^\d{14}$/.test(c) || /^(\d)\1{13}$/.test(c)) return false
+  const dv = (n: number) => {
+    let soma = 0
+    let peso = n - 7
+    for (let i = 0; i < n; i++) {
+      soma += Number(c[i]) * peso--
+      if (peso < 2) peso = 9
+    }
+    const r = soma % 11
+    return r < 2 ? 0 : 11 - r
+  }
+  return dv(12) === Number(c[12]) && dv(13) === Number(c[13])
+}
+
+/** Resumo de teste da consulta; a URL nunca leva o token. */
+function resumoCnpj(cnpj: string, urlBase: string) {
+  const urlConsultada = `${urlBase}/${cnpj}`
+  if (cnpj === '27865757000102')
+    return {
+      cnpj,
+      razaoSocial: 'EXEMPLO TECNOLOGIA E SISTEMAS LTDA',
+      nomeFantasia: 'Exemplo Tech',
+      situacaoCadastral: 'Ativa',
+      dataInicioAtividade: '2017-03-14',
+      porte: 'Microempresa',
+      naturezaJuridica: 'Sociedade Empresária Limitada',
+      atividadePrincipal: { codigo: '6201-5/01', descricao: 'Desenvolvimento de programas de computador sob encomenda' },
+      capitalSocial: 50000,
+      endereco: { logradouro: 'Rua Marechal Deodoro', numero: '1250', complemento: 'Sala 3', bairro: 'Centro', cep: '85980000', municipio: 'Guaíra', uf: 'PR' },
+      email: 'contato@exemplotech.com.br',
+      telefone: '4436421000',
+      simples: true,
+      mei: false,
+      quantidadeSocios: 2,
+      duracaoMs: 412,
+      urlConsultada,
+    }
+  return {
+    cnpj,
+    razaoSocial: `EMPRESA ${cnpj.slice(0, 8)} LTDA`,
+    nomeFantasia: null,
+    situacaoCadastral: 'Ativa',
+    dataInicioAtividade: '2015-06-01',
+    porte: 'Demais',
+    naturezaJuridica: 'Sociedade Empresária Limitada',
+    atividadePrincipal: { codigo: '4751-2/01', descricao: 'Comércio varejista especializado de equipamentos e suprimentos de informática' },
+    capitalSocial: null,
+    endereco: null,
+    email: null,
+    telefone: null,
+    simples: null,
+    mei: null,
+    quantidadeSocios: 1,
+    duracaoMs: 250,
+    urlConsultada,
+  }
+}
+
 export const getMunicipios = (): Municipio[] => municipios
 
 export function resetAdmin(): void {
   ;({ usuarios, vinculos } = seedUsuarios())
   municipios = MUNICIPIOS.map((m) => ({ ...m }))
   importacoes = importacoes.slice(0, 1)
+  configCnpj = configCnpjInicial()
   seq = 100
 }
 
@@ -129,6 +201,66 @@ export async function adminRoutes(req: { method: string; path: string; query?: R
   if (!ctx.plataformaAdmin) return erro(403, 'acesso_negado', 'Acesso restrito ao administrador da plataforma.')
   const q = req.query ?? {}
   const body = (req.body ?? {}) as Record<string, unknown>
+
+  if (path === '/admin/configuracoes/consulta-cnpj') {
+    if (method === 'GET') {
+      const { token, ...publico } = configCnpj
+      return json(200, { ...publico, tokenConfigurado: token !== null })
+    }
+    if (method === 'PUT') {
+      const urlBase = String(body.urlBase ?? '')
+      if (!/^https:\/\/[^\s/?#@]+(\/[^\s?#]*)?$/i.test(urlBase) || urlBase.endsWith('/') || urlBase.length > 200)
+        return erro(400, 'url_invalida', 'A URL deve começar com https://, sem usuário, senha, parâmetros ou barra no final.')
+      let token = configCnpj.token
+      if (body.token !== undefined) {
+        if (typeof body.token !== 'string' || body.token.length > 500) return erro(400, 'token_invalido', 'Token inválido.')
+        token = body.token === '' ? null : body.token
+      }
+      configCnpj = { urlBase, token, dataAtualizacao: new Date().toISOString().slice(0, 19), atualizadoPor: { id: 'mock', nome: ctx.nome } }
+      return new Response(null, { status: 204 })
+    }
+  }
+
+  if (path === '/admin/configuracoes/consulta-cnpj/testar' && method === 'POST') {
+    const cnpj = String(body.cnpj ?? '')
+    if (!cnpjValido(cnpj)) return erro(400, 'cnpj_invalido', 'CNPJ inválido.')
+    if (configCnpj.token === null) return erro(409, 'token_nao_configurado', 'Configure e salve o token para testar.')
+    if (cnpj === '00000000000191') return erro(404, 'cnpj_nao_encontrado', 'CNPJ não encontrado no CNPJ.ws.')
+    if (cnpj === '11222333000181') return erro(502, 'token_recusado', 'O CNPJ.ws recusou o token.')
+    if (cnpj === '11444777000161') return erro(429, 'limite_consulta_excedido', 'Limite de consultas do CNPJ.ws excedido.')
+    return json(200, resumoCnpj(cnpj, configCnpj.urlBase))
+  }
+
+  const consultaCnpj = /^\/admin\/consulta-cnpj\/([^/]+)$/.exec(path)
+  if (consultaCnpj && method === 'GET') {
+    const cnpj = consultaCnpj[1]!
+    if (!cnpjValido(cnpj)) return erro(400, 'cnpj_invalido', 'CNPJ inválido.')
+    if (configCnpj.token === null) return erro(409, 'token_nao_configurado', 'Configure o token do CNPJ.ws em Administração > Consulta de CNPJ.')
+    if (cnpj === '00000000000191') return erro(404, 'cnpj_nao_encontrado', 'CNPJ não encontrado no CNPJ.ws.')
+    if (cnpj === '11222333000181') return erro(502, 'token_recusado', 'O CNPJ.ws recusou o token.')
+    if (cnpj === '11444777000161') return erro(429, 'limite_consulta_excedido', 'Limite de consultas do CNPJ.ws excedido.')
+    const base = { cnpj, situacaoCadastral: 'Ativa', nomeFantasia: null, email: null, telefone: null, cep: null, logradouro: null, numeroEndereco: null, complemento: null, bairro: null, uf: null, codigoIbge: null, regimeTributario: null, inscricaoEstadual: null }
+    if (cnpj === '27865757000102')
+      return json(200, {
+        ...base,
+        razaoSocial: 'EXEMPLO TECNOLOGIA E SISTEMAS LTDA',
+        nomeFantasia: 'Exemplo Tech',
+        email: 'contato@exemplotech.com.br',
+        telefone: '4436421000',
+        cep: '85980000',
+        logradouro: 'Rua Marechal Deodoro',
+        numeroEndereco: '1250',
+        complemento: 'Sala 3',
+        bairro: 'Centro',
+        municipio: { id: 'mun-4108809', nome: 'Guaíra', uf: 'PR', codigoIbge: '4108809' },
+        uf: 'PR',
+        codigoIbge: '4108809',
+        regimeTributario: 1,
+        inscricaoEstadual: '9012345678',
+        dataInicioAtividade: '2017-03-14',
+      })
+    return json(200, { ...base, razaoSocial: `EMPRESA ${cnpj.slice(0, 8)} LTDA`, municipio: null, dataInicioAtividade: '2015-06-01' })
+  }
 
   if (path === '/admin/municipios/importacao' && method === 'POST') return importar(req.body, ctx.nome)
   if (path === '/admin/municipios/importacoes' && method === 'GET') return json(200, importacoes)

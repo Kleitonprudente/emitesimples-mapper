@@ -20,6 +20,12 @@ import type { TableState } from '@/runtime/table-state'
  *   Municipios
  *     POST /admin/municipios/importacao  multipart, campo `arquivo` -> {id, linhasLidas, criados, atualizados, inalterados, rejeitados:[{linha, motivo}], totalRejeitados, nomeArquivo, estado, dataHoraInicio}
  *     GET  /admin/municipios/importacoes?limite=20                 -> [{id, nomeArquivo, dataHoraInicio, usuario:{nome}, linhasLidas, ..., totalRejeitados}]
+ *   Consulta de CNPJ (CNPJ.ws)
+ *     GET /admin/configuracoes/consulta-cnpj -> {urlBase, tokenConfigurado, dataAtualizacao, atualizadoPor:{id,nome}|null}  (o token NUNCA volta)
+ *     PUT /admin/configuracoes/consulta-cnpj {urlBase, token?} -> 204  (token ausente = mantem; texto = grava; '' = remove; 400 url_invalida|token_invalido)
+ *     POST /admin/configuracoes/consulta-cnpj/testar {cnpj} -> resumo da consulta com a configuracao SALVA (ResumoConsultaCnpj)
+ *       erros: 400 cnpj_invalido, 409 token_nao_configurado, 404 cnpj_nao_encontrado, 502 token_recusado|resposta_invalida,
+ *              429 limite_consulta_excedido|muitas_tentativas, 504 servico_cnpj_indisponivel
  *
  * As respostas sao lidas de forma TOLERANTE (campo ausente = omitido na tela).
  * Senhas: so trafegam no corpo do envio; nunca sao guardadas nem exibidas.
@@ -85,6 +91,7 @@ export const adminKeys = {
   lista: (s: TableState) => ['admin', 'usuarios', 'lista', s] as const,
   vinculos: (id: string) => ['admin', 'usuarios', id, 'vinculos'] as const,
   importacoes: ['admin', 'municipios', 'importacoes'] as const,
+  consultaCnpj: ['admin', 'configuracoes', 'consulta-cnpj'] as const,
 }
 
 /** Lista paginada no servidor: GET /admin/usuarios/{from}/{to} + /count, com `busca` por nome/e-mail. */
@@ -228,5 +235,100 @@ export function useImportarMunicipios() {
       return lerImportacao(await api<unknown>('/admin/municipios/importacao', { method: 'POST', body: form }))
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: adminKeys.importacoes }),
+  })
+}
+
+/* ===================== configuracao da consulta de CNPJ ===================== */
+
+export interface ConfigConsultaCnpj {
+  urlBase: string
+  tokenConfigurado: boolean
+  dataAtualizacao?: string
+  atualizadoPor?: { id: string; nome: string }
+}
+
+export function lerConfigConsultaCnpj(raw: unknown): ConfigConsultaCnpj {
+  const r = rec(raw)
+  const por = rec(r.atualizadoPor)
+  const nome = str(por.nome)
+  return {
+    urlBase: str(r.urlBase) ?? '',
+    tokenConfigurado: r.tokenConfigurado === true,
+    dataAtualizacao: str(r.dataAtualizacao),
+    atualizadoPor: nome ? { id: String(por.id ?? ''), nome } : undefined,
+  }
+}
+
+export function useConfigConsultaCnpj() {
+  return useQuery({
+    queryKey: adminKeys.consultaCnpj,
+    queryFn: async () => lerConfigConsultaCnpj(await api<unknown>('/admin/configuracoes/consulta-cnpj')),
+  })
+}
+
+/** `token`: ausente = mantem; texto = grava/substitui; '' = remove. */
+export function useSalvarConfigConsultaCnpj() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: { urlBase: string; token?: string }) => api<void>('/admin/configuracoes/consulta-cnpj', { method: 'PUT', body: v }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: adminKeys.consultaCnpj }),
+  })
+}
+
+/* ===================== teste da consulta de CNPJ ===================== */
+
+export interface ResumoConsultaCnpj {
+  cnpj: string
+  razaoSocial: string
+  nomeFantasia?: string
+  situacaoCadastral?: string
+  dataInicioAtividade?: string
+  porte?: string
+  naturezaJuridica?: string
+  atividadePrincipal?: { codigo?: string; descricao?: string }
+  capitalSocial?: string
+  endereco?: { logradouro?: string; numero?: string; complemento?: string; bairro?: string; cep?: string; municipio?: string; uf?: string }
+  email?: string
+  telefone?: string
+  simples?: boolean
+  mei?: boolean
+  quantidadeSocios?: number
+  duracaoMs?: number
+  urlConsultada?: string
+}
+
+const bool = (v: unknown): boolean | undefined => (typeof v === 'boolean' ? v : undefined)
+
+export function lerResumoConsultaCnpj(raw: unknown): ResumoConsultaCnpj {
+  const r = rec(raw)
+  const at = rec(r.atividadePrincipal)
+  const en = rec(r.endereco)
+  return {
+    cnpj: str(r.cnpj) ?? '',
+    razaoSocial: str(r.razaoSocial) ?? '',
+    nomeFantasia: str(r.nomeFantasia),
+    situacaoCadastral: str(r.situacaoCadastral),
+    dataInicioAtividade: str(r.dataInicioAtividade),
+    porte: str(r.porte),
+    naturezaJuridica: str(r.naturezaJuridica),
+    atividadePrincipal: r.atividadePrincipal ? { codigo: str(at.codigo), descricao: str(at.descricao) } : undefined,
+    capitalSocial: str(r.capitalSocial),
+    endereco: r.endereco
+      ? { logradouro: str(en.logradouro), numero: str(en.numero), complemento: str(en.complemento), bairro: str(en.bairro), cep: str(en.cep), municipio: str(en.municipio), uf: str(en.uf) }
+      : undefined,
+    email: str(r.email),
+    telefone: str(r.telefone),
+    simples: bool(r.simples),
+    mei: bool(r.mei),
+    quantidadeSocios: num(r.quantidadeSocios),
+    duracaoMs: num(r.duracaoMs),
+    urlConsultada: str(r.urlConsultada),
+  }
+}
+
+/** Consulta de teste com a configuracao SALVA (nao invalida queries). `cnpj`: so digitos. */
+export function useTestarConsultaCnpj() {
+  return useMutation({
+    mutationFn: async (cnpj: string) => lerResumoConsultaCnpj(await api<unknown>('/admin/configuracoes/consulta-cnpj/testar', { method: 'POST', body: { cnpj } })),
   })
 }
