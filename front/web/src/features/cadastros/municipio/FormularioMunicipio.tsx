@@ -7,6 +7,8 @@ const SUBMIT_LABEL = 'Salvar'
 
 const schema = municipioSchema.pick({ codigoIbge: true, nome: true, uf: true })
 export type FormularioMunicipioValues = z.infer<typeof schema>
+/** Campos que o formulario edita; o resto do registro e preservado no PUT (que substitui o registro inteiro). */
+export const FormularioMunicipioFieldNames: readonly string[] = Object.keys(schema.shape)
 
 const DEFAULTS: Partial<FormularioMunicipioValues> = {
 }

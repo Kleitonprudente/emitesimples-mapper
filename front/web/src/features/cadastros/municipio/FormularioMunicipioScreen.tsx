@@ -3,7 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useAtualizarMunicipio, useMunicipio } from '@/gen/api/municipio'
 import { mutationFeedback } from '@/runtime/feedback'
 import { ErrorState, LoadingState } from '@/runtime/states'
-import { FormularioMunicipioForm, type FormularioMunicipioValues } from './FormularioMunicipio'
+import { FormularioMunicipioForm, FormularioMunicipioFieldNames, type FormularioMunicipioValues } from './FormularioMunicipio'
 
 export function FormularioMunicipioScreen({ id }: { id: string }) {
   const loaded = useMunicipio(id)
@@ -15,6 +15,8 @@ export function FormularioMunicipioScreen({ id }: { id: string }) {
   if (loaded.isError || !loaded.data) return <ErrorState error={loaded.error} onRetry={() => void loaded.refetch()} />
   // O back devolve null nos opcionais ausentes; o schema do formulario espera ausente (undefined).
   const values = Object.fromEntries(Object.entries(loaded.data).filter(([, v]) => v !== null)) as FormularioMunicipioValues
+  // O PUT substitui o registro inteiro: o que o formulario nao edita (ex.: referencias de integracao) segue como veio.
+  const preservar = Object.fromEntries(Object.entries(values).filter(([k]) => !FormularioMunicipioFieldNames.includes(k)))
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-semibold">Cadastro de município</h1>
@@ -23,7 +25,7 @@ export function FormularioMunicipioScreen({ id }: { id: string }) {
         isSubmitting={salvar.isPending}
         serverError={salvar.error}
         onCancel={voltar}
-        onSubmit={(v) => salvar.mutateAsync(v).then(fb.onSuccess, () => {})}
+        onSubmit={(v) => salvar.mutateAsync({ ...preservar, ...v } as typeof v).then(fb.onSuccess, () => {})}
       />
     </div>
   )

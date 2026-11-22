@@ -31,6 +31,8 @@
             [v] {{ '' }}
             [v] const schema = {{ $entity }}Schema.pick({ {{ $picks }} })
             [v] export type {{ @name }}Values = z.infer<typeof schema>
+            [v] /** Campos que o formulario edita; o resto do registro e preservado no PUT (que substitui o registro inteiro). */
+            [v] export const {{ @name }}FieldNames: readonly string[] = Object.keys(schema.shape)
         [e] defaults-start
             [v] {{ '' }}
             [v] const DEFAULTS: Partial<{{ @name }}Values> = {

@@ -8,6 +8,8 @@ const SUBMIT_LABEL = 'Salvar'
 
 const schema = empresaSchema.pick({ razaoSocial: true, nomeFantasia: true, documento: true, inscricaoMunicipal: true, rgInscricaoEstadual: true, email: true, whatsapp: true, telefone: true, cep: true, logradouro: true, numeroEndereco: true, complemento: true, bairro: true, municipio: true, regimeTributario: true, regimeIbsCbs: true, situacao: true, urlWebhook: true })
 export type FormularioEmpresaValues = z.infer<typeof schema>
+/** Campos que o formulario edita; o resto do registro e preservado no PUT (que substitui o registro inteiro). */
+export const FormularioEmpresaFieldNames: readonly string[] = Object.keys(schema.shape)
 
 const DEFAULTS: Partial<FormularioEmpresaValues> = {
   situacao: 'pendente_confirmacao',

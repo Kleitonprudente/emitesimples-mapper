@@ -3,7 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useAtualizarPessoa, usePessoa } from '@/gen/api/pessoa'
 import { mutationFeedback } from '@/runtime/feedback'
 import { ErrorState, LoadingState } from '@/runtime/states'
-import { FormularioPessoaForm, type FormularioPessoaValues } from './FormularioPessoa'
+import { FormularioPessoaForm, FormularioPessoaFieldNames, type FormularioPessoaValues } from './FormularioPessoa'
 
 export function FormularioPessoaScreen({ id }: { id: string }) {
   const loaded = usePessoa(id)
@@ -15,6 +15,8 @@ export function FormularioPessoaScreen({ id }: { id: string }) {
   if (loaded.isError || !loaded.data) return <ErrorState error={loaded.error} onRetry={() => void loaded.refetch()} />
   // O back devolve null nos opcionais ausentes; o schema do formulario espera ausente (undefined).
   const values = Object.fromEntries(Object.entries(loaded.data).filter(([, v]) => v !== null)) as FormularioPessoaValues
+  // O PUT substitui o registro inteiro: o que o formulario nao edita (ex.: referencias de integracao) segue como veio.
+  const preservar = Object.fromEntries(Object.entries(values).filter(([k]) => !FormularioPessoaFieldNames.includes(k)))
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-semibold">Cadastro de pessoa</h1>
@@ -23,7 +25,7 @@ export function FormularioPessoaScreen({ id }: { id: string }) {
         isSubmitting={salvar.isPending}
         serverError={salvar.error}
         onCancel={voltar}
-        onSubmit={(v) => salvar.mutateAsync(v).then(fb.onSuccess, () => {})}
+        onSubmit={(v) => salvar.mutateAsync({ ...preservar, ...v } as typeof v).then(fb.onSuccess, () => {})}
       />
     </div>
   )

@@ -17,7 +17,7 @@
             [v] import { useAtualizar{{ $bean }}, use{{ $bean }} } from '@/gen/api/{{ $entity }}'
             [v] import { mutationFeedback } from '@/runtime/feedback'
             [v] import { ErrorState, LoadingState } from '@/runtime/states'
-            [v] import { {{ @name }}Form, type {{ @name }}Values } from './{{ @name }}'
+            [v] import { {{ @name }}Form, {{ @name }}FieldNames, type {{ @name }}Values } from './{{ @name }}'
         [e] component-start
             [v] {{ '' }}
             [v] export function {{ @name }}Screen({ id }: { id: string }) {
@@ -34,6 +34,8 @@
             [v]   if (loaded.isError || !loaded.data) return <ErrorState error={loaded.error} onRetry={() => void loaded.refetch()} />
             [v]   // O back devolve null nos opcionais ausentes; o schema do formulario espera ausente (undefined).
             [v]   const values = Object.fromEntries(Object.entries(loaded.data).filter(([, v]) => v !== null)) as {{ @name }}Values
+            [v]   // O PUT substitui o registro inteiro: o que o formulario nao edita (ex.: referencias de integracao) segue como veio.
+            [v]   const preservar = Object.fromEntries(Object.entries(values).filter(([k]) => !{{ @name }}FieldNames.includes(k)))
             [v]   return (
             [v]     <div className="flex flex-col gap-4">
             [v]       <h1 className="text-2xl font-semibold">{{ $title }}</h1>
@@ -44,7 +46,7 @@
         [e] cancel-with-list
             [v]         onCancel={voltar}
         [e] body-end
-            [v]         onSubmit={(v) => salvar.mutateAsync(v).then(fb.onSuccess, () => {})}
+            [v]         onSubmit={(v) => salvar.mutateAsync({ ...preservar, ...v } as typeof v).then(fb.onSuccess, () => {})}
             [v]       />
             [v]     </div>
             [v]   )

@@ -8,6 +8,8 @@ const SUBMIT_LABEL = 'Salvar'
 
 const schema = pessoaSchema.pick({ tipoPessoa: true, documento: true, nome: true, nomeFantasia: true, inscricaoMunicipal: true, rgInscricaoEstadual: true, tipoDestinatario: true, consumidorFinal: true, email: true, telefone: true, cep: true, logradouro: true, numeroEndereco: true, complemento: true, bairro: true, cidade: true, codigoPais: true, codigoPostal: true, nomeMunicipioExterior: true, nomeProvincia: true })
 export type FormularioPessoaValues = z.infer<typeof schema>
+/** Campos que o formulario edita; o resto do registro e preservado no PUT (que substitui o registro inteiro). */
+export const FormularioPessoaFieldNames: readonly string[] = Object.keys(schema.shape)
 
 const DEFAULTS: Partial<FormularioPessoaValues> = {
   consumidorFinal: true,
