@@ -181,6 +181,64 @@ public class IntegraNotasCliente {
         interpretar(r, "envio do certificado", true);
     }
 
+    // ------------------------------------------------------------------------------------- NFS-e (envio v2 / consulta v1)
+
+    /** Teto do corpo da CONSULTA (traz xml e pdf em Base64, ate 2 MB cada depois de decodificados). */
+    static final int MAX_BYTES_CONSULTA = 6 * 1024 * 1024;
+
+    /**
+     * Retorno ja interpretado do envio ou da consulta de NFS-e: {@code codigo} sempre presente (decide-se SO por ele),
+     * {@code sucesso} pode ser null, {@code chave} so se tiver 1 a 50 digitos. {@code raiz} e o JSON inteiro (traz xml/pdf:
+     * nunca registrar). Falhas de infraestrutura NAO viram retorno: lancam {@link ApiException} com os codigos estaveis
+     * {@code integranotas_token_recusado}, {@code integranotas_indisponivel}, {@code integranotas_resposta_invalida}.
+     */
+    public record RetornoNfse(int httpStatus, int codigo, Boolean sucesso, String mensagem, String chave, JsonNode raiz) {
+        @Override
+        public String toString() {
+            return "RetornoNfse[codigo=" + codigo + "]";
+        }
+    }
+
+    /** {@code POST {urlBase}/v2/nfse} com o token do EMITENTE (header cru). O prestador nao vai no corpo. */
+    public RetornoNfse enviarNfse(String urlBase, String tokenEmitente, JsonNode payload) {
+        return interpretarNfse(chamar("POST", urlBase, "/v2/nfse", tokenEmitente, payload));
+    }
+
+    /** {@code GET {urlBase}/v1/nfse/{chave}} com o token do EMITENTE. */
+    public RetornoNfse consultarNfse(String urlBase, String tokenEmitente, String chave) {
+        if (chave == null || !chave.matches("[0-9]{1,50}")) {
+            throw respostaInvalida();
+        }
+        return interpretarNfse(chamar("GET", urlBase, "/v1/nfse/" + chave, tokenEmitente, null, MAX_BYTES_CONSULTA));
+    }
+
+    static RetornoNfse interpretarNfse(Resposta r) {
+        int status = r.status();
+        JsonNode raiz = r.raiz();
+        Integer codigo = raiz != null && raiz.path("codigo").isIntegralNumber() && raiz.path("codigo").canConvertToInt()
+                ? raiz.path("codigo").asInt() : null;
+        if (codigo != null && codigo >= 6000 && codigo <= 6003 || status == 401 || status == 403) {
+            throw tokenRecusado(true);
+        }
+        if (raiz == null || !raiz.isObject() || codigo == null || !(status == 200 || status >= 400 && status < 500)) {
+            throw respostaInvalida();
+        }
+        Boolean sucesso = raiz.path("sucesso").isBoolean() ? raiz.path("sucesso").asBoolean() : null;
+        String msg = raiz.path("mensagem").isTextual()
+                ? raiz.path("mensagem").asText().replaceAll("[\\p{Cntrl}]", " ").strip() : null;
+        if (msg != null && msg.isEmpty()) {
+            msg = null;
+        }
+        if (msg != null && msg.length() > 500) {
+            msg = msg.substring(0, 500);
+        }
+        String chave = raiz.path("chave").isTextual() ? raiz.path("chave").asText().strip() : null;
+        if (chave != null && !chave.matches("[0-9]{1,50}")) {
+            chave = null;
+        }
+        return new RetornoNfse(status, codigo, sucesso, msg, chave, raiz);
+    }
+
     // ------------------------------------------------------------------------------------- nucleo
 
     /**
@@ -225,6 +283,11 @@ public class IntegraNotasCliente {
 
     /** Faz a chamada com TODAS as defesas e devolve status + JSON parseado. Nunca registra corpo, token ou cabecalhos. */
     public Resposta chamar(String metodo, String urlBase, String caminho, String token, JsonNode corpo) {
+        return chamar(metodo, urlBase, caminho, token, corpo, MAX_BYTES);
+    }
+
+    /** Igual a {@link #chamar(String, String, String, String, JsonNode)} com teto proprio do corpo da resposta. */
+    Resposta chamar(String metodo, String urlBase, String caminho, String token, JsonNode corpo, int maxBytes) {
         URI base;
         try {
             base = URI.create(urlBase);
@@ -268,11 +331,11 @@ public class IntegraNotasCliente {
                 if (status >= 300 && status < 400) {
                     throw respostaInvalida();
                 }
-                if (resp.headers().firstValueAsLong("Content-Length").orElse(0) > MAX_BYTES) {
+                if (resp.headers().firstValueAsLong("Content-Length").orElse(0) > maxBytes) {
                     throw respostaInvalida();
                 }
-                byte[] bytes = in.readNBytes(MAX_BYTES + 1);
-                if (bytes.length > MAX_BYTES) {
+                byte[] bytes = in.readNBytes(maxBytes + 1);
+                if (bytes.length > maxBytes) {
                     throw respostaInvalida();
                 }
                 JsonNode raiz = null;

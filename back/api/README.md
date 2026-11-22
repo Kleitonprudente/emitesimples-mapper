@@ -578,11 +578,11 @@ A escrita da Empresa é à mão (EntityManager, RLS ativa); o `/api/Empresa` ger
 - Corpo até 4 MB (413 `corpo_grande_demais`; teto global do servidor 6 MB). Token confere: **200 `{ok:true}`** sempre (corpo que não é objeto JSON incluso). A chamada de
   teste do gateway (`origem` = `TESTE`) responde 200 e **não** grava evento.
 - **Persiste** em `EventoWebhook`: `origem, cnpjCpf (só dígitos), tipo, chave, sucesso, codigo, mensagem (500), identificacao, dataRecebimento,
-  resultadoAssinatura=nao_verificada, estadoProcessamento=pendente, ambiente` (o da empresa), `empresa`. **Nunca** xml, pdf, `signature` nem o corpo inteiro. Campos longos
+  resultadoAssinatura=nao_verificada, estadoProcessamento=processado (casou com nota da empresa) ou ignorado, ambiente` (o da empresa), `empresa`. **Nunca** xml, pdf, `signature` nem o corpo inteiro. Campos longos
   são truncados ao tamanho da coluna. O banco é aberto como a empresa do caminho (`comoEmpresa`, RLS), não como sistema.
 - Limite de taxa em janela de 1 min, em memória: por IP de origem (`emitesimples.webhook.limite-por-ip-por-minuto`, padrão 120, **antes** do token) e por empresa
   (`...-por-empresa-por-minuto`, 120, depois do token); excesso: 429 + `Retry-After`. Testes usam 20 e 5. Nenhum token/URL/corpo em log.
-- **O que falta**: processar o evento (atualizar a nota; estado `pendente`), verificar a assinatura (`signature`: HMAC-SHA256 + AES/CBC, ainda não confirmada para a v2),
+- O evento agora é gatilho de consulta (ver "Emissão de NFS-e"). **O que falta**: verificar a assinatura (`signature`: HMAC-SHA256 + AES/CBC, ainda não confirmada para a v2),
   conhecer o corpo real da notificação (a documentação ainda não foi lida), descompactar xml/pdf, reprocessar eventos pendentes.
 
 ### Códigos de erro desta fase
@@ -680,6 +680,91 @@ volta a `nao_enviado` (o emitente novo não o conhece) e é reenviado.
 - "Integração disponível" para o certificado exige só o token do **emitente** e a URL do ambiente; o token da softhouse (usado só para criar o emitente) não é exigido.
 - O mutex por empresa (`TravaEmpresa`) vale por JVM, como no cadastro do emitente; com várias instâncias dois envios simultâneos podem se cruzar (o último a gravar vence).
 - Upload: o limite de 256 KB é conferido pelo tamanho informado pelo multipart e de novo depois da leitura; o arquivo temporário do upload é apagado pelo framework.
+
+## Emissão de NFS-e (`/api/nfse/notas`, pacote `nfseemissao`)
+
+Escrito à mão (o `gerar.sh` não apaga `nfseemissao` nem `gateway`). **Só homologação nesta fase**: com o ambiente ativo = produção, criar/enviar/acompanhar ficam
+bloqueados (409 `emissao_producao_bloqueada`) salvo `emitesimples.nfse.permitir-emissao-producao=true` (padrão `false`, mantenha). Os testes usam **só o stub HTTP local**
+(`IntegraNotasStubResource`); nunca chamam o gateway real.
+
+### Contrato (sempre a empresa da sessão; leitura: administrador|operador|consulta; escrita: administrador|operador; plataforma sem empresa: 403 `empresa_nao_selecionada`)
+
+| Rota | O que faz |
+|---|---|
+| `GET /api/nfse/notas/{from}/{to}?estado=&busca=` | lista (até 100 por chamada), `dataCriacao` desc; busca por número, nome da pessoa (sem diferenciar caixa; diferencia acentos) e chave; **sem xml/pdf** |
+| `GET /api/nfse/notas/count?estado=&busca=` | `{count}` |
+| `GET /api/nfse/notas/{id}` | item + `informacoesComplementares, discriminacao, descricao, codigoServico, errosRetorno [{campo,erro,descricao}]\|null, linkPdf, codigoVerificacao, dataHoraEvento, editavel, podeReenviar, podeAtualizar` |
+| `POST /api/nfse/notas` | `{pessoaId, servicoId, valorServicos, informacoesComplementares?, discriminacao?}`: cria **e envia**; 200 com o detalhe |
+| `POST /api/nfse/notas/{id}/enviar` | corpo opcional com os mesmos campos (só o que vier muda); só `rascunho`/`rejeitada` |
+| `POST /api/nfse/notas/{id}/atualizar` | consulta o gateway agora e devolve o detalhe |
+| `GET /api/nfse/notas/{id}/pdf` | `application/pdf` (`inline`) do PDF guardado; senão 404 `pdf_indisponivel` (o front usa `linkPdf`) |
+
+Item da lista: `id, numero, serie, estado, dataEmissao, valorServicos, pessoa{id,nome,documento}, servico{id,nome}, chave, numeroNfse, codigoRetorno, mensagemRetorno, temPdf, dataCriacao`.
+Erros: 409 `nfse_nao_habilitada`, `emissao_producao_bloqueada`, `emitente_nao_cadastrado`, `emitente_de_outro_ambiente`, `certificado_nao_valido`, `servico_inativo`,
+`nota_em_processamento`, `nota_nao_editavel`, `nota_em_conflito`, `numeracao_esgotada`; 404 pessoa/serviço/nota de outra empresa ou inexistente; 422 `tomador_incompleto`
+(`detalhes.campos`: documento, logradouro, numeroEndereco, bairro, cidade); 400 `requisicao_invalida` (`detalhes.campos`: `valorServicos` 0,01 a 9999999999999,99 com até 2 casas,
+`informacoesComplementares` ≤ 2000, `discriminacao` ≤ 2000) e `discriminacao_obrigatoria`; 429 (30 criar/enviar por minuto por usuário, `emitesimples.nfse.limite-envios-por-minuto`);
+502/504 só em `/atualizar` (token recusado, resposta inválida, indisponível).
+
+### Estados e transições
+
+`rascunho` (só após falha de infraestrutura no envio) · `processando` · `emitida_offline` · `autorizada` · `rejeitada` · `em_conflito` · `cancelada` · `descartada` (reservado).
+Decide-se **sempre pelo `codigo`** (tabela única em `NfseRetorno`):
+
+| Retorno | Envio | Consulta |
+|---|---|---|
+| 5023, ou 2, com `chave` | `processando` (guarda a chave) | 5023: continua; 2: `emitida_offline` (PDF, sem XML) |
+| 100 | com `status Autorizado`: `autorizada`; sem: `processando` + UMA consulta imediata | `autorizada` (numeroNfse, codigoVerificacao, dataHoraEvento, linkPdf, xml/pdf) |
+| 101 | – | `cancelada` |
+| 5001, 5002, 5005, 5007, 5024, 5025, 5028, 5033 (e outra recusa) | `rejeitada` + `codigoRetorno/mensagemRetorno/errosRetorno` (JSON campo/erro/descricao, ≤ 4000) | idem (de `processando`/`offline`/`conflito`) |
+| 5027 | `em_conflito` (não reenviar; usar Atualizar) | `em_conflito` |
+| 5030, 5034, 8429, 7xxx, 9xxx | `processando` com mensagem se vier `chave`; **sem chave volta a `rascunho`** (nada a acompanhar; seguro repetir) | mantém o estado e grava a mensagem |
+| 5006 | – | mantém e registra "não encontrada" |
+| 6000 a 6003 / timeout / rede / JSON inválido / 5xx / 0 (manutenção) | **nunca rejeita**: `rascunho`, mensagem "A IntegraNotas está indisponível. Tente enviar novamente." (token recusado: mensagem própria), `podeReenviar=true`, **mesmo número**; HTTP 200 | mantém o estado (job ignora; `/atualizar` devolve 502/504) |
+
+Estados finais não regridem: `autorizada` só vira `cancelada` (101); `cancelada`/`descartada` nunca mudam; `rejeitada`/`rascunho` não são consultadas.
+`editavel` = `rascunho`|`rejeitada`; `podeReenviar` = `editavel`; `podeAtualizar` = `processando`|`emitida_offline`|`em_conflito` com chave.
+Reenviar: `processando`/`emitida_offline` → 409 `nota_em_processamento`; `em_conflito` → 409 `nota_em_conflito`; `autorizada`/`cancelada`/`descartada` → 409 `nota_nao_editavel`.
+
+### Numeração e idempotência
+
+- Criar: **uma transação** com `SELECT ... FOR UPDATE` na linha da Empresa: `numero = ultimoNumeroNfse + 1`, incrementa `ultimoNumeroNfse`, grava a nota `processando` (série, ambiente, `dataEmissao` = agora em São Paulo, `dataCompetencia` = hoje). O número fica **na nota** e todo reenvio o reaproveita (reenvio nunca aloca número; só a `dataEmissao` é renovada).
+  Unicidade (empresa, ambiente, série, número): já existe `UX_NOTA_NUMERACAO` (V2); **não foi preciso migração V7**.
+- Snapshot do serviço na criação (código, tributação municipal, NBS, descrição, discriminação informada ou padrão, alíquota ISS, ISS retido, tipo de operação, CST — `'00'` se vazio — e o valor informado); se a troca de serviço ocorrer num reenvio, refaz-se o snapshot.
+- Duplo clique: o reenvio trava a linha da nota (`FOR UPDATE`), troca o estado para `processando` e confirma **antes** de chamar o gateway; o segundo clique enxerga `processando` e recebe 409. A chamada ao gateway é sempre **fora** da transação.
+- Cada chamada gera uma `ChamadaGateway` (operação, método, rota, versão, HTTP, código, mensagem, duração, chave, identificação, resumo curto). Nunca payload, resposta completa, xml/pdf nem token.
+
+### Payload do envio v2 (`NfsePayloadMapper`, único ponto de montagem)
+
+`POST {urlBase}/v2/nfse` com o token do **emitente** (cofre; header `Authorization` cru). Raiz: `data_emissao` (ISO, offset `-03:00`), `numero`, `serie`, `identificacao` (id da nota sem hífens, 32 caracteres),
+`data_competencia`, `informacoes_complementares?`, `tomador{cnpj|cpf, razao_social, im?, telefone?, email?, tipo_destinatario?, endereco{logradouro, numero, complemento?, bairro, cep?, codigo_municipio, uf}}`,
+`servico{codigo, discriminacao, descricao?, codigo_tributacao_municipio?, codigo_nbs?, valor_servicos, tributos_municipais{tipo_operacao, aliquota_iss?, iss_retido}}`.
+Opcionais ausentes são omitidos. O prestador não vai no corpo. **Não** se envia `ibs_cbs`; `tributos_nacionais` só se o CST ≠ `'00'` ou houver valores; `tributos_totais` só com
+`emitesimples.integranotas.enviar-tributos-totais=true` (padrão `false`).
+**A CONFIRMAR EM HOMOLOGAÇÃO**: (1) nome do campo do percentual do Simples em `tributos_totais` (hoje `percentual_simples_nacional`, constante `CAMPO_PERCENTUAL_SIMPLES`);
+(2) se `numero` sem zeros à esquerda é aceito; (3) `tipo_destinatario` para tomador PF; (4) quais blocos o gateway exige por si; (5) tolerância do gateway à `data_emissao` (renovada a cada reenvio).
+
+### Acompanhamento (job + atualizar + webhook como gatilho)
+
+- **Job** `NfseAcompanhamentoJob` (`@Scheduled every=emitesimples.nfse.acompanhamento.intervalo`, padrão 10 s, `concurrentExecution=SKIP`; `...acompanhamento.habilitado` é `true` em dev e `false` em teste, e os testes chamam `NfseAcompanhamentoService.executarCiclo()`):
+  consulta `GET {urlBase}/v1/nfse/{chave}` das notas `processando`/`emitida_offline` com chave, no máx. `...max-consultas-por-ciclo` (20); backoff por nota **em memória** (10 s nos primeiros 2 min, 60 s depois); após 24 h
+  para de consultar e grava "Sem retorno do gateway; use Atualizar". Sem sessão HTTP: a única leitura entre empresas (ids das notas pendentes e das velhas) roda `comoSistema`; cada consulta e cada marcação roda `comoEmpresa(empresaId)` (RLS da empresa).
+  Só consulta quando `nota.ambiente == empresa.ambiente == ambiente ativo` e a produção não está bloqueada.
+- **`POST /atualizar`**: consulta na hora (nota sem acompanhamento possível devolve o detalhe sem chamar o gateway).
+- **Webhook** (`WebhookIntegraNotasService`): o evento é **só gatilho**. Casa por `chave` ou `identificacao` (id da nota, com ou sem hífens) **dentro da empresa do caminho**; casou: evento `processado` com a nota vinculada e uma consulta ao gateway (a autoridade) é agendada fora da requisição (pool de 2 threads, fila de 200);
+  não casou: `ignorado`. O conteúdo (inclusive "autorizada") nunca altera a nota. Reentrega do mesmo evento (índice único de deduplicação empresa/ambiente/chave/código) não regrava, mas aciona o gatilho de novo (antes dava 500).
+- Resposta de consulta com `identificacao` diferente da nota é ignorada. xml/pdf: Base64, gzip ou zip detectados pelos primeiros bytes (ou texto puro), limite de 2 MB **depois** de descompactar.
+
+### Segurança, limites e riscos
+
+Token do emitente, payload, xml, pdf e dados do tomador não vão para log (provado em `NfseEmissaoTest`). Toda consulta filtra por `empresa.id` (administrador da plataforma com empresa na sessão também). Limites: 30 criar/enviar por minuto por usuário (em memória, N× com várias instâncias);
+corpo de consulta do gateway até 6 MB; 1 MB nos demais.
+Riscos: (a) **timeout no envio**: se o gateway recebeu mas a resposta se perdeu, a nota volta a `rascunho`; o reenvio usa o mesmo número e a mesma `identificacao`, e o gateway deve responder 5027 (conflito) ou a mesma chave, sem nota duplicada; (b) o backoff é em memória (reinício consulta tudo de novo, sem dano);
+(c) a trava de duplo clique é por linha do banco e vale entre instâncias; o limite por minuto e o pool do webhook não; (d) o job usa `dataCriacao` para a janela de 24 h; (e) busca por nome diferencia acentos; (f) os campos de `tributos_totais` são hipótese; (g) com o gateway devolvendo 7xxx/9xxx com chave e sem webhook, a nota fica `processando` até o job conseguir uma resposta final (24 h, depois "use Atualizar").
+
+### O que falta
+
+Cancelamento (`POST /v1/nfse/cancela`), envio de e-mail da nota, substituição, reconciliação das NFS-e offline via `GET /nfse/offline`, contingência, verificação de assinatura do webhook, tomador no exterior (código de país/NIF), blocos de obra/evento/deduções/IBS-CBS, descarte de rascunho, paginação por cursor.
 
 ## Pontos em aberto
 

@@ -90,6 +90,9 @@ public class IntegraNotasStubResource implements QuarkusTestResourceLifecycleMan
                 certificado(ex);
                 return;
             }
+            if (nfse(ex, path)) {
+                return;
+            }
             if (!path.equals("/v1/soft/emitente") || !"POST".equals(ex.getRequestMethod())) {
                 responder(ex, 404, "{}");
                 return;
@@ -203,6 +206,225 @@ public class IntegraNotasStubResource implements QuarkusTestResourceLifecycleMan
             case "semcodigo" -> responder(ex, 200, "{\"sucesso\":true,\"mensagem\":\"Sucesso.\"}");
             default -> responder(ex, 200, "{\"sucesso\":true,\"codigo\":200,\"mensagem\":\"Sucesso.\"}");
         }
+    }
+
+
+    // ------------------------------------------------------------------------------------------ NFS-e (envio v2 / consulta v1)
+
+    /**
+     * Controle (todos POST, corpo = texto): /_nfse/modo_envio (5023 padrao, 5001, 5028, 5027, 6001, json, lento, 100,
+     * 100sem, 500, 5034, semchave, 8429), /_nfse/modo_consulta (100 padrao, 100gzip, 100zip, 5023, 2, 101, 5028, 5027, 6001, json,
+     * 5006, 500, idoutro) e /_nfse/reset. Leitura: GET /_nfse/estado (JSON com contagens, ultimo envio e ultima consulta).
+     */
+    private volatile String modoEnvio = "5023";
+    private volatile String modoConsulta = "100";
+    private final java.util.List<JsonNode> envios = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
+    private final java.util.List<String> consultas = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
+    private final java.util.Map<String, String> identPorChave = new java.util.concurrent.ConcurrentHashMap<>();
+    private final java.util.Map<String, String> numeroPorChave = new java.util.concurrent.ConcurrentHashMap<>();
+    private final java.util.Map<String, String> chavePorIdent = new java.util.concurrent.ConcurrentHashMap<>();
+    private volatile String ultimoAuthEnvio;
+    private volatile String ultimoAuthConsulta;
+    public static final String PDF_MINIMO = "%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n";
+    public static final String XML_MINIMO = "<NFSe><infNFSe Id=\"x\"/></NFSe>";
+
+    private boolean nfse(HttpExchange ex, String path) throws IOException {
+        String m = ex.getRequestMethod();
+        if (path.startsWith("/_nfse/") && "POST".equals(m)) {
+            String corpo = new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8).strip();
+            switch (path) {
+                case "/_nfse/modo_envio" -> modoEnvio = corpo;
+                case "/_nfse/modo_consulta" -> modoConsulta = corpo;
+                case "/_nfse/reset" -> {
+                    modoEnvio = "5023";
+                    modoConsulta = "100";
+                    envios.clear();
+                    consultas.clear();
+                    ultimoAuthEnvio = null;
+                    ultimoAuthConsulta = null;
+                }
+                default -> {
+                    responder(ex, 404, "{}");
+                    return true;
+                }
+            }
+            responder(ex, 200, "{}");
+            return true;
+        }
+        if (path.equals("/_nfse/estado")) {
+            com.fasterxml.jackson.databind.node.ObjectNode o = JSON.createObjectNode();
+            o.put("envios", envios.size());
+            o.put("consultas", consultas.size());
+            o.put("authEnvio", ultimoAuthEnvio);
+            o.put("authConsulta", ultimoAuthConsulta);
+            synchronized (envios) {
+                if (!envios.isEmpty()) {
+                    o.set("ultimoEnvio", envios.get(envios.size() - 1));
+                }
+                com.fasterxml.jackson.databind.node.ArrayNode todos = o.putArray("todosEnvios");
+                envios.forEach(todos::add);
+            }
+            synchronized (consultas) {
+                if (!consultas.isEmpty()) {
+                    o.put("ultimaConsulta", consultas.get(consultas.size() - 1));
+                }
+            }
+            responder(ex, 200, JSON.writeValueAsString(o));
+            return true;
+        }
+        if (path.equals("/v2/nfse") && "POST".equals(m)) {
+            envioNfse(ex);
+            return true;
+        }
+        if (path.startsWith("/v1/nfse/") && "GET".equals(m)) {
+            consultaNfse(ex, path.substring("/v1/nfse/".length()));
+            return true;
+        }
+        return false;
+    }
+
+    private void envioNfse(HttpExchange ex) throws IOException {
+        byte[] bytes = ex.getRequestBody().readAllBytes();
+        String auth = ex.getRequestHeaders().getFirst("Authorization");
+        ultimoAuthEnvio = auth;
+        String modo = modoEnvio;
+        JsonNode corpo;
+        try {
+            corpo = JSON.readTree(bytes);
+        } catch (IOException e) {
+            responder(ex, 200, "{\"sucesso\":false,\"codigo\":5001,\"mensagem\":\"JSON inválido.\"}");
+            return;
+        }
+        com.fasterxml.jackson.databind.node.ObjectNode reg = JSON.createObjectNode();
+        reg.put("authorization", auth);
+        reg.set("corpo", corpo);
+        envios.add(reg);
+        if (auth == null || auth.isBlank() || modo.equals("6001")) {
+            responder(ex, 200, "{\"sucesso\":false,\"codigo\":6001,\"mensagem\":\"Token inválido.\"}");
+            return;
+        }
+        String ident = corpo.path("identificacao").asText("");
+        switch (modo) {
+            case "5001" -> {
+                responder(ex, 200, "{\"sucesso\":false,\"codigo\":5001,\"mensagem\":\"Erro de validação.\",\"erros\":["
+                        + "{\"campo\":\"tomador.endereco.bairro\",\"erro\":\"obrigatorio\",\"descricao\":\"Bairro é obrigatório\",\"detalhes\":\"x\"},"
+                        + "{\"campo\":\"servico.discriminacao\",\"erro\":\"tamanho\",\"descricao\":\"Discriminação inválida\"}]}");
+                return;
+            }
+            case "5028" -> {
+                responder(ex, 200, "{\"sucesso\":false,\"codigo\":5028,\"mensagem\":\"A prefeitura rejeitou o valor.\"}");
+                return;
+            }
+            case "json" -> {
+                responder(ex, 200, "<html>nao e json</html>");
+                return;
+            }
+            case "500" -> {
+                responder(ex, 500, "{\"erro\":\"interno\"}");
+                return;
+            }
+            case "lento" -> dormir(4000);
+            case "8429" -> {
+                responder(ex, 200, "{\"sucesso\":false,\"codigo\":8429,\"mensagem\":\"Excesso de requisicoes.\"}");
+                return;
+            }
+            default -> {
+            }
+        }
+        // idempotencia do gateway simulado: mesma identificacao = mesma chave
+        String chave = chavePorIdent.computeIfAbsent(ident, k -> {
+            String c = String.format("%050d", Math.abs(UUID.randomUUID().getMostSignificantBits()));
+            identPorChave.put(c, k);
+            numeroPorChave.put(c, corpo.path("numero").asText(""));
+            return c;
+        });
+        switch (modo) {
+            case "5027" -> responder(ex, 200, "{\"sucesso\":false,\"codigo\":5027,\"mensagem\":\"Conflito.\",\"chave\":\"" + chave + "\"}");
+            case "5034" -> responder(ex, 200, "{\"sucesso\":true,\"codigo\":5034,\"mensagem\":\"Autorizador sem resposta.\",\"chave\":\"" + chave + "\"}");
+            case "semchave" -> responder(ex, 200, "{\"sucesso\":true,\"codigo\":5023,\"mensagem\":\"Lote em processamento.\"}");
+            case "100" -> responder(ex, 200, autorizado(chave, true));
+            case "100sem" -> responder(ex, 200, "{\"sucesso\":true,\"codigo\":100,\"mensagem\":\"ok\",\"chave\":\"" + chave + "\"}");
+            default -> responder(ex, 200, "{\"sucesso\":true,\"codigo\":5023,\"mensagem\":\"Lote em processamento, aguarde e tente novamente mais tarde.\",\"chave\":\"" + chave + "\"}");
+        }
+    }
+
+    private void consultaNfse(HttpExchange ex, String chave) throws IOException {
+        String auth = ex.getRequestHeaders().getFirst("Authorization");
+        ultimoAuthConsulta = auth;
+        consultas.add(chave);
+        String modo = modoConsulta;
+        if (auth == null || auth.isBlank() || modo.equals("6001")) {
+            responder(ex, 200, "{\"sucesso\":false,\"codigo\":6001,\"mensagem\":\"Token inválido.\"}");
+            return;
+        }
+        switch (modo) {
+            case "json" -> responder(ex, 200, "<html>nao e json</html>");
+            case "500" -> responder(ex, 500, "{}");
+            case "5006" -> responder(ex, 200, "{\"sucesso\":false,\"codigo\":5006,\"mensagem\":\"Não encontrada.\"}");
+            case "5023" -> responder(ex, 200, "{\"sucesso\":true,\"codigo\":5023,\"mensagem\":\"Em processamento.\",\"chave\":\"" + chave + "\"}");
+            case "5028" -> responder(ex, 200, "{\"sucesso\":false,\"codigo\":5028,\"mensagem\":\"Valor rejeitado.\",\"chave\":\"" + chave + "\"}");
+            case "5027" -> responder(ex, 200, "{\"sucesso\":false,\"codigo\":5027,\"mensagem\":\"Conflito.\",\"chave\":\"" + chave + "\"}");
+            case "2" -> responder(ex, 200, "{\"sucesso\":true,\"codigo\":2,\"mensagem\":\"Offline.\",\"chave\":\"" + chave
+                    + "\",\"data_hora_evento\":null,\"protocolo\":null,\"pdf\":\"" + b64(PDF_MINIMO) + "\"}");
+            case "101" -> responder(ex, 200, "{\"sucesso\":true,\"codigo\":101,\"mensagem\":\"Homologado o cancelamento da NFS-e\","
+                    + "\"data_hora_evento\":\"2026-11-21 10:00:00\",\"xml\":\"" + b64(XML_MINIMO) + "\",\"pdf\":\"" + b64(PDF_MINIMO) + "\"}");
+            default -> responder(ex, 200, autorizado(chave, false));
+        }
+    }
+
+    private String autorizado(String chave, boolean envio) {
+        String ident = identPorChave.getOrDefault(chave, "");
+        String numero = numeroPorChave.getOrDefault(chave, "1");
+        String modo = modoConsulta;
+        if (modo.equals("idoutro")) {
+            ident = "outra-identificacao";
+        }
+        String xml;
+        String pdf;
+        try {
+            if (!envio && modo.equals("100gzip")) {
+                xml = b64(gzip(XML_MINIMO));
+                pdf = b64(gzip(PDF_MINIMO));
+            } else if (!envio && modo.equals("100zip")) {
+                xml = b64(zip(XML_MINIMO));
+                pdf = b64(zip(PDF_MINIMO));
+            } else {
+                xml = b64(XML_MINIMO);
+                pdf = b64(PDF_MINIMO);
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+        return "{\"sucesso\":true,\"codigo\":100,\"mensagem\":\"Autorizado o uso da NFS-e\",\"status\":\"Autorizado\",\"numero\":\"9"
+                + numero + "\",\"rps_numero\":\"" + numero + "\",\"rps_serie\":\"1\",\"identificacao\":\"" + ident
+                + "\",\"chave\":\"" + chave + "\",\"codigo_verificacao\":\"82 55 B2\",\"data_hora_evento\":\"2026-11-21 11:25:22\","
+                + "\"xml\":\"" + xml + "\",\"pdf\":\"" + pdf + "\",\"link_pdf\":\"https://exemplo.local/nfse/" + chave + ".pdf\"}";
+    }
+
+    private static String b64(String s) {
+        return java.util.Base64.getEncoder().encodeToString(s.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static String b64(byte[] b) {
+        return java.util.Base64.getEncoder().encodeToString(b);
+    }
+
+    private static byte[] gzip(String s) throws IOException {
+        java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream();
+        try (java.util.zip.GZIPOutputStream g = new java.util.zip.GZIPOutputStream(bo)) {
+            g.write(s.getBytes(StandardCharsets.UTF_8));
+        }
+        return bo.toByteArray();
+    }
+
+    private static byte[] zip(String s) throws IOException {
+        java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream();
+        try (java.util.zip.ZipOutputStream z = new java.util.zip.ZipOutputStream(bo)) {
+            z.putNextEntry(new java.util.zip.ZipEntry("arquivo"));
+            z.write(s.getBytes(StandardCharsets.UTF_8));
+            z.closeEntry();
+        }
+        return bo.toByteArray();
     }
 
     private static void dormir(long ms) {

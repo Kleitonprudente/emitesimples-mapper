@@ -90,7 +90,7 @@ class WebhookIntegraNotasTest extends BaseApiTest {
         assertEquals("Autorizado o uso da NFS-e", e.getMensagem());
         assertEquals("abc-123", e.getIdentificacao());
         assertEquals("nao_verificada", e.getResultadoAssinatura());
-        assertEquals("pendente", e.getEstadoProcessamento());
+        assertEquals("ignorado", e.getEstadoProcessamento()); // sem nota correspondente: so gatilho
         assertEquals("homologacao", e.getAmbiente());
         assertNotNull(e.getDataRecebimento());
         assertNull(e.getNota());

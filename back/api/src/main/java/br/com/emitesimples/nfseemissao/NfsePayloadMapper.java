@@ -1,0 +1,224 @@
+package br.com.emitesimples.nfseemissao;
+
+import br.com.emitesimples.cadastros.entity.MunicipioEntity;
+import br.com.emitesimples.cadastros.entity.PessoaEntity;
+import br.com.emitesimples.cadastros.entity.ServicoEntity;
+import br.com.emitesimples.nfse.entity.NotaEntity;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * UNICO ponto que monta o corpo do {@code POST /v2/nfse} do IntegraNotas (docs/integranotas-nfse-v2.md). Tudo do payload esta
+ * aqui; nenhum outro codigo conhece nomes de campos do gateway.
+ *
+ * <p>Regras: o prestador NAO vai no corpo (vem do token); campos opcionais ausentes sao OMITIDOS (nada de null); valores
+ * monetarios sao {@code number} com 2 casas; percentuais em pontos percentuais ({@code 5.00} = 5%); datas com offset
+ * {@code -03:00} (emissao) e {@code yyyy-MM-dd} (competencia). {@code identificacao} = id da nota sem hifens (32 chars, cabe
+ * nos 40 do gateway) e e a chave de correlacao com o webhook e com a consulta.
+ *
+ * <p>NAO enviados por decisao: {@code ibs_cbs}; {@code tributos_nacionais} quando o CST for '00' e nao houver valores (a doc
+ * so exige {@code cst} se o bloco for enviado); {@code tributos_totais} (so com
+ * {@code emitesimples.integranotas.enviar-tributos-totais=true}).
+ *
+ * <p>A CONFIRMAR EM HOMOLOGACAO: (1) o nome exato do campo do percentual do Simples dentro de {@code tributos_totais}
+ * (aqui {@link #CAMPO_PERCENTUAL_SIMPLES}); (2) se {@code numero} aceita o valor sem zeros a esquerda (envia-se o numero
+ * como string simples); (3) se {@code tipo_destinatario} pode ir para tomador PF; (4) quais blocos o gateway exige por si.
+ */
+final class NfsePayloadMapper {
+
+    /** A CONFIRMAR EM HOMOLOGACAO: nome do campo do percentual do Simples Nacional em {@code tributos_totais}. */
+    static final String CAMPO_PERCENTUAL_SIMPLES = "percentual_simples_nacional";
+
+    static final ZoneId SAO_PAULO = ZoneId.of("America/Sao_Paulo");
+    private static final ObjectMapper JSON = new ObjectMapper();
+    private static final DateTimeFormatter EMISSAO = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+
+    private NfsePayloadMapper() {
+    }
+
+    /** Payload montado + um resumo curto e seguro para o log do gateway (sem dados do tomador). */
+    record Montado(ObjectNode corpo, String identificacao, String resumo) {
+    }
+
+    /** Identificacao enviada ao gateway para a nota: o id sem hifens. */
+    static String identificacao(String notaId) {
+        return notaId.replace("-", "");
+    }
+
+    /** Campos do tomador que faltam para emitir (lista vazia = completo). Cada item: campo + mensagem. */
+    static List<Map<String, String>> tomadorIncompleto(PessoaEntity p) {
+        List<Map<String, String>> f = new ArrayList<>();
+        int doc = digitos(p.getDocumento()).length();
+        if (doc != 11 && doc != 14) {
+            f.add(erro("documento", "Informe o CPF ou o CNPJ do tomador."));
+        }
+        if (vazio(p.getLogradouro())) {
+            f.add(erro("logradouro", "Informe o logradouro do tomador."));
+        }
+        if (vazio(p.getNumeroEndereco())) {
+            f.add(erro("numeroEndereco", "Informe o número do endereço do tomador."));
+        }
+        if (vazio(p.getBairro())) {
+            f.add(erro("bairro", "Informe o bairro do tomador."));
+        }
+        MunicipioEntity m = p.getCidade();
+        if (m == null || digitos(m.getCodigoIbge()).length() != 7 || vazio(m.getUf()) || m.getUf().strip().length() != 2) {
+            f.add(erro("cidade", "Informe o município do tomador (com código IBGE)."));
+        }
+        return f;
+    }
+
+    static Montado montar(NotaEntity n, PessoaEntity p, boolean enviarTributosTotais) {
+        ObjectNode raiz = JSON.createObjectNode();
+        raiz.put("data_emissao", EMISSAO.format(n.getDataEmissao().truncatedTo(ChronoUnit.SECONDS).atZone(SAO_PAULO)
+                .toOffsetDateTime()));
+        raiz.put("numero", n.getNumero());
+        raiz.put("serie", n.getSerie());
+        String identificacao = identificacao(n.getId());
+        raiz.put("identificacao", identificacao);
+        raiz.put("data_competencia", n.getDataCompetencia().toString());
+        if (!vazio(n.getInformacoesComplementares())) {
+            raiz.put("informacoes_complementares", n.getInformacoesComplementares());
+        }
+
+        raiz.set("tomador", tomador(p));
+
+        ObjectNode s = raiz.putObject("servico");
+        s.put("codigo", n.getCodigoServico());
+        s.put("discriminacao", n.getDiscriminacao());
+        if (!vazio(n.getDescricao())) {
+            s.put("descricao", corta(n.getDescricao(), 200));
+        }
+        if (!vazio(n.getCodigoTributacaoMunicipio())) {
+            s.put("codigo_tributacao_municipio", n.getCodigoTributacaoMunicipio());
+        }
+        if (!vazio(n.getCodigoNbs())) {
+            s.put("codigo_nbs", n.getCodigoNbs());
+        }
+        s.put("valor_servicos", dinheiro(n.getValorServicos()));
+
+        ObjectNode tm = s.putObject("tributos_municipais");
+        tm.put("tipo_operacao", n.getTipoOperacaoIss() == null ? 1 : n.getTipoOperacaoIss());
+        if (n.getAliquotaIss() != null) {
+            tm.put("aliquota_iss", n.getAliquotaIss().setScale(2, RoundingMode.HALF_UP));
+        }
+        tm.put("iss_retido", Boolean.TRUE.equals(n.getIssRetido()));
+
+        if (temTributosNacionais(n)) {
+            ObjectNode tn = s.putObject("tributos_nacionais");
+            tn.put("cst", n.getCstPisCofins());
+            if (n.getTipoRetencao() != null) {
+                tn.put("tipo_retencao", n.getTipoRetencao());
+            }
+            valor(tn, "valor_base_calculo", n.getValorBaseCalculo());
+            percentual(tn, "aliquota_pis", n.getAliquotaPis());
+            valor(tn, "valor_pis", n.getValorPis());
+            percentual(tn, "aliquota_cofins", n.getAliquotaCofins());
+            valor(tn, "valor_cofins", n.getValorCofins());
+            valor(tn, "valor_inss", n.getValorInss());
+            valor(tn, "valor_ir", n.getValorIr());
+            valor(tn, "valor_csll", n.getValorCsll());
+        }
+
+        // A CONFIRMAR EM HOMOLOGACAO: unico ponto de montagem de tributos_totais (desligado por padrao).
+        ServicoEntity sv = n.getServico();
+        if (enviarTributosTotais && sv != null && sv.getPercentualTributosSimples() != null) {
+            s.putObject("tributos_totais").put(CAMPO_PERCENTUAL_SIMPLES,
+                    sv.getPercentualTributosSimples().setScale(2, RoundingMode.HALF_UP));
+        }
+
+        String resumo = "numero=" + n.getNumero() + " serie=" + n.getSerie() + " valor=" + dinheiro(n.getValorServicos())
+                + " codigoServico=" + n.getCodigoServico();
+        return new Montado(raiz, identificacao, resumo);
+    }
+
+    private static ObjectNode tomador(PessoaEntity p) {
+        ObjectNode t = JSON.createObjectNode();
+        String doc = digitos(p.getDocumento());
+        t.put(doc.length() == 14 ? "cnpj" : "cpf", doc);
+        t.put("razao_social", corta(p.getNome(), 300));
+        if (!vazio(p.getInscricaoMunicipal())) {
+            t.put("im", corta(p.getInscricaoMunicipal().strip(), 15));
+        }
+        String fone = digitos(p.getTelefone());
+        if (fone.length() >= 6 && fone.length() <= 20) {
+            t.put("telefone", fone);
+        }
+        if (!vazio(p.getEmail())) {
+            t.put("email", corta(p.getEmail().strip(), 60));
+        }
+        if (p.getTipoDestinatario() != null && (p.getTipoDestinatario() == 0 || p.getTipoDestinatario() == 1)) {
+            t.put("tipo_destinatario", p.getTipoDestinatario());
+        }
+        ObjectNode e = t.putObject("endereco");
+        e.put("logradouro", corta(p.getLogradouro(), 255));
+        e.put("numero", corta(p.getNumeroEndereco(), 60));
+        if (!vazio(p.getComplemento())) {
+            e.put("complemento", corta(p.getComplemento(), 256));
+        }
+        e.put("bairro", corta(p.getBairro(), 60));
+        String cep = digitos(p.getCep());
+        if (cep.length() == 8) {
+            e.put("cep", cep);
+        }
+        MunicipioEntity m = p.getCidade();
+        e.put("codigo_municipio", digitos(m.getCodigoIbge()));
+        e.put("uf", m.getUf().strip().toUpperCase());
+        return t;
+    }
+
+    // ------------------------------------------------------------------------------------- helpers
+
+    private static boolean temTributosNacionais(NotaEntity n) {
+        boolean cstZero = n.getCstPisCofins() == null || "00".equals(n.getCstPisCofins());
+        boolean valores = n.getValorBaseCalculo() != null || n.getAliquotaPis() != null || n.getValorPis() != null
+                || n.getAliquotaCofins() != null || n.getValorCofins() != null || n.getValorInss() != null
+                || n.getValorIr() != null || n.getValorCsll() != null || n.getTipoRetencao() != null;
+        return !cstZero || valores;
+    }
+
+    static BigDecimal dinheiro(BigDecimal v) {
+        return v.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private static void valor(ObjectNode n, String campo, BigDecimal v) {
+        if (v != null) {
+            n.put(campo, dinheiro(v));
+        }
+    }
+
+    private static void percentual(ObjectNode n, String campo, BigDecimal v) {
+        if (v != null) {
+            n.put(campo, v.setScale(2, RoundingMode.HALF_UP));
+        }
+    }
+
+    private static boolean vazio(String s) {
+        return s == null || s.isBlank();
+    }
+
+    private static String digitos(String s) {
+        return s == null ? "" : s.replaceAll("[^0-9]", "");
+    }
+
+    private static String corta(String s, int max) {
+        String t = s.strip();
+        return t.length() > max ? t.substring(0, max) : t;
+    }
+
+    private static Map<String, String> erro(String campo, String mensagem) {
+        Map<String, String> m = new LinkedHashMap<>();
+        m.put("campo", campo);
+        m.put("mensagem", mensagem);
+        return m;
+    }
+}

@@ -1,0 +1,157 @@
+package br.com.emitesimples.nfseemissao;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import br.com.emitesimples.cadastros.entity.MunicipioEntity;
+import br.com.emitesimples.cadastros.entity.PessoaEntity;
+import br.com.emitesimples.cadastros.entity.ServicoEntity;
+import br.com.emitesimples.gateway.IntegraNotasCliente.RetornoNfse;
+import br.com.emitesimples.nfse.entity.NotaEntity;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.ByteArrayOutputStream;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Base64;
+import java.util.zip.GZIPOutputStream;
+import org.junit.jupiter.api.Test;
+
+/** Unidade (sem Quarkus): tabela de retorno do gateway, decodificacao de arquivos e mapeador de payload. */
+class NfseUnidadeTest {
+
+    private static final ObjectMapper J = new ObjectMapper();
+
+    private static RetornoNfse ret(String json) throws Exception {
+        var raiz = J.readTree(json);
+        return new RetornoNfse(200, raiz.get("codigo").asInt(), raiz.has("sucesso") ? raiz.get("sucesso").asBoolean() : null,
+                raiz.path("mensagem").asText(null), raiz.path("chave").asText(null), raiz);
+    }
+
+    private static NotaEntity nota(String estado) {
+        NotaEntity n = new NotaEntity();
+        n.setEstado(estado);
+        n.setId("11111111-2222-3333-4444-555555555555");
+        n.setNumero("5");
+        n.setSerie("1");
+        n.setDataEmissao(LocalDateTime.of(2026, 11, 21, 10, 0, 0));
+        n.setDataCompetencia(LocalDate.of(2026, 11, 21));
+        n.setCodigoServico("010101");
+        n.setDiscriminacao("d");
+        n.setValorServicos(new BigDecimal("10"));
+        n.setCstPisCofins("00");
+        return n;
+    }
+
+    @Test
+    void autorizadaNaoRegrideEcanceladaSoVindaDe101() throws Exception {
+        NotaEntity n = nota("autorizada");
+        NfseRetorno.aplicarConsulta(n, ret("{\"codigo\":5028,\"sucesso\":false}"));
+        assertEquals("autorizada", n.getEstado());
+        NfseRetorno.aplicarConsulta(n, ret("{\"codigo\":5023,\"sucesso\":true}"));
+        assertEquals("autorizada", n.getEstado());
+        NfseRetorno.aplicarConsulta(n, ret("{\"codigo\":101,\"sucesso\":true}"));
+        assertEquals("cancelada", n.getEstado());
+        NfseRetorno.aplicarConsulta(n, ret("{\"codigo\":100,\"sucesso\":true}"));
+        assertEquals("cancelada", n.getEstado());
+    }
+
+    @Test
+    void rejeitadaERascunhoNaoSaoAlteradosPelaConsulta() throws Exception {
+        for (String e : new String[] {"rejeitada", "rascunho", "descartada"}) {
+            NotaEntity n = nota(e);
+            NfseRetorno.aplicarConsulta(n, ret("{\"codigo\":100,\"sucesso\":true,\"mensagem\":\"ok\"}"));
+            assertEquals(e, n.getEstado());
+        }
+    }
+
+    @Test
+    void tabelaDeCodigosDaConsulta() throws Exception {
+        NotaEntity n = nota("processando");
+        NfseRetorno.aplicarConsulta(n, ret("{\"codigo\":5027,\"sucesso\":false}"));
+        assertEquals("em_conflito", n.getEstado());
+        NfseRetorno.aplicarConsulta(n, ret("{\"codigo\":7001,\"sucesso\":false,\"mensagem\":\"falha\"}"));
+        assertEquals("em_conflito", n.getEstado());
+        n = nota("processando");
+        NfseRetorno.aplicarConsulta(n, ret("{\"codigo\":5024,\"sucesso\":false,\"mensagem\":\"negado\"}"));
+        assertEquals("rejeitada", n.getEstado());
+        n = nota("processando");
+        NfseRetorno.aplicarConsulta(n, ret("{\"codigo\":8429,\"sucesso\":false,\"mensagem\":\"limite\"}"));
+        assertEquals("processando", n.getEstado());
+        assertEquals(8429, n.getCodigoRetorno());
+    }
+
+    @Test
+    void errosLegiveisLimitadosA4000() throws Exception {
+        StringBuilder sb = new StringBuilder("{\"codigo\":5001,\"sucesso\":false,\"erros\":[");
+        for (int i = 0; i < 30; i++) {
+            sb.append(i > 0 ? "," : "").append("{\"campo\":\"c").append(i).append("\",\"erro\":\"e\",\"descricao\":\"")
+                    .append("d".repeat(390)).append("\"}");
+        }
+        sb.append("]}");
+        String s = NfseRetorno.errosComoJson(J.readTree(sb.toString()));
+        assertNotNull(s);
+        assertTrue(s.length() <= 4000);
+        assertTrue(J.readTree(s).isArray());
+        assertNull(NfseRetorno.errosComoJson(J.readTree("{\"codigo\":5028}")));
+    }
+
+    @Test
+    void decodificaBase64GzipTextoPurAELimitaTamanho() throws Exception {
+        byte[] t = "<xml/>".getBytes("UTF-8");
+        assertEquals("<xml/>", new String(ArquivoGateway.decodificar(Base64.getEncoder().encodeToString(t)), "UTF-8"));
+        assertEquals("<xml/>", new String(ArquivoGateway.decodificar("<xml/>"), "UTF-8"));
+        ByteArrayOutputStream bo = new ByteArrayOutputStream();
+        try (GZIPOutputStream g = new GZIPOutputStream(bo)) {
+            g.write(t);
+        }
+        assertEquals("<xml/>", new String(ArquivoGateway.decodificar(Base64.getEncoder().encodeToString(bo.toByteArray())), "UTF-8"));
+        ByteArrayOutputStream bomba = new ByteArrayOutputStream();
+        try (GZIPOutputStream g = new GZIPOutputStream(bomba)) {
+            g.write(new byte[3 * 1024 * 1024]);
+        }
+        assertNull(ArquivoGateway.decodificar(Base64.getEncoder().encodeToString(bomba.toByteArray())));
+        assertNull(ArquivoGateway.decodificar(null));
+        assertNull(ArquivoGateway.decodificar("   "));
+    }
+
+    private static PessoaEntity pessoa() {
+        PessoaEntity p = new PessoaEntity();
+        p.setNome("Fulano");
+        p.setDocumento("12345678901");
+        p.setLogradouro("Rua A");
+        p.setNumeroEndereco("1");
+        p.setBairro("Centro");
+        MunicipioEntity m = new MunicipioEntity();
+        m.setCodigoIbge("3550308");
+        m.setUf("SP");
+        p.setCidade(m);
+        return p;
+    }
+
+    @Test
+    void tributosNacionaisSoComCstDiferenteDeZeroOuValores() {
+        NotaEntity n = nota("processando");
+        n.setServico(new ServicoEntity());
+        assertTrue(NfsePayloadMapper.montar(n, pessoa(), false).corpo().path("servico").path("tributos_nacionais").isMissingNode());
+        n.setCstPisCofins("01");
+        var tn = NfsePayloadMapper.montar(n, pessoa(), false).corpo().path("servico").path("tributos_nacionais");
+        assertEquals("01", tn.path("cst").asText());
+        n.setCstPisCofins("00");
+        n.setValorPis(new BigDecimal("1.5"));
+        assertEquals("00", NfsePayloadMapper.montar(n, pessoa(), false).corpo().path("servico").path("tributos_nacionais").path("cst").asText());
+    }
+
+    @Test
+    void tributosTotaisSoComAFlagLigada() {
+        NotaEntity n = nota("processando");
+        ServicoEntity s = new ServicoEntity();
+        s.setPercentualTributosSimples(new BigDecimal("6"));
+        n.setServico(s);
+        assertTrue(NfsePayloadMapper.montar(n, pessoa(), false).corpo().path("servico").path("tributos_totais").isMissingNode());
+        var tt = NfsePayloadMapper.montar(n, pessoa(), true).corpo().path("servico").path("tributos_totais");
+        assertEquals(0, new BigDecimal("6.00").compareTo(tt.path(NfsePayloadMapper.CAMPO_PERCENTUAL_SIMPLES).decimalValue()));
+    }
+}

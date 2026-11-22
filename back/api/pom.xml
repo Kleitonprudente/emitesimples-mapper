@@ -76,6 +76,11 @@
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-arc</artifactId>
     </dependency>
+    <!-- job de acompanhamento das NFS-e (@Scheduled) -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-scheduler</artifactId>
+    </dependency>
     <!-- bcrypt da senha (BcryptUtil) -->
     <dependency>
       <groupId>io.quarkus</groupId>
