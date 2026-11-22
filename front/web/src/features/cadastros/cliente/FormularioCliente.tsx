@@ -1,4 +1,4 @@
-// GERADO por frontend/screenForm a partir de FormularioPessoa. Nao edite: a saida e sobrescrita por inteiro.
+// GERADO por frontend/screenForm a partir de FormularioCliente. Nao edite: a saida e sobrescrita por inteiro.
 import { z } from 'zod'
 import { AutoForm, type FieldLayout } from '@/runtime/AutoForm'
 import { fkSource } from '@/lib/fk-sources'
@@ -6,30 +6,30 @@ import { pessoaSchema, tipoPessoaValues, tipoPessoaLabels, tipoDestinatarioValue
 
 const SUBMIT_LABEL = 'Salvar'
 
-const schema = pessoaSchema.pick({ tipoPessoa: true, documento: true, inscricaoMunicipal: true, rgInscricaoEstadual: true, nome: true, nomeFantasia: true, tipoDestinatario: true, consumidorFinal: true, email: true, telefone: true, cep: true, logradouro: true, numeroEndereco: true, complemento: true, bairro: true, cidade: true, codigoPais: true, codigoPostal: true, nomeMunicipioExterior: true, nomeProvincia: true })
-export type FormularioPessoaValues = z.infer<typeof schema>
+const schema = pessoaSchema.pick({ documento: true, tipoPessoa: true, consumidorFinal: true, nome: true, nomeFantasia: true, inscricaoMunicipal: true, rgInscricaoEstadual: true, tipoDestinatario: true, email: true, telefone: true, cep: true, logradouro: true, numeroEndereco: true, complemento: true, bairro: true, cidade: true, codigoPais: true, codigoPostal: true, nomeMunicipioExterior: true, nomeProvincia: true })
+export type FormularioClienteValues = z.infer<typeof schema>
 /** Campos que o formulario edita; o resto do registro e preservado no PUT (que substitui o registro inteiro). */
-export const FormularioPessoaFieldNames: readonly string[] = Object.keys(schema.shape)
+export const FormularioClienteFieldNames: readonly string[] = Object.keys(schema.shape)
 
-const DEFAULTS: Partial<FormularioPessoaValues> = {
+const DEFAULTS: Partial<FormularioClienteValues> = {
   consumidorFinal: true,
 }
 
 const FIELDS: FieldLayout = [
   { section: 'Identificação' },
   [
-    { name: 'tipoPessoa', label: 'Tipo de Pessoa', options: tipoPessoaValues.map((value) => ({ value, label: tipoPessoaLabels[value] })), required: true, size: 's' },
-    { name: 'documento', label: 'CNPJ / CPF', maxLength: 14, size: 's' },
-    { name: 'inscricaoMunicipal', label: 'Inscrição Municipal', maxLength: 15, size: 's' },
-    { name: 'rgInscricaoEstadual', label: 'RG / Inscrição Estadual', maxLength: 20, size: 's' },
+    { name: 'documento', label: 'CNPJ / CPF', maxLength: 14, mask: 'documento', size: 'm', hint: 'Digite o CNPJ ou CPF e clique em consultar: CNPJ preenche os dados pelo CNPJ.ws; CPF define pessoa física e consumidor final.', lookup: 'cnpj' },
+    { name: 'tipoPessoa', label: 'Tipo de Pessoa', options: tipoPessoaValues.map((value) => ({ value, label: tipoPessoaLabels[value] })), required: true, size: 'm' },
+    { name: 'consumidorFinal', label: 'Consumidor Final', kind: 'boolean', size: 'm' },
   ],
   [
     { name: 'nome', label: 'Nome / Razão Social', maxLength: 300, required: true, size: 'l' },
     { name: 'nomeFantasia', label: 'Nome Fantasia', maxLength: 300, size: 'l' },
   ],
   [
-    { name: 'tipoDestinatario', label: 'Tipo do Destinatário', options: tipoDestinatarioValues.map((value) => ({ value, label: tipoDestinatarioLabels[value] })), size: 'l' },
-    { name: 'consumidorFinal', label: 'Consumidor Final', kind: 'boolean', size: 'l' },
+    { name: 'inscricaoMunicipal', label: 'Inscrição Municipal', maxLength: 15, size: 'm' },
+    { name: 'rgInscricaoEstadual', label: 'RG / Inscrição Estadual', maxLength: 20, size: 'm' },
+    { name: 'tipoDestinatario', label: 'Tipo do Destinatário', options: tipoDestinatarioValues.map((value) => ({ value, label: tipoDestinatarioLabels[value] })), size: 'm' },
   ],
   { section: 'Contato' },
   [
@@ -58,10 +58,10 @@ const FIELDS: FieldLayout = [
   ],
 ]
 
-export interface FormularioPessoaFormProps {
+export interface FormularioClienteFormProps {
   /** Modo edicao: valores existentes (sem nulos). */
-  values?: FormularioPessoaValues
-  onSubmit: (values: FormularioPessoaValues) => void | Promise<void>
+  values?: FormularioClienteValues
+  onSubmit: (values: FormularioClienteValues) => void | Promise<void>
   isSubmitting?: boolean
   onCancel?: () => void
   serverError?: unknown
@@ -69,7 +69,7 @@ export interface FormularioPessoaFormProps {
 }
 
 /** Formulario reutilizavel (dialog, pagina ou step): so compoe o AutoForm do runtime. */
-export function FormularioPessoaForm({ values, onSubmit, isSubmitting, onCancel, serverError, submitLabel }: FormularioPessoaFormProps) {
+export function FormularioClienteForm({ values, onSubmit, isSubmitting, onCancel, serverError, submitLabel }: FormularioClienteFormProps) {
   return (
     <AutoForm
       schema={schema}

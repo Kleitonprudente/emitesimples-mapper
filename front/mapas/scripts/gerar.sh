@@ -30,20 +30,24 @@ gerar() {
   tr -d '\r' < "$saida" > "$destino"
 }
 
-# entidade <Entidade> <contexto> <slug-feature> <slug-rota> <Lista> <Formulario>
-# Dominio (zodSchema/apiClient) e as 6 saidas de tela de uma entidade. O pacote das janelas e
-# $RAIZ.window.<contexto>.<slug-feature>; o destino das telas, web/src/features/<contexto>/<slug-feature>.
-entidade() {
-  local ent="$1" ctx="$2" slug="$3" rota="$4" lista="$5" form="$6"
+# dominio <Entidade> <contexto>
+# Dominio de uma entidade (zodSchema + apiClient), UMA vez por entidade, mesmo que varias janelas a usem.
+dominio() {
+  local ent="$1" ctx="$2"
   local arq; arq="$(echo "${ent:0:1}" | tr 'A-Z' 'a-z')${ent:1}"
-  local jan="$RAIZ.window.$ctx.$slug" f="$WEB/features/$ctx/$slug"
   local dom="$RAIZ.domain.$ctx"
-
-  # dominio (uma vez por entidade)
   gerar "$WEB/gen/schemas/$arq.ts" zodSchema modelName="$ent" package="$dom"
   gerar "$WEB/gen/api/$arq.ts"     apiClient modelName="$ent" package="$dom"
+}
 
-  # telas (uma vez por janela)
+# telas <contexto> <slug-feature> <slug-rota> <Lista> <Formulario>
+# As 6 saidas de tela de UM par de janelas (lista + formulario). O pacote das janelas e
+# $RAIZ.window.<contexto>.<slug-feature>; o destino das telas, web/src/features/<contexto>/<slug-feature>.
+# Varias janelas podem apontar para a mesma entidade (ex.: Clientes e Fornecedores sobre Pessoa).
+telas() {
+  local ctx="$1" slug="$2" rota="$3" lista="$4" form="$5"
+  local jan="$RAIZ.window.$ctx.$slug" f="$WEB/features/$ctx/$slug"
+
   gerar "$f/columns.tsx"             screenColumns    modelName="$lista" package="$jan"
   gerar "$f/${lista}Screen.tsx"      screenPage       modelName="$lista" package="$jan"
   gerar "$f/$form.tsx"               screenForm       modelName="$form"  package="$jan"
@@ -52,11 +56,25 @@ entidade() {
   gerar "$WEB/routes/_authenticated/$rota/\$id.tsx"  screenRoute modelName="$form"  package="$jan"
 }
 
-# saidas de versoes anteriores do mapa (formulario unico substituiu Criar/Editar)
+# entidade <Entidade> <contexto> <slug-feature> <slug-rota> <Lista> <Formulario>
+# Atalho: dominio + telas de uma entidade com um unico par de janelas (Municipio, Empresa).
+entidade() {
+  dominio "$1" "$2"
+  telas "$2" "$3" "$4" "$5" "$6"
+}
+
+# saidas de versoes anteriores do mapa (formulario unico substituiu Criar/Editar; Clientes e Fornecedores
+# substituiram as janelas de Pessoa). O teste escrito a mao (pessoa.gerado.test.tsx) NAO e apagado aqui.
 F="$WEB/features/cadastros/pessoa"
 rm -f "$F/CriarPessoa.tsx" "$F/EditarPessoa.tsx" "$F/EditarPessoaScreen.tsx"
+rm -f "$F/columns.tsx" "$F/GestaoPessoasScreen.tsx" "$F/FormularioPessoa.tsx" "$F/FormularioPessoaScreen.tsx"
+rm -f "$WEB/routes/_authenticated/pessoas/index.tsx" "$WEB/routes/_authenticated/pessoas/\$id.tsx"
+rmdir "$WEB/routes/_authenticated/pessoas" 2>/dev/null || true
 
-entidade Pessoa    cadastros pessoa    pessoas    GestaoPessoas    FormularioPessoa
+# Pessoa: um dominio, duas visoes (Clientes e Fornecedores) com filtro e valor fixos no mapa
+dominio Pessoa cadastros
+telas cadastros cliente    clientes    GestaoClientes    FormularioCliente
+telas cadastros fornecedor fornecedores GestaoFornecedores FormularioFornecedor
 entidade Municipio cadastros municipio municipios GestaoMunicipios FormularioMunicipio
 entidade Empresa   configuracao empresa empresas   GestaoEmpresas   FormularioEmpresa
 

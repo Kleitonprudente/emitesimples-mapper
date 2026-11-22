@@ -17,19 +17,19 @@ const BASE = '/Empresa'
 
 export const empresaKeys = {
   all: ['Empresa'] as const,
-  list: (s: TableState, searchField?: string) => ['Empresa', 'list', s, searchField] as const,
+  list: (s: TableState, searchField?: string, filtros?: Record<string, string | number | boolean>) => ['Empresa', 'list', s, searchField, filtros] as const,
   one: (id: string) => ['Empresa', 'id', id] as const,
 }
 
-/** Lista paginada no servidor: GET /Empresa/from/to + GET /Empresa/count. */
-export function useEmpresas(state: TableState, searchField?: string) {
+/** Lista paginada no servidor: GET /Empresa/from/to + GET /Empresa/count. `filtros` (opcional) entra na querystring da lista e da contagem e na chave de cache. */
+export function useEmpresas(state: TableState, searchField?: string, filtros?: Record<string, string | number | boolean>) {
   const req = toListRequest(state, searchField)
   const q = useQuery({
-    queryKey: empresaKeys.list(state, searchField),
+    queryKey: empresaKeys.list(state, searchField, filtros),
     queryFn: async () => {
       const [data, count] = await Promise.all([
-        api<EmpresaRow[]>(`${BASE}${req.rangePath}`, { query: req.listQuery }),
-        api<{ count: number }>(`${BASE}/count`, { query: req.countQuery }),
+        api<EmpresaRow[]>(`${BASE}${req.rangePath}`, { query: { ...req.listQuery, ...filtros } }),
+        api<{ count: number }>(`${BASE}/count`, { query: { ...req.countQuery, ...filtros } }),
       ])
       return { data, count: count.count }
     },

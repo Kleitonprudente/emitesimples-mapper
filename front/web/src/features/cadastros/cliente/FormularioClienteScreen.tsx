@@ -1,50 +1,53 @@
-// GERADO por frontend/screenEditorById a partir de FormularioPessoa. Nao edite: a saida e sobrescrita por inteiro.
+// GERADO por frontend/screenEditorById a partir de FormularioCliente. Nao edite: a saida e sobrescrita por inteiro.
 import { useNavigate } from '@tanstack/react-router'
 import { formatDateTime } from '@/runtime/format'
 import { useAtualizarPessoa, useCriarPessoa, usePessoa } from '@/gen/api/pessoa'
 import { mutationFeedback } from '@/runtime/feedback'
 import { ErrorState, LoadingState } from '@/runtime/states'
-import { FormularioPessoaForm, FormularioPessoaFieldNames, type FormularioPessoaValues } from './FormularioPessoa'
+import { FormularioClienteForm, FormularioClienteFieldNames, type FormularioClienteValues } from './FormularioCliente'
+
+/** Valores fixos deste cadastro: entram so na CRIACAO. Na edicao o PUT preserva o que o registro ja tem (ex.: a pessoa pode ser cliente e fornecedor). */
+const FIXED_VALUES = { cliente: true }
 
 // Rota unica: o id literal 'novo' cria; qualquer outro id edita. Dois componentes para os hooks nao dependerem do id.
-export function FormularioPessoaScreen({ id }: { id: string }) {
-  return id === 'novo' ? <FormularioPessoaNovo /> : <FormularioPessoaEditar id={id} />
+export function FormularioClienteScreen({ id }: { id: string }) {
+  return id === 'novo' ? <FormularioClienteNovo /> : <FormularioClienteEditar id={id} />
 }
 
-function FormularioPessoaNovo() {
+function FormularioClienteNovo() {
   const criar = useCriarPessoa()
   const navigate = useNavigate()
-  const voltar = () => void navigate({ to: '/pessoas' })
+  const voltar = () => void navigate({ to: '/clientes' })
   const fb = mutationFeedback({ success: 'Registro salvo.', onDone: voltar })
   return (
     <div className="flex max-w-5xl flex-col gap-4">
-      <h1 className="text-2xl font-semibold">Nova pessoa</h1>
-      <FormularioPessoaForm
+      <h1 className="text-2xl font-semibold">Novo cliente</h1>
+      <FormularioClienteForm
         isSubmitting={criar.isPending}
         serverError={criar.error}
         onCancel={voltar}
-        onSubmit={(v) => criar.mutateAsync(v).then(fb.onSuccess, () => {})}
+        onSubmit={(v) => criar.mutateAsync({ ...v, ...FIXED_VALUES }).then(fb.onSuccess, () => {})}
       />
     </div>
   )
 }
 
-function FormularioPessoaEditar({ id }: { id: string }) {
+function FormularioClienteEditar({ id }: { id: string }) {
   const loaded = usePessoa(id)
   const salvar = useAtualizarPessoa(id)
   const navigate = useNavigate()
-  const voltar = () => void navigate({ to: '/pessoas' })
+  const voltar = () => void navigate({ to: '/clientes' })
   const fb = mutationFeedback({ success: 'Registro salvo.', onDone: voltar })
   if (loaded.isLoading) return <LoadingState />
   if (loaded.isError || !loaded.data) return <ErrorState error={loaded.error} onRetry={() => void loaded.refetch()} />
   // O back devolve null nos opcionais ausentes; o schema do formulario espera ausente (undefined).
-  const values = Object.fromEntries(Object.entries(loaded.data).filter(([, v]) => v !== null)) as FormularioPessoaValues
+  const values = Object.fromEntries(Object.entries(loaded.data).filter(([, v]) => v !== null)) as FormularioClienteValues
   // O PUT substitui o registro inteiro: o que o formulario nao edita (ex.: referencias de integracao) segue como veio.
-  const preservar = Object.fromEntries(Object.entries(values).filter(([k]) => !FormularioPessoaFieldNames.includes(k)))
+  const preservar = Object.fromEntries(Object.entries(values).filter(([k]) => !FormularioClienteFieldNames.includes(k)))
   return (
     <div className="flex max-w-5xl flex-col gap-4">
-      <h1 className="text-2xl font-semibold">Cadastro de pessoa</h1>
-      <FormularioPessoaForm
+      <h1 className="text-2xl font-semibold">Cadastro de cliente</h1>
+      <FormularioClienteForm
         values={values}
         isSubmitting={salvar.isPending}
         serverError={salvar.error}

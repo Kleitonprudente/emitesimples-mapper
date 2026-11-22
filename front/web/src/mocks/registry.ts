@@ -1,5 +1,5 @@
 import type { LoginResponse, Papel } from '@/lib/api'
-import { adminRoutes, getMunicipios, resetAdmin } from '@/mocks/admin'
+import { adminRoutes, consultaCnpjRoute, getMunicipios, resetAdmin } from '@/mocks/admin'
 import { CEPS_MOCK, EMPRESAS_MOCK, MOCK_EMAIL_BLOQUEADO, MOCK_SENHA, MOCK_USERS, buildPessoas, type MockUser, type Pessoa } from '@/mocks/fixtures'
 import { erro, json } from '@/mocks/http'
 import { resetVinculosEmpresa, vinculosEmpresaRoutes } from '@/mocks/vinculos-empresa'
@@ -246,7 +246,8 @@ export async function handleMock(req: MockRequest): Promise<Response> {
   else {
     const c = readCookie()
     const user = c ? MOCK_USERS.find((u) => u.id === c.userId) : undefined
-    res = (await vinculosEmpresaRoutes(req, { plataformaAdmin: !!user?.plataformaAdmin })) ?? (await adminRoutes(req, { plataformaAdmin: !!user?.plataformaAdmin, nome: user?.nome ?? '' })) ?? entity(req)
+    const papel = (user?.vinculos.find((v) => v.empresaId === c?.empresaId)?.papel ?? null) as Papel | null
+    res = consultaCnpjRoute(req, { plataformaAdmin: !!user?.plataformaAdmin, papel }) ?? (await vinculosEmpresaRoutes(req, { plataformaAdmin: !!user?.plataformaAdmin })) ?? (await adminRoutes(req, { plataformaAdmin: !!user?.plataformaAdmin, nome: user?.nome ?? '' })) ?? entity(req)
   }  return res ?? erro(404, 'nao_encontrado', 'Recurso não encontrado (mock).')
 }
 

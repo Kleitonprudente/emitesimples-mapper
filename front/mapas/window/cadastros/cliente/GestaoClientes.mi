@@ -1,0 +1,88 @@
+[Descriptor.window.list] GestaoClientes
+    @
+        [e] title
+            [e] pt
+                [v] Clientes
+        [e] route
+            [v] /clientes
+        [e] role
+            [v] operador
+        [e] icon
+            [v] users
+        [e] group
+            [v] Cadastros
+        [e] order
+            [v] 10
+    [g] source
+        [r] object: Pessoa()
+    [e] fixedFilter
+        [e] field
+            [v] .cliente
+            @
+                [e] value
+                    [v] true
+    [e] columns
+        [e] field
+            [v] .documento
+            @
+                [e] mask
+                    [v] documento
+        [e] field
+            [v] .nome
+        [e] field
+            [v] .tipoPessoa
+            @
+                [e] display
+                    [v] badge
+        [e] field
+            [v] .email
+        [e] field
+            [v] .telefone
+            @
+                [e] mask
+                    [v] phone
+    [e] search
+        @
+            [e] placeholder
+                [e] pt
+                    [v] Buscar por nome…
+        [e] field
+            [v] .nome
+    [e] filters
+        [e] filter
+            [v] .tipoPessoa
+            @
+                [e] type
+                    [v] faceted
+    [e] actions
+        [e] action
+            [v] criarCliente
+            @
+                [e] type
+                    [v] primary
+                [e] label
+                    [e] pt
+                        [v] Novo cliente
+                [e] icon
+                    [v] plus
+                [e] opens
+                    [v] FormularioCliente
+        [e] action
+            [v] editarCliente
+            @
+                [e] type
+                    [v] row
+                [e] label
+                    [e] pt
+                        [v] Editar
+                [e] icon
+                    [v] pencil
+                [e] opens
+                    [v] FormularioCliente
+    [e] emptyState
+        @
+            [e] message
+                [e] pt
+                    [v] Nenhum cliente cadastrado ainda.
+            [e] action
+                [v] criarCliente

@@ -6,7 +6,8 @@ Home do projeto Mapper Idea do front (`emitesimples-front` no CLI). Projeto sepa
 main.mi                         registra config de tipos, dominio (copia), struct e as telas
 dominio/<Contexto>/*.mi         COPIA SOMENTE-LEITURA de back/mapas/<Contexto>/ (nao edite aqui)
 generators/struct.mi            copia do struct do back (necessario para validar com `struct`)
-window/cadastros/pessoa/        mapas de tela: GestaoPessoas (list) e FormularioPessoa (editor, formulario UNICO)
+window/cadastros/cliente/       GestaoClientes (list, fixedFilter .cliente) e FormularioCliente (editor, fixedValues .cliente)
+window/cadastros/fornecedor/    GestaoFornecedores (list, fixedFilter .fornecedor) e FormularioFornecedor (editor, fixedValues .fornecedor)
 window/cadastros/municipio/     GestaoMunicipios (list, platformOnly, sem exclusao) e FormularioMunicipio (editor)
 window/configuracao/empresa/    GestaoEmpresas (list, platformOnly, sem exclusao) e FormularioEmpresa (editor, platformOnly)
 scripts/sincronizar-dominio.sh  copia/verifica o dominio
@@ -120,6 +121,45 @@ O verificador `web/scripts/verificar-padrao-ui.mjs` (se existir) roda ao final d
 Padrao: criar e editar em pagina unica. O ramo Dialog do `screenPage` ainda existe no gerador, mas o caminho "criar em dialog a
 partir de uma lista" agora e ERRO (o codigo e gerado, junto do erro, so para diagnostico).
 
+## Dois cadastros sobre a mesma entidade (Clientes e Fornecedores sobre Pessoa)
+
+Uma entidade pode ter varias visoes. `Pessoa` tem os booleanos `cliente` e `fornecedor` (a mesma pessoa pode ser os dois), e o
+menu Cadastros tem duas telas: Clientes (`/clientes`, `/clientes/$id`) e Fornecedores (`/fornecedores`, `/fornecedores/$id`),
+cada uma com seu par lista + formulario. O zodSchema e o apiClient de Pessoa saem UMA vez (`gen/schemas/pessoa.ts`, `gen/api/pessoa.ts`);
+`gerar.sh` usa `dominio Pessoa cadastros` e duas chamadas `telas ...` (`entidade` = `dominio` + `telas`, usada por Municipio e Empresa).
+
+### `fixedFilter` (janela `window.list`)
+
+```
+[e] fixedFilter
+    [e] field
+        [v] .cliente
+        @
+            [e] value
+                [v] true
+```
+Cada `field` e um atributo escalar do bean da `source`; `value` e o valor LITERAL (`true`|`false`|numero|texto). O `screenPage` emite
+`usePessoas(state, 'nome', { cliente: true })`: o filtro entra na querystring da lista e do `/count` e na chave de cache
+(o `apiClient` ganhou o 3o parametro opcional `filtros?: Record<string, string | number | boolean>`; chamadas antigas nao mudam).
+O filtro fixo vence um filtro de mesmo nome da tabela. Sem `fixedFilter` a saida da lista e identica.
+
+### `fixedValues` (janela `window.editor`)
+
+Mesmo formato. Os campos fixos NAO aparecem no formulario (nao os liste em `form`). O `screenEditorById` emite
+`const FIXED_VALUES = { cliente: true }` e, so no CRIAR, `criar.mutateAsync({ ...v, ...FIXED_VALUES })`. Na EDICAO nao sobrescreve: o PUT
+preserva o que o registro ja tem (a pessoa pode ser cliente e fornecedor). Sem `fixedValues` a saida e identica. O titulo do modo novo
+continua sendo o label da acao `primary` da lista ("Novo cliente").
+
+### ERRO NO MODELO novos
+
+| Gerador | Mensagem | Como corrigir |
+|---|---|---|
+| `screenPage` | `fixedFilter <.campo> sem atributo escalar correspondente em <Bean> na lista <Janela> ...` | o campo deve ser atributo (`directToField`) do bean da `source`. |
+| `screenPage` | `fixedFilter <.campo> sem value em <Janela> (declare o valor literal: ...)` | declare `[e] value` no `@` do `field`. |
+| `screenEditorById` | `fixedValues <.campo> sem atributo escalar correspondente em <Bean> no editor <Janela> ...` | idem. |
+| `screenEditorById` | `fixedValues <.campo> sem value em <Janela> ...` | idem. |
+| `screenEditorById` | `fixedValues <.campo> tambem aparece no formulario de <Janela> ...` | tire o campo de `form`: campo fixo nao e editavel. |
+
 ## Propriedades novas (Municipio)
 
 - `platformOnly` (valor `true`) na janela: `screenManifest` emite `platformOnly: true` no `ScreenEntry` (campo opcional
@@ -127,7 +167,7 @@ partir de uma lista" agora e ERRO (o codigo e gerado, junto do erro, so para dia
 - Acao `type = link` com `route`: `screenPage` renderiza `<Button variant="outline" asChild><Link to="<route>">` com o icone
   e o label da acao, na barra de ferramentas ao lado do botao de criar (`toolbarActions`). Nao abre dialog nem usa `opens`.
   Sem acao `link` a saida da lista e identica a anterior (Pessoa nao muda).
-- `gerar.sh` usa a funcao `entidade <Entidade> <contexto> <slug> <rota> <Lista> <Formulario>`; Pessoa e Municipio saem dela.
+- `gerar.sh` usa `entidade <Entidade> <contexto> <slug> <rota> <Lista> <Formulario>` (= `dominio` + `telas`); Municipio e Empresa saem dela. Pessoa usa `dominio` + duas `telas` (Clientes e Fornecedores).
 - Icone `map-pin` nao existe em `runtime/icons.tsx`; as janelas de Municipio usam `settings`. Para trocar, acrescente o icone la.
 
 ## Empresa (tenant, so administrador da plataforma)

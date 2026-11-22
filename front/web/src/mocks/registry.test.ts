@@ -190,6 +190,73 @@ describe('mock registry: admin da plataforma', () => {
     expect((await call('POST', '/admin/municipios/importacao', new FormData(), token)).body.codigo).toBe('arquivo_obrigatorio')
   })
 })
+describe('mock registry: Pessoa cliente/fornecedor', () => {
+  beforeEach(() => resetMock())
+
+  it('filtra por cliente=true e fornecedor=true em lista, faixa e count', async () => {
+    const token = await loginToken()
+    const clientes = await call('GET', '/Pessoa/count', undefined, token, { cliente: 'true' })
+    const fornecedores = await call('GET', '/Pessoa/count', undefined, token, { fornecedor: 'true' })
+    expect(clientes.body.count).toBe(36)
+    expect(fornecedores.body.count).toBe(2)
+    const lista = await call('GET', '/Pessoa', undefined, token, { fornecedor: 'true' })
+    expect(lista.body).toHaveLength(2)
+    expect(lista.body.every((p: { fornecedor: boolean }) => p.fornecedor)).toBe(true)
+    expect(lista.body.filter((p: { cliente: boolean }) => p.cliente)).toHaveLength(1) // um e ambos
+    const faixa = await call('GET', '/Pessoa/0/9', undefined, token, { cliente: 'true' })
+    expect(faixa.body).toHaveLength(10)
+    expect(faixa.body.every((p: { cliente: boolean }) => p.cliente)).toBe(true)
+    const nome = await call('GET', '/Pessoa/count', undefined, token, { cliente: 'true', nome: 'Carlos*' })
+    expect(nome.body.count).toBeGreaterThan(0)
+  })
+
+  it('POST e PUT preservam e devolvem cliente/fornecedor', async () => {
+    const token = await loginToken()
+    const nova = { tipoPessoa: 'juridica', documento: '45723174000110', nome: 'Fornecedora', cliente: false, fornecedor: true }
+    const c = await call('POST', '/Pessoa', nova, token)
+    expect(c.body).toMatchObject({ cliente: false, fornecedor: true })
+    const u = await call('PUT', `/Pessoa/id/${c.body.id}`, { ...nova, cliente: true }, token)
+    expect(u.body).toMatchObject({ cliente: true, fornecedor: true })
+    const g = await call('GET', `/Pessoa/id/${c.body.id}`, undefined, token)
+    expect(g.body).toMatchObject({ cliente: true, fornecedor: true })
+  })
+})
+
+describe('mock registry: GET /consulta-cnpj/{cnpj} (usuarios da empresa)', () => {
+  beforeEach(() => resetMock())
+  const login = async (email: string) => ((await call('POST', '/auth/login', { email, senha: 'senha1234' })).body.accessToken as string)
+  const configurar = async () => {
+    const t = await login('plataforma@exemplo.com.br')
+    await call('PUT', '/admin/configuracoes/consulta-cnpj', { urlBase: 'https://x.com/cnpj', token: 'abc' }, t)
+    return t
+  }
+
+  it('administrador, operador e plataforma consultam; consulta recebe 403', async () => {
+    await configurar()
+    for (const email of ['admin@exemplo.com.br', 'operador@exemplo.com.br', 'plataforma@exemplo.com.br']) {
+      const t = await login(email)
+      const r = await call('GET', '/consulta-cnpj/27865757000102', undefined, t)
+      expect([email, r.status]).toEqual([email, 200])
+      expect(r.body.socios).toEqual([{ nome: 'Maria Souza', tipo: 'Pessoa Física', qualificacao: 'Sócio-Administrador' }])
+    }
+    const c = await login('consulta@exemplo.com.br')
+    expect((await call('GET', '/consulta-cnpj/27865757000102', undefined, c)).status).toBe(403)
+  })
+
+  it('erros: 400, 409 sem token, 404, 502, 429; rota /admin antiga segue valendo so para plataforma', async () => {
+    const t = await login('admin@exemplo.com.br')
+    expect((await call('GET', '/consulta-cnpj/123', undefined, t)).body.codigo).toBe('cnpj_invalido')
+    expect((await call('GET', '/consulta-cnpj/27865757000102', undefined, t)).body.codigo).toBe('token_nao_configurado')
+    expect((await call('GET', '/admin/consulta-cnpj/27865757000102', undefined, t)).status).toBe(403)
+    const p = await configurar() // o mock guarda um so token: este login invalida o do administrador
+    expect((await call('GET', '/admin/consulta-cnpj/27865757000102', undefined, p)).status).toBe(200)
+    const t2 = await login('admin@exemplo.com.br')
+    expect((await call('GET', '/consulta-cnpj/00000000000191', undefined, t2)).status).toBe(404)
+    expect((await call('GET', '/consulta-cnpj/11222333000181', undefined, t2)).status).toBe(502)
+    expect((await call('GET', '/consulta-cnpj/11444777000161', undefined, t2)).status).toBe(429)
+  })
+})
+
 describe('mock registry: consulta de CNPJ', () => {
   beforeEach(() => resetMock())
   const URL_CFG = '/admin/configuracoes/consulta-cnpj'

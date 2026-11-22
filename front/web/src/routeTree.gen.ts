@@ -17,13 +17,15 @@ import { Route as AuthenticatedAdminConsultaCnpjRouteImport } from './routes/_au
 import { Route as AuthenticatedAdminMunicipiosRouteImport } from './routes/_authenticated/admin/municipios'
 import { Route as AuthenticatedAdminThemeRouteImport } from './routes/_authenticated/admin/theme'
 import { Route as AuthenticatedAdminUsuariosRouteImport } from './routes/_authenticated/admin/usuarios'
+import { Route as AuthenticatedClientesIndexRouteImport } from './routes/_authenticated/clientes/index'
+import { Route as AuthenticatedClientesIdRouteImport } from './routes/_authenticated/clientes/$id'
 import { Route as AuthenticatedEmpresasIndexRouteImport } from './routes/_authenticated/empresas/index'
 import { Route as AuthenticatedEmpresasIdRouteImport } from './routes/_authenticated/empresas/$id'
 import { Route as AuthenticatedExemplosPessoasRouteImport } from './routes/_authenticated/exemplos/pessoas'
+import { Route as AuthenticatedFornecedoresIndexRouteImport } from './routes/_authenticated/fornecedores/index'
+import { Route as AuthenticatedFornecedoresIdRouteImport } from './routes/_authenticated/fornecedores/$id'
 import { Route as AuthenticatedMunicipiosIndexRouteImport } from './routes/_authenticated/municipios/index'
 import { Route as AuthenticatedMunicipiosIdRouteImport } from './routes/_authenticated/municipios/$id'
-import { Route as AuthenticatedPessoasIndexRouteImport } from './routes/_authenticated/pessoas/index'
-import { Route as AuthenticatedPessoasIdRouteImport } from './routes/_authenticated/pessoas/$id'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
@@ -67,6 +69,17 @@ const AuthenticatedAdminUsuariosRoute =
     path: '/admin/usuarios',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedClientesIndexRoute =
+  AuthenticatedClientesIndexRouteImport.update({
+    id: '/clientes/',
+    path: '/clientes/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedClientesIdRoute = AuthenticatedClientesIdRouteImport.update({
+  id: '/clientes/$id',
+  path: '/clientes/$id',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedEmpresasIndexRoute =
   AuthenticatedEmpresasIndexRouteImport.update({
     id: '/empresas/',
@@ -84,6 +97,18 @@ const AuthenticatedExemplosPessoasRoute =
     path: '/exemplos/pessoas',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedFornecedoresIndexRoute =
+  AuthenticatedFornecedoresIndexRouteImport.update({
+    id: '/fornecedores/',
+    path: '/fornecedores/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedFornecedoresIdRoute =
+  AuthenticatedFornecedoresIdRouteImport.update({
+    id: '/fornecedores/$id',
+    path: '/fornecedores/$id',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedMunicipiosIndexRoute =
   AuthenticatedMunicipiosIndexRouteImport.update({
     id: '/municipios/',
@@ -96,17 +121,6 @@ const AuthenticatedMunicipiosIdRoute =
     path: '/municipios/$id',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedPessoasIndexRoute =
-  AuthenticatedPessoasIndexRouteImport.update({
-    id: '/pessoas/',
-    path: '/pessoas/',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedPessoasIdRoute = AuthenticatedPessoasIdRouteImport.update({
-  id: '/pessoas/$id',
-  path: '/pessoas/$id',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -116,13 +130,15 @@ export interface FileRoutesByFullPath {
   '/admin/municipios': typeof AuthenticatedAdminMunicipiosRoute
   '/admin/theme': typeof AuthenticatedAdminThemeRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
+  '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/empresas/$id': typeof AuthenticatedEmpresasIdRoute
   '/exemplos/pessoas': typeof AuthenticatedExemplosPessoasRoute
+  '/fornecedores/$id': typeof AuthenticatedFornecedoresIdRoute
   '/municipios/$id': typeof AuthenticatedMunicipiosIdRoute
-  '/pessoas/$id': typeof AuthenticatedPessoasIdRoute
+  '/clientes/': typeof AuthenticatedClientesIndexRoute
   '/empresas/': typeof AuthenticatedEmpresasIndexRoute
+  '/fornecedores/': typeof AuthenticatedFornecedoresIndexRoute
   '/municipios/': typeof AuthenticatedMunicipiosIndexRoute
-  '/pessoas/': typeof AuthenticatedPessoasIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -132,13 +148,15 @@ export interface FileRoutesByTo {
   '/admin/municipios': typeof AuthenticatedAdminMunicipiosRoute
   '/admin/theme': typeof AuthenticatedAdminThemeRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
+  '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/empresas/$id': typeof AuthenticatedEmpresasIdRoute
   '/exemplos/pessoas': typeof AuthenticatedExemplosPessoasRoute
+  '/fornecedores/$id': typeof AuthenticatedFornecedoresIdRoute
   '/municipios/$id': typeof AuthenticatedMunicipiosIdRoute
-  '/pessoas/$id': typeof AuthenticatedPessoasIdRoute
+  '/clientes': typeof AuthenticatedClientesIndexRoute
   '/empresas': typeof AuthenticatedEmpresasIndexRoute
+  '/fornecedores': typeof AuthenticatedFornecedoresIndexRoute
   '/municipios': typeof AuthenticatedMunicipiosIndexRoute
-  '/pessoas': typeof AuthenticatedPessoasIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -150,13 +168,15 @@ export interface FileRoutesById {
   '/_authenticated/admin/municipios': typeof AuthenticatedAdminMunicipiosRoute
   '/_authenticated/admin/theme': typeof AuthenticatedAdminThemeRoute
   '/_authenticated/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
+  '/_authenticated/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/_authenticated/empresas/$id': typeof AuthenticatedEmpresasIdRoute
   '/_authenticated/exemplos/pessoas': typeof AuthenticatedExemplosPessoasRoute
+  '/_authenticated/fornecedores/$id': typeof AuthenticatedFornecedoresIdRoute
   '/_authenticated/municipios/$id': typeof AuthenticatedMunicipiosIdRoute
-  '/_authenticated/pessoas/$id': typeof AuthenticatedPessoasIdRoute
+  '/_authenticated/clientes/': typeof AuthenticatedClientesIndexRoute
   '/_authenticated/empresas/': typeof AuthenticatedEmpresasIndexRoute
+  '/_authenticated/fornecedores/': typeof AuthenticatedFornecedoresIndexRoute
   '/_authenticated/municipios/': typeof AuthenticatedMunicipiosIndexRoute
-  '/_authenticated/pessoas/': typeof AuthenticatedPessoasIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -168,13 +188,15 @@ export interface FileRouteTypes {
     | '/admin/municipios'
     | '/admin/theme'
     | '/admin/usuarios'
+    | '/clientes/$id'
     | '/empresas/$id'
     | '/exemplos/pessoas'
+    | '/fornecedores/$id'
     | '/municipios/$id'
-    | '/pessoas/$id'
+    | '/clientes/'
     | '/empresas/'
+    | '/fornecedores/'
     | '/municipios/'
-    | '/pessoas/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -184,13 +206,15 @@ export interface FileRouteTypes {
     | '/admin/municipios'
     | '/admin/theme'
     | '/admin/usuarios'
+    | '/clientes/$id'
     | '/empresas/$id'
     | '/exemplos/pessoas'
+    | '/fornecedores/$id'
     | '/municipios/$id'
-    | '/pessoas/$id'
+    | '/clientes'
     | '/empresas'
+    | '/fornecedores'
     | '/municipios'
-    | '/pessoas'
   id:
     | '__root__'
     | '/_authenticated'
@@ -201,13 +225,15 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/municipios'
     | '/_authenticated/admin/theme'
     | '/_authenticated/admin/usuarios'
+    | '/_authenticated/clientes/$id'
     | '/_authenticated/empresas/$id'
     | '/_authenticated/exemplos/pessoas'
+    | '/_authenticated/fornecedores/$id'
     | '/_authenticated/municipios/$id'
-    | '/_authenticated/pessoas/$id'
+    | '/_authenticated/clientes/'
     | '/_authenticated/empresas/'
+    | '/_authenticated/fornecedores/'
     | '/_authenticated/municipios/'
-    | '/_authenticated/pessoas/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -273,6 +299,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminUsuariosRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/clientes/': {
+      id: '/_authenticated/clientes/'
+      path: '/clientes'
+      fullPath: '/clientes/'
+      preLoaderRoute: typeof AuthenticatedClientesIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/clientes/$id': {
+      id: '/_authenticated/clientes/$id'
+      path: '/clientes/$id'
+      fullPath: '/clientes/$id'
+      preLoaderRoute: typeof AuthenticatedClientesIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/empresas/': {
       id: '/_authenticated/empresas/'
       path: '/empresas'
@@ -294,6 +334,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedExemplosPessoasRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/fornecedores/': {
+      id: '/_authenticated/fornecedores/'
+      path: '/fornecedores'
+      fullPath: '/fornecedores/'
+      preLoaderRoute: typeof AuthenticatedFornecedoresIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/fornecedores/$id': {
+      id: '/_authenticated/fornecedores/$id'
+      path: '/fornecedores/$id'
+      fullPath: '/fornecedores/$id'
+      preLoaderRoute: typeof AuthenticatedFornecedoresIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/municipios/': {
       id: '/_authenticated/municipios/'
       path: '/municipios'
@@ -308,20 +362,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMunicipiosIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/pessoas/': {
-      id: '/_authenticated/pessoas/'
-      path: '/pessoas'
-      fullPath: '/pessoas/'
-      preLoaderRoute: typeof AuthenticatedPessoasIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/pessoas/$id': {
-      id: '/_authenticated/pessoas/$id'
-      path: '/pessoas/$id'
-      fullPath: '/pessoas/$id'
-      preLoaderRoute: typeof AuthenticatedPessoasIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
   }
 }
 
@@ -332,13 +372,15 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAdminMunicipiosRoute: typeof AuthenticatedAdminMunicipiosRoute
   AuthenticatedAdminThemeRoute: typeof AuthenticatedAdminThemeRoute
   AuthenticatedAdminUsuariosRoute: typeof AuthenticatedAdminUsuariosRoute
+  AuthenticatedClientesIdRoute: typeof AuthenticatedClientesIdRoute
   AuthenticatedEmpresasIdRoute: typeof AuthenticatedEmpresasIdRoute
   AuthenticatedExemplosPessoasRoute: typeof AuthenticatedExemplosPessoasRoute
+  AuthenticatedFornecedoresIdRoute: typeof AuthenticatedFornecedoresIdRoute
   AuthenticatedMunicipiosIdRoute: typeof AuthenticatedMunicipiosIdRoute
-  AuthenticatedPessoasIdRoute: typeof AuthenticatedPessoasIdRoute
+  AuthenticatedClientesIndexRoute: typeof AuthenticatedClientesIndexRoute
   AuthenticatedEmpresasIndexRoute: typeof AuthenticatedEmpresasIndexRoute
+  AuthenticatedFornecedoresIndexRoute: typeof AuthenticatedFornecedoresIndexRoute
   AuthenticatedMunicipiosIndexRoute: typeof AuthenticatedMunicipiosIndexRoute
-  AuthenticatedPessoasIndexRoute: typeof AuthenticatedPessoasIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -348,13 +390,15 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminMunicipiosRoute: AuthenticatedAdminMunicipiosRoute,
   AuthenticatedAdminThemeRoute: AuthenticatedAdminThemeRoute,
   AuthenticatedAdminUsuariosRoute: AuthenticatedAdminUsuariosRoute,
+  AuthenticatedClientesIdRoute: AuthenticatedClientesIdRoute,
   AuthenticatedEmpresasIdRoute: AuthenticatedEmpresasIdRoute,
   AuthenticatedExemplosPessoasRoute: AuthenticatedExemplosPessoasRoute,
+  AuthenticatedFornecedoresIdRoute: AuthenticatedFornecedoresIdRoute,
   AuthenticatedMunicipiosIdRoute: AuthenticatedMunicipiosIdRoute,
-  AuthenticatedPessoasIdRoute: AuthenticatedPessoasIdRoute,
+  AuthenticatedClientesIndexRoute: AuthenticatedClientesIndexRoute,
   AuthenticatedEmpresasIndexRoute: AuthenticatedEmpresasIndexRoute,
+  AuthenticatedFornecedoresIndexRoute: AuthenticatedFornecedoresIndexRoute,
   AuthenticatedMunicipiosIndexRoute: AuthenticatedMunicipiosIndexRoute,
-  AuthenticatedPessoasIndexRoute: AuthenticatedPessoasIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

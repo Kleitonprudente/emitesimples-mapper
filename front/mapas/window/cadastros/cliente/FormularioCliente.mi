@@ -1,0 +1,168 @@
+[Descriptor.window.editor] FormularioCliente
+    @
+        [e] title
+            [e] pt
+                [v] Cadastro de cliente
+        [e] route
+            [v] /clientes/$id
+        [e] role
+            [v] operador
+        [e] icon
+            [v] user-pen
+    [g] source
+        [r] object: Pessoa()
+    [e] fixedValues
+        [e] field
+            [v] .cliente
+            @
+                [e] value
+                    [v] true
+    [e] form
+        [e] rows
+            [e] section
+                [v] Identificação
+            [e] row
+                [e] field
+                    [v] .documento
+                    @
+                        [e] mask
+                            [v] documento
+                        [e] size
+                            [v] m
+                        [e] hint
+                            [e] pt
+                                [v] Digite o CNPJ ou CPF e clique em consultar: CNPJ preenche os dados pelo CNPJ.ws; CPF define pessoa física e consumidor final.
+                        [e] lookup
+                            [v] cnpj
+                [e] field
+                    [v] .tipoPessoa
+                    @
+                        [e] size
+                            [v] m
+                [e] field
+                    [v] .consumidorFinal
+                    @
+                        [e] size
+                            [v] m
+            [e] row
+                [e] field
+                    [v] .nome
+                    @
+                        [e] size
+                            [v] l
+                [e] field
+                    [v] .nomeFantasia
+                    @
+                        [e] size
+                            [v] l
+            [e] row
+                [e] field
+                    [v] .inscricaoMunicipal
+                    @
+                        [e] size
+                            [v] m
+                [e] field
+                    [v] .rgInscricaoEstadual
+                    @
+                        [e] size
+                            [v] m
+                [e] field
+                    [v] .tipoDestinatario
+                    @
+                        [e] size
+                            [v] m
+            [e] section
+                [v] Contato
+            [e] row
+                [e] field
+                    [v] .email
+                    @
+                        [e] size
+                            [v] xl
+                [e] field
+                    [v] .telefone
+                    @
+                        [e] mask
+                            [v] phone
+                        [e] size
+                            [v] m
+            [e] section
+                [v] Endereço
+            [e] row
+                [e] field
+                    [v] .cep
+                    @
+                        [e] mask
+                            [v] postalCode
+                        [e] size
+                            [v] s
+                        [e] hint
+                            [e] pt
+                                [v] Ao sair do campo, o endereço é preenchido.
+                        [e] lookup
+                            [v] cep
+                [e] field
+                    [v] .logradouro
+                    @
+                        [e] size
+                            [v] l
+                [e] field
+                    [v] .numeroEndereco
+                    @
+                        [e] size
+                            [v] s
+            [e] row
+                [e] field
+                    [v] .complemento
+                    @
+                        [e] size
+                            [v] m
+                [e] field
+                    [v] .bairro
+                    @
+                        [e] size
+                            [v] m
+                [e] field
+                    [v] .cidade
+                    @
+                        [e] label
+                            [e] pt
+                                [v] Município
+                        [e] size
+                            [v] m
+            [e] section
+                [v] Pessoa estrangeira (exportação)
+                @
+                    [e] collapsible
+                        [v] true
+            [e] row
+                [e] field
+                    [v] .codigoPais
+                    @
+                        [e] size
+                            [v] m
+                [e] field
+                    [v] .codigoPostal
+                    @
+                        [e] size
+                            [v] xl
+            [e] row
+                [e] field
+                    [v] .nomeMunicipioExterior
+                    @
+                        [e] size
+                            [v] l
+                [e] field
+                    [v] .nomeProvincia
+                    @
+                        [e] size
+                            [v] l
+    [e] actions
+        [e] action
+            [v] salvar
+            @
+                [e] type
+                    [v] primary
+                [e] label
+                    [e] pt
+                        [v] Salvar

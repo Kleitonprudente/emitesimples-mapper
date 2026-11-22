@@ -45,8 +45,8 @@ export interface FieldSpec {
    * Busca de endereco por CEP. Ao SAIR do campo com 8 digitos o AutoForm chama `GET /cep/{cep}` e preenche, por
    * convencao de nome, os campos irmaos que existirem no layout: `logradouro`, `bairro`, `complemento` (so se vazio)
    * e `cidade` (objeto `municipio` devolvido). Use junto com `mask: 'postalCode'`.
-   * `'cnpj'`: consulta `GET /admin/consulta-cnpj/{cnpj}` (14 digitos validos) e preenche, por nome, razaoSocial,
-   * nomeFantasia, email, telefone, cep, logradouro, numeroEndereco, complemento, bairro, municipio (FK),
+   * `'cnpj'`: consulta `GET /consulta-cnpj/{cnpj}` (14 digitos validos) e preenche, por nome, razaoSocial (ou `nome`, se nao
+   * houver razaoSocial), tipoPessoa='juridica', consumidorFinal=false, nomeFantasia, email, telefone, cep, logradouro, numeroEndereco, complemento, bairro, municipio (FK),
    * regimeTributario e rgInscricaoEstadual. Use junto com `mask: 'documento'` ou `'cnpj'`.
    */
   lookup?: 'cep' | 'cnpj'

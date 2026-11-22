@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 import { ApiError, api } from '@/lib/api'
 import { errorMessage } from '@/runtime/feedback'
 import { FormField, SIZE_CLASS, SIZE_COLS, resolveKind, resolveSize, type FieldSpec, type LookupState } from '@/runtime/FormField'
-import { isValidCnpj, onlyDigits } from '@/runtime/format'
+import { isValidCnpj, isValidCpf, onlyDigits } from '@/runtime/format'
 
 // Mensagens de validacao do zod em portugues.
 z.config(z.locales.pt())
@@ -91,7 +91,7 @@ export interface CepResult {
   municipio?: { id: string; nome?: string; uf?: string; codigoIbge?: string } | null
 }
 
-/** Resposta de GET /admin/consulta-cnpj/{cnpj} (o back consulta o CNPJ.ws). Todo campo pode faltar. */
+/** Resposta de GET /consulta-cnpj/{cnpj} (o back consulta o CNPJ.ws). Todo campo pode faltar. */
 export interface CnpjResult {
   cnpj?: string
   razaoSocial?: string | null
@@ -113,6 +113,7 @@ export interface CnpjResult {
 }
 
 export const AVISO_CNPJ = 'Dados preenchidos pelo CNPJ.ws. Confira antes de salvar.'
+export const AVISO_CPF = 'CPF informado: pessoa física e consumidor final preenchidos.'
 
 /** Mensagens amigaveis por codigo de erro da consulta de CNPJ; sem codigo conhecido, vale a mensagem do back. */
 const ERRO_CNPJ: Record<string, string> = {
@@ -225,8 +226,12 @@ export function AutoForm<T extends FieldValues>({
       const text = (n: string, v: string | null | undefined) => {
         if (v) put(n, v)
       }
-      text('razaoSocial', r.razaoSocial)
+      // Sem campo `razaoSocial` no layout (ex.: Cliente/Fornecedor), a razao social e o fantasia vao para `nome`/`nomeFantasia`.
+      text(names.has('razaoSocial') ? 'razaoSocial' : 'nome', r.razaoSocial)
       text('nomeFantasia', r.nomeFantasia)
+      // Convencao: CNPJ consultado com sucesso e pessoa juridica, nao consumidor final.
+      put('tipoPessoa', 'juridica')
+      put('consumidorFinal', false)
       text('email', r.email)
       text('telefone', onlyDigits(r.telefone))
       text('cep', onlyDigits(r.cep))
@@ -246,6 +251,15 @@ export function AutoForm<T extends FieldValues>({
     [form, names, municipioName],
   )
 
+  /** CPF valido: pessoa fisica e consumidor final, sem API. Devolve o aviso, ou undefined se o layout nao tem os campos irmaos. */
+  const applyCpf = useCallback((): string | undefined => {
+    if (!names.has('tipoPessoa') && !names.has('consumidorFinal')) return undefined
+    const opts = { shouldDirty: true, shouldValidate: true }
+    if (names.has('tipoPessoa')) form.setValue('tipoPessoa' as Path<T>, 'fisica' as never, opts)
+    if (names.has('consumidorFinal')) form.setValue('consumidorFinal' as Path<T>, true as never, opts)
+    return AVISO_CPF
+  }, [form, names])
+
   const lookupFor = (spec: FieldSpec): LookupState | undefined => {
     const kind = spec.lookup
     if (kind !== 'cep' && kind !== 'cnpj') return undefined
@@ -255,8 +269,19 @@ export function AutoForm<T extends FieldValues>({
     // forcar=false (sair do campo): so consulta documento completo e diferente do que havia ao entrar. forcar=true (botao ou Enter): consulta sempre.
     const buscar = (forcar: boolean) => {
       const digits = digitsNow()
+      if (kind === 'cnpj' && digits.length === 11) {
+        // CPF num campo de documento: nao ha consulta; se valido, so aplica a convencao de tipo.
+        if (!isValidCpf(digits)) {
+          if (forcar) setLookup(name, { loading: false, error: 'CPF inválido.' })
+          return
+        }
+        if (!forcar && digits === focusRef.current[name]) return
+        seqRef.current[name] = (seqRef.current[name] ?? 0) + 1 // descarta consulta de CNPJ anterior em andamento
+        erroredRef.current.delete(name)
+        setLookup(name, { loading: false, notice: applyCpf() })
+        return
+      }
       if (digits.length !== tamanho) {
-        // CPF (11 digitos) num campo de documento: ao sair do campo nao e erro, so nao ha o que consultar.
         if (forcar) setLookup(name, { loading: false, error: kind === 'cep' ? 'Informe os 8 dígitos do CEP.' : 'Informe os 14 dígitos do CNPJ.' })
         return
       }
@@ -271,7 +296,7 @@ export function AutoForm<T extends FieldValues>({
       const request: Promise<{ notice?: string }> =
         kind === 'cep'
           ? api<CepResult>(`/cep/${digits}`).then((r) => ({ notice: applyCep(r) }))
-          : api<CnpjResult>(`/admin/consulta-cnpj/${digits}`).then((r) => ({ notice: applyCnpj(r) }))
+          : api<CnpjResult>(`/consulta-cnpj/${digits}`).then((r) => ({ notice: applyCnpj(r) }))
       request.then(
         ({ notice }) => {
           if (seqRef.current[name] !== n) return // resposta de uma busca antiga

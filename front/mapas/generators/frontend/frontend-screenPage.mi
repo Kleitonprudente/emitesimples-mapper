@@ -16,6 +16,10 @@
             [v] // GERADO por frontend/screenPage a partir de {{ @name }}. Nao edite: a saida e sobrescrita por inteiro.
         [e] err-create-dialog
             [v] // ERRO NO MODELO: lista {{ @name }} abre '{{ $badOpens }}' fora da pagina unica: cadastro deve criar na pagina unica: opens deve apontar para window.editor com rota /x/{{ '$id' }}
+        [e] err-fixed-field
+            [v] // ERRO NO MODELO: fixedFilter {{ $fname }} sem atributo escalar correspondente em {{ $bean }} na lista {{ $janela }} (o campo deve existir como atributo do bean da source)
+        [e] err-fixed-value
+            [v] // ERRO NO MODELO: fixedFilter {{ $fname }} sem value em {{ $janela }} (declare o valor literal: true|false|texto|numero)
         [e] import-react
             [v] import { {{ $reactImports }} } from 'react'
         [e] import-navigate
@@ -95,7 +99,7 @@
             [v]         // @TODO {{ normalize-space(value) }}: acao de linha sem destino window.editor com $id em opens
         [e] use-state-table
             [v]   const [state, update] = useTableState({ sortBy: '{{ $sortBy }}' })
-            [v]   const result = use{{ $bean }}s(state, '{{ $searchField }}')
+            [v]   const result = use{{ $bean }}s(state, '{{ $searchField }}'{{ $filtrosArg }})
         [e] create-hooks
             [v]   const [dialogOpen, setDialogOpen] = useState(false)
             [v]   const criar = useCriar{{ $bean }}()
@@ -305,6 +309,10 @@
                     [e] expr
                         [v] if ($searchField != '') then $searchField else $firstColumn
                 [e] var
+                    [v] filtrosArg
+                    [e] expr
+                        [v] if (exists(fixedFilter/field)) then concat(', { ', string-join(for $f in fixedFilter/field return (for $v in normalize-space($f/properties/value/value) return concat(substring(normalize-space($f/value), 2), ': ', if ($v = ('true', 'false') or functx:is-a-number($v)) then $v else concat("'", replace($v, "'", "\\'"), "'"))), ', '), ' }') else ''
+                [e] var
                     [v] title
                     [e] expr
                         [v] replace(normalize-space(properties/title/pt/value), "'", "\\'")
@@ -318,6 +326,18 @@
                         [v] replace(mi:if-else(exists(emptyState/properties/message/pt/value), normalize-space(emptyState/properties/message/pt/value), 'Nenhum registro encontrado.'), "'", "\\'")
             [e] write-pattern
                 [v] header
+            [e] apply-templates
+                [e] select
+                    [v] fixedFilter/field
+                [e] parameters
+                    [e] bean
+                        [e] expr
+                            [v] $bean
+                    [e] janela
+                        [e] expr
+                            [v] string(@name)
+                [e] mode
+                    [v] fixedErro
             [e] if
                 [v] $padraoViolado
                 [e] then
@@ -487,6 +507,44 @@
             [e] write-pattern
                 [v] return-end
     [e] templates
+        [e] mode
+            [v] fixedErro
+            [e] template
+                [e] match
+                    [v] field
+                [e] parameters
+                    [e] bean
+                        [v] NOT_DEFINED
+                    [e] janela
+                        [v] NOT_DEFINED
+                [e] body
+                    [e] vars
+                        [e] var
+                            [v] fname
+                            [e] expr
+                                [v] normalize-space(value)
+                        [e] var
+                            [v] attrName
+                            [e] expr
+                                [v] substring(normalize-space(value), 2)
+                        [e] var
+                            [v] attr
+                            [e] expr
+                                [v] $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = $attrName and @mode = 'directToField']
+                        [e] var
+                            [v] fvalue
+                            [e] expr
+                                [v] normalize-space(properties/value/value)
+                    [e] if
+                        [v] not(exists($attr))
+                        [e] then
+                            [e] write-pattern
+                                [v] err-fixed-field
+                    [e] if
+                        [v] $fvalue = ''
+                        [e] then
+                            [e] write-pattern
+                                [v] err-fixed-value
         [e] mode
             [v] linkIcon
             [e] template

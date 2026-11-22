@@ -7,7 +7,7 @@
                 [v] Person
         [e] description
             [e] pt
-                [v] Cadastro de cliente, física ou jurídica, reutilizável nas emissões, que na nota assume o papel de tomador do serviço. É por empresa: o mesmo documento pode existir
+                [v] Cadastro de pessoa, física ou jurídica, que pode ser cliente, fornecedor ou ambos (atributos cliente e fornecedor), reutilizável nas emissões, que na nota assume o papel de tomador do serviço. É por empresa: o mesmo documento pode existir
                   | uma vez em cada empresa, e uma empresa nunca enxerga a pessoa de outra.
                   | Tem um só documento (CNPJ ou CPF, um ou outro). Ao enviar a NFS-e, o sistema separa o documento em cnpj ou cpf, que no IntegraNotas são campos distintos.
                   | A cidade é uma referência ao Municipio, que já traz a UF e o código IBGE: a tela mostra cidade e UF e esconde o IBGE.
@@ -165,6 +165,42 @@
                           | Application rule, not a map rule: a legal entity with the state registration filled becomes no.
                 [e] defaultValue
                     [v] true
+        [d] cliente: Boolean()
+            @
+                [e] cn
+                    [v] cliente
+                [e] title
+                    [e] pt
+                        [v] Cliente
+                    [e] en
+                        [v] Customer
+                [e] description
+                    [e] pt
+                        [v] Indica se a pessoa é cliente da empresa (toma serviços; aparece no menu Clientes e é a que a NFS-e usa como tomador). Padrão não (false). Uma mesma pessoa pode ser cliente e fornecedor ao mesmo tempo.
+                    [e] en
+                        [v] Tells whether the person is a customer of the company (takes services; shown in the Customers menu and used as the taker on the NFS-e). Default no (false). The same person can be both customer and supplier.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] false
+        [d] fornecedor: Boolean()
+            @
+                [e] cn
+                    [v] fornecedor
+                [e] title
+                    [e] pt
+                        [v] Fornecedor
+                    [e] en
+                        [v] Supplier
+                [e] description
+                    [e] pt
+                        [v] Indica se a pessoa é fornecedora da empresa (presta serviços ou vende à empresa; aparece no menu Fornecedores). Padrão não (false). Uma mesma pessoa pode ser cliente e fornecedor ao mesmo tempo.
+                    [e] en
+                        [v] Tells whether the person is a supplier of the company (provides services or sells to the company; shown in the Suppliers menu). Default no (false). The same person can be both customer and supplier.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] false
     [g] contato
         [d] telefone: Texto(20)
             @

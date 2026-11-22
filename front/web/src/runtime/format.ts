@@ -18,6 +18,18 @@ export function isValidCnpj(c: string): boolean {
   return dv(12) === Number(c[12]) && dv(13) === Number(c[13])
 }
 
+/** CPF com 11 digitos e digitos verificadores corretos (sem todos iguais). Recebe so digitos. */
+export function isValidCpf(c: string): boolean {
+  if (!/^\d{11}$/.test(c) || /^(\d)\1{10}$/.test(c)) return false
+  const dv = (n: number) => {
+    let soma = 0
+    for (let i = 0; i < n; i++) soma += Number(c[i]) * (n + 1 - i)
+    const r = (soma * 10) % 11
+    return r === 10 ? 0 : r
+  }
+  return dv(9) === Number(c[9]) && dv(10) === Number(c[10])
+}
+
 export const onlyDigits =(v: unknown): string => String(v ?? '').replace(/\D/g, '')
 
 export type MaskKind = 'cpf' | 'cnpj' | 'documento' | 'phone' | 'postalCode'

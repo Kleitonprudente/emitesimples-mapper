@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { z } from 'zod'
 import { ApiError } from '@/lib/api'
-import { AVISO_CNPJ, AVISO_MUNICIPIO, AutoForm, type FieldLayout } from '@/runtime/AutoForm'
+import { AVISO_CNPJ, AVISO_CPF, AVISO_MUNICIPIO, AutoForm, type FieldLayout } from '@/runtime/AutoForm'
 
 const apiMock = vi.hoisted(() => vi.fn())
 vi.mock('@/lib/api', async (orig) => ({ ...(await orig<typeof import('@/lib/api')>()), api: apiMock }))
@@ -23,6 +23,9 @@ const schema = z.object({
   municipio: z.object({ id: z.string() }).optional(),
   regimeTributario: z.number().optional(),
   rgInscricaoEstadual: z.string().optional(),
+  nome: z.string().optional(),
+  tipoPessoa: z.enum(['fisica', 'juridica']).optional(),
+  consumidorFinal: z.boolean().optional(),
 })
 type V = z.infer<typeof schema>
 
@@ -44,6 +47,16 @@ const FIELDS: FieldLayout = [
   { name: 'rgInscricaoEstadual', label: 'Inscrição estadual' },
 ]
 
+/** Layout no estilo Cliente/Fornecedor: sem razaoSocial; com nome, tipoPessoa e consumidorFinal. */
+const FIELDS_PESSOA: FieldLayout = [
+  { name: 'documento', label: 'CNPJ', mask: 'documento', lookup: 'cnpj' },
+  { name: 'tipoPessoa', label: 'Tipo de pessoa', options: [{ value: 'fisica', label: 'Pessoa física' }, { value: 'juridica', label: 'Pessoa jurídica' }] },
+  { name: 'consumidorFinal', label: 'Consumidor final', kind: 'boolean' },
+  { name: 'nome', label: 'Nome' },
+  { name: 'nomeFantasia', label: 'Nome fantasia' },
+]
+
+const CPF = '52998224725'
 const CNPJ = '27865757000102'
 const GUAIRA = { id: 'mun-4108809', nome: 'Guaíra', uf: 'PR', codigoIbge: '4108809' }
 const RESPOSTA = {
@@ -90,7 +103,7 @@ describe('AutoForm: lookup de CNPJ', () => {
     await user.tab()
     await waitFor(() => expect(screen.getByLabelText('Razão social')).toHaveValue('EXEMPLO TECNOLOGIA E SISTEMAS LTDA'))
     expect(apiMock).toHaveBeenCalledTimes(1)
-    expect(apiMock).toHaveBeenCalledWith(`/admin/consulta-cnpj/${CNPJ}`)
+    expect(apiMock).toHaveBeenCalledWith(`/consulta-cnpj/${CNPJ}`)
     expect(screen.getByLabelText('Nome fantasia')).toHaveValue('Exemplo Tech')
     expect(screen.getByLabelText('E-mail')).toHaveValue('contato@exemplotech.com.br')
     expect(screen.getByLabelText('Telefone')).toHaveValue('(44) 3642-1000')
@@ -140,7 +153,7 @@ describe('AutoForm: lookup de CNPJ', () => {
     const onSubmit = renderForm()
     await user.type(screen.getByLabelText('CNPJ'), `${CNPJ}{Enter}`)
     await waitFor(() => expect(screen.getByLabelText('Bairro')).toHaveValue('Centro'))
-    expect(apiMock).toHaveBeenCalledWith(`/admin/consulta-cnpj/${CNPJ}`)
+    expect(apiMock).toHaveBeenCalledWith(`/consulta-cnpj/${CNPJ}`)
     expect(onSubmit).not.toHaveBeenCalled()
   })
 
@@ -235,5 +248,92 @@ describe('AutoForm: lookup de CNPJ', () => {
     await user.tab()
     expect(await screen.findByText(AVISO_CNPJ)).toBeInTheDocument()
     expect(screen.queryByText(AVISO_MUNICIPIO)).not.toBeInTheDocument()
+  })
+})
+
+describe('AutoForm: convencao de tipo por documento (CPF/CNPJ)', () => {
+  const tipo = () => screen.getByRole('combobox', { name: /Tipo de pessoa/ })
+  const consumidor = () => screen.getByRole('switch', { name: /Consumidor final/ })
+
+  it('CPF valido ao sair do campo preenche fisica e consumidor final, sem API', async () => {
+    const user = userEvent.setup()
+    renderForm(FIELDS_PESSOA)
+    await user.type(screen.getByLabelText('CNPJ'), CPF)
+    await user.tab()
+    await waitFor(() => expect(tipo()).toHaveTextContent('Pessoa física'))
+    expect(consumidor()).toBeChecked()
+    expect(screen.getByText(AVISO_CPF)).toBeInTheDocument()
+    expect(apiMock).not.toHaveBeenCalled()
+  })
+
+  it('CPF valido pelo botao e pelo Enter preenche sem API', async () => {
+    const user = userEvent.setup()
+    const onSubmit = renderForm(FIELDS_PESSOA)
+    await user.type(screen.getByLabelText('CNPJ'), CPF)
+    await user.click(screen.getByRole('button', { name: 'Consultar CNPJ' }))
+    await waitFor(() => expect(consumidor()).toBeChecked())
+    expect(tipo()).toHaveTextContent('Pessoa física')
+    await user.click(consumidor()) // desmarca; Enter reaplica
+    expect(consumidor()).not.toBeChecked()
+    await user.type(screen.getByLabelText('CNPJ'), '{Enter}')
+    await waitFor(() => expect(consumidor()).toBeChecked())
+    expect(apiMock).not.toHaveBeenCalled()
+    expect(onSubmit).not.toHaveBeenCalled()
+  })
+
+  it('CPF invalido: ao sair nada; botao mostra "CPF inválido."', async () => {
+    const user = userEvent.setup()
+    renderForm(FIELDS_PESSOA)
+    await user.type(screen.getByLabelText('CNPJ'), '52998224724')
+    await user.tab()
+    expect(screen.queryByText('CPF inválido.')).not.toBeInTheDocument()
+    expect(tipo()).toHaveTextContent('Selecione')
+    expect(consumidor()).not.toBeChecked()
+    await user.click(screen.getByRole('button', { name: 'Consultar CNPJ' }))
+    expect(await screen.findByText('CPF inválido.')).toBeInTheDocument()
+    expect(tipo()).toHaveTextContent('Selecione')
+    expect(apiMock).not.toHaveBeenCalled()
+  })
+
+  it('CNPJ com sucesso define juridica e nao consumidor final; razao social vai para nome', async () => {
+    apiMock.mockResolvedValue(RESPOSTA)
+    const user = userEvent.setup()
+    renderForm(FIELDS_PESSOA)
+    await user.click(consumidor())
+    expect(consumidor()).toBeChecked()
+    await user.type(screen.getByLabelText('CNPJ'), CNPJ)
+    await user.tab()
+    await waitFor(() => expect(screen.getByLabelText('Nome')).toHaveValue('EXEMPLO TECNOLOGIA E SISTEMAS LTDA'))
+    expect(screen.getByLabelText('Nome fantasia')).toHaveValue('Exemplo Tech')
+    expect(tipo()).toHaveTextContent('Pessoa jurídica')
+    expect(consumidor()).not.toBeChecked()
+    expect(apiMock).toHaveBeenCalledWith(`/consulta-cnpj/${CNPJ}`)
+    expect(screen.getByText(AVISO_CNPJ)).toBeInTheDocument()
+  })
+
+  it('CNPJ com falha na consulta nao altera tipo nem consumidor final', async () => {
+    apiMock.mockRejectedValueOnce(new ApiError(404, 'cnpj_nao_encontrado', 'x'))
+    const user = userEvent.setup()
+    renderForm(FIELDS_PESSOA)
+    await user.click(consumidor())
+    await user.type(screen.getByLabelText('CNPJ'), CNPJ)
+    await user.tab()
+    expect(await screen.findByText('CNPJ não encontrado no CNPJ.ws.')).toBeInTheDocument()
+    expect(tipo()).toHaveTextContent('Selecione')
+    expect(consumidor()).toBeChecked()
+  })
+
+  it('layout sem tipoPessoa/consumidorFinal ignora a convencao (CPF sem aviso; CNPJ so preenche o resto)', async () => {
+    apiMock.mockResolvedValue(RESPOSTA)
+    const user = userEvent.setup()
+    renderForm()
+    await user.type(screen.getByLabelText('CNPJ'), CPF)
+    await user.tab()
+    expect(screen.queryByText(AVISO_CPF)).not.toBeInTheDocument()
+    await user.clear(screen.getByLabelText('CNPJ'))
+    await user.type(screen.getByLabelText('CNPJ'), CNPJ)
+    await user.tab()
+    await waitFor(() => expect(screen.getByLabelText('Razão social')).toHaveValue('EXEMPLO TECNOLOGIA E SISTEMAS LTDA'))
+    expect(screen.getByText(AVISO_CNPJ)).toBeInTheDocument()
   })
 })

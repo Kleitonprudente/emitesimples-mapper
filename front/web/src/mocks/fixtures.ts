@@ -54,6 +54,9 @@ export interface Pessoa {
   numeroEndereco?: string
   bairro?: string
   cidade?: { id: string; nome?: string; uf?: string; codigoIbge?: string }
+  /** Papeis da pessoa: cliente, fornecedor ou ambos. */
+  cliente?: boolean
+  fornecedor?: boolean
   dataCriacao: string
   dataAtualizacao: string
 }
@@ -85,6 +88,9 @@ export function buildPessoas(): Pessoa[] {
       numeroEndereco: String(10 + i * 3),
       bairro: BAIRROS[i % BAIRROS.length],
       cidade: { ...cidade },
+      // Maioria cliente; i=5 so fornecedor; i=8 cliente e fornecedor.
+      cliente: i !== 5,
+      fornecedor: i === 5 || i === 8,
       dataCriacao: `2026-0${(i % 9) + 1}-${dia}T10:${String(i % 60).padStart(2, '0')}:00`,
       dataAtualizacao: `2026-10-${dia}T15:30:00`,
     })

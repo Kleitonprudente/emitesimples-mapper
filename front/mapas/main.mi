@@ -261,13 +261,20 @@
                 [e] en
                     [v] Front screen maps (dialect of the front methodology plan). Each screen references a domain bean by name, which lives in this project as a read-only copy of the back (dominio folder). The package path maps 1:1 to the generated folder.
         [p] cadastros
-            [p] pessoa
-                [Descriptor.window.list] GestaoPessoas
+            [p] cliente
+                [Descriptor.window.list] GestaoClientes
                     #
-                        window/cadastros/pessoa/GestaoPessoas.mi
-                [Descriptor.window.editor] FormularioPessoa
+                        window/cadastros/cliente/GestaoClientes.mi
+                [Descriptor.window.editor] FormularioCliente
                     #
-                        window/cadastros/pessoa/FormularioPessoa.mi
+                        window/cadastros/cliente/FormularioCliente.mi
+            [p] fornecedor
+                [Descriptor.window.list] GestaoFornecedores
+                    #
+                        window/cadastros/fornecedor/GestaoFornecedores.mi
+                [Descriptor.window.editor] FormularioFornecedor
+                    #
+                        window/cadastros/fornecedor/FormularioFornecedor.mi
             [p] municipio
                 [Descriptor.window.list] GestaoMunicipios
                     #

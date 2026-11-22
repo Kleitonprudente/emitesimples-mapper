@@ -22,6 +22,8 @@ export const pessoaSchema = z.object({
     rgInscricaoEstadual: z.string().max(20).optional(),
     tipoDestinatario: z.number().int().refine((v) => (tipoDestinatarioValues as readonly number[]).includes(v)).optional(),
     consumidorFinal: z.boolean().optional(),
+    cliente: z.boolean(),
+    fornecedor: z.boolean(),
     telefone: z.string().max(20).optional(),
     email: z.string().max(60).optional(),
     logradouro: z.string().max(255),
