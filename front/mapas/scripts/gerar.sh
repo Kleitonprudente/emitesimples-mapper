@@ -73,7 +73,10 @@ rmdir "$WEB/routes/_authenticated/pessoas" 2>/dev/null || true
 
 # Pessoa: um dominio, duas visoes (Clientes e Fornecedores) com filtro e valor fixos no mapa
 dominio Pessoa cadastros
-telas cadastros cliente    clientes    GestaoClientes    FormularioCliente
+# Contato: detalhe (1-N) da Pessoa. So o schema zod (item e enum tipoContato); NAO ha gen/api/contato.ts: os contatos
+# trafegam por GET|PUT /Pessoa/{id}/contatos (hooks em gen/api/pessoa.ts), dentro dos formularios de Cliente e Fornecedor
+gerar "$WEB/gen/schemas/contato.ts" zodSchema modelName=Contato package="$RAIZ.domain.cadastros"
+telas cadastros cliente   clientes    GestaoClientes    FormularioCliente
 telas cadastros fornecedor fornecedores GestaoFornecedores FormularioFornecedor
 entidade Municipio cadastros municipio municipios GestaoMunicipios FormularioMunicipio
 entidade Empresa   configuracao empresa empresas   GestaoEmpresas   FormularioEmpresa

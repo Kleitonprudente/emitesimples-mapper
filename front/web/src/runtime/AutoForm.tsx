@@ -1,12 +1,13 @@
-import { Fragment, useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { useForm, type DefaultValues, type FieldValues, type Path, type Resolver } from 'react-hook-form'
+import { Fragment, useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useFieldArray, useForm, useFormState, type Control, type DefaultValues, type FieldValues, type Path, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Plus, Trash2 } from 'lucide-react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { ApiError, api } from '@/lib/api'
 import { errorMessage } from '@/runtime/feedback'
@@ -110,6 +111,8 @@ export interface CnpjResult {
   inscricaoEstadual?: string | null
   situacaoCadastral?: string | null
   dataInicioAtividade?: string | null
+  /** Quadro societario (QSA). Com um campo de lista `contatos` irmao, cada socio vira um contato do tipo 'socio'. */
+  socios?: { nome?: string | null; tipo?: string | null; qualificacao?: string | null }[] | null
 }
 
 export const AVISO_CNPJ = 'Dados preenchidos pelo CNPJ.ws. Confira antes de salvar.'
@@ -142,11 +145,91 @@ export const AVISO_MUNICIPIO = 'Município não encontrado na tabela; escolha ma
 
 const flatten = (layout: FieldLayout): FieldSpec[] => layout.flatMap((r) => (isSection(r) ? [] : cellsOf(r)))
 
-const isFilled = (v: unknown): boolean => v !== undefined && v !== null && v !== '' && v !== false
+const isFilled = (v: unknown): boolean => (Array.isArray(v) ? v.length > 0 : v !== undefined && v !== null && v !== '' && v !== false)
 
-/** Campo vazio (ou FK limpa pelo X do Combobox, que vira null) vira "ausente" (undefined), para o zod tratar obrigatorio x opcional. */
+const isPlainObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v) && Object.getPrototypeOf(v) === Object.prototype
+
+/** Campo vazio (ou FK limpa pelo X do Combobox, que vira null) vira "ausente" (undefined), para o zod tratar obrigatorio x opcional. Arrays de objetos (listas) limpam cada item. */
 function clean(values: Record<string, unknown>): Record<string, unknown> {
-  return Object.fromEntries(Object.entries(values).map(([k, v]) => [k, v === '' || v === null ? undefined : v]))
+  return Object.fromEntries(
+    Object.entries(values).map(([k, v]) => [k, v === '' || v === null ? undefined : Array.isArray(v) ? v.map((x) => (isPlainObject(x) ? clean(x) : x)) : v]),
+  )
+}
+
+/** Remove as chaves ausentes e converte FK em `{id}` num item de lista. */
+function itemForBack(item: Record<string, unknown>, fkItemNames: string[]): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(clean(item))) {
+    if (v === undefined) continue
+    out[k] = fkItemNames.includes(k) ? ((v as { id?: string }).id ? { id: (v as { id: string }).id } : undefined) : v
+  }
+  return out
+}
+
+/** Caminho (`contatos.1.nome`) do primeiro erro de validacao dentro de uma arvore de erros do react-hook-form. */
+function firstErrorPath(err: unknown, path: string): string | undefined {
+  if (!err || typeof err !== 'object') return undefined
+  const e = err as Record<string, unknown>
+  if (typeof e.type === 'string' && 'ref' in e) return path
+  for (const [k, v] of Object.entries(e)) {
+    if (k === 'ref' || k === 'root') continue
+    const found = firstErrorPath(v, `${path}.${k}`)
+    if (found) return found
+  }
+  return undefined
+}
+
+/** Compara nomes sem acento nem caixa (socios do QSA x contatos ja preenchidos). */
+const normalizeName = (s: string): string => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().replace(/\s+/g, ' ')
+
+/**
+ * Campo de lista (`kind: 'list'`): um bloco por item com titulo "{itemLabel} {n}", botao de remover so com icone e botao de adicionar.
+ * `renderItem` desenha as linhas do item (com os nomes ja prefixados `lista.i.`).
+ */
+function ListBlock<T extends FieldValues>({ spec, control, disabled, renderItem }: { spec: FieldSpec; control: Control<T>; disabled?: boolean; renderItem: (index: number) => ReactNode }) {
+  const cfg = spec.list!
+  // keyName proprio: o `id` do item e o do registro no back e nao pode ser sobrescrito pela chave de renderizacao.
+  const { fields, append, remove } = useFieldArray({ control, name: spec.name as never, keyName: 'rowKey' as never })
+  const { errors } = useFormState({ control, name: spec.name as never })
+  const listError = (errors as Record<string, { message?: string; root?: { message?: string } } | undefined>)[spec.name]
+  const rootMessage = listError?.root?.message ?? (typeof listError?.message === 'string' ? listError.message : undefined)
+  const atMax = cfg.maxItems !== undefined && fields.length >= cfg.maxItems
+  const emptyText = cfg.emptyText ?? `Nenhum ${cfg.itemLabel.toLowerCase()} adicionado.`
+  return (
+    <div role="group" aria-label={spec.label} className="flex flex-col gap-3">
+      {fields.length === 0 && <p className="text-sm text-muted-foreground">{emptyText}</p>}
+      {fields.map((f, i) => {
+        const title = `${cfg.itemLabel} ${i + 1}`
+        return (
+          <Card key={(f as unknown as { rowKey: string }).rowKey} role="group" aria-label={title} className="gap-3 py-4">
+            <CardHeader className="flex flex-row items-center justify-between gap-2">
+              <CardTitle className="text-sm">{title}</CardTitle>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button type="button" variant="ghost" size="icon" aria-label={`Remover ${title}`} disabled={disabled} onClick={() => remove(i)}>
+                    <Trash2 aria-hidden />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Remover</TooltipContent>
+              </Tooltip>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">{renderItem(i)}</CardContent>
+          </Card>
+        )
+      })}
+      {rootMessage && (
+        <p role="alert" className="text-xs text-destructive">
+          {rootMessage}
+        </p>
+      )}
+      <div>
+        <Button type="button" variant="outline" disabled={disabled || atMax} onClick={() => append({ ...cfg.defaultItem } as never)}>
+          <Plus aria-hidden />
+          {cfg.addLabel}
+        </Button>
+      </div>
+    </div>
+  )
 }
 
 export function AutoForm<T extends FieldValues>({
@@ -163,6 +246,8 @@ export function AutoForm<T extends FieldValues>({
 }: AutoFormProps<T>) {
   const specs = useMemo(() => flatten(fields), [fields])
   const fkNames = useMemo(() => specs.filter((s) => resolveKind(s) === 'fk').map((s) => s.name), [specs])
+  const listSpecs = useMemo(() => specs.filter((s) => resolveKind(s) === 'list' && s.list), [specs])
+  const listNames = useMemo(() => listSpecs.map((s) => s.name), [listSpecs])
   const isEdit = values !== undefined
 
   const resolver = useMemo<Resolver<T>>(() => {
@@ -174,9 +259,21 @@ export function AutoForm<T extends FieldValues>({
       for (const [name, err] of Object.entries(result.errors as Record<string, { type?: string; message?: string } | undefined>)) {
         if (err && err.type === 'invalid_type' && cleaned[name] === undefined) err.message = 'Campo obrigatório'
       }
+      // Itens de lista: idem, por campo de cada item.
+      for (const n of listNames) {
+        const itemErrs = (result.errors as Record<string, unknown>)[n]
+        const items = cleaned[n]
+        if (!Array.isArray(itemErrs) || !Array.isArray(items)) continue
+        itemErrs.forEach((ie, idx) => {
+          if (!ie || typeof ie !== 'object') return
+          for (const [field, fe] of Object.entries(ie as Record<string, { type?: string; message?: string } | undefined>)) {
+            if (fe && fe.type === 'invalid_type' && (items[idx] as Record<string, unknown> | undefined)?.[field] === undefined) fe.message = 'Campo obrigatório'
+          }
+        })
+      }
       return result
     }
-  }, [schema])
+  }, [schema, listNames])
 
   const form = useForm<T>({
     resolver,
@@ -246,9 +343,27 @@ export function AutoForm<T extends FieldValues>({
         if (r.municipio?.id) put(municipioName, r.municipio)
         else semMunicipio = true
       }
-      return semMunicipio ? `${AVISO_CNPJ} ${AVISO_MUNICIPIO}` : AVISO_CNPJ
+      // Socios do QSA viram contatos do tipo 'socio' (sem duplicar nome ja presente; nunca apaga o que a pessoa preencheu).
+      let socios = 0
+      const contatos = listSpecs.find((s) => s.name === 'contatos')
+      if (contatos?.list && r.socios?.length && flatten(contatos.list.item).some((s) => s.name === 'tipoContato')) {
+        const atuais = (form.getValues('contatos' as Path<T>) as Record<string, unknown>[] | undefined) ?? []
+        const vistos = new Set(atuais.filter((c) => c?.tipoContato === 'socio').map((c) => normalizeName(String(c.nome ?? ''))))
+        const novos: Record<string, unknown>[] = []
+        for (const s of r.socios) {
+          const nome = s.nome?.trim()
+          if (!nome || vistos.has(normalizeName(nome))) continue
+          vistos.add(normalizeName(nome))
+          novos.push({ ...contatos.list.defaultItem, tipoContato: 'socio', nome })
+        }
+        if (novos.length) {
+          form.setValue('contatos' as Path<T>, [...atuais, ...novos] as never, { shouldDirty: true })
+          socios = novos.length
+        }
+      }
+      return [AVISO_CNPJ, semMunicipio ? AVISO_MUNICIPIO : '', socios ? `${socios} sócio(s) adicionado(s) em Contatos.` : ''].filter(Boolean).join(' ')
     },
-    [form, names, municipioName],
+    [form, names, municipioName, listSpecs],
   )
 
   /** CPF valido: pessoa fisica e consumidor final, sem API. Devolve o aviso, ou undefined se o layout nao tem os campos irmaos. */
@@ -368,6 +483,16 @@ export function AutoForm<T extends FieldValues>({
         const v = out[n] as { id?: string } | null | undefined
         out[n] = v?.id ? { id: v.id } : undefined
       }
+      // Listas: itens limpos, FK como {id} e o `id` do registro preservado mesmo sem campo visivel (o zod pode te-lo removido).
+      for (const s of listSpecs) {
+        const fkItemNames = flatten(s.list!.item).filter((f) => resolveKind(f) === 'fk').map((f) => f.name)
+        const atuais = (form.getValues(s.name as Path<T>) as Record<string, unknown>[] | undefined) ?? []
+        const items = (out[s.name] as Record<string, unknown>[] | undefined) ?? []
+        out[s.name] = items.map((it, i) => {
+          const id = atuais[i]?.id
+          return itemForBack(typeof id === 'string' && id ? { ...it, id } : it, fkItemNames)
+        })
+      }
       try {
         await onSubmit(out as T)
         // Salvou: o estado atual vira a nova referencia (some o aviso de alteracoes nao salvas e o beforeunload).
@@ -383,24 +508,48 @@ export function AutoForm<T extends FieldValues>({
       // Abas: sobe a primeira que tem campo invalido e leva o foco ate o campo.
       const bad = errs as Record<string, unknown>
       const first = sections.find((g) => namesOf(g).some((n) => !!bad[n]))
+      // Secoes recolhidas que contem erro abrem (mesmo que a pessoa as tenha fechado antes).
+      const comErro = sections.filter((g) => g.section?.collapsible && namesOf(g).some((n) => !!bad[n]))
+      if (comErro.length) setManualOpen((m) => ({ ...m, ...Object.fromEntries(comErro.map((g) => [g.key, true])) }))
       const name = first ? namesOf(first).find((n) => !!bad[n]) : undefined
       if (first && name) {
         if (asTabs) setTab(first.key)
-        setTimeout(() => form.setFocus(name as Path<T>), 0)
+        const target = listNames.includes(name) ? (firstErrorPath(bad[name], name) ?? name) : name
+        setTimeout(() => form.setFocus(target as Path<T>), 0)
+      } else if (!first) {
+        // Sem secoes: foca o primeiro campo de lista com erro.
+        const listName = listNames.find((n) => !!bad[n])
+        const target = listName && firstErrorPath(bad[listName], listName)
+        if (target) setTimeout(() => form.setFocus(target as Path<T>), 0)
       }
     },
   )
 
   const busy = isSubmitting || form.formState.isSubmitting
 
-  const renderRow = (row: FieldRow, i: number) => {
-    const cells = cellsOf(row)
-    if (!isGridRow(cells, hasSections)) {
+  /** Um campo: lista vira ListBlock (itens renderizam as linhas de `list.item` com nomes `lista.i.campo`); os demais, FormField. */
+  const renderCell = (spec: FieldSpec, grid: boolean): ReactNode => {
+    if (resolveKind(spec) === 'list' && spec.list) {
+      const item = spec.list.item
+      return (
+        <ListBlock
+          spec={spec}
+          control={form.control}
+          disabled={busy}
+          renderItem={(idx) => item.filter((r) => !isSection(r)).map((r, j) => renderRow(r as FieldRow, j, `${spec.name}.${idx}.`))}
+        />
+      )
+    }
+    return <FormField spec={spec} control={form.control} disabled={busy} lookupState={lookupFor(spec)} grid={grid || undefined} />
+  }
+  const renderRow = (row: FieldRow, i: number, prefix?: string) => {
+    const cells = cellsOf(row).map((c) => (prefix ? { ...c, name: `${prefix}${c.name}` } : c))
+    if (!prefix && !isGridRow(cells, hasSections)) {
       return (
         <div key={i} className="flex flex-col gap-4 md:flex-row">
           {cells.map((spec) => (
             <div key={spec.name} className="min-w-0 md:flex-[var(--w)]" style={{ '--w': spec.width ?? 1 } as CSSProperties}>
-              <FormField spec={spec} control={form.control} disabled={busy} lookupState={lookupFor(spec)} />
+              {renderCell(spec, false)}
             </div>
           ))}
         </div>
@@ -410,7 +559,7 @@ export function AutoForm<T extends FieldValues>({
       <div key={i} className="grid grid-cols-12 items-start gap-4">
         {cells.map((spec) => (
           <div key={spec.name} className={cn('min-w-0', SIZE_CLASS[resolveSize(spec)])}>
-            <FormField spec={spec} control={form.control} disabled={busy} lookupState={lookupFor(spec)} grid />
+            {renderCell(spec, true)}
           </div>
         ))}
       </div>
@@ -418,7 +567,7 @@ export function AutoForm<T extends FieldValues>({
   }
 
   const renderGroup = (g: Group) => {
-    const rows = g.rows.map(renderRow)
+    const rows = g.rows.map((r, i) => renderRow(r, i))
     const s = g.section
     if (!s) return <Fragment key={g.key}>{rows}</Fragment>
     const titleId = `${uid}-${g.key}-title`
@@ -484,7 +633,7 @@ export function AutoForm<T extends FieldValues>({
                   <CardDescription>{g.section.description}</CardDescription>
                 </CardHeader>
               )}
-              <CardContent className="flex flex-col gap-4">{g.rows.map(renderRow)}</CardContent>
+              <CardContent className="flex flex-col gap-4">{g.rows.map((r, i) => renderRow(r, i))}</CardContent>
             </Card>
           </TabsContent>
         ))}

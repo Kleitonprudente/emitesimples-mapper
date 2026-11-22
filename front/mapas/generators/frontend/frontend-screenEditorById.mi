@@ -20,6 +20,84 @@
             [v] import { mutationFeedback } from '@/runtime/feedback'
             [v] import { ErrorState, LoadingState } from '@/runtime/states'
             [v] import { {{ @name }}Form, {{ @name }}FieldNames, type {{ @name }}Values } from './{{ @name }}'
+        [e] err-list-multiple
+            [v] // ERRO NO MODELO: mais de uma list em {{ @name }} (so uma lista de detalhes por formulario e suportada)
+        [e] err-list-detail
+            [v] // ERRO NO MODELO: list {{ $lname }} em {{ @name }} sem relacao de detalhe [o] em {{ $bean }} ou sem relacao inversa [m] no detalhe (veja o erro do formulario)
+        [e] imports-list
+            [v] import { useState } from 'react'
+            [v] import { toast } from 'sonner'
+            [v] import { useAtualizar{{ $bean }}, useCriar{{ $bean }}, use{{ $bean }}, {{ $hookLoad }}, {{ $hookSave }} } from '@/gen/api/{{ $entity }}'
+            [v] import { errorMessage, mutationFeedback } from '@/runtime/feedback'
+            [v] import { ErrorState, LoadingState } from '@/runtime/states'
+            [v] import { {{ @name }}Form, {{ @name }}FieldNames, type {{ @name }}Values } from './{{ @name }}'
+        [e] list-hooks-ops
+            [v]   const {{ $saveVar }} = {{ $hookSave }}()
+            [v]   const [salvando, setSalvando] = useState(false)
+        [e] list-hook-load
+            [v]   const {{ $loadedVar }} = {{ $hookLoad }}(id)
+        [e] list-nav-only
+            [v]   const navigate = useNavigate()
+        [e] novo-salvar
+            [v]   const salvarTudo = async (v: {{ @name }}Values) => {
+            [v]     const { {{ $lname }}, ...dados } = v
+            [v]     const salvo = await criar.mutateAsync({{ $createArg }}).catch(() => undefined)
+            [v]     if (!salvo) return
+            [v]     setSalvando(true)
+            [v]     try {
+            [v]       // O pai ja esta salvo; a lista de detalhes vai inteira num PUT atomico (tudo ou nada). Falha nao desfaz o pai.
+            [v]       await {{ $saveVar }}.mutateAsync({ id: salvo.id, itens: {{ $lname }} })
+            [v]     } catch (e) {
+            [v]       toast.error(`{{ $nounCap }} {{ $salvoWord }}, mas {{ $artPl }} {{ $itemLower }}s não foram {{ $salvosWord }}: ${errorMessage(e)}. Revise na edição.`)
+            [v]       void navigate({ to: '{{ $route }}', params: { id: salvo.id } })
+            [v]       return
+            [v]     } finally {
+            [v]       setSalvando(false)
+            [v]     }
+            [v]     fb.onSuccess(salvo)
+            [v]   }
+        [e] novo-form-list
+            [v]       <{{ @name }}Form
+            [v]         isSubmitting={criar.isPending || salvando}
+            [v]         serverError={criar.error}
+        [e] novo-end-list
+            [v]         onSubmit={salvarTudo}
+            [v]       />
+        [e] body-list
+            [v]   if (loaded.isLoading || {{ $loadedVar }}.isLoading) return <LoadingState />
+            [v]   if (loaded.isError || !loaded.data) return <ErrorState error={loaded.error} onRetry={() => void loaded.refetch()} />
+            [v]   if ({{ $loadedVar }}.isError || !{{ $loadedVar }}.data) return <ErrorState {{ concat('error={', $loadedVar, '.error}') }} onRetry={() => void {{ $loadedVar }}.refetch()} />
+            [v]   // O back devolve null nos opcionais ausentes; o schema do formulario espera ausente (undefined).
+            [v]   const {{ $lname }}Atuais = {{ $loadedVar }}.data.map((c) => Object.fromEntries(Object.entries(c).filter(([, v]) => v !== null))) as unknown as {{ @name }}Values['{{ $lname }}']
+            [v]   const values = { ...Object.fromEntries(Object.entries(loaded.data).filter(([, v]) => v !== null)), {{ $lname }}: {{ $lname }}Atuais } as {{ @name }}Values
+            [v]   // O PUT substitui o registro inteiro: o que o formulario nao edita (ex.: referencias de integracao) segue como veio.
+            [v]   const preservar = Object.fromEntries(Object.entries(values).filter(([k]) => !{{ @name }}FieldNames.includes(k)))
+        [e] editar-salvar
+            [v]   const salvarTudo = async (v: {{ @name }}Values) => {
+            [v]     const { {{ $lname }}, ...dados } = v
+            [v]     // A API responde 204 (sem corpo) ao atualizar: o sucesso vem da promessa, nao do retorno.
+            [v]     const salvou = await salvar.mutateAsync({ ...preservar, ...dados } as typeof dados).then(() => true, () => false)
+            [v]     if (!salvou) return
+            [v]     setSalvando(true)
+            [v]     try {
+            [v]       // O pai ja esta salvo; a lista de detalhes vai inteira num PUT atomico (tudo ou nada). Falha nao desfaz o pai.
+            [v]       await {{ $saveVar }}.mutateAsync({ id, itens: {{ $lname }} })
+            [v]     } catch (e) {
+            [v]       toast.error(`{{ $nounCap }} {{ $salvoWord }}, mas {{ $artPl }} {{ $itemLower }}s não foram {{ $salvosWord }}: ${errorMessage(e)}. Revise na edição.`)
+            [v]       return
+            [v]     } finally {
+            [v]       setSalvando(false)
+            [v]     }
+            [v]     fb.onSuccess(undefined)
+            [v]   }
+        [e] body-form-list
+            [v]       <{{ @name }}Form
+            [v]         values={values}
+            [v]         isSubmitting={salvar.isPending || salvando}
+            [v]         serverError={salvar.error}
+        [e] body-end-list
+            [v]         onSubmit={salvarTudo}
+            [v]       />
         [e] err-fixed-field
             [v] // ERRO NO MODELO: fixedValues {{ $fname }} sem atributo escalar correspondente em {{ $bean }} no editor {{ $janela }} (o campo deve existir como atributo do bean da source)
         [e] err-fixed-value
@@ -202,13 +280,99 @@
                 [e] var
                     [v] formFields
                     [e] expr
-                        [v] for $f in form/rows//field return normalize-space($f/value)
+                        [v] for $f in form/rows//field[not(ancestor::list)] return normalize-space($f/value)
                 [e] var
                     [v] fixedObj
                     [e] expr
                         [v] string-join(for $f in fixedValues/field return (for $v in normalize-space($f/properties/value/value) return concat(substring(normalize-space($f/value), 2), ': ', if ($v = ('true', 'false') or functx:is-a-number($v)) then $v else concat("'", replace($v, "'", "\\'"), "'"))), ', ')
+                [e] var
+                    [v] hasList
+                    [e] expr
+                        [v] exists(form/rows/list)
+                [e] var
+                    [v] listCount
+                    [e] expr
+                        [v] count(form/rows/list)
+                [e] var
+                    [v] lst
+                    [e] expr
+                        [v] (form/rows/list)[1]
+                [e] var
+                    [v] lname
+                    [e] expr
+                        [v] substring(normalize-space($lst/value), 2)
+                [e] var
+                    [v] item
+                    [e] expr
+                        [v] normalize-space($classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = $lname and @mode = 'oneToMany']/@type)
+                [e] var
+                    [v] ientity
+                    [e] expr
+                        [v] mi:first-lower($item)
+                [e] var
+                    [v] inv
+                    [e] expr
+                        [v] string(($classes/class[@name = $item and @mode = 'bean']/attributes/attribute[@mode = 'manyToOne' and @type = $bean]/@name)[1])
+                [e] var
+                    [v] itemLower
+                    [e] expr
+                        [v] lower-case(normalize-space(($lst/properties/itemLabel/value, $lst/itemLabel/value)[1]))
+                [e] var
+                    [v] itemFields
+                    [e] expr
+                        [v] string-join(for $f in $lst/rows//field return concat("'", substring(normalize-space($f/value), 2), "'"), ', ')
+                [e] var
+                    [v] loadedVar
+                    [e] expr
+                        [v] concat($lname, 'Loaded')
+                [e] var
+                    [v] createArg
+                    [e] expr
+                        [v] if ($hasFixedValues) then '{ ...dados, ...FIXED_VALUES }' else 'dados'
+                [e] var
+                    [v] noun
+                    [e] expr
+                        [v] lower-case(if ($newLabel != '' and contains($newLabel, ' ')) then substring-after($newLabel, ' ') else $bean)
+                [e] var
+                    [v] nounCap
+                    [e] expr
+                        [v] mi:first-upper($noun)
+                [e] var
+                    [v] salvoWord
+                    [e] expr
+                        [v] if (ends-with($noun, 'a')) then 'salva' else 'salvo'
+                [e] var
+                    [v] salvosWord
+                    [e] expr
+                        [v] if (ends-with($itemLower, 'a')) then 'salvas' else 'salvos'
+                [e] var
+                    [v] artPl
+                    [e] expr
+                        [v] if (ends-with($itemLower, 'a')) then 'as' else 'os'
+                [e] var
+                    [v] hookLoad
+                    [e] expr
+                        [v] concat('use', mi:first-upper($lname), 'De', $bean)
+                [e] var
+                    [v] hookSave
+                    [e] expr
+                        [v] concat('useSalvar', mi:first-upper($lname), 'De', $bean)
+                [e] var
+                    [v] saveVar
+                    [e] expr
+                        [v] concat('salvar', mi:first-upper($lname))
             [e] write-pattern
                 [v] header
+            [e] if
+                [v] $listCount > 1
+                [e] then
+                    [e] write-pattern
+                        [v] err-list-multiple
+            [e] if
+                [v] $hasList and ($item = '' or $inv = '')
+                [e] then
+                    [e] write-pattern
+                        [v] err-list-detail
             [e] apply-templates
                 [e] select
                     [v] fixedValues/field
@@ -228,7 +392,7 @@
                 [v] contains($route, '$')
                 [e] then
                     [e] if
-                        [v] $listRoute != ''
+                        [v] $listRoute != '' or $hasList
                         [e] then
                             [e] write-pattern
                                 [v] import-navigate
@@ -246,8 +410,14 @@
                                     [v] string(@name)
                         [e] mode
                             [v] tabErro
-                    [e] write-pattern
-                        [v] imports
+                    [e] if
+                        [v] $hasList
+                        [e] then
+                            [e] write-pattern
+                                [v] imports-list
+                        [e] else
+                            [e] write-pattern
+                                [v] imports
                     [e] if
                         [v] $hasTabs
                         [e] then
@@ -268,6 +438,11 @@
                     [e] write-pattern
                         [v] novo-start
                     [e] if
+                        [v] $hasList
+                        [e] then
+                            [e] write-pattern
+                                [v] list-hooks-ops
+                    [e] if
                         [v] $listRoute != ''
                         [e] then
                             [e] write-pattern
@@ -275,6 +450,16 @@
                         [e] else
                             [e] write-pattern
                                 [v] back-none
+                            [e] if
+                                [v] $hasList
+                                [e] then
+                                    [e] write-pattern
+                                        [v] list-nav-only
+                    [e] if
+                        [v] $hasList
+                        [e] then
+                            [e] write-pattern
+                                [v] novo-salvar
                     [e] write-pattern
                         [v] novo-head
                     [e] if
@@ -289,19 +474,32 @@
                                     [v] tabTriggerNovo
                             [e] write-pattern
                                 [v] tabs-novo-mid
-                    [e] write-pattern
-                        [v] novo-form
+                    [e] if
+                        [v] $hasList
+                        [e] then
+                            [e] write-pattern
+                                [v] novo-form-list
+                        [e] else
+                            [e] write-pattern
+                                [v] novo-form
                     [e] if
                         [v] $listRoute != ''
                         [e] then
                             [e] write-pattern
                                 [v] cancel-with-list
                     [e] if
-                        [v] $hasFixedValues
+                        [v] $hasList
+                        [e] then
+                            [e] write-pattern
+                                [v] novo-end-list
+                    [e] if
+                        [v] not($hasList) and $hasFixedValues
                         [e] then
                             [e] write-pattern
                                 [v] novo-end-fixed
-                        [e] else
+                    [e] if
+                        [v] not($hasList) and not($hasFixedValues)
+                        [e] then
                             [e] write-pattern
                                 [v] novo-end
                     [e] if
@@ -314,6 +512,13 @@
                     [e] write-pattern
                         [v] editar-start
                     [e] if
+                        [v] $hasList
+                        [e] then
+                            [e] write-pattern
+                                [v] list-hook-load
+                            [e] write-pattern
+                                [v] list-hooks-ops
+                    [e] if
                         [v] $listRoute != ''
                         [e] then
                             [e] write-pattern
@@ -321,8 +526,16 @@
                         [e] else
                             [e] write-pattern
                                 [v] back-none
-                    [e] write-pattern
-                        [v] body
+                    [e] if
+                        [v] $hasList
+                        [e] then
+                            [e] write-pattern
+                                [v] body-list
+                            [e] write-pattern
+                                [v] editar-salvar
+                        [e] else
+                            [e] write-pattern
+                                [v] body
                     [e] write-pattern
                         [v] body-head
                     [e] if
@@ -337,15 +550,27 @@
                                     [v] tabTriggerEdit
                             [e] write-pattern
                                 [v] tabs-edit-mid
-                    [e] write-pattern
-                        [v] body-form
+                    [e] if
+                        [v] $hasList
+                        [e] then
+                            [e] write-pattern
+                                [v] body-form-list
+                        [e] else
+                            [e] write-pattern
+                                [v] body-form
                     [e] if
                         [v] $listRoute != ''
                         [e] then
                             [e] write-pattern
                                 [v] cancel-with-list
-                    [e] write-pattern
-                        [v] body-end
+                    [e] if
+                        [v] $hasList
+                        [e] then
+                            [e] write-pattern
+                                [v] body-end-list
+                        [e] else
+                            [e] write-pattern
+                                [v] body-end
                     [e] if
                         [v] $hasTabs
                         [e] then

@@ -65,3 +65,45 @@ export function useRemoverEmpresa() {
     onSuccess: () => qc.invalidateQueries({ queryKey: empresaKeys.all }),
   })
 }
+
+/** Item do detalhe atividades de Empresa, como o back o devolve e recebe (id ausente no item novo). */
+export type AtividadesDeEmpresaItem = { id?: string } & Record<string, unknown>
+
+/** Lista completa do detalhe: GET /Empresa/{id}/atividades. */
+export function useAtividadesDeEmpresa(id: string | null) {
+  return useQuery({
+    queryKey: [...empresaKeys.all, 'atividades', id ?? ''],
+    queryFn: () => api<AtividadesDeEmpresaItem[]>(`${BASE}/${id}/atividades`),
+    enabled: !!id,
+  })
+}
+
+/** Grava a lista DESEJADA completa (tudo ou nada): PUT /Empresa/{id}/atividades. O id entra na chamada (`mutateAsync({ id, itens })`), pois na criacao so existe depois de salvar o pai. */
+export function useSalvarAtividadesDeEmpresa() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, itens }: { id: string; itens: AtividadesDeEmpresaItem[] }) => api<AtividadesDeEmpresaItem[]>(`${BASE}/${id}/atividades`, { method: 'PUT', body: itens }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: empresaKeys.all }),
+  })
+}
+
+/** Item do detalhe qsa de Empresa, como o back o devolve e recebe (id ausente no item novo). */
+export type QsaDeEmpresaItem = { id?: string } & Record<string, unknown>
+
+/** Lista completa do detalhe: GET /Empresa/{id}/qsa. */
+export function useQsaDeEmpresa(id: string | null) {
+  return useQuery({
+    queryKey: [...empresaKeys.all, 'qsa', id ?? ''],
+    queryFn: () => api<QsaDeEmpresaItem[]>(`${BASE}/${id}/qsa`),
+    enabled: !!id,
+  })
+}
+
+/** Grava a lista DESEJADA completa (tudo ou nada): PUT /Empresa/{id}/qsa. O id entra na chamada (`mutateAsync({ id, itens })`), pois na criacao so existe depois de salvar o pai. */
+export function useSalvarQsaDeEmpresa() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, itens }: { id: string; itens: QsaDeEmpresaItem[] }) => api<QsaDeEmpresaItem[]>(`${BASE}/${id}/qsa`, { method: 'PUT', body: itens }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: empresaKeys.all }),
+  })
+}

@@ -38,11 +38,51 @@
             [v] import { fkSource } from '@/lib/fk-sources'
         [e] import-schema
             [v] import { {{ concat($entity, 'Schema', mi:if-else($enumImports != '', concat(', ', $enumImports), '')) }} } from '@/gen/schemas/{{ $entity }}'
-        [e] schema-const
+        [e] err-list-multiple
+            [v] // ERRO NO MODELO: mais de uma list em {{ @name }} (so uma lista de detalhes por formulario e suportada)
+        [e] err-list-not-detail
+            [v] // ERRO NO MODELO: list {{ $lname }} sem relacao de detalhe [o] em {{ $bean }} na janela {{ $janela }} (declare [o] {{ substring($lname, 2) }}: Detalhe() no bean)
+        [e] err-list-no-inverse
+            [v] // ERRO NO MODELO: list {{ $lname }}: {{ $item }} nao tem relacao [m] para {{ $bean }} (janela {{ $janela }}); a relacao inversa carrega o pai
+        [e] err-list-itemlabel
+            [v] // ERRO NO MODELO: list {{ $lname }} sem itemLabel em {{ $janela }} (declare itemLabel no @ da list)
+        [e] err-list-addlabel
+            [v] // ERRO NO MODELO: list {{ $lname }} sem addLabel em {{ $janela }} (declare addLabel no @ da list)
+        [e] err-list-maxitems
+            [v] // ERRO NO MODELO: list {{ $lname }} com maxItems '{{ $maxItems }}' invalido em {{ $janela }} (inteiro de 1 a 100)
+        [e] err-list-empty
+            [v] // ERRO NO MODELO: list {{ $lname }} sem campos em {{ $janela }} (declare rows/row/field dentro da list)
+        [e] err-list-nested
+            [v] // ERRO NO MODELO: list {{ $lname }} com list aninhada em {{ $janela }} (nao suportado)
+        [e] import-item-schema
+            [v] import { {{ concat($ientity, 'Schema', mi:if-else($ienums != '', concat(', ', $ienums), '')) }} } from '@/gen/schemas/{{ $ientity }}'
+        [e] schema-const-a
             [v] {{ '' }}
             [v] const SUBMIT_LABEL = '{{ replace(mi:if-else(exists(actions/action[normalize-space(properties/type/value) = 'primary']), normalize-space((actions/action[normalize-space(properties/type/value) = 'primary']/properties/label/pt/value)[1]), 'Salvar'), "'", "\\'") }}'
             [v] {{ '' }}
+        [e] list-item-schema
+            [v] /** Item de {{ $lname }}: so os campos que o formulario edita, mais o id do registro existente (ausente nos itens novos). */
+            [v] const {{ $ientity }}ItemSchema = {{ $ientity }}Schema.pick({ {{ $ipicks }} }).extend({ id: z.string().optional() })
+            [v] {{ '' }}
+        [e] schema-const-b
             [v] const schema = {{ $entity }}Schema.pick({ {{ $picks }} })
+        [e] list-extend
+            [v]   .extend({ {{ $lname }}: z.array({{ $ientity }}ItemSchema){{ mi:if-else($maxItems != '', concat('.max(', $maxItems, ')'), '') }} })
+        [e] list-default
+            [v]   {{ $lname }}: [],
+        [e] list-open
+            [v] {{ '  [' }}
+            [v]     {
+            [v]       name: '{{ $lname }}', label: '{{ $lbl }}', kind: 'list', size: 'full',
+            [v]       list: {
+            [v]         itemLabel: '{{ $itemLabel }}', addLabel: '{{ $addLabel }}'{{ $listOpts }},
+            [v]         item: [
+        [e] list-close
+            [v] {{ '        ],' }}
+            [v] {{ '      },' }}
+            [v] {{ '    },' }}
+            [v] {{ '  ],' }}
+        [e] schema-const-c
             [v] export type {{ @name }}Values = z.infer<typeof schema>
             [v] /** Campos que o formulario edita; o resto do registro e preservado no PUT (que substitui o registro inteiro). */
             [v] export const {{ @name }}FieldNames: readonly string[] = Object.keys(schema.shape)
@@ -130,15 +170,23 @@
                 [e] var
                     [v] enumImports
                     [e] expr
-                        [v] string-join(distinct-values(for $f in form/rows//field return (for $a in $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = substring(normalize-space($f/value), 2) and @mode = 'directToField' and exists(properties/values) and (@type = $mapNativeTypes/String/value or @type = $mapNativeTypes/Integer/value or @type = $mapNativeTypes/Long/value)] return concat($a/@name, 'Values, ', $a/@name, 'Labels'))), ', ')
+                        [v] string-join(distinct-values(for $f in form/rows//field[not(ancestor::list)] return (for $a in $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = substring(normalize-space($f/value), 2) and @mode = 'directToField' and exists(properties/values) and (@type = $mapNativeTypes/String/value or @type = $mapNativeTypes/Integer/value or @type = $mapNativeTypes/Long/value)] return concat($a/@name, 'Values, ', $a/@name, 'Labels'))), ', ')
                 [e] var
                     [v] picks
                     [e] expr
-                        [v] string-join(distinct-values(for $f in form/rows//field return (for $a in $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = substring(normalize-space($f/value), 2) and (@mode = 'directToField' or @mode = 'oneToOne' or @mode = 'manyToOne')] return concat($a/@name, ': true'))), ', ')
+                        [v] string-join(distinct-values(for $f in form/rows//field[not(ancestor::list)] return (for $a in $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = substring(normalize-space($f/value), 2) and (@mode = 'directToField' or @mode = 'oneToOne' or @mode = 'manyToOne')] return concat($a/@name, ': true'))), ', ')
                 [e] var
                     [v] usesFk
                     [e] expr
-                        [v] exists(for $f in form/rows//field return $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = substring(normalize-space($f/value), 2) and (@mode = 'oneToOne' or @mode = 'manyToOne')])
+                        [v] exists(for $f in form/rows//field[not(ancestor::list)] return $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = substring(normalize-space($f/value), 2) and (@mode = 'oneToOne' or @mode = 'manyToOne')])
+                [e] var
+                    [v] usesFkItem
+                    [e] expr
+                        [v] exists(for $l in form/rows/list, $ib in string(($classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = substring(normalize-space($l/value), 2) and @mode = 'oneToMany'])[1]/@type), $f in $l/rows//field return $classes/class[@name = $ib and @mode = 'bean']/attributes/attribute[@name = substring(normalize-space($f/value), 2) and (@mode = 'oneToOne' or @mode = 'manyToOne')])
+                [e] var
+                    [v] listCount
+                    [e] expr
+                        [v] count(form/rows/list)
             [e] write-pattern
                 [v] header
             [e] apply-templates
@@ -168,28 +216,99 @@
                             [v] string(@name)
                 [e] mode
                     [v] erroSection
+            [e] apply-templates
+                [e] select
+                    [v] form/rows/list/rows/row
+                [e] parameters
+                    [e] janela
+                        [e] expr
+                            [v] string(@name)
+                [e] mode
+                    [v] erroRow
+            [e] apply-templates
+                [e] select
+                    [v] form/rows/list/rows/section
+                [e] parameters
+                    [e] janela
+                        [e] expr
+                            [v] string(@name)
+                [e] mode
+                    [v] erroSection
+            [e] apply-templates
+                [e] select
+                    [v] form/rows/list
+                [e] parameters
+                    [e] bean
+                        [e] expr
+                            [v] $bean
+                    [e] janela
+                        [e] expr
+                            [v] string(@name)
+                [e] mode
+                    [v] erroList
+            [e] if
+                [v] $listCount > 1
+                [e] then
+                    [e] write-pattern
+                        [v] err-list-multiple
             [e] write-pattern
                 [v] header-imports
             [e] if
-                [v] $usesFk
+                [v] $usesFk or $usesFkItem
                 [e] then
                     [e] write-pattern
                         [v] import-fk
             [e] write-pattern
                 [v] import-schema
+            [e] apply-templates
+                [e] select
+                    [v] form/rows/list
+                [e] parameters
+                    [e] bean
+                        [e] expr
+                            [v] $bean
+                [e] mode
+                    [v] listImport
             [e] write-pattern
-                [v] schema-const
+                [v] schema-const-a
+            [e] apply-templates
+                [e] select
+                    [v] form/rows/list
+                [e] parameters
+                    [e] bean
+                        [e] expr
+                            [v] $bean
+                [e] mode
+                    [v] listItemSchema
+            [e] write-pattern
+                [v] schema-const-b
+            [e] apply-templates
+                [e] select
+                    [v] form/rows/list
+                [e] parameters
+                    [e] bean
+                        [e] expr
+                            [v] $bean
+                [e] mode
+                    [v] listExtend
+            [e] write-pattern
+                [v] schema-const-c
             [e] write-pattern
                 [v] defaults-start
             [e] apply-templates
                 [e] select
-                    [v] form/rows//field
+                    [v] form/rows//field[not(ancestor::list)]
                 [e] parameters
                     [e] bean
                         [e] expr
                             [v] $bean
                 [e] mode
                     [v] defaults
+            [e] apply-templates
+                [e] select
+                    [v] form/rows/list
+                [e] mode
+                    [v] listDefault
             [e] write-pattern
                 [v] defaults-end
             [e] write-pattern
@@ -370,6 +489,63 @@
                         [v] section-item
             [e] template
                 [e] match
+                    [v] list
+                [e] parameters
+                    [e] bean
+                        [v] NOT_DEFINED
+                [e] body
+                    [e] vars
+                        [e] var
+                            [v] lname
+                            [e] expr
+                                [v] substring(normalize-space(value), 2)
+                        [e] var
+                            [v] rel
+                            [e] expr
+                                [v] $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = $lname]
+                        [e] var
+                            [v] item
+                            [e] expr
+                                [v] normalize-space($rel/@type)
+                        [e] var
+                            [v] lbl
+                            [e] expr
+                                [v] replace(normalize-space((properties/label/pt/value, $rel/properties/title/pt/value)[1]), "'", "\\'")
+                        [e] var
+                            [v] itemLabel
+                            [e] expr
+                                [v] replace(normalize-space((properties/itemLabel/value, itemLabel/value)[1]), "'", "\\'")
+                        [e] var
+                            [v] addLabel
+                            [e] expr
+                                [v] replace(normalize-space((properties/addLabel/value, addLabel/value)[1]), "'", "\\'")
+                        [e] var
+                            [v] emptyText
+                            [e] expr
+                                [v] replace(normalize-space((properties/emptyText/value, emptyText/value)[1]), "'", "\\'")
+                        [e] var
+                            [v] maxItems
+                            [e] expr
+                                [v] normalize-space((properties/maxItems/value, maxItems/value)[1])
+                        [e] var
+                            [v] listOpts
+                            [e] expr
+                                [v] concat(mi:if-else($emptyText != '', concat(", emptyText: '", $emptyText, "'"), ''), mi:if-else($maxItems != '', concat(', maxItems: ', $maxItems), ''))
+                    [e] write-pattern
+                        [v] list-open
+                    [e] apply-templates
+                        [e] select
+                            [v] rows/*
+                        [e] parameters
+                            [e] bean
+                                [e] expr
+                                    [v] $item
+                        [e] mode
+                            [v] layout
+                    [e] write-pattern
+                        [v] list-close
+            [e] template
+                [e] match
                     [v] *
                 [e] parameters
                     [e] bean
@@ -377,6 +553,190 @@
                 [e] body
                     [e] write-pattern
                         [v] layout-todo
+        [e] mode
+            [v] erroList
+            [e] template
+                [e] match
+                    [v] list
+                [e] parameters
+                    [e] bean
+                        [v] NOT_DEFINED
+                    [e] janela
+                        [v] NOT_DEFINED
+                [e] body
+                    [e] vars
+                        [e] var
+                            [v] lname
+                            [e] expr
+                                [v] normalize-space(value)
+                        [e] var
+                            [v] rel
+                            [e] expr
+                                [v] $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = substring($lname, 2)]
+                        [e] var
+                            [v] isDetail
+                            [e] expr
+                                [v] exists($rel) and $rel/@mode = 'oneToMany'
+                        [e] var
+                            [v] item
+                            [e] expr
+                                [v] normalize-space($rel/@type)
+                        [e] var
+                            [v] hasInverse
+                            [e] expr
+                                [v] exists($classes/class[@name = $item and @mode = 'bean']/attributes/attribute[@mode = 'manyToOne' and @type = $bean])
+                        [e] var
+                            [v] itemLabel
+                            [e] expr
+                                [v] normalize-space((properties/itemLabel/value, itemLabel/value)[1])
+                        [e] var
+                            [v] addLabel
+                            [e] expr
+                                [v] normalize-space((properties/addLabel/value, addLabel/value)[1])
+                        [e] var
+                            [v] maxItems
+                            [e] expr
+                                [v] normalize-space((properties/maxItems/value, maxItems/value)[1])
+                        [e] var
+                            [v] nFields
+                            [e] expr
+                                [v] count(rows//field)
+                        [e] var
+                            [v] nested
+                            [e] expr
+                                [v] exists(rows//list)
+                    [e] if
+                        [v] not($isDetail)
+                        [e] then
+                            [e] write-pattern
+                                [v] err-list-not-detail
+                    [e] if
+                        [v] $isDetail and not($hasInverse)
+                        [e] then
+                            [e] write-pattern
+                                [v] err-list-no-inverse
+                    [e] if
+                        [v] $itemLabel = ''
+                        [e] then
+                            [e] write-pattern
+                                [v] err-list-itemlabel
+                    [e] if
+                        [v] $addLabel = ''
+                        [e] then
+                            [e] write-pattern
+                                [v] err-list-addlabel
+                    [e] if
+                        [v] $maxItems != '' and not(matches($maxItems, '^[0-9]+$') and number($maxItems) >= 1 and number($maxItems) <= 100)
+                        [e] then
+                            [e] write-pattern
+                                [v] err-list-maxitems
+                    [e] if
+                        [v] $nFields = 0
+                        [e] then
+                            [e] write-pattern
+                                [v] err-list-empty
+                    [e] if
+                        [v] $nested
+                        [e] then
+                            [e] write-pattern
+                                [v] err-list-nested
+        [e] mode
+            [v] listImport
+            [e] template
+                [e] match
+                    [v] list
+                [e] parameters
+                    [e] bean
+                        [v] NOT_DEFINED
+                [e] body
+                    [e] vars
+                        [e] var
+                            [v] lname
+                            [e] expr
+                                [v] substring(normalize-space(value), 2)
+                        [e] var
+                            [v] item
+                            [e] expr
+                                [v] normalize-space($classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = $lname]/@type)
+                        [e] var
+                            [v] ientity
+                            [e] expr
+                                [v] mi:first-lower($item)
+                        [e] var
+                            [v] ienums
+                            [e] expr
+                                [v] string-join(distinct-values(for $f in rows//field return (for $a in $classes/class[@name = $item and @mode = 'bean']/attributes/attribute[@name = substring(normalize-space($f/value), 2) and @mode = 'directToField' and exists(properties/values) and (@type = $mapNativeTypes/String/value or @type = $mapNativeTypes/Integer/value or @type = $mapNativeTypes/Long/value)] return concat($a/@name, 'Values, ', $a/@name, 'Labels'))), ', ')
+                    [e] write-pattern
+                        [v] import-item-schema
+        [e] mode
+            [v] listItemSchema
+            [e] template
+                [e] match
+                    [v] list
+                [e] parameters
+                    [e] bean
+                        [v] NOT_DEFINED
+                [e] body
+                    [e] vars
+                        [e] var
+                            [v] lname
+                            [e] expr
+                                [v] substring(normalize-space(value), 2)
+                        [e] var
+                            [v] item
+                            [e] expr
+                                [v] normalize-space($classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = $lname]/@type)
+                        [e] var
+                            [v] ientity
+                            [e] expr
+                                [v] mi:first-lower($item)
+                        [e] var
+                            [v] ipicks
+                            [e] expr
+                                [v] string-join(distinct-values(for $f in rows//field return (for $a in $classes/class[@name = $item and @mode = 'bean']/attributes/attribute[@name = substring(normalize-space($f/value), 2) and (@mode = 'directToField' or @mode = 'oneToOne' or @mode = 'manyToOne')] return concat($a/@name, ': true'))), ', ')
+                    [e] write-pattern
+                        [v] list-item-schema
+        [e] mode
+            [v] listExtend
+            [e] template
+                [e] match
+                    [v] list
+                [e] parameters
+                    [e] bean
+                        [v] NOT_DEFINED
+                [e] body
+                    [e] vars
+                        [e] var
+                            [v] lname
+                            [e] expr
+                                [v] substring(normalize-space(value), 2)
+                        [e] var
+                            [v] item
+                            [e] expr
+                                [v] normalize-space($classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = $lname]/@type)
+                        [e] var
+                            [v] ientity
+                            [e] expr
+                                [v] mi:first-lower($item)
+                        [e] var
+                            [v] maxItems
+                            [e] expr
+                                [v] normalize-space((properties/maxItems/value, maxItems/value)[1])
+                    [e] write-pattern
+                        [v] list-extend
+        [e] mode
+            [v] listDefault
+            [e] template
+                [e] match
+                    [v] list
+                [e] body
+                    [e] vars
+                        [e] var
+                            [v] lname
+                            [e] expr
+                                [v] substring(normalize-space(value), 2)
+                    [e] write-pattern
+                        [v] list-default
         [e] mode
             [v] spec
             [e] template

@@ -182,6 +182,53 @@ continua sendo o label da acao `primary` da lista ("Novo cliente").
 - Lookup de CEP: o runtime (`AutoForm`) agora preenche o campo FK cuja fonte e `Municipio` (`fk.key`), seja `cidade` (Pessoa) ou
   `municipio` (Empresa); sem fk declarado, cai em `cidade`.
 
+## Lista de detalhes 1-N no formulario (`list`)
+
+O mapa ja declara a relacao `[o]` (ex.: `Pessoa.contatos: Contato()`, inversa `[m] pessoa` em `Contato`). No `form/rows` do editor:
+
+```
+[e] list
+    [v] .contatos                 // nome da relacao [o] da source
+    @
+        [e] label / [e] pt / [v] Contatos       // opcional (senao title/pt da relacao)
+        [e] itemLabel / [v] Contato             // obrigatorio
+        [e] addLabel  / [v] Adicionar contato   // obrigatorio
+        [e] emptyText / [v] Nenhum contato adicionado.   // opcional
+        [e] maxItems  / [v] 10                  // opcional, 1 a 100
+    [e] rows                       // campos resolvidos contra o [b] do TIPO da relacao (Contato), nao da source
+        [e] row
+            [e] field ...          // mesmas regras: size obrigatorio, linha soma 12, mask, enum, fk
+```
+(`itemLabel`/`addLabel`/`emptyText`/`maxItems` tambem sao lidos como filho direto da `list`, sem `@`, caso o servidor descarte a chave no `@`.)
+
+Saida: `screenForm` emite o campo `{ name: 'contatos', kind: 'list', size: 'full', list: { itemLabel, addLabel, emptyText?, maxItems?, item: [linhas] } }`
+dentro de uma linha propria; o schema `…Schema.pick({...}).extend({ contatos: z.array(contatoItemSchema) })` com
+`contatoItemSchema = contatoSchema.pick({...}).extend({ id: z.string().optional() })` (importa `contatoSchema` e os enums de `@/gen/schemas/contato`,
+que o `gerar.sh` gera com `zodSchema modelName=Contato`); `DEFAULTS` com `contatos: []`; `FieldNames` inclui `contatos`.
+So UMA `list` por formulario.
+
+Contrato com o back (escrito a mao, NAO e o CRUD gerado de Contato): `GET /Pessoa/{id}/contatos` e `PUT /Pessoa/{id}/contatos` (lista desejada
+completa, tudo ou nada). Convencao `GET|PUT /{Entidade}/{id}/{relacao}`. O `apiClient` emite, para cada `[o]` do bean, `use<Relacao>De<Bean>(id)`
+(ex.: `useContatosDePessoa`) e `useSalvar<Relacao>De<Bean>()` (ex.: `useSalvarContatosDePessoa`, chamada `mutateAsync({ id, itens })`). Nao ha
+`gen/api/contato.ts` nem `sincronizarDetalhes`. Efeito: `gen/api/empresa.ts` ganha hooks de `atividades` e `qsa` (sem uso; os endpoints nao existem no back).
+
+`screenEditorById` com `list`: CRIAR salva o pai e depois faz o PUT dos itens; EDITAR carrega pai + itens (Loading/Error cobrem os dois), salva o pai
+(sem a lista, `{ ...preservar, ...dados }`) e depois o PUT dos itens. **Falha parcial**: o pai ja esta salvo; toast `<Cliente> salvo, mas os contatos nao foram
+salvos: <mensagem do back>. Revise na edicao.`; no criar navega para a edicao do salvo, no editar permanece. O nome (`Cliente`) sai do label da acao `primary` da lista.
+Sem `list`, a saida das telas e identica a anterior.
+
+ERRO NO MODELO novos (`screenForm`; `screenEditorById` repete multiplas list e relacao invalida):
+
+| Mensagem | Como corrigir |
+|---|---|
+| `list <.x> sem relacao de detalhe [o] em <Bean> ...` | `.x` deve ser `[o]` do bean da source. |
+| `list <.x>: <Item> nao tem relacao [m] para <Bean> ...` | o detalhe precisa da inversa `[m]` (a que carrega o pai). |
+| `list <.x> sem itemLabel` / `sem addLabel` | declare no `@` da list. |
+| `list <.x> com maxItems '<v>' invalido ...` | inteiro de 1 a 100. |
+| `list <.x> sem campos` / `com list aninhada` | declare `rows/row/field`; nao aninhe list. |
+| `mais de uma list em <Janela>` | so uma lista de detalhes por formulario. |
+| campo/linha/secao dentro da list | mesmas regras de size, soma 12 e titulo de secao. |
+
 ## Abas extras no editor
 
 A janela `window.editor` pode declarar, como filho direto (irmao de `form` e `actions`):
@@ -224,7 +271,7 @@ Dialeto (plano secao 5):
    aceitar o item no `FieldLayout`. O nome (`section` com `[v]` direto, nao `title/pt`) e convencao nossa, nao do plano.
 4. **Campos de exportacao condicionais** (`codigoPais`, `codigoPostal`, `nomeMunicipioExterior`, `nomeProvincia`): sempre
    visiveis no form (agora numa secao "Pessoa estrangeira (exportacao)" abaixo do endereco). Falta `condition` em `field`/`section` (so existe em action/step).
-5. **Lista `contatos` (`[o] contatos: Contato()`)**: edicao master-detalhe nao existe (`window.iframe`/`useFieldArray` e futuro). Fora do editor. A historia pede varios contatos com tipo, WhatsApp e e-mail.
+5. **Lista `contatos` (`[o] contatos: Contato()`)**: RESOLVIDO com `[e] list` no editor (ver "Lista de detalhes 1-N no formulario").
 6. **Busca em varios campos**: a historia e o dominio marcam `documento`, `nomeFantasia` como `searchable`; a busca da lista usa so `.nome` (pedido). Nao se sabe se `search` aceita varios `field`.
 7. **Consulta CNPJ.ws** (botao que preenche o form): sem construto no dialeto. A consulta de CEP foi coberta por convencao:
    propriedade de campo `lookup cep` + `hint` (nao constam do plano; o preenchimento dos irmaos por NOME e regra do runtime, o mapa

@@ -7,11 +7,12 @@ import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import type { FieldLayout } from '@/runtime/AutoForm'
 import { Combobox, type FkSource, type FkValue } from '@/runtime/Combobox'
 import { MASKS, applyMask, onlyDigits, type MaskKind } from '@/runtime/format'
 import { SEARCH_BUTTON_CLASS } from '@/runtime/SearchInput'
 
-export type FieldKind = 'text' | 'email' | 'password' | 'textarea' | 'number' | 'currency' | 'boolean' | 'date' | 'enum' | 'fk'
+export type FieldKind = 'text' | 'email' | 'password' | 'textarea' | 'number' | 'currency' | 'boolean' | 'date' | 'enum' | 'fk' | 'list'
 
 /** Tamanho de um campo na grade de 12 colunas. */
 export type FieldSize = 'xs' | 's' | 'm' | 'l' | 'xl' | 'full'
@@ -27,6 +28,22 @@ export const SIZE_CLASS: Record<FieldSize, string> = {
   l: 'col-span-12 sm:col-span-6 md:col-span-6',
   xl: 'col-span-12 sm:col-span-6 md:col-span-8',
   full: 'col-span-12',
+}
+
+/** Campo de lista (detalhes 1-N dentro do formulario): o valor do campo e um array de objetos `{ id?, ...camposVisiveis }`. */
+export interface ListSpec {
+  /** Campos de cada item (mesma grade de 12 colunas; sem secoes). Os nomes sao relativos ao item (`nome`, nao `contatos.0.nome`). */
+  item: FieldLayout
+  /** Nome do item no singular, usado no titulo ("Contato 1") e nos rotulos de acessibilidade. */
+  itemLabel: string
+  /** Texto do botao de adicionar (ex.: "Adicionar contato"). */
+  addLabel: string
+  /** Texto do estado vazio. Padrao: "Nenhum {itemLabel em minusculas} adicionado." */
+  emptyText?: string
+  /** Limite de itens; ao atingir, o botao de adicionar fica desabilitado. */
+  maxItems?: number
+  /** Valores iniciais de um item novo. */
+  defaultItem?: Record<string, unknown>
 }
 
 export interface FieldSpec {
@@ -62,6 +79,8 @@ export interface FieldSpec {
   /** @deprecated Use size. Peso de proporcao dentro da linha (padrao 1); so vale em linhas sem nenhum size. */
   width?: number
   maxLength?: number
+  /** Configuracao do campo `kind: 'list'`; o `name` e o do array no formulario (ex.: `contatos`). */
+  list?: ListSpec
 }
 
 /** Estado de uma busca (lookup) ligada ao campo; quem o controla e o AutoForm. */
@@ -81,6 +100,7 @@ export interface LookupState {
 
 export function resolveKind(spec: FieldSpec): FieldKind {
   if (spec.kind) return spec.kind
+  if (spec.list) return 'list'
   if (spec.options) return 'enum'
   if (spec.fk) return 'fk'
   return 'text'
@@ -89,7 +109,7 @@ export function resolveKind(spec: FieldSpec): FieldKind {
 /** Tamanho automatico quando size e omitido: pelo tipo do campo e, no texto, pelo maxLength. */
 export function autoSize(spec: FieldSpec): FieldSize {
   const kind = resolveKind(spec)
-  if (kind === 'textarea') return 'full'
+  if (kind === 'textarea' || kind === 'list') return 'full'
   if (kind === 'boolean' || kind === 'date' || kind === 'number' || kind === 'currency') return 's'
   if (kind === 'fk') return 'l'
   if (kind === 'enum') return 'm'

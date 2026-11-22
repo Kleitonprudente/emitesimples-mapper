@@ -3,16 +3,22 @@ import { z } from 'zod'
 import { AutoForm, type FieldLayout } from '@/runtime/AutoForm'
 import { fkSource } from '@/lib/fk-sources'
 import { pessoaSchema, tipoPessoaValues, tipoPessoaLabels, tipoDestinatarioValues, tipoDestinatarioLabels } from '@/gen/schemas/pessoa'
+import { contatoSchema, tipoContatoValues, tipoContatoLabels } from '@/gen/schemas/contato'
 
 const SUBMIT_LABEL = 'Salvar'
 
+/** Item de contatos: so os campos que o formulario edita, mais o id do registro existente (ausente nos itens novos). */
+const contatoItemSchema = contatoSchema.pick({ tipoContato: true, nome: true, whatsapp: true, email: true }).extend({ id: z.string().optional() })
+
 const schema = pessoaSchema.pick({ documento: true, tipoPessoa: true, consumidorFinal: true, nome: true, nomeFantasia: true, inscricaoMunicipal: true, rgInscricaoEstadual: true, tipoDestinatario: true, email: true, telefone: true, cep: true, logradouro: true, numeroEndereco: true, complemento: true, bairro: true, cidade: true, codigoPais: true, codigoPostal: true, nomeMunicipioExterior: true, nomeProvincia: true })
+  .extend({ contatos: z.array(contatoItemSchema).max(50) })
 export type FormularioClienteValues = z.infer<typeof schema>
 /** Campos que o formulario edita; o resto do registro e preservado no PUT (que substitui o registro inteiro). */
 export const FormularioClienteFieldNames: readonly string[] = Object.keys(schema.shape)
 
 const DEFAULTS: Partial<FormularioClienteValues> = {
   consumidorFinal: true,
+  contatos: [],
 }
 
 const FIELDS: FieldLayout = [
@@ -31,7 +37,7 @@ const FIELDS: FieldLayout = [
     { name: 'rgInscricaoEstadual', label: 'RG / Inscrição Estadual', maxLength: 20, size: 'm' },
     { name: 'tipoDestinatario', label: 'Tipo do Destinatário', options: tipoDestinatarioValues.map((value) => ({ value, label: tipoDestinatarioLabels[value] })), size: 'm' },
   ],
-  { section: 'Contato' },
+  { section: 'Contato principal' },
   [
     { name: 'email', label: 'E-mail', maxLength: 60, size: 'xl' },
     { name: 'telefone', label: 'Telefone', maxLength: 20, mask: 'phone', size: 'm' },
@@ -46,6 +52,25 @@ const FIELDS: FieldLayout = [
     { name: 'complemento', label: 'Complemento', maxLength: 256, size: 'm' },
     { name: 'bairro', label: 'Bairro', maxLength: 60, required: true, size: 'm' },
     { name: 'cidade', label: 'Município', fk: fkSource('Municipio'), size: 'm' },
+  ],
+  { section: 'Contatos' },
+  [
+    {
+      name: 'contatos', label: 'Contatos', kind: 'list', size: 'full',
+      list: {
+        itemLabel: 'Contato', addLabel: 'Adicionar contato', emptyText: 'Nenhum contato adicionado.', maxItems: 50,
+        item: [
+  [
+    { name: 'tipoContato', label: 'Tipo de Contato', options: tipoContatoValues.map((value) => ({ value, label: tipoContatoLabels[value] })), required: true, size: 'm' },
+    { name: 'nome', label: 'Nome do Contato', maxLength: 300, required: true, size: 'xl' },
+  ],
+  [
+    { name: 'whatsapp', label: 'WhatsApp', maxLength: 20, mask: 'phone', size: 'm' },
+    { name: 'email', label: 'E-mail', maxLength: 60, size: 'xl' },
+  ],
+        ],
+      },
+    },
   ],
   { section: 'Pessoa estrangeira (exportação)', collapsible: true },
   [

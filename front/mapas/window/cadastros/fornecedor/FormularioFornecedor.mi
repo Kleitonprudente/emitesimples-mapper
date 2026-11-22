@@ -72,7 +72,7 @@
                         [e] size
                             [v] m
             [e] section
-                [v] Contato
+                [v] Contato principal
             [e] row
                 [e] field
                     [v] .email
@@ -130,6 +130,47 @@
                                 [v] Município
                         [e] size
                             [v] m
+            [e] section
+                [v] Contatos
+            [e] list
+                [v] .contatos
+                @
+                    [e] label
+                        [e] pt
+                            [v] Contatos
+                    [e] itemLabel
+                        [v] Contato
+                    [e] addLabel
+                        [v] Adicionar contato
+                    [e] emptyText
+                        [v] Nenhum contato adicionado.
+                    [e] maxItems
+                        [v] 50
+                [e] rows
+                    [e] row
+                        [e] field
+                            [v] .tipoContato
+                            @
+                                [e] size
+                                    [v] m
+                        [e] field
+                            [v] .nome
+                            @
+                                [e] size
+                                    [v] xl
+                    [e] row
+                        [e] field
+                            [v] .whatsapp
+                            @
+                                [e] mask
+                                    [v] phone
+                                [e] size
+                                    [v] m
+                        [e] field
+                            [v] .email
+                            @
+                                [e] size
+                                    [v] xl
             [e] section
                 [v] Pessoa estrangeira (exportação)
                 @

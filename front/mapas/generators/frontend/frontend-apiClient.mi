@@ -80,6 +80,28 @@
             [v]     onSuccess: () => qc.invalidateQueries({ queryKey: {{ mi:first-lower(@name) }}Keys.all }),
             [v]   })
             [v] }
+        [e] detail-hooks
+            [v] {{ '' }}
+            [v] /** Item do detalhe {{ @name }} de {{ $bean }}, como o back o devolve e recebe (id ausente no item novo). */
+            [v] export type {{ mi:first-upper(@name) }}De{{ $bean }}Item = { id?: string } & Record<string, unknown>
+            [v] {{ '' }}
+            [v] /** Lista completa do detalhe: GET /{{ $bean }}/{id}/{{ @name }}. */
+            [v] export function use{{ mi:first-upper(@name) }}De{{ $bean }}(id: string | null) {
+            [v]   return useQuery({
+            [v]     queryKey: [...{{ mi:first-lower($bean) }}Keys.all, '{{ @name }}', id ?? ''],
+            [v]     queryFn: () => api<{{ mi:first-upper(@name) }}De{{ $bean }}Item[]>(`${BASE}/${id}/{{ @name }}`),
+            [v]     enabled: !!id,
+            [v]   })
+            [v] }
+            [v] {{ '' }}
+            [v] /** Grava a lista DESEJADA completa (tudo ou nada): PUT /{{ $bean }}/{id}/{{ @name }}. O id entra na chamada (`mutateAsync({ id, itens })`), pois na criacao so existe depois de salvar o pai. */
+            [v] export function useSalvar{{ mi:first-upper(@name) }}De{{ $bean }}() {
+            [v]   const qc = useQueryClient()
+            [v]   return useMutation({
+            [v]     mutationFn: ({ id, itens }: { id: string; itens: {{ mi:first-upper(@name) }}De{{ $bean }}Item[] }) => api<{{ mi:first-upper(@name) }}De{{ $bean }}Item[]>(`${BASE}/${id}/{{ @name }}`, { method: 'PUT', body: itens }),
+            [v]     onSuccess: () => qc.invalidateQueries({ queryKey: {{ mi:first-lower($bean) }}Keys.all }),
+            [v]   })
+            [v] }
     [e] start
         [e] match
             [v] /classes/class[@name = $modelName and @package = $package]
@@ -92,3 +114,24 @@
                 [v] keys
             [e] write-pattern
                 [v] hooks
+            [e] apply-templates
+                [e] select
+                    [v] attributes/attribute[@mode = 'oneToMany']
+                [e] parameters
+                    [e] bean
+                        [e] expr
+                            [v] string(@name)
+                [e] mode
+                    [v] details
+    [e] templates
+        [e] mode
+            [v] details
+            [e] template
+                [e] match
+                    [v] attribute
+                [e] parameters
+                    [e] bean
+                        [v] NOT_DEFINED
+                [e] body
+                    [e] write-pattern
+                        [v] detail-hooks

@@ -65,3 +65,24 @@ export function useRemoverPessoa() {
     onSuccess: () => qc.invalidateQueries({ queryKey: pessoaKeys.all }),
   })
 }
+
+/** Item do detalhe contatos de Pessoa, como o back o devolve e recebe (id ausente no item novo). */
+export type ContatosDePessoaItem = { id?: string } & Record<string, unknown>
+
+/** Lista completa do detalhe: GET /Pessoa/{id}/contatos. */
+export function useContatosDePessoa(id: string | null) {
+  return useQuery({
+    queryKey: [...pessoaKeys.all, 'contatos', id ?? ''],
+    queryFn: () => api<ContatosDePessoaItem[]>(`${BASE}/${id}/contatos`),
+    enabled: !!id,
+  })
+}
+
+/** Grava a lista DESEJADA completa (tudo ou nada): PUT /Pessoa/{id}/contatos. O id entra na chamada (`mutateAsync({ id, itens })`), pois na criacao so existe depois de salvar o pai. */
+export function useSalvarContatosDePessoa() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, itens }: { id: string; itens: ContatosDePessoaItem[] }) => api<ContatosDePessoaItem[]>(`${BASE}/${id}/contatos`, { method: 'PUT', body: itens }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: pessoaKeys.all }),
+  })
+}

@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { AutoForm, type FieldLayout } from '@/runtime/AutoForm'
-import type { FieldSize } from '@/runtime/FormField'
+import type { FieldSize, FieldSpec } from '@/runtime/FormField'
 import { SIZE_COLS } from '@/runtime/FormField'
 import type { FkSource } from '@/runtime/Combobox'
 import { notifySuccess } from '@/runtime/feedback'
@@ -34,7 +34,47 @@ const pessoaSchema = z.looseObject({
   razaoSocial: z.string().min(1, 'Informe a razão social.'),
   logradouro: z.string().min(1, 'Informe o logradouro.'),
   numero: z.string().min(1, 'Informe o número.'),
+  contatos: z.array(z.looseObject({ nome: z.string().min(1, 'Informe o nome.') })).optional(),
 })
+
+const TIPOS_CONTATO = [
+  { value: 'socio', label: 'Sócio' },
+  { value: 'financeiro', label: 'Financeiro' },
+  { value: 'comercial', label: 'Comercial' },
+  { value: 'fiscal', label: 'Fiscal' },
+  { value: 'outro', label: 'Outro' },
+]
+
+/** Campo de lista (detalhe 1-N): cada item usa as mesmas linhas da grade de 12 colunas. */
+const CONTATOS: FieldSpec = {
+  name: 'contatos',
+  label: 'Contatos',
+  kind: 'list',
+  size: 'full',
+  list: {
+    itemLabel: 'Contato',
+    addLabel: 'Adicionar contato',
+    emptyText: 'Nenhum contato adicionado.',
+    maxItems: 10,
+    defaultItem: { tipoContato: 'outro' },
+    item: [
+      [
+        { name: 'tipoContato', label: 'Tipo', options: TIPOS_CONTATO, size: 's', required: true },
+        { name: 'nome', label: 'Nome', maxLength: 100, size: 'l', required: true },
+      ],
+      [
+        { name: 'whatsapp', label: 'WhatsApp', mask: 'phone', size: 's' },
+        { name: 'email', label: 'E-mail', kind: 'email', maxLength: 100, size: 'l' },
+      ],
+    ],
+  },
+}
+
+
+const CONTATOS_INICIAIS = [
+  { tipoContato: 'financeiro', nome: 'Marta Lima', whatsapp: '11987654321', email: 'marta@exemplo.com.br' },
+  { tipoContato: 'socio', nome: 'Paulo Nunes' },
+]
 
 const PESSOA: FieldLayout = [
   { section: 'Identificação' },
@@ -69,6 +109,8 @@ const PESSOA: FieldLayout = [
     { name: 'bairro', label: 'Bairro', maxLength: 60, size: 'm' },
     { name: 'cidade', label: 'Município', fk: DEMO_MUNICIPIOS, size: 'm' },
   ],
+  { section: 'Contatos', description: 'Várias pessoas de contato (sócio, financeiro, comercial...). Com a consulta de CNPJ, os sócios entram aqui como contatos do tipo Sócio.' },
+  [CONTATOS],
   { section: 'Pessoa estrangeira', description: 'Seção rara: recolhida por padrão.', collapsible: true },
   [
     { name: 'pais', label: 'País', maxLength: 60, size: 'm' },
@@ -175,9 +217,9 @@ export function GuiaFormulario() {
 
       <Exemplo
         titulo="Pessoa"
-        legenda="Seções em Card, barra de ações fixa, aviso de alterações não salvas. Identificação 3|3|3|3 e 6|6; Contato 6|3|3; Endereço 3|6|3 e 4|4|4; Pessoa estrangeira é collapsible (rara)."
+        legenda="Seções em Card, barra de ações fixa, aviso de alterações não salvas. Identificação 3|3|3|3 e 6|6; Contato 6|3|3; Endereço 3|6|3 e 4|4|4; Contatos é um campo de lista (2 itens iniciais; cada item usa a mesma grade 12: Tipo 3 + Nome 6, WhatsApp 3 + E-mail 6, com remover e adicionar); Pessoa estrangeira é collapsible (rara)."
       >
-        <AutoForm schema={pessoaSchema} fields={PESSOA} defaults={{ consumidorFinal: false }} submitLabel="Salvar pessoa" onSubmit={() => notifySuccess('Pessoa válida.')} onCancel={() => {}} />
+        <AutoForm schema={pessoaSchema} fields={PESSOA} defaults={{ consumidorFinal: false, contatos: CONTATOS_INICIAIS }} submitLabel="Salvar pessoa" onSubmit={() => notifySuccess('Pessoa válida.')} onCancel={() => {}} />
       </Exemplo>
 
       <Exemplo titulo="Serviço" legenda="Valores em linhas de 4 campos de 3 colunas. A discriminação (textarea, 2000 caracteres) ocupa a linha inteira, com 6 linhas e contador.">

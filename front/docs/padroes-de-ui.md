@@ -89,6 +89,23 @@ Todo cadastro tem **duas telas e um formulário**:
   - **Barra de ações fixa** (`sticky bottom-0`, fundo e borda superior) quando o layout tem seções, com "Alterações não
     salvas" enquanto o formulário está sujo; o navegador também avisa (`beforeunload`) ao fechar a aba com alterações.
     Depois de salvar com sucesso o aviso some. Formulários simples mantêm o rodapé comum.
+  - **Campo de lista (detalhes 1-N dentro do formulário).** `kind: 'list'` com `list: { item, itemLabel, addLabel, emptyText?, maxItems?, defaultItem? }`
+    (ex.: Contatos de uma pessoa). O `name` é o do array no formulário (`contatos`) e o schema é `z.array(z.object(...))`. Entra no layout
+    como uma linha de um campo (`size: 'full'`); o título e a descrição vêm da **seção** (o rótulo do campo não é repetido). Cada item é um
+    bloco com título "{itemLabel} {n}", as linhas de `item` na mesma grade de 12 colunas e um botão **só com ícone** de remover
+    (`aria-label` "Remover {itemLabel} {n}", com Tooltip); abaixo da lista, botão `outline` com `+` e o `addLabel` (desabilitado em `maxItems`).
+    Vazio mostra `emptyText` (padrão "Nenhum {item} adicionado."). Erros aparecem sob cada campo do item; a seção ou aba com erro abre ao salvar.
+    O item carregado do back traz `id`, que é **preservado** no envio mesmo sem campo visível; o envio leva `contatos` como array de objetos
+    limpos (sem campos vazios), `[]` se a lista ficou vazia. O AutoForm só entrega o array: a lista de detalhes é salva por um **endpoint do pai que recebe a lista inteira** (convenção
+    `PUT /{Entidade}/{id}/{relacao}`, ex.: `PUT /Pessoa/{id}/contatos`, que devolve a lista salva com ids, tudo ou nada). Não há sincronização
+    item a item no cliente; erros 400 trazem `detalhes.campos` (ex.: `contatos[2].nome`).
+    - **Quando usar:** detalhe 1-N **pequeno e sempre editado junto** do cadastro (contatos, telefones extras). Detalhe grande, com busca,
+      paginação ou que tem tela própria **não** vira lista no formulário.
+    - **Limites:** um nível só (item sem lista dentro de lista); item sem seções; use `maxItems` (ex.: 10) para listas que não devem crescer; os
+      campos do item aceitam máscara, hint, enum e FK, mas não `lookup`.
+    - **Sócios do CNPJ:** com um campo de lista `contatos` cujo item tem `tipoContato`, a consulta de CNPJ adiciona cada sócio do QSA como contato
+      `{ tipoContato: 'socio', nome }` (sem duplicar nome já presente entre os contatos de sócio, ignorando acento e caixa; nunca apaga o que a pessoa
+      preencheu) e o aviso do campo passa a dizer "N sócio(s) adicionado(s) em Contatos.". Sem esse campo, os sócios são ignorados.
   - Exemplos ao vivo em `/admin/theme` (seção "Padrão de formulário"), código em `features/admin/GuiaFormulario.tsx`.
 - **Endereço padrão** (Pessoa, Empresa), nas linhas acima:
   1. CEP (máscara, dica "Ao sair do campo, o endereço é preenchido.", **botão de busca em destaque embutido**) | Logradouro | Número
