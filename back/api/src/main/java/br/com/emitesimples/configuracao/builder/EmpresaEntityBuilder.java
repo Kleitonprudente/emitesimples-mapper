@@ -35,6 +35,9 @@ public class EmpresaEntityBuilder {
     public String situacao;
     public LocalDateTime dataConfirmacao;
     public String referenciaCrm;
+    public Boolean nfseHabilitada;
+    public String serieNfse;
+    public Integer ultimoNumeroNfse;
     public String statusCadastro;
     public LocalDateTime dataCadastroGateway;
     public String referenciaTokenEmpresa;
@@ -157,6 +160,21 @@ public class EmpresaEntityBuilder {
         return this;
     }
 
+    public EmpresaEntityBuilder withNfseHabilitada(Boolean nfseHabilitada) {
+        this.nfseHabilitada = nfseHabilitada;
+        return this;
+    }
+
+    public EmpresaEntityBuilder withSerieNfse(String serieNfse) {
+        this.serieNfse = serieNfse;
+        return this;
+    }
+
+    public EmpresaEntityBuilder withUltimoNumeroNfse(Integer ultimoNumeroNfse) {
+        this.ultimoNumeroNfse = ultimoNumeroNfse;
+        return this;
+    }
+
     public EmpresaEntityBuilder withStatusCadastro(String statusCadastro) {
         this.statusCadastro = statusCadastro;
         return this;
@@ -253,6 +271,9 @@ public class EmpresaEntityBuilder {
                 .withSituacao(empresa.getSituacao())
                 .withDataConfirmacao(empresa.getDataConfirmacao())
                 .withReferenciaCrm(empresa.getReferenciaCrm())
+                .withNfseHabilitada(empresa.getNfseHabilitada())
+                .withSerieNfse(empresa.getSerieNfse())
+                .withUltimoNumeroNfse(empresa.getUltimoNumeroNfse())
                 .withStatusCadastro(empresa.getStatusCadastro())
                 .withDataCadastroGateway(empresa.getDataCadastroGateway())
                 .withValidadeCertificado(empresa.getValidadeCertificado())

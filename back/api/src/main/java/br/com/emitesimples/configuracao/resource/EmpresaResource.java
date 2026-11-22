@@ -62,6 +62,9 @@ public class EmpresaResource {
         @QueryParam("situacao") String situacao,
         @QueryParam("dataConfirmacao") String dataConfirmacao,
         @QueryParam("referenciaCrm") String referenciaCrm,
+        @QueryParam("nfseHabilitada") String nfseHabilitada,
+        @QueryParam("serieNfse") String serieNfse,
+        @QueryParam("ultimoNumeroNfse") String ultimoNumeroNfse,
         @QueryParam("statusCadastro") String statusCadastro,
         @QueryParam("dataCadastroGateway") String dataCadastroGateway,
         @QueryParam("validadeCertificado") String validadeCertificado,
@@ -78,7 +81,7 @@ public class EmpresaResource {
         Sort sort = Sort.by(sortBy != null ? sortBy : "id")
                         .direction(sortDirection.equalsIgnoreCase("desc") ?
                                    Sort.Direction.Descending : Sort.Direction.Ascending);
-        List<EmpresaEntity> entityList = repository.findWithFilters(0, 100, sort, nomeFantasia, razaoSocial, documento, rgInscricaoEstadual, inscricaoMunicipal, email, whatsapp, telefone, logradouro, numeroEndereco, complemento, bairro, cep, regimeTributario, regimeIbsCbs, urlWebhook, situacao, dataConfirmacao, referenciaCrm, statusCadastro, dataCadastroGateway, validadeCertificado, situacaoCertificado, id, ambiente, dataCriacao, dataAtualizacao, municipioCodigoIbge, municipioNome, municipioUf, municipioId);
+        List<EmpresaEntity> entityList = repository.findWithFilters(0, 100, sort, nomeFantasia, razaoSocial, documento, rgInscricaoEstadual, inscricaoMunicipal, email, whatsapp, telefone, logradouro, numeroEndereco, complemento, bairro, cep, regimeTributario, regimeIbsCbs, urlWebhook, situacao, dataConfirmacao, referenciaCrm, nfseHabilitada, serieNfse, ultimoNumeroNfse, statusCadastro, dataCadastroGateway, validadeCertificado, situacaoCertificado, id, ambiente, dataCriacao, dataAtualizacao, municipioCodigoIbge, municipioNome, municipioUf, municipioId);
 
         return mapper.entityListToApiList(entityList);
     }
@@ -125,6 +128,9 @@ public class EmpresaResource {
         @QueryParam("situacao") String situacao,
         @QueryParam("dataConfirmacao") String dataConfirmacao,
         @QueryParam("referenciaCrm") String referenciaCrm,
+        @QueryParam("nfseHabilitada") String nfseHabilitada,
+        @QueryParam("serieNfse") String serieNfse,
+        @QueryParam("ultimoNumeroNfse") String ultimoNumeroNfse,
         @QueryParam("statusCadastro") String statusCadastro,
         @QueryParam("dataCadastroGateway") String dataCadastroGateway,
         @QueryParam("validadeCertificado") String validadeCertificado,
@@ -140,7 +146,7 @@ public class EmpresaResource {
     ) {
 
         CountResult countResult = new CountResult();
-        countResult.setCount(repository.countWithFilters( nomeFantasia, razaoSocial, documento, rgInscricaoEstadual, inscricaoMunicipal, email, whatsapp, telefone, logradouro, numeroEndereco, complemento, bairro, cep, regimeTributario, regimeIbsCbs, urlWebhook, situacao, dataConfirmacao, referenciaCrm, statusCadastro, dataCadastroGateway, validadeCertificado, situacaoCertificado, id, ambiente, dataCriacao, dataAtualizacao, municipioCodigoIbge, municipioNome, municipioUf, municipioId));
+        countResult.setCount(repository.countWithFilters( nomeFantasia, razaoSocial, documento, rgInscricaoEstadual, inscricaoMunicipal, email, whatsapp, telefone, logradouro, numeroEndereco, complemento, bairro, cep, regimeTributario, regimeIbsCbs, urlWebhook, situacao, dataConfirmacao, referenciaCrm, nfseHabilitada, serieNfse, ultimoNumeroNfse, statusCadastro, dataCadastroGateway, validadeCertificado, situacaoCertificado, id, ambiente, dataCriacao, dataAtualizacao, municipioCodigoIbge, municipioNome, municipioUf, municipioId));
         return countResult;
     }
 
@@ -173,6 +179,9 @@ public class EmpresaResource {
         @QueryParam("situacao") String situacao,
         @QueryParam("dataConfirmacao") String dataConfirmacao,
         @QueryParam("referenciaCrm") String referenciaCrm,
+        @QueryParam("nfseHabilitada") String nfseHabilitada,
+        @QueryParam("serieNfse") String serieNfse,
+        @QueryParam("ultimoNumeroNfse") String ultimoNumeroNfse,
         @QueryParam("statusCadastro") String statusCadastro,
         @QueryParam("dataCadastroGateway") String dataCadastroGateway,
         @QueryParam("validadeCertificado") String validadeCertificado,
@@ -197,7 +206,7 @@ public class EmpresaResource {
         Sort sort = Sort.by(sortBy != null ? sortBy : "id")
                         .direction(sortDirection.equalsIgnoreCase("desc") ?
                                    Sort.Direction.Descending : Sort.Direction.Ascending);
-        List<EmpresaEntity> entityList = repository.findWithFilters(from, limit, sort, nomeFantasia, razaoSocial, documento, rgInscricaoEstadual, inscricaoMunicipal, email, whatsapp, telefone, logradouro, numeroEndereco, complemento, bairro, cep, regimeTributario, regimeIbsCbs, urlWebhook, situacao, dataConfirmacao, referenciaCrm, statusCadastro, dataCadastroGateway, validadeCertificado, situacaoCertificado, id, ambiente, dataCriacao, dataAtualizacao, municipioCodigoIbge, municipioNome, municipioUf, municipioId);
+        List<EmpresaEntity> entityList = repository.findWithFilters(from, limit, sort, nomeFantasia, razaoSocial, documento, rgInscricaoEstadual, inscricaoMunicipal, email, whatsapp, telefone, logradouro, numeroEndereco, complemento, bairro, cep, regimeTributario, regimeIbsCbs, urlWebhook, situacao, dataConfirmacao, referenciaCrm, nfseHabilitada, serieNfse, ultimoNumeroNfse, statusCadastro, dataCadastroGateway, validadeCertificado, situacaoCertificado, id, ambiente, dataCriacao, dataAtualizacao, municipioCodigoIbge, municipioNome, municipioUf, municipioId);
 
         return mapper.entityListToApiList(entityList);
     }

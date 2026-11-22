@@ -71,6 +71,9 @@ public class ServicoEntity {
 
     @Column(name="CST_PIS_COFINS", length=2)
     private String cstPisCofins;
+
+    @Column(name="PERCENTUAL_TRIBUTOS_SIMPLES", precision = 5, scale = 2)
+    private BigDecimal percentualTributosSimples;
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "ID", updatable = false, nullable = false, length = 36)
@@ -103,6 +106,7 @@ public class ServicoEntity {
         Boolean issRetido,
         Integer tipoOperacaoIss,
         String cstPisCofins,
+        BigDecimal percentualTributosSimples,
         String id,
         LocalDateTime dataCriacao,
         LocalDateTime dataAtualizacao,
@@ -121,6 +125,7 @@ public class ServicoEntity {
         this.issRetido = issRetido;
         this.tipoOperacaoIss = tipoOperacaoIss;
         this.cstPisCofins = cstPisCofins;
+        this.percentualTributosSimples = percentualTributosSimples;
         this.id = id;
         this.dataCriacao = dataCriacao;
         this.dataAtualizacao = dataAtualizacao;
@@ -142,6 +147,7 @@ public class ServicoEntity {
         this.issRetido = builder.issRetido;
         this.tipoOperacaoIss = builder.tipoOperacaoIss;
         this.cstPisCofins = builder.cstPisCofins;
+        this.percentualTributosSimples = builder.percentualTributosSimples;
         this.id = builder.id;
         this.dataCriacao = builder.dataCriacao;
         this.dataAtualizacao = builder.dataAtualizacao;
@@ -257,6 +263,12 @@ public class ServicoEntity {
 
     public String getCstPisCofins() {
         return this.cstPisCofins;
+    }
+    public void setPercentualTributosSimples(BigDecimal percentualTributosSimples) {
+        this.percentualTributosSimples = percentualTributosSimples;
+    }
+    public BigDecimal getPercentualTributosSimples() {
+        return this.percentualTributosSimples;
     }
 
     public void setId(String id) {

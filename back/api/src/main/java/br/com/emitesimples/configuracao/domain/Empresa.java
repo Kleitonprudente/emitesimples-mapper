@@ -104,6 +104,15 @@ public class Empresa {
     @Size(max = 50, message = "Attribute referenciaCrm must have 50 characters maximum.")
     private String referenciaCrm;
 
+    @NotNull(message = "The attribute nfseHabilitada can't be null.")
+    private Boolean nfseHabilitada;
+
+    @Size(max = 5, message = "Attribute serieNfse must have 5 characters maximum.")
+    private String serieNfse;
+
+    @NotNull(message = "The attribute ultimoNumeroNfse can't be null.")
+    private Integer ultimoNumeroNfse;
+
     @NotEmpty(message = "The attribute statusCadastro can't be empty.")
     @Size(max = 20, message = "Attribute statusCadastro must have 20 characters maximum.")
     private String statusCadastro;
@@ -159,6 +168,9 @@ public class Empresa {
         this.situacao = null;
         this.dataConfirmacao = null;
         this.referenciaCrm = null;
+        this.nfseHabilitada = null;
+        this.serieNfse = null;
+        this.ultimoNumeroNfse = null;
         this.statusCadastro = null;
         this.dataCadastroGateway = null;
         this.validadeCertificado = null;
@@ -191,6 +203,9 @@ public class Empresa {
         String situacao,
         LocalDateTime dataConfirmacao,
         String referenciaCrm,
+        Boolean nfseHabilitada,
+        String serieNfse,
+        Integer ultimoNumeroNfse,
         String statusCadastro,
         LocalDateTime dataCadastroGateway,
         LocalDate validadeCertificado,
@@ -222,6 +237,9 @@ public class Empresa {
         this.situacao = situacao;
         this.dataConfirmacao = dataConfirmacao;
         this.referenciaCrm = referenciaCrm;
+        this.nfseHabilitada = nfseHabilitada;
+        this.serieNfse = serieNfse;
+        this.ultimoNumeroNfse = ultimoNumeroNfse;
         this.statusCadastro = statusCadastro;
         this.dataCadastroGateway = dataCadastroGateway;
         this.validadeCertificado = validadeCertificado;
@@ -400,6 +418,30 @@ public class Empresa {
         return this.referenciaCrm;
     }
 
+    public void setNfseHabilitada(Boolean nfseHabilitada) {
+        this.nfseHabilitada = nfseHabilitada;
+    }
+
+    public Boolean getNfseHabilitada() {
+        return this.nfseHabilitada;
+    }
+
+    public void setSerieNfse(String serieNfse) {
+        this.serieNfse = serieNfse;
+    }
+
+    public String getSerieNfse() {
+        return this.serieNfse;
+    }
+
+    public void setUltimoNumeroNfse(Integer ultimoNumeroNfse) {
+        this.ultimoNumeroNfse = ultimoNumeroNfse;
+    }
+
+    public Integer getUltimoNumeroNfse() {
+        return this.ultimoNumeroNfse;
+    }
+
     public void setStatusCadastro(String statusCadastro) {
         this.statusCadastro = statusCadastro;
     }
@@ -507,6 +549,9 @@ public class Empresa {
             this.situacao != null || 
             this.dataConfirmacao != null || 
             this.referenciaCrm != null || 
+            this.nfseHabilitada != null || 
+            this.serieNfse != null || 
+            this.ultimoNumeroNfse != null || 
             this.statusCadastro != null || 
             this.dataCadastroGateway != null || 
             this.validadeCertificado != null || 

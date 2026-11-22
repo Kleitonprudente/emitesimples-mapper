@@ -3173,6 +3173,8 @@ definitions:
       - cep
       - regimeTributario
       - situacao
+      - nfseHabilitada
+      - ultimoNumeroNfse
       - statusCadastro
       - situacaoCertificado
       - id
@@ -3401,6 +3403,33 @@ definitions:
             Identificador desta empresa como cliente no CRM da Marke. A cobrança é do CRM, 
             este sistema não processa pagamento. Opcional. Alterável só pelo administrador 
             da plataforma ou suporte.
+
+      nfseHabilitada:
+        type: boolean
+        description: |
+            Indica se a empresa habilitou a emissão de NFS-e. Ao habilitar, o sistema 
+            cadastra o emitente no IntegraNotas (webhook e token do emitente, guardado no 
+            cofre) e, se já houver certificado, envia-o. Padrão não (false). Alterável pelo 
+            administrador da empresa e pela plataforma.
+
+      serieNfse:
+        type: string
+        maxLength: 5
+        pattern: \w*\W*
+        description: |
+            Série da DPS usada nas notas desta empresa, 1 a 5 dígitos. Informada ao 
+            habilitar a emissão. Vai no campo serie do envio.
+
+      ultimoNumeroNfse:
+        type: integer
+        minimum: 0
+        maximum: 999999999
+        format: int32
+        description: |
+            Último número da DPS já utilizado pela empresa (0 se nunca emitiu). O próximo 
+            número é este mais 1, e o sistema o incrementa de forma atômica a cada nota. 
+            Informado ao habilitar a emissão, para continuar a numeração de outro emissor. 
+            Até 9 dígitos.
 
       statusCadastro:
         type: string
@@ -3917,6 +3946,16 @@ definitions:
             na nota). Texto porque a lista é longa
              e vem da tabela de CST PIS/COFINS da documentação do IntegraNotas. Opcional no 
             cadastro, a nota informa se faltar.
+
+      percentualTributosSimples:
+        type: number
+        minimum: 0
+        maximum: 999.99
+        description: |
+            Percentual aproximado de tributos do Simples Nacional (Lei 12.741/2012), em 
+            pontos percentuais (13.75 significa 13,75%). Opcional. Vai nos tributos totais 
+            da nota; o nome exato do campo no envio v2 precisa ser confirmado em 
+            homologação.
 
       id:
         type: string

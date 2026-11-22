@@ -42,6 +42,7 @@ public class ServicoMapper {
         servico.setIssRetido( entity.getIssRetido() );
         servico.setTipoOperacaoIss( entity.getTipoOperacaoIss() );
         servico.setCstPisCofins( entity.getCstPisCofins() );
+        servico.setPercentualTributosSimples( entity.getPercentualTributosSimples() );
         servico.setId( entity.getId() );
         servico.setDataCriacao( entity.getDataCriacao() );
         servico.setDataAtualizacao( entity.getDataAtualizacao() );
@@ -79,6 +80,7 @@ public class ServicoMapper {
             servicoBuilder.issRetido = api.getIssRetido();
             servicoBuilder.tipoOperacaoIss = api.getTipoOperacaoIss();
             servicoBuilder.cstPisCofins = api.getCstPisCofins();
+            servicoBuilder.percentualTributosSimples = api.getPercentualTributosSimples();
             servicoBuilder.id = api.getId();
             servicoBuilder.dataCriacao = api.getDataCriacao();
             servicoBuilder.dataAtualizacao = api.getDataAtualizacao();
@@ -135,6 +137,7 @@ public class ServicoMapper {
         api.setIssRetido( entity.getIssRetido() );
         api.setTipoOperacaoIss( entity.getTipoOperacaoIss() );
         api.setCstPisCofins( entity.getCstPisCofins() );
+        api.setPercentualTributosSimples( entity.getPercentualTributosSimples() );
         api.setId( entity.getId() );
         api.setDataCriacao( entity.getDataCriacao() );
         api.setDataAtualizacao( entity.getDataAtualizacao() );
@@ -179,6 +182,7 @@ public class ServicoMapper {
             entity.setIssRetido( api.getIssRetido() );
             entity.setTipoOperacaoIss( api.getTipoOperacaoIss() );
             entity.setCstPisCofins( api.getCstPisCofins() );
+            entity.setPercentualTributosSimples( api.getPercentualTributosSimples() );
             entity.setId( api.getId() );
             entity.setDataCriacao( api.getDataCriacao() );
             entity.setDataAtualizacao( api.getDataAtualizacao() );
@@ -208,6 +212,7 @@ public class ServicoMapper {
         if (api.getIssRetido() != null) entity.setIssRetido( api.getIssRetido() ); 
         if (api.getTipoOperacaoIss() != null) entity.setTipoOperacaoIss( api.getTipoOperacaoIss() ); 
         if (api.getCstPisCofins() != null) entity.setCstPisCofins( api.getCstPisCofins() ); 
+        if (api.getPercentualTributosSimples() != null) entity.setPercentualTributosSimples( api.getPercentualTributosSimples() ); 
         if (api.getId() != null) entity.setId( api.getId() ); 
         if (api.getDataCriacao() != null) entity.setDataCriacao( api.getDataCriacao() ); 
         if (api.getDataAtualizacao() != null) entity.setDataAtualizacao( api.getDataAtualizacao() ); 

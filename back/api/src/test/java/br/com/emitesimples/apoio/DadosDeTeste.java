@@ -59,6 +59,7 @@ public class DadosDeTeste {
                     .withDocumento(digitos(14))
                     .withAmbiente("homologacao")
                     .withRegimeTributario(1)
+                    .withNfseHabilitada(false).withUltimoNumeroNfse(0)
                     .withSituacao(situacao)
                     .withMunicipio(em.getReference(MunicipioEntity.class, municipioId))
                     .build();

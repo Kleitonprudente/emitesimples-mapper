@@ -57,6 +57,9 @@ public class EmpresaMapper {
         empresa.setSituacao( entity.getSituacao() );
         empresa.setDataConfirmacao( entity.getDataConfirmacao() );
         empresa.setReferenciaCrm( entity.getReferenciaCrm() );
+        empresa.setNfseHabilitada( entity.getNfseHabilitada() );
+        empresa.setSerieNfse( entity.getSerieNfse() );
+        empresa.setUltimoNumeroNfse( entity.getUltimoNumeroNfse() );
         empresa.setStatusCadastro( entity.getStatusCadastro() );
         empresa.setDataCadastroGateway( entity.getDataCadastroGateway() );
         empresa.setValidadeCertificado( entity.getValidadeCertificado() );
@@ -106,6 +109,9 @@ public class EmpresaMapper {
             empresaBuilder.situacao = api.getSituacao();
             empresaBuilder.dataConfirmacao = api.getDataConfirmacao();
             empresaBuilder.referenciaCrm = api.getReferenciaCrm();
+            empresaBuilder.nfseHabilitada = api.getNfseHabilitada();
+            empresaBuilder.serieNfse = api.getSerieNfse();
+            empresaBuilder.ultimoNumeroNfse = api.getUltimoNumeroNfse();
             empresaBuilder.statusCadastro = api.getStatusCadastro();
             empresaBuilder.dataCadastroGateway = api.getDataCadastroGateway();
             empresaBuilder.validadeCertificado = api.getValidadeCertificado();
@@ -174,6 +180,9 @@ public class EmpresaMapper {
         api.setSituacao( entity.getSituacao() );
         api.setDataConfirmacao( entity.getDataConfirmacao() );
         api.setReferenciaCrm( entity.getReferenciaCrm() );
+        api.setNfseHabilitada( entity.getNfseHabilitada() );
+        api.setSerieNfse( entity.getSerieNfse() );
+        api.setUltimoNumeroNfse( entity.getUltimoNumeroNfse() );
         api.setStatusCadastro( entity.getStatusCadastro() );
         api.setDataCadastroGateway( entity.getDataCadastroGateway() );
         api.setValidadeCertificado( entity.getValidadeCertificado() );
@@ -230,6 +239,9 @@ public class EmpresaMapper {
             entity.setSituacao( api.getSituacao() );
             entity.setDataConfirmacao( api.getDataConfirmacao() );
             entity.setReferenciaCrm( api.getReferenciaCrm() );
+            entity.setNfseHabilitada( api.getNfseHabilitada() );
+            entity.setSerieNfse( api.getSerieNfse() );
+            entity.setUltimoNumeroNfse( api.getUltimoNumeroNfse() );
             entity.setStatusCadastro( api.getStatusCadastro() );
             entity.setDataCadastroGateway( api.getDataCadastroGateway() );
             entity.setValidadeCertificado( api.getValidadeCertificado() );
@@ -279,6 +291,9 @@ public class EmpresaMapper {
         if (api.getSituacao() != null) entity.setSituacao( api.getSituacao() ); 
         if (api.getDataConfirmacao() != null) entity.setDataConfirmacao( api.getDataConfirmacao() ); 
         if (api.getReferenciaCrm() != null) entity.setReferenciaCrm( api.getReferenciaCrm() ); 
+        if (api.getNfseHabilitada() != null) entity.setNfseHabilitada( api.getNfseHabilitada() ); 
+        if (api.getSerieNfse() != null) entity.setSerieNfse( api.getSerieNfse() ); 
+        if (api.getUltimoNumeroNfse() != null) entity.setUltimoNumeroNfse( api.getUltimoNumeroNfse() ); 
         if (api.getStatusCadastro() != null) entity.setStatusCadastro( api.getStatusCadastro() ); 
         if (api.getDataCadastroGateway() != null) entity.setDataCadastroGateway( api.getDataCadastroGateway() ); 
         if (api.getValidadeCertificado() != null) entity.setValidadeCertificado( api.getValidadeCertificado() ); 
@@ -305,6 +320,12 @@ public class EmpresaMapper {
         if (entity.getSituacao() == null) {
             entity.setSituacao("pendente_confirmacao");
         }
+        if (entity.getNfseHabilitada() == null) {
+            entity.setNfseHabilitada(false);
+        }
+        if (entity.getUltimoNumeroNfse() == null) {
+            entity.setUltimoNumeroNfse(0);
+        }
         if (entity.getStatusCadastro() == null) {
             entity.setStatusCadastro("nao_cadastrado");
         }
@@ -325,6 +346,12 @@ public class EmpresaMapper {
 
         if (api.getSituacao() == null) {
             api.setSituacao("pendente_confirmacao");
+        }
+        if (api.getNfseHabilitada() == null) {
+            api.setNfseHabilitada(false);
+        }
+        if (api.getUltimoNumeroNfse() == null) {
+            api.setUltimoNumeroNfse(0);
         }
         if (api.getStatusCadastro() == null) {
             api.setStatusCadastro("nao_cadastrado");

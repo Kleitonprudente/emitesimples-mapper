@@ -150,6 +150,7 @@ public class ServicoRepository implements PanacheRepositoryBase<ServicoEntity, S
         String issRetido,
         String tipoOperacaoIss,
         String cstPisCofins,
+        String percentualTributosSimples,
         String id,
         String dataCriacao,
         String dataAtualizacao,
@@ -162,7 +163,7 @@ public class ServicoRepository implements PanacheRepositoryBase<ServicoEntity, S
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<ServicoEntity> cq = cb.createQuery(ServicoEntity.class);
         Root<ServicoEntity> root = cq.from(ServicoEntity.class);
-        List<Predicate> predicates = buildPredicates(cb, root, nome, codigoInterno, ativo, codigoServico, codigoTributacaoMunicipio, codigoNbs, descricaoCurta, discriminacaoPadrao, valorPadrao, aliquotaIss, issRetido, tipoOperacaoIss, cstPisCofins, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId);
+        List<Predicate> predicates = buildPredicates(cb, root, nome, codigoInterno, ativo, codigoServico, codigoTributacaoMunicipio, codigoNbs, descricaoCurta, discriminacaoPadrao, valorPadrao, aliquotaIss, issRetido, tipoOperacaoIss, cstPisCofins, percentualTributosSimples, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId);
         cq.where(cb.and(predicates.toArray(new Predicate[0])));
 
         if (sort != null) {
@@ -194,6 +195,7 @@ public class ServicoRepository implements PanacheRepositoryBase<ServicoEntity, S
         String issRetido,
         String tipoOperacaoIss,
         String cstPisCofins,
+        String percentualTributosSimples,
         String id,
         String dataCriacao,
         String dataAtualizacao,
@@ -206,7 +208,7 @@ public class ServicoRepository implements PanacheRepositoryBase<ServicoEntity, S
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<ServicoEntity> root = cq.from(ServicoEntity.class);
-        List<Predicate> predicates = buildPredicates(cb, root, nome, codigoInterno, ativo, codigoServico, codigoTributacaoMunicipio, codigoNbs, descricaoCurta, discriminacaoPadrao, valorPadrao, aliquotaIss, issRetido, tipoOperacaoIss, cstPisCofins, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId);
+        List<Predicate> predicates = buildPredicates(cb, root, nome, codigoInterno, ativo, codigoServico, codigoTributacaoMunicipio, codigoNbs, descricaoCurta, discriminacaoPadrao, valorPadrao, aliquotaIss, issRetido, tipoOperacaoIss, cstPisCofins, percentualTributosSimples, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId);
         cq.select(cb.count(root)).where(cb.and(predicates.toArray(new Predicate[0])));
 
         return em.createQuery(cq).getSingleResult();
@@ -228,6 +230,7 @@ public class ServicoRepository implements PanacheRepositoryBase<ServicoEntity, S
         String issRetido,
         String tipoOperacaoIss,
         String cstPisCofins,
+        String percentualTributosSimples,
         String id,
         String dataCriacao,
         String dataAtualizacao,
@@ -256,6 +259,7 @@ public class ServicoRepository implements PanacheRepositoryBase<ServicoEntity, S
         if (issRetido != null) getPredicateFromField(predicates, "issRetido", issRetido, root, cb, false);
         if (tipoOperacaoIss != null) getPredicateFromField(predicates, "tipoOperacaoIss", tipoOperacaoIss, root, cb, false);
         if (cstPisCofins != null) getPredicateFromField(predicates, "cstPisCofins", cstPisCofins, root, cb, false);
+        if (percentualTributosSimples != null) getPredicateFromField(predicates, "percentualTributosSimples", percentualTributosSimples, root, cb, false);
         if (id != null) getPredicateFromField(predicates, "id", id, root, cb, false);
         if (dataCriacao != null) getPredicateFromField(predicates, "dataCriacao", dataCriacao, root, cb, false);
         if (dataAtualizacao != null) getPredicateFromField(predicates, "dataAtualizacao", dataAtualizacao, root, cb, false);

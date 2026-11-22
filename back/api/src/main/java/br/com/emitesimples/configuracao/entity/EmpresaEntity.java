@@ -121,6 +121,15 @@ public class EmpresaEntity {
     @Column(name="REFERENCIA_CRM", length=50)
     private String referenciaCrm;
 
+    @Column(name="NFSE_HABILITADA")
+    private Boolean nfseHabilitada;
+
+    @Column(name="SERIE_NFSE", length=5)
+    private String serieNfse;
+
+    @Column(name="ULTIMO_NUMERO_NFSE", precision = 9)
+    private Integer ultimoNumeroNfse;
+
     @Column(name="STATUS_CADASTRO", length=20)
     private String statusCadastro;
 
@@ -189,6 +198,9 @@ public class EmpresaEntity {
         String situacao,
         LocalDateTime dataConfirmacao,
         String referenciaCrm,
+        Boolean nfseHabilitada,
+        String serieNfse,
+        Integer ultimoNumeroNfse,
         String statusCadastro,
         LocalDateTime dataCadastroGateway,
         String referenciaTokenEmpresa,
@@ -224,6 +236,9 @@ public class EmpresaEntity {
         this.situacao = situacao;
         this.dataConfirmacao = dataConfirmacao;
         this.referenciaCrm = referenciaCrm;
+        this.nfseHabilitada = nfseHabilitada;
+        this.serieNfse = serieNfse;
+        this.ultimoNumeroNfse = ultimoNumeroNfse;
         this.statusCadastro = statusCadastro;
         this.dataCadastroGateway = dataCadastroGateway;
         this.referenciaTokenEmpresa = referenciaTokenEmpresa;
@@ -262,6 +277,9 @@ public class EmpresaEntity {
         this.situacao = builder.situacao;
         this.dataConfirmacao = builder.dataConfirmacao;
         this.referenciaCrm = builder.referenciaCrm;
+        this.nfseHabilitada = builder.nfseHabilitada;
+        this.serieNfse = builder.serieNfse;
+        this.ultimoNumeroNfse = builder.ultimoNumeroNfse;
         this.statusCadastro = builder.statusCadastro;
         this.dataCadastroGateway = builder.dataCadastroGateway;
         this.referenciaTokenEmpresa = builder.referenciaTokenEmpresa;
@@ -447,6 +465,30 @@ public class EmpresaEntity {
 
     public String getReferenciaCrm() {
         return this.referenciaCrm;
+    }
+
+    public void setNfseHabilitada(Boolean nfseHabilitada) {
+        this.nfseHabilitada = nfseHabilitada;
+    }
+
+    public Boolean getNfseHabilitada() {
+        return this.nfseHabilitada;
+    }
+
+    public void setSerieNfse(String serieNfse) {
+        this.serieNfse = serieNfse;
+    }
+
+    public String getSerieNfse() {
+        return this.serieNfse;
+    }
+
+    public void setUltimoNumeroNfse(Integer ultimoNumeroNfse) {
+        this.ultimoNumeroNfse = ultimoNumeroNfse;
+    }
+
+    public Integer getUltimoNumeroNfse() {
+        return this.ultimoNumeroNfse;
     }
 
     public void setStatusCadastro(String statusCadastro) {

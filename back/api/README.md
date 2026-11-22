@@ -143,6 +143,7 @@ tudo é negado (`padrao-negar`), e um endpoint novo sob `/api` nasce **fechado p
 | `VinculoUsuario`, `ClienteAcesso` | autenticado | negado (vínculos: só por `/api/admin/usuarios/{id}/vinculos`; `ClienteAcesso` ainda sem endpoint à mão) | negado |
 | `/api/cep/*` | autenticado (qualquer papel) | negado | negado |
 | `/api/admin/*` (importação de municípios, usuários e vínculos por usuário e por empresa `/api/admin/empresas/{id}/vinculos`) | só plat. | só plat. | negado (usuário e vínculo nunca se apagam) |
+| `/api/admin/configuracoes/integranotas` (config do IntegraNotas) | só plat. (GET lê; PUT grava) | só plat.: só PUT; POST/PATCH negados | negado |
 | `/api/admin/configuracoes/consulta-cnpj` (config) e `.../testar` | só plat. (GET lê; PUT grava) | só plat.: PUT na config; POST só em `/testar` | negado |
 | `/api/admin/consulta-cnpj/{cnpj}` (consulta para preencher o cadastro) | só plat. | negado | negado |
 | `/api/consulta-cnpj/{cnpj}` (mesma consulta, para a empresa) | administrador, operador e plat. (`consulta` não) | negado | negado |
@@ -382,6 +383,46 @@ mas guardar/ler um segredo falha com 500 `segredos_chave_invalida` e mensagem cl
 **O cofre é provisório**: hoje cifra em tabela do próprio banco; a referência `segredo_token_id` permite trocar por um cofre externo
 (KMS/Vault) sem mudar a API. **Falta**: o uso da consulta de CNPJ no signup público (a consulta para preencher o cadastro da Empresa já existe, só plataforma),
 a rotação da chave-mestra (recifrar tudo com chave nova; hoje sem versão de chave) e fechar a janela de DNS rebinding.
+
+## Integração IntegraNotas (configuração do admin)
+
+Migração `V6` (código à mão em `plataforma/`: `ConfiguracaoIntegraNotasResource`, `IntegraNotasConfigService`; reaproveita o cofre
+`SegredoService` e as defesas de host de `ConfiguracaoConsultaCnpjService`). Tabela singleton `configuracao_integranotas` (id `unica`,
+sem RLS, sem recurso gerado) e as colunas novas `empresa.nfse_habilitada/serie_nfse/ultimo_numero_nfse` e `servico.percentual_tributos_simples`.
+
+**API** (só `plataforma_admin`; regras `admin-configuracoes-integranotas*`: GET/HEAD/PUT; POST/PATCH/DELETE negados):
+
+- `GET /api/admin/configuracoes/integranotas` -> `{ ambienteAtivo, urlHomologacao, urlProducao, urlPublicaWebhook | null,
+  tokenHomologacaoConfigurado, tokenProducaoConfigurado, dataAtualizacao, atualizadoPor: {id, nome} | null, producaoPermitida }`.
+  **Tokens nunca voltam**, só os booleans.
+- `PUT` mesmo caminho, corpo `{ ambienteAtivo?, urlHomologacao?, urlProducao?, urlPublicaWebhook?, tokenHomologacao?, tokenProducao? }` -> 204.
+  Campo ausente (ou `null`) mantém. Token: texto não vazio grava/substitui (cifrado no cofre), `""` remove e apaga o segredo (um por ambiente).
+  `urlPublicaWebhook: ""` remove. Tudo é validado antes de tocar no cofre/banco: pedido inválido não altera nada.
+
+**Regras**
+
+- **Produção bloqueada por padrão**: `ambienteAtivo=producao` só é aceito com `emitesimples.integranotas.permitir-producao=true`
+  (env `EMITESIMPLES_INTEGRANOTAS_PERMITIR_PRODUCAO`; padrão `false`, e `false` em dev/test); senão 409 `producao_bloqueada`
+  ("Produção está bloqueada neste servidor."). `producaoPermitida` na leitura reflete a propriedade. `ambienteAtivo` fora de
+  `homologacao`/`producao`: 400 `ambiente_invalido`. O banco também tem CHECK nos dois valores.
+- **URLs das APIs** (`urlHomologacao`, `urlProducao`; 400 `url_invalida`): `https`, host `integranotas.com.br` ou `*.integranotas.com.br`,
+  sem usuário/senha, sem query/fragmento, até 200 caracteres, barra final removida, mesma proteção SSRF (IP literal privado/loopback/obscuro,
+  nome sem ponto, `.local`/`.internal`). `emitesimples.integranotas.permitir-url-local=true` (padrão `false`; `true` em dev/test) libera
+  `http(s)://localhost`/`127.0.0.1` para apontar a um stub. Não há como remover essas URLs (valor obrigatório; padrões
+  `https://hom-api.integranotas.com.br` e `https://api.integranotas.com.br`). Host checado como texto/IP literal, sem resolver DNS.
+- **URL pública do webhook** (`urlPublicaWebhook`, opcional): base pública DESTE back (ex.: `https://api.exemplo.com.br`); `https`, host
+  público (nunca localhost/IP privado, nem em dev/test), sem usuário/query, até 200, barra final removida.
+- **Tokens da softhouse** (400 `token_invalido`): sem espaço/quebra de linha, até 2000 caracteres. Nunca em resposta, log ou exceção (corpo lido
+  como texto e interpretado à mão).
+- Auditoria mínima: `atualizado_por` e `data_atualizacao`. Perder/trocar a chave-mestra do cofre torna os tokens ilegíveis (regrave-os).
+
+**`IntegraNotasConfigService`** (para as próximas fases; nada disto vira API): `ambienteAtivo()`, `urlBase(ambiente)`,
+`tokenSofthouse(ambiente)` (`Optional<String>`, decifrado do cofre; nunca logar), `urlPublicaWebhook()` (`Optional<String>`).
+`ambiente` inválido lança `IllegalArgumentException`.
+
+**Próximas fases**: cliente HTTP do IntegraNotas (usa o serviço acima; testes sempre contra stub, nunca a rede), credenciais da empresa
+na softhouse, emissão/consulta/cancelamento de NFS-e com numeração (`ultimo_numero_nfse`/`serie_nfse`) e recebimento de webhooks na
+`urlPublicaWebhook`. Hoje nada chama o IntegraNotas.
 
 ## Consulta de CNPJ para preencher o cadastro: `GET /api/admin/consulta-cnpj/{cnpj}`
 

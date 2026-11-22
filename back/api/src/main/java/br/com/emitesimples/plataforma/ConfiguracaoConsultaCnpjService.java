@@ -164,7 +164,7 @@ public class ConfiguracaoConsultaCnpjService {
     }
 
     /** localhost e loopback (os unicos liberados, e so quando emitesimples.cnpj.permitir-url-local=true). */
-    private static boolean hostLocal(String host) {
+    static boolean hostLocal(String host) {
         String h = limparHost(host);
         if (h.equals("localhost") || h.endsWith(".localhost")) {
             return true;
@@ -173,7 +173,7 @@ public class ConfiguracaoConsultaCnpjService {
         return ip != null && ip.isLoopbackAddress();
     }
 
-    private static boolean hostProibido(String host) {
+    static boolean hostProibido(String host) {
         String h = limparHost(host);
         if (h.equals("localhost") || h.endsWith(".localhost") || h.endsWith(".local") || h.endsWith(".internal")
                 || h.equals("local") || h.equals("internal") || !h.contains(".") && !h.contains(":")) {

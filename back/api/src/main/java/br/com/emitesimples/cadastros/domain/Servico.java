@@ -63,6 +63,8 @@ public class Servico {
     @Size(max = 2, message = "Attribute cstPisCofins must have 2 characters maximum.")
     private String cstPisCofins;
 
+    private BigDecimal percentualTributosSimples;
+
     @NotEmpty(message = "The attribute id can't be empty.")
     @Size(max = 36, message = "Attribute id must have 36 characters maximum.")
     private String id;
@@ -93,6 +95,7 @@ public class Servico {
         this.issRetido = null;
         this.tipoOperacaoIss = null;
         this.cstPisCofins = null;
+        this.percentualTributosSimples = null;
         this.id = null;
         this.dataCriacao = null;
         this.dataAtualizacao = null;
@@ -113,6 +116,7 @@ public class Servico {
         Boolean issRetido,
         Integer tipoOperacaoIss,
         String cstPisCofins,
+        BigDecimal percentualTributosSimples,
         String id,
         LocalDateTime dataCriacao,
         LocalDateTime dataAtualizacao,
@@ -132,6 +136,7 @@ public class Servico {
         this.issRetido = issRetido;
         this.tipoOperacaoIss = tipoOperacaoIss;
         this.cstPisCofins = cstPisCofins;
+        this.percentualTributosSimples = percentualTributosSimples;
         this.id = id;
         this.dataCriacao = dataCriacao;
         this.dataAtualizacao = dataAtualizacao;
@@ -244,6 +249,12 @@ public class Servico {
     public String getCstPisCofins() {
         return this.cstPisCofins;
     }
+    public void setPercentualTributosSimples(BigDecimal percentualTributosSimples) {
+        this.percentualTributosSimples = percentualTributosSimples;
+    }
+    public BigDecimal getPercentualTributosSimples() {
+        return this.percentualTributosSimples;
+    }
 
     public void setId(String id) {
         this.id = id;
@@ -305,6 +316,7 @@ public class Servico {
             this.issRetido != null || 
             this.tipoOperacaoIss != null || 
             this.cstPisCofins != null || 
+            this.percentualTributosSimples != null || 
             this.dataCriacao != null || 
             this.dataAtualizacao != null || 
             this.empresa != null;

@@ -126,6 +126,9 @@ public class EmpresaRepository implements PanacheRepositoryBase<EmpresaEntity, S
         String situacao,
         String dataConfirmacao,
         String referenciaCrm,
+        String nfseHabilitada,
+        String serieNfse,
+        String ultimoNumeroNfse,
         String statusCadastro,
         String dataCadastroGateway,
        String validadeCertificado,
@@ -142,7 +145,7 @@ public class EmpresaRepository implements PanacheRepositoryBase<EmpresaEntity, S
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<EmpresaEntity> cq = cb.createQuery(EmpresaEntity.class);
         Root<EmpresaEntity> root = cq.from(EmpresaEntity.class);
-        List<Predicate> predicates = buildPredicates(cb, root, nomeFantasia, razaoSocial, documento, rgInscricaoEstadual, inscricaoMunicipal, email, whatsapp, telefone, logradouro, numeroEndereco, complemento, bairro, cep, regimeTributario, regimeIbsCbs, urlWebhook, situacao, dataConfirmacao, referenciaCrm, statusCadastro, dataCadastroGateway, validadeCertificado, situacaoCertificado, id, ambiente, dataCriacao, dataAtualizacao, municipioCodigoIbge, municipioNome, municipioUf, municipioId);
+        List<Predicate> predicates = buildPredicates(cb, root, nomeFantasia, razaoSocial, documento, rgInscricaoEstadual, inscricaoMunicipal, email, whatsapp, telefone, logradouro, numeroEndereco, complemento, bairro, cep, regimeTributario, regimeIbsCbs, urlWebhook, situacao, dataConfirmacao, referenciaCrm, nfseHabilitada, serieNfse, ultimoNumeroNfse, statusCadastro, dataCadastroGateway, validadeCertificado, situacaoCertificado, id, ambiente, dataCriacao, dataAtualizacao, municipioCodigoIbge, municipioNome, municipioUf, municipioId);
         cq.where(cb.and(predicates.toArray(new Predicate[0])));
 
         if (sort != null) {
@@ -180,6 +183,9 @@ public class EmpresaRepository implements PanacheRepositoryBase<EmpresaEntity, S
         String situacao,
         String dataConfirmacao,
         String referenciaCrm,
+        String nfseHabilitada,
+        String serieNfse,
+        String ultimoNumeroNfse,
         String statusCadastro,
         String dataCadastroGateway,
        String validadeCertificado,
@@ -196,7 +202,7 @@ public class EmpresaRepository implements PanacheRepositoryBase<EmpresaEntity, S
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<EmpresaEntity> root = cq.from(EmpresaEntity.class);
-        List<Predicate> predicates = buildPredicates(cb, root, nomeFantasia, razaoSocial, documento, rgInscricaoEstadual, inscricaoMunicipal, email, whatsapp, telefone, logradouro, numeroEndereco, complemento, bairro, cep, regimeTributario, regimeIbsCbs, urlWebhook, situacao, dataConfirmacao, referenciaCrm, statusCadastro, dataCadastroGateway, validadeCertificado, situacaoCertificado, id, ambiente, dataCriacao, dataAtualizacao, municipioCodigoIbge, municipioNome, municipioUf, municipioId);
+        List<Predicate> predicates = buildPredicates(cb, root, nomeFantasia, razaoSocial, documento, rgInscricaoEstadual, inscricaoMunicipal, email, whatsapp, telefone, logradouro, numeroEndereco, complemento, bairro, cep, regimeTributario, regimeIbsCbs, urlWebhook, situacao, dataConfirmacao, referenciaCrm, nfseHabilitada, serieNfse, ultimoNumeroNfse, statusCadastro, dataCadastroGateway, validadeCertificado, situacaoCertificado, id, ambiente, dataCriacao, dataAtualizacao, municipioCodigoIbge, municipioNome, municipioUf, municipioId);
         cq.select(cb.count(root)).where(cb.and(predicates.toArray(new Predicate[0])));
 
         return em.createQuery(cq).getSingleResult();
@@ -224,6 +230,9 @@ public class EmpresaRepository implements PanacheRepositoryBase<EmpresaEntity, S
         String situacao,
         String dataConfirmacao,
         String referenciaCrm,
+        String nfseHabilitada,
+        String serieNfse,
+        String ultimoNumeroNfse,
         String statusCadastro,
         String dataCadastroGateway,
        String validadeCertificado,
@@ -262,6 +271,9 @@ public class EmpresaRepository implements PanacheRepositoryBase<EmpresaEntity, S
         if (situacao != null) getPredicateFromField(predicates, "situacao", situacao, root, cb, false);
         if (dataConfirmacao != null) getPredicateFromField(predicates, "dataConfirmacao", dataConfirmacao, root, cb, false);
         if (referenciaCrm != null) getPredicateFromField(predicates, "referenciaCrm", referenciaCrm, root, cb, false);
+        if (nfseHabilitada != null) getPredicateFromField(predicates, "nfseHabilitada", nfseHabilitada, root, cb, false);
+        if (serieNfse != null) getPredicateFromField(predicates, "serieNfse", serieNfse, root, cb, false);
+        if (ultimoNumeroNfse != null) getPredicateFromField(predicates, "ultimoNumeroNfse", ultimoNumeroNfse, root, cb, false);
         if (statusCadastro != null) getPredicateFromField(predicates, "statusCadastro", statusCadastro, root, cb, false);
         if (dataCadastroGateway != null) getPredicateFromField(predicates, "dataCadastroGateway", dataCadastroGateway, root, cb, false);
         if (validadeCertificado != null) getPredicateFromField(predicates, "validadeCertificado", validadeCertificado, root, cb, false);
