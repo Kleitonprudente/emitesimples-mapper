@@ -32,6 +32,7 @@ export const menu: MenuItem[] = [
   { name: 'GuiaDeEstilo', route: '/admin/theme', title: 'Guia de estilo', icon: 'palette', group: 'Administração', order: 82, platformOnly: true },
   { name: 'UsuariosAdmin', route: '/admin/usuarios', title: 'Usuários', icon: 'user-cog', group: 'Administração', order: 81, platformOnly: true },
   { name: 'ConsultaCnpjAdmin', route: '/admin/consulta-cnpj', title: 'Consulta de CNPJ', icon: 'settings', group: 'Administração', order: 83, platformOnly: true },
+  { name: 'IntegraNotasAdmin', route: '/admin/integranotas', title: 'Integração IntegraNotas', icon: 'settings', group: 'Administração', order: 84, platformOnly: true },
   { name: 'Perfil', route: '/perfil', title: 'Meu perfil', icon: 'user', group: 'Conta', order: 90 },
 ]
 

@@ -1,0 +1,83 @@
+[Descriptor.window.editor] FormularioServico
+    @
+        [e] title
+            [e] pt
+                [v] Cadastro de serviço
+        [e] route
+            [v] /servicos/$id
+        [e] role
+            [v] operador
+        [e] icon
+            [v] package
+    [g] source
+        [r] object: Servico()
+    [e] form
+        [e] rows
+            [e] section
+                [v] Serviço
+            [e] row
+                [e] field
+                    [v] .nome
+                    @
+                        [e] label
+                            [e] pt
+                                [v] Nome do serviço
+                        [e] size
+                            [v] xl
+                [e] field
+                    [v] .ativo
+                    @
+                        [e] size
+                            [v] m
+            [e] row
+                [e] field
+                    [v] .codigoServico
+                    @
+                        [e] label
+                            [e] pt
+                                [v] Código de tributação nacional
+                        [e] size
+                            [v] m
+                        [e] hint
+                            [e] pt
+                                [v] 6 dígitos, ex.: 010401.
+                [e] field
+                    [v] .codigoNbs
+                    @
+                        [e] label
+                            [e] pt
+                                [v] Código NBS
+                        [e] size
+                            [v] m
+                        [e] hint
+                            [e] pt
+                                [v] 9 dígitos, ex.: 115021000.
+                [e] field
+                    [v] .percentualTributosSimples
+                    @
+                        [e] label
+                            [e] pt
+                                [v] Tributos aprox. Simples (%)
+                        [e] size
+                            [v] m
+                        [e] hint
+                            [e] pt
+                                [v] Ex.: 13,75.
+            [e] row
+                [e] field
+                    [v] .discriminacaoPadrao
+                    @
+                        [e] label
+                            [e] pt
+                                [v] Descrição do serviço para a nota
+                        [e] size
+                            [v] full
+    [e] actions
+        [e] action
+            [v] salvar
+            @
+                [e] type
+                    [v] primary
+                [e] label
+                    [e] pt
+                        [v] Salvar

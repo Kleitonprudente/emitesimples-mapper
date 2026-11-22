@@ -9,6 +9,7 @@ import { erro, json } from '@/mocks/http'
  *   POST /admin/usuarios/{id}/senha              GET|POST /admin/usuarios/{id}/vinculos
  *   PATCH /admin/usuarios/{id}/vinculos/{vid}
  *   GET|PUT /admin/configuracoes/consulta-cnpj (token nunca volta; PUT: token ausente mantem, '' remove)
+ *   GET|PUT /admin/configuracoes/integranotas (tokens nunca voltam; producao bloqueada por padrao: PUT producao -> 409 producao_bloqueada)
  *   POST /admin/configuracoes/consulta-cnpj/testar {cnpj} (27865757000102 completo; 00000000000191 404; 11222333000181 502 token_recusado; 11444777000161 429)
  *   POST /admin/municipios/importacao (multipart, campo `arquivo`)   GET /admin/municipios/importacoes
  * Login de teste: plataforma@exemplo.com.br / senha1234.
@@ -76,6 +77,77 @@ interface ConfigCnpjRow {
 const configCnpjInicial = (): ConfigCnpjRow => ({ urlBase: 'https://comercial.cnpj.ws/cnpj', token: null, dataAtualizacao: null, atualizadoPor: null })
 let configCnpj = configCnpjInicial()
 
+/** Configuracao da integracao IntegraNotas (singleton). Os tokens ficam so aqui, em memoria: nunca saem nas respostas. */
+interface ConfigIntegraNotasRow {
+  ambienteAtivo: 'homologacao' | 'producao'
+  urlHomologacao: string
+  urlProducao: string
+  urlPublicaWebhook: string | null
+  tokenHomologacao: string | null
+  tokenProducao: string | null
+  dataAtualizacao: string | null
+  atualizadoPor: { id: string; nome: string } | null
+}
+const configIntegraNotasInicial = (): ConfigIntegraNotasRow => ({
+  ambienteAtivo: 'homologacao',
+  urlHomologacao: 'https://api.homologacao.integranotas.com.br',
+  urlProducao: 'https://api.integranotas.com.br',
+  urlPublicaWebhook: null,
+  tokenHomologacao: null,
+  tokenProducao: null,
+  dataAtualizacao: null,
+  atualizadoPor: null,
+})
+let configIntegraNotas = configIntegraNotasInicial()
+/** Producao bloqueada no mock (como o back sem a permissao do servidor): PUT de producao responde 409. */
+const producaoPermitida = false
+
+const urlIntegraNotasOk = (v: string): boolean => {
+  try {
+    const u = new URL(v)
+    return u.protocol === 'https:' && !u.username && !u.password && !u.search && !u.hash && v.length <= 200 && /(^|\.)integranotas\.com\.br$/i.test(u.hostname)
+  } catch {
+    return false
+  }
+}
+const urlWebhookOk = (v: string): boolean => {
+  try {
+    const u = new URL(v)
+    return u.protocol === 'https:' && !u.username && !u.password && !u.search && !u.hash && v.length <= 200 && u.hostname.includes('.') && !/^(localhost|127\.|10\.|192\.168\.)/i.test(u.hostname)
+  } catch {
+    return false
+  }
+}
+
+/** PUT /admin/configuracoes/integranotas: valida como o contrato e aplica a semantica (ausente mantem; '' remove token/webhook). */
+function salvarIntegraNotas(body: Record<string, unknown>, nome: string): Response {
+  const prox = { ...configIntegraNotas }
+  if (body.ambienteAtivo !== undefined) {
+    if (body.ambienteAtivo !== 'homologacao' && body.ambienteAtivo !== 'producao') return erro(400, 'ambiente_invalido', 'Ambiente inválido.')
+    if (body.ambienteAtivo === 'producao' && !producaoPermitida) return erro(409, 'producao_bloqueada', 'Produção está bloqueada neste servidor.')
+    prox.ambienteAtivo = body.ambienteAtivo
+  }
+  for (const campo of ['urlHomologacao', 'urlProducao'] as const) {
+    if (body[campo] === undefined) continue
+    const v = body[campo]
+    if (typeof v !== 'string' || !urlIntegraNotasOk(v)) return erro(400, 'url_invalida', 'A URL deve ser https e do domínio integranotas.com.br.')
+    prox[campo] = v
+  }
+  if (body.urlPublicaWebhook !== undefined) {
+    const v = body.urlPublicaWebhook
+    if (typeof v !== 'string' || (v !== '' && !urlWebhookOk(v))) return erro(400, 'url_invalida', 'A URL pública do webhook deve ser https e pública.')
+    prox.urlPublicaWebhook = v === '' ? null : v
+  }
+  for (const campo of ['tokenHomologacao', 'tokenProducao'] as const) {
+    if (body[campo] === undefined) continue
+    const v = body[campo]
+    if (typeof v !== 'string' || v.length > 500) return erro(400, 'token_invalido', 'Token inválido.')
+    prox[campo] = v === '' ? null : v
+  }
+  configIntegraNotas = { ...prox, dataAtualizacao: new Date().toISOString().slice(0, 19), atualizadoPor: { id: 'mock', nome } }
+  return new Response(null, { status: 204 })
+}
+
 function cnpjValido(c: string): boolean {
   if (!/^\d{14}$/.test(c) || /^(\d)\1{13}$/.test(c)) return false
   const dv = (n: number) => {
@@ -142,6 +214,7 @@ export function resetAdmin(): void {
   municipios = MUNICIPIOS.map((m) => ({ ...m }))
   importacoes = importacoes.slice(0, 1)
   configCnpj = configCnpjInicial()
+  configIntegraNotas = configIntegraNotasInicial()
   seq = 100
 }
 
@@ -258,6 +331,14 @@ export async function adminRoutes(req: { method: string; path: string; query?: R
       configCnpj = { urlBase, token, dataAtualizacao: new Date().toISOString().slice(0, 19), atualizadoPor: { id: 'mock', nome: ctx.nome } }
       return new Response(null, { status: 204 })
     }
+  }
+
+  if (path === '/admin/configuracoes/integranotas') {
+    if (method === 'GET') {
+      const { tokenHomologacao, tokenProducao, ...publico } = configIntegraNotas
+      return json(200, { ...publico, tokenHomologacaoConfigurado: tokenHomologacao !== null, tokenProducaoConfigurado: tokenProducao !== null, producaoPermitida })
+    }
+    if (method === 'PUT') return salvarIntegraNotas(body, ctx.nome)
   }
 
   if (path === '/admin/configuracoes/consulta-cnpj/testar' && method === 'POST') {

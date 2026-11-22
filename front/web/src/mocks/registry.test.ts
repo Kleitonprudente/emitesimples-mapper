@@ -258,6 +258,46 @@ describe('mock registry: GET /consulta-cnpj/{cnpj} (usuarios da empresa)', () =>
   })
 })
 
+describe('mock registry: integracao IntegraNotas', () => {
+  beforeEach(() => resetMock())
+  const URL_CFG = '/admin/configuracoes/integranotas'
+  const plataforma = async () => (await call('POST', '/auth/login', { email: 'plataforma@exemplo.com.br', senha: 'senha1234' })).body.accessToken as string
+
+  it('403 para quem nao e plataforma', async () => {
+    expect((await call('GET', URL_CFG, undefined, await loginToken())).status).toBe(403)
+  })
+
+  it('estado inicial: homologacao, producao bloqueada, sem tokens', async () => {
+    const r = await call('GET', URL_CFG, undefined, await plataforma())
+    expect(r.body).toMatchObject({ ambienteAtivo: 'homologacao', producaoPermitida: false, tokenHomologacaoConfigurado: false, tokenProducaoConfigurado: false, urlPublicaWebhook: null, atualizadoPor: null })
+  })
+
+  it('valida URLs, ambiente e producao bloqueada (409)', async () => {
+    const t = await plataforma()
+    for (const ruim of ['http://api.integranotas.com.br', 'https://evil.com', 'https://api.integranotas.com.br?a=1', 'https://u:p@api.integranotas.com.br']) {
+      expect((await call('PUT', URL_CFG, { urlProducao: ruim }, t)).body.codigo).toBe('url_invalida')
+    }
+    expect((await call('PUT', URL_CFG, { urlPublicaWebhook: 'http://x.com.br' }, t)).body.codigo).toBe('url_invalida')
+    expect((await call('PUT', URL_CFG, { ambienteAtivo: 'teste' }, t)).body.codigo).toBe('ambiente_invalido')
+    expect((await call('PUT', URL_CFG, { tokenProducao: 5 }, t)).body.codigo).toBe('token_invalido')
+    const bloq = await call('PUT', URL_CFG, { ambienteAtivo: 'producao' }, t)
+    expect([bloq.status, bloq.body.codigo]).toEqual([409, 'producao_bloqueada'])
+  })
+
+  it('ausente mantem, texto grava, vazio remove; tokens nunca voltam', async () => {
+    const t = await plataforma()
+    expect((await call('PUT', URL_CFG, { tokenHomologacao: 'seg-h', tokenProducao: 'seg-p', urlPublicaWebhook: 'https://api.empresa.com.br' }, t)).status).toBe(204)
+    const g1 = await call('GET', URL_CFG, undefined, t)
+    expect(g1.body).toMatchObject({ tokenHomologacaoConfigurado: true, tokenProducaoConfigurado: true, urlPublicaWebhook: 'https://api.empresa.com.br' })
+    expect(JSON.stringify(g1.body)).not.toContain('seg-')
+    expect(g1.body.atualizadoPor.nome).toBeTruthy()
+    await call('PUT', URL_CFG, { urlHomologacao: 'https://x.homologacao.integranotas.com.br' }, t)
+    expect((await call('GET', URL_CFG, undefined, t)).body).toMatchObject({ tokenHomologacaoConfigurado: true, urlPublicaWebhook: 'https://api.empresa.com.br' })
+    await call('PUT', URL_CFG, { tokenHomologacao: '', urlPublicaWebhook: '' }, t)
+    expect((await call('GET', URL_CFG, undefined, t)).body).toMatchObject({ tokenHomologacaoConfigurado: false, tokenProducaoConfigurado: true, urlPublicaWebhook: null })
+  })
+})
+
 describe('mock registry: consulta de CNPJ', () => {
   beforeEach(() => resetMock())
   const URL_CFG = '/admin/configuracoes/consulta-cnpj'

@@ -21,6 +21,8 @@ export const screens: ScreenEntry[] = [
   { name: 'FormularioFornecedor', title: 'Cadastro de fornecedor', stereo: 'editor', route: '/fornecedores/$id', icon: 'user-pen', role: 'operador' },
   { name: 'GestaoMunicipios', title: 'Gestão de Municípios', stereo: 'list', route: '/municipios', icon: 'settings', group: 'Administração', order: 79, platformOnly: true },
   { name: 'FormularioMunicipio', title: 'Cadastro de município', stereo: 'editor', route: '/municipios/$id', icon: 'settings', platformOnly: true },
+  { name: 'GestaoServicos', title: 'Serviços', stereo: 'list', route: '/servicos', icon: 'package', group: 'Cadastros', order: 20, role: 'operador' },
+  { name: 'FormularioServico', title: 'Cadastro de serviço', stereo: 'editor', route: '/servicos/$id', icon: 'package', role: 'operador' },
   { name: 'GestaoEmpresas', title: 'Gestão de Empresas', stereo: 'list', route: '/empresas', icon: 'settings', group: 'Administração', order: 78, platformOnly: true },
   { name: 'FormularioEmpresa', title: 'Cadastro de empresa', stereo: 'editor', route: '/empresas/$id', icon: 'settings', platformOnly: true },
 ]

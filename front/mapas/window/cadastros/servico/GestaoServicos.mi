@@ -1,0 +1,67 @@
+[Descriptor.window.list] GestaoServicos
+    @
+        [e] title
+            [e] pt
+                [v] Serviços
+        [e] route
+            [v] /servicos
+        [e] role
+            [v] operador
+        [e] icon
+            [v] package
+        [e] group
+            [v] Cadastros
+        [e] order
+            [v] 20
+    [g] source
+        [r] object: Servico()
+    [e] columns
+        [e] field
+            [v] .nome
+        [e] field
+            [v] .codigoServico
+        [e] field
+            [v] .codigoNbs
+        [e] field
+            [v] .percentualTributosSimples
+        [e] field
+            [v] .ativo
+    [e] search
+        @
+            [e] placeholder
+                [e] pt
+                    [v] Buscar por nome…
+        [e] field
+            [v] .nome
+    [e] actions
+        [e] action
+            [v] criarServico
+            @
+                [e] type
+                    [v] primary
+                [e] label
+                    [e] pt
+                        [v] Novo serviço
+                [e] icon
+                    [v] plus
+                [e] opens
+                    [v] FormularioServico
+        [e] action
+            [v] editarServico
+            @
+                [e] type
+                    [v] row
+                [e] label
+                    [e] pt
+                        [v] Editar
+                [e] icon
+                    [v] pencil
+                [e] opens
+                    [v] FormularioServico
+    [e] emptyState
+        @
+            [e] message
+                [e] pt
+                    [v] Nenhum serviço cadastrado ainda.
+            [e] action
+                [v] criarServico

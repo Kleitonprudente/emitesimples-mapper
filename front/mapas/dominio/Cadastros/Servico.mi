@@ -241,6 +241,20 @@
                     [e] en
                         [v] PIS/COFINS CST, 2 digits (the tributos_nacionais.cst field of the submission, required on the note). Text because the list is long
                           | and comes from the PIS/COFINS CST table in the IntegraNotas documentation. Optional in the registry, the note provides it if missing.
+        [d] percentualTributosSimples: Decimal(5,2)
+            @
+                [e] cn
+                    [v] percentual_tributos_simples
+                [e] title
+                    [e] pt
+                        [v] Tributos Aproximados do Simples (%)
+                    [e] en
+                        [v] Approximate Simple Nacional Taxes (%)
+                [e] description
+                    [e] pt
+                        [v] Percentual aproximado de tributos do Simples Nacional (Lei 12.741/2012), em pontos percentuais (13.75 significa 13,75%). Opcional. Vai nos tributos totais da nota; o nome exato do campo no envio v2 precisa ser confirmado em homologação.
+                    [e] en
+                        [v] Approximate percentage of Simples Nacional taxes (Law 12.741/2012), in percentage points (13.75 means 13.75%). Optional. It goes in the note total taxes; the exact field name in the v2 submission must be confirmed in the homologation environment.
     [g] controle
         [d] id: Texto(36)
             @

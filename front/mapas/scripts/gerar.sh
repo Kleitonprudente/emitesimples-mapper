@@ -80,6 +80,7 @@ telas cadastros cliente   clientes    GestaoClientes    FormularioCliente
 telas cadastros fornecedor fornecedores GestaoFornecedores FormularioFornecedor
 entidade Municipio cadastros municipio municipios GestaoMunicipios FormularioMunicipio
 entidade Empresa   configuracao empresa empresas   GestaoEmpresas   FormularioEmpresa
+entidade Servico   cadastros servico servicos GestaoServicos FormularioServico
 
 # manifesto (um para o projeto todo)
 gerar "$WEB/gen/screens.ts" screenManifest

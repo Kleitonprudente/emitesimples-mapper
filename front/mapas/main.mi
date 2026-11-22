@@ -282,6 +282,13 @@
                 [Descriptor.window.editor] FormularioMunicipio
                     #
                         window/cadastros/municipio/FormularioMunicipio.mi
+            [p] servico
+                [Descriptor.window.list] GestaoServicos
+                    #
+                        window/cadastros/servico/GestaoServicos.mi
+                [Descriptor.window.editor] FormularioServico
+                    #
+                        window/cadastros/servico/FormularioServico.mi
         [p] configuracao
             [p] empresa
                 [Descriptor.window.list] GestaoEmpresas

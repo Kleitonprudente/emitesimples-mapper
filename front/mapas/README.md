@@ -9,6 +9,7 @@ generators/struct.mi            copia do struct do back (necessario para validar
 window/cadastros/cliente/       GestaoClientes (list, fixedFilter .cliente) e FormularioCliente (editor, fixedValues .cliente)
 window/cadastros/fornecedor/    GestaoFornecedores (list, fixedFilter .fornecedor) e FormularioFornecedor (editor, fixedValues .fornecedor)
 window/cadastros/municipio/     GestaoMunicipios (list, platformOnly, sem exclusao) e FormularioMunicipio (editor)
+window/cadastros/servico/       GestaoServicos (list, /servicos, operador, grupo Cadastros order 20) e FormularioServico (editor, /servicos/$id)
 window/configuracao/empresa/    GestaoEmpresas (list, platformOnly, sem exclusao) e FormularioEmpresa (editor, platformOnly)
 scripts/sincronizar-dominio.sh  copia/verifica o dominio
 ```
@@ -181,6 +182,15 @@ continua sendo o label da acao `primary` da lista ("Novo cliente").
   de `<contexto>`; Pessoa e Municipio nao mudam).
 - Lookup de CEP: o runtime (`AutoForm`) agora preenche o campo FK cuja fonte e `Municipio` (`fk.key`), seja `cidade` (Pessoa) ou
   `municipio` (Empresa); sem fk declarado, cai em `cidade`.
+
+## Servico (cadastro da empresa, menu Cadastros)
+
+- `GestaoServicos` (`/servicos`, operador, icone `package`, order 20; colunas nome, codigoServico, codigoNbs, percentualTributosSimples,
+  ativo como booleano; busca por nome) e `FormularioServico` (`/servicos/$id`). Secao unica "Servico": `[nome xl | ativo s]`,
+  `[codigoServico m | codigoNbs m | percentualTributosSimples m]`, `[discriminacaoPadrao full]` (rotulos e dicas no mapa).
+- Fora do formulario: `codigoInterno`, `codigoTributacaoMunicipio`, `descricaoCurta`, `valorPadrao`, `aliquotaIss`, `cstPisCofins` (opcionais
+  no dominio) e `issRetido`/`tipoOperacaoIss` (obrigatorios, mas com `defaultValue`). Nenhum obrigatorio sem default fica sem tela.
+- `gerar.sh`: `entidade Servico cadastros servico servicos GestaoServicos FormularioServico`. Nao validado ate o primeiro push/generate.
 
 ## Lista de detalhes 1-N no formulario (`list`)
 

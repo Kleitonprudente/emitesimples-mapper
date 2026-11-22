@@ -390,6 +390,57 @@
                         [v] Identificador desta empresa como cliente no CRM da Marke. A cobrança é do CRM, este sistema não processa pagamento. Opcional. Alterável só pelo administrador da plataforma ou suporte.
                     [e] en
                         [v] Identifier of this company as a customer in the Marke CRM. Billing belongs to the CRM, this system does not process payment. Optional. Changeable only by the platform administrator or support.
+    [g] nfse
+        [d] nfseHabilitada: Boolean()
+            @
+                [e] cn
+                    [v] nfse_habilitada
+                [e] title
+                    [e] pt
+                        [v] NFS-e Habilitada
+                    [e] en
+                        [v] NFS-e Enabled
+                [e] description
+                    [e] pt
+                        [v] Indica se a empresa habilitou a emissão de NFS-e. Ao habilitar, o sistema cadastra o emitente no IntegraNotas (webhook e token do emitente, guardado no cofre) e, se já houver certificado, envia-o. Padrão não (false). Alterável pelo administrador da empresa e pela plataforma.
+                    [e] en
+                        [v] Tells whether the company enabled NFS-e issuing. When enabled, the system registers the issuer at IntegraNotas (webhook and issuer token, kept in the vault) and, if a certificate already exists, sends it. Default no (false). Changeable by the company administrator and by the platform.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] false
+        [d] serieNfse: Texto(5)
+            @
+                [e] cn
+                    [v] serie_nfse
+                [e] title
+                    [e] pt
+                        [v] Série da NFS-e
+                    [e] en
+                        [v] NFS-e Series
+                [e] description
+                    [e] pt
+                        [v] Série da DPS usada nas notas desta empresa, 1 a 5 dígitos. Informada ao habilitar a emissão. Vai no campo serie do envio.
+                    [e] en
+                        [v] DPS series used on this company notes, 1 to 5 digits. Informed when enabling issuing. It goes in the serie field of the submission.
+        [d] ultimoNumeroNfse: Inteiro(9)
+            @
+                [e] cn
+                    [v] ultimo_numero_nfse
+                [e] title
+                    [e] pt
+                        [v] Último Número da NFS-e
+                    [e] en
+                        [v] Last NFS-e Number
+                [e] description
+                    [e] pt
+                        [v] Último número da DPS já utilizado pela empresa (0 se nunca emitiu). O próximo número é este mais 1, e o sistema o incrementa de forma atômica a cada nota. Informado ao habilitar a emissão, para continuar a numeração de outro emissor. Até 9 dígitos.
+                    [e] en
+                        [v] Last DPS number already used by the company (0 if it never issued). The next number is this plus 1, and the system increments it atomically on each note. Informed when enabling issuing, to continue the numbering of another issuer. Up to 9 digits.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] 0
     [g] gateway
         [d] statusCadastro: Texto(20)
             @

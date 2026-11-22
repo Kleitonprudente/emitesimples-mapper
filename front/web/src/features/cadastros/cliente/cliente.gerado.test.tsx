@@ -46,7 +46,11 @@ describe('telas geradas de Cliente (fumaca de renderizacao)', () => {
     expect(editar).toHaveBeenCalledWith(row)
   })
 
-  it('manifesto traz as telas do mapa e so as de rota sem $ viram menu', () => {
-    expect(screens.map((s) => s.name)).toEqual(['GestaoClientes', 'FormularioCliente', 'GestaoFornecedores', 'FormularioFornecedor', 'GestaoMunicipios', 'FormularioMunicipio', 'GestaoEmpresas', 'FormularioEmpresa'])
+  it('manifesto traz as telas do mapa; as de editor tem rota com $ e so as de lista viram menu', () => {
+    const nomes = screens.map((s) => s.name)
+    // Nao fixa a lista inteira (quebraria a cada tela nova): confere as telas de cadastro e a regra de rota.
+    expect(nomes).toEqual(expect.arrayContaining(['GestaoClientes', 'FormularioCliente', 'GestaoFornecedores', 'FormularioFornecedor', 'GestaoServicos', 'FormularioServico']))
+    for (const s of screens.filter((x) => x.stereo === 'editor')) expect(s.route).toContain('$')
+    for (const s of screens.filter((x) => x.stereo === 'list')) expect(s.route).not.toContain('$')
   })
 })

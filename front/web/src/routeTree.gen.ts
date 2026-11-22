@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedAdminConsultaCnpjRouteImport } from './routes/_authenticated/admin/consulta-cnpj'
+import { Route as AuthenticatedAdminIntegranotasRouteImport } from './routes/_authenticated/admin/integranotas'
 import { Route as AuthenticatedAdminMunicipiosRouteImport } from './routes/_authenticated/admin/municipios'
 import { Route as AuthenticatedAdminThemeRouteImport } from './routes/_authenticated/admin/theme'
 import { Route as AuthenticatedAdminUsuariosRouteImport } from './routes/_authenticated/admin/usuarios'
@@ -26,6 +27,8 @@ import { Route as AuthenticatedFornecedoresIndexRouteImport } from './routes/_au
 import { Route as AuthenticatedFornecedoresIdRouteImport } from './routes/_authenticated/fornecedores/$id'
 import { Route as AuthenticatedMunicipiosIndexRouteImport } from './routes/_authenticated/municipios/index'
 import { Route as AuthenticatedMunicipiosIdRouteImport } from './routes/_authenticated/municipios/$id'
+import { Route as AuthenticatedServicosIndexRouteImport } from './routes/_authenticated/servicos/index'
+import { Route as AuthenticatedServicosIdRouteImport } from './routes/_authenticated/servicos/$id'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
@@ -50,6 +53,12 @@ const AuthenticatedAdminConsultaCnpjRoute =
   AuthenticatedAdminConsultaCnpjRouteImport.update({
     id: '/admin/consulta-cnpj',
     path: '/admin/consulta-cnpj',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAdminIntegranotasRoute =
+  AuthenticatedAdminIntegranotasRouteImport.update({
+    id: '/admin/integranotas',
+    path: '/admin/integranotas',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedAdminMunicipiosRoute =
@@ -121,12 +130,24 @@ const AuthenticatedMunicipiosIdRoute =
     path: '/municipios/$id',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedServicosIndexRoute =
+  AuthenticatedServicosIndexRouteImport.update({
+    id: '/servicos/',
+    path: '/servicos/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedServicosIdRoute = AuthenticatedServicosIdRouteImport.update({
+  id: '/servicos/$id',
+  path: '/servicos/$id',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/login': typeof LoginRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/admin/consulta-cnpj': typeof AuthenticatedAdminConsultaCnpjRoute
+  '/admin/integranotas': typeof AuthenticatedAdminIntegranotasRoute
   '/admin/municipios': typeof AuthenticatedAdminMunicipiosRoute
   '/admin/theme': typeof AuthenticatedAdminThemeRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
@@ -135,16 +156,19 @@ export interface FileRoutesByFullPath {
   '/exemplos/pessoas': typeof AuthenticatedExemplosPessoasRoute
   '/fornecedores/$id': typeof AuthenticatedFornecedoresIdRoute
   '/municipios/$id': typeof AuthenticatedMunicipiosIdRoute
+  '/servicos/$id': typeof AuthenticatedServicosIdRoute
   '/clientes/': typeof AuthenticatedClientesIndexRoute
   '/empresas/': typeof AuthenticatedEmpresasIndexRoute
   '/fornecedores/': typeof AuthenticatedFornecedoresIndexRoute
   '/municipios/': typeof AuthenticatedMunicipiosIndexRoute
+  '/servicos/': typeof AuthenticatedServicosIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/': typeof AuthenticatedIndexRoute
   '/admin/consulta-cnpj': typeof AuthenticatedAdminConsultaCnpjRoute
+  '/admin/integranotas': typeof AuthenticatedAdminIntegranotasRoute
   '/admin/municipios': typeof AuthenticatedAdminMunicipiosRoute
   '/admin/theme': typeof AuthenticatedAdminThemeRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
@@ -153,10 +177,12 @@ export interface FileRoutesByTo {
   '/exemplos/pessoas': typeof AuthenticatedExemplosPessoasRoute
   '/fornecedores/$id': typeof AuthenticatedFornecedoresIdRoute
   '/municipios/$id': typeof AuthenticatedMunicipiosIdRoute
+  '/servicos/$id': typeof AuthenticatedServicosIdRoute
   '/clientes': typeof AuthenticatedClientesIndexRoute
   '/empresas': typeof AuthenticatedEmpresasIndexRoute
   '/fornecedores': typeof AuthenticatedFornecedoresIndexRoute
   '/municipios': typeof AuthenticatedMunicipiosIndexRoute
+  '/servicos': typeof AuthenticatedServicosIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -165,6 +191,7 @@ export interface FileRoutesById {
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/admin/consulta-cnpj': typeof AuthenticatedAdminConsultaCnpjRoute
+  '/_authenticated/admin/integranotas': typeof AuthenticatedAdminIntegranotasRoute
   '/_authenticated/admin/municipios': typeof AuthenticatedAdminMunicipiosRoute
   '/_authenticated/admin/theme': typeof AuthenticatedAdminThemeRoute
   '/_authenticated/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
@@ -173,10 +200,12 @@ export interface FileRoutesById {
   '/_authenticated/exemplos/pessoas': typeof AuthenticatedExemplosPessoasRoute
   '/_authenticated/fornecedores/$id': typeof AuthenticatedFornecedoresIdRoute
   '/_authenticated/municipios/$id': typeof AuthenticatedMunicipiosIdRoute
+  '/_authenticated/servicos/$id': typeof AuthenticatedServicosIdRoute
   '/_authenticated/clientes/': typeof AuthenticatedClientesIndexRoute
   '/_authenticated/empresas/': typeof AuthenticatedEmpresasIndexRoute
   '/_authenticated/fornecedores/': typeof AuthenticatedFornecedoresIndexRoute
   '/_authenticated/municipios/': typeof AuthenticatedMunicipiosIndexRoute
+  '/_authenticated/servicos/': typeof AuthenticatedServicosIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -185,6 +214,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/perfil'
     | '/admin/consulta-cnpj'
+    | '/admin/integranotas'
     | '/admin/municipios'
     | '/admin/theme'
     | '/admin/usuarios'
@@ -193,16 +223,19 @@ export interface FileRouteTypes {
     | '/exemplos/pessoas'
     | '/fornecedores/$id'
     | '/municipios/$id'
+    | '/servicos/$id'
     | '/clientes/'
     | '/empresas/'
     | '/fornecedores/'
     | '/municipios/'
+    | '/servicos/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
     | '/perfil'
     | '/'
     | '/admin/consulta-cnpj'
+    | '/admin/integranotas'
     | '/admin/municipios'
     | '/admin/theme'
     | '/admin/usuarios'
@@ -211,10 +244,12 @@ export interface FileRouteTypes {
     | '/exemplos/pessoas'
     | '/fornecedores/$id'
     | '/municipios/$id'
+    | '/servicos/$id'
     | '/clientes'
     | '/empresas'
     | '/fornecedores'
     | '/municipios'
+    | '/servicos'
   id:
     | '__root__'
     | '/_authenticated'
@@ -222,6 +257,7 @@ export interface FileRouteTypes {
     | '/_authenticated/perfil'
     | '/_authenticated/'
     | '/_authenticated/admin/consulta-cnpj'
+    | '/_authenticated/admin/integranotas'
     | '/_authenticated/admin/municipios'
     | '/_authenticated/admin/theme'
     | '/_authenticated/admin/usuarios'
@@ -230,10 +266,12 @@ export interface FileRouteTypes {
     | '/_authenticated/exemplos/pessoas'
     | '/_authenticated/fornecedores/$id'
     | '/_authenticated/municipios/$id'
+    | '/_authenticated/servicos/$id'
     | '/_authenticated/clientes/'
     | '/_authenticated/empresas/'
     | '/_authenticated/fornecedores/'
     | '/_authenticated/municipios/'
+    | '/_authenticated/servicos/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -276,6 +314,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/consulta-cnpj'
       fullPath: '/admin/consulta-cnpj'
       preLoaderRoute: typeof AuthenticatedAdminConsultaCnpjRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/admin/integranotas': {
+      id: '/_authenticated/admin/integranotas'
+      path: '/admin/integranotas'
+      fullPath: '/admin/integranotas'
+      preLoaderRoute: typeof AuthenticatedAdminIntegranotasRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/admin/municipios': {
@@ -362,6 +407,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMunicipiosIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/servicos/': {
+      id: '/_authenticated/servicos/'
+      path: '/servicos'
+      fullPath: '/servicos/'
+      preLoaderRoute: typeof AuthenticatedServicosIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/servicos/$id': {
+      id: '/_authenticated/servicos/$id'
+      path: '/servicos/$id'
+      fullPath: '/servicos/$id'
+      preLoaderRoute: typeof AuthenticatedServicosIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
@@ -369,6 +428,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAdminConsultaCnpjRoute: typeof AuthenticatedAdminConsultaCnpjRoute
+  AuthenticatedAdminIntegranotasRoute: typeof AuthenticatedAdminIntegranotasRoute
   AuthenticatedAdminMunicipiosRoute: typeof AuthenticatedAdminMunicipiosRoute
   AuthenticatedAdminThemeRoute: typeof AuthenticatedAdminThemeRoute
   AuthenticatedAdminUsuariosRoute: typeof AuthenticatedAdminUsuariosRoute
@@ -377,16 +437,19 @@ interface AuthenticatedRouteChildren {
   AuthenticatedExemplosPessoasRoute: typeof AuthenticatedExemplosPessoasRoute
   AuthenticatedFornecedoresIdRoute: typeof AuthenticatedFornecedoresIdRoute
   AuthenticatedMunicipiosIdRoute: typeof AuthenticatedMunicipiosIdRoute
+  AuthenticatedServicosIdRoute: typeof AuthenticatedServicosIdRoute
   AuthenticatedClientesIndexRoute: typeof AuthenticatedClientesIndexRoute
   AuthenticatedEmpresasIndexRoute: typeof AuthenticatedEmpresasIndexRoute
   AuthenticatedFornecedoresIndexRoute: typeof AuthenticatedFornecedoresIndexRoute
   AuthenticatedMunicipiosIndexRoute: typeof AuthenticatedMunicipiosIndexRoute
+  AuthenticatedServicosIndexRoute: typeof AuthenticatedServicosIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAdminConsultaCnpjRoute: AuthenticatedAdminConsultaCnpjRoute,
+  AuthenticatedAdminIntegranotasRoute: AuthenticatedAdminIntegranotasRoute,
   AuthenticatedAdminMunicipiosRoute: AuthenticatedAdminMunicipiosRoute,
   AuthenticatedAdminThemeRoute: AuthenticatedAdminThemeRoute,
   AuthenticatedAdminUsuariosRoute: AuthenticatedAdminUsuariosRoute,
@@ -395,10 +458,12 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedExemplosPessoasRoute: AuthenticatedExemplosPessoasRoute,
   AuthenticatedFornecedoresIdRoute: AuthenticatedFornecedoresIdRoute,
   AuthenticatedMunicipiosIdRoute: AuthenticatedMunicipiosIdRoute,
+  AuthenticatedServicosIdRoute: AuthenticatedServicosIdRoute,
   AuthenticatedClientesIndexRoute: AuthenticatedClientesIndexRoute,
   AuthenticatedEmpresasIndexRoute: AuthenticatedEmpresasIndexRoute,
   AuthenticatedFornecedoresIndexRoute: AuthenticatedFornecedoresIndexRoute,
   AuthenticatedMunicipiosIndexRoute: AuthenticatedMunicipiosIndexRoute,
+  AuthenticatedServicosIndexRoute: AuthenticatedServicosIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

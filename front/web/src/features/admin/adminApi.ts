@@ -26,6 +26,11 @@ import type { TableState } from '@/runtime/table-state'
  *     POST /admin/configuracoes/consulta-cnpj/testar {cnpj} -> resumo da consulta com a configuracao SALVA (ResumoConsultaCnpj)
  *       erros: 400 cnpj_invalido, 409 token_nao_configurado, 404 cnpj_nao_encontrado, 502 token_recusado|resposta_invalida,
  *              429 limite_consulta_excedido|muitas_tentativas, 504 servico_cnpj_indisponivel
+ *   Integracao IntegraNotas
+ *     GET /admin/configuracoes/integranotas -> {ambienteAtivo, urlHomologacao, urlProducao, urlPublicaWebhook|null, tokenHomologacaoConfigurado, tokenProducaoConfigurado,
+ *                                               dataAtualizacao, atualizadoPor:{id,nome}|null, producaoPermitida}  (os tokens NUNCA voltam)
+ *     PUT /admin/configuracoes/integranotas {ambienteAtivo?, urlHomologacao?, urlProducao?, urlPublicaWebhook?, tokenHomologacao?, tokenProducao?} -> 204
+ *       (campo ausente = mantem; texto = grava; '' = remove token/webhook; 400 url_invalida|token_invalido|ambiente_invalido; 409 producao_bloqueada)
  *
  * As respostas sao lidas de forma TOLERANTE (campo ausente = omitido na tela).
  * Senhas: so trafegam no corpo do envio; nunca sao guardadas nem exibidas.
@@ -92,6 +97,7 @@ export const adminKeys = {
   vinculos: (id: string) => ['admin', 'usuarios', id, 'vinculos'] as const,
   importacoes: ['admin', 'municipios', 'importacoes'] as const,
   consultaCnpj: ['admin', 'configuracoes', 'consulta-cnpj'] as const,
+  integraNotas: ['admin', 'configuracoes', 'integranotas'] as const,
 }
 
 /** Lista paginada no servidor: GET /admin/usuarios/{from}/{to} + /count, com `busca` por nome/e-mail. */
@@ -272,6 +278,64 @@ export function useSalvarConfigConsultaCnpj() {
   return useMutation({
     mutationFn: (v: { urlBase: string; token?: string }) => api<void>('/admin/configuracoes/consulta-cnpj', { method: 'PUT', body: v }),
     onSuccess: () => qc.invalidateQueries({ queryKey: adminKeys.consultaCnpj }),
+  })
+}
+
+/* ===================== configuracao da integracao IntegraNotas ===================== */
+
+export type AmbienteIntegraNotas = 'homologacao' | 'producao'
+
+export interface ConfigIntegraNotas {
+  ambienteAtivo: AmbienteIntegraNotas
+  urlHomologacao: string
+  urlProducao: string
+  urlPublicaWebhook: string
+  tokenHomologacaoConfigurado: boolean
+  tokenProducaoConfigurado: boolean
+  producaoPermitida: boolean
+  dataAtualizacao?: string
+  atualizadoPor?: { id: string; nome: string }
+}
+
+export function lerConfigIntegraNotas(raw: unknown): ConfigIntegraNotas {
+  const r = rec(raw)
+  const por = rec(r.atualizadoPor)
+  const nome = str(por.nome)
+  return {
+    ambienteAtivo: r.ambienteAtivo === 'producao' ? 'producao' : 'homologacao',
+    urlHomologacao: str(r.urlHomologacao) ?? '',
+    urlProducao: str(r.urlProducao) ?? '',
+    urlPublicaWebhook: str(r.urlPublicaWebhook) ?? '',
+    tokenHomologacaoConfigurado: r.tokenHomologacaoConfigurado === true,
+    tokenProducaoConfigurado: r.tokenProducaoConfigurado === true,
+    producaoPermitida: r.producaoPermitida === true,
+    dataAtualizacao: str(r.dataAtualizacao),
+    atualizadoPor: nome ? { id: String(por.id ?? ''), nome } : undefined,
+  }
+}
+
+export function useConfigIntegraNotas() {
+  return useQuery({
+    queryKey: adminKeys.integraNotas,
+    queryFn: async () => lerConfigIntegraNotas(await api<unknown>('/admin/configuracoes/integranotas')),
+  })
+}
+
+/** Campo ausente = mantem; tokens e urlPublicaWebhook: texto = grava/substitui; '' = remove. */
+export interface SalvarIntegraNotas {
+  ambienteAtivo?: AmbienteIntegraNotas
+  urlHomologacao?: string
+  urlProducao?: string
+  urlPublicaWebhook?: string
+  tokenHomologacao?: string
+  tokenProducao?: string
+}
+
+export function useSalvarConfigIntegraNotas() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (v: SalvarIntegraNotas) => api<void>('/admin/configuracoes/integranotas', { method: 'PUT', body: v }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: adminKeys.integraNotas }),
   })
 }
 
