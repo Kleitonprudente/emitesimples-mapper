@@ -2,6 +2,7 @@ import type { LoginResponse, Papel } from '@/lib/api'
 import { adminRoutes, consultaCnpjRoute, getMunicipios, resetAdmin } from '@/mocks/admin'
 import { CEPS_MOCK, EMPRESAS_MOCK, MOCK_EMAIL_BLOQUEADO, MOCK_SENHA, MOCK_USERS, buildPessoas, type MockUser, type Pessoa } from '@/mocks/fixtures'
 import { contatosRoutes, resetContatos } from '@/mocks/contatos'
+import { nfseConfigRoutes, resetNfseConfig } from '@/mocks/nfse-config'
 import { erro, json } from '@/mocks/http'
 import { resetVinculosEmpresa, vinculosEmpresaRoutes } from '@/mocks/vinculos-empresa'
 
@@ -249,7 +250,7 @@ export async function handleMock(req: MockRequest): Promise<Response> {
     const c = readCookie()
     const user = c ? MOCK_USERS.find((u) => u.id === c.userId) : undefined
     const papel = (user?.vinculos.find((v) => v.empresaId === c?.empresaId)?.papel ?? null) as Papel | null
-    res = consultaCnpjRoute(req, { plataformaAdmin: !!user?.plataformaAdmin, papel }) ?? contatosRoutes(req, { plataformaAdmin: !!user?.plataformaAdmin, papel, pessoaExiste: (id) => pessoas.some((p) => p.id === id) }) ?? (await vinculosEmpresaRoutes(req, { plataformaAdmin: !!user?.plataformaAdmin })) ?? (await adminRoutes(req, { plataformaAdmin: !!user?.plataformaAdmin, nome: user?.nome ?? '' })) ?? entity(req)
+    res = nfseConfigRoutes(req, { papel, empresaId: c?.empresaId ?? null }) ?? consultaCnpjRoute(req, { plataformaAdmin: !!user?.plataformaAdmin, papel }) ?? contatosRoutes(req, { plataformaAdmin: !!user?.plataformaAdmin, papel, pessoaExiste: (id) => pessoas.some((p) => p.id === id) }) ?? (await vinculosEmpresaRoutes(req, { plataformaAdmin: !!user?.plataformaAdmin })) ?? (await adminRoutes(req, { plataformaAdmin: !!user?.plataformaAdmin, nome: user?.nome ?? '' })) ?? entity(req)
   }  return res ?? erro(404, 'nao_encontrado', 'Recurso não encontrado (mock).')
 }
 
@@ -262,5 +263,6 @@ export function resetMock() {
   resetAdmin()
   resetVinculosEmpresa()
   resetContatos()
+  resetNfseConfig()
   writeCookie(null)
 }

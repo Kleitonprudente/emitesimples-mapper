@@ -34,3 +34,18 @@ describe('menu de administracao da plataforma', () => {
     expect(rotas({ ...base, papel: null, plataformaAdmin: true })).toEqual(expect.arrayContaining(admins))
   })
 })
+describe('menu Configuracao > NFS-e da empresa', () => {
+  const rotas = (s: SessionData) => visibleMenu(s, menu).flatMap((g) => g.items.map((i) => i.route))
+
+  it('item no grupo Configuracao, ordem 70, papel administrador, nao platformOnly', () => {
+    const item = menu.find((i) => i.route === '/configuracao/nfse')
+    expect(item).toMatchObject({ title: 'NFS-e', group: 'Configuração', order: 70, role: 'administrador' })
+    expect(item?.platformOnly).toBeUndefined()
+  })
+  it('so o administrador da empresa ve; operador, consulta e plataforma sem empresa nao', () => {
+    expect(rotas({ ...base, papel: 'administrador' })).toContain('/configuracao/nfse')
+    expect(rotas({ ...base, papel: 'operador' })).not.toContain('/configuracao/nfse')
+    expect(rotas({ ...base, papel: 'consulta' })).not.toContain('/configuracao/nfse')
+    expect(rotas({ ...base, papel: null, plataformaAdmin: true })).not.toContain('/configuracao/nfse')
+  })
+})

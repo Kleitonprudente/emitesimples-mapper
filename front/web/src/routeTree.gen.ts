@@ -20,6 +20,7 @@ import { Route as AuthenticatedAdminThemeRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminUsuariosRouteImport } from './routes/_authenticated/admin/usuarios'
 import { Route as AuthenticatedClientesIndexRouteImport } from './routes/_authenticated/clientes/index'
 import { Route as AuthenticatedClientesIdRouteImport } from './routes/_authenticated/clientes/$id'
+import { Route as AuthenticatedConfiguracaoNfseRouteImport } from './routes/_authenticated/configuracao/nfse'
 import { Route as AuthenticatedEmpresasIndexRouteImport } from './routes/_authenticated/empresas/index'
 import { Route as AuthenticatedEmpresasIdRouteImport } from './routes/_authenticated/empresas/$id'
 import { Route as AuthenticatedExemplosPessoasRouteImport } from './routes/_authenticated/exemplos/pessoas'
@@ -89,6 +90,12 @@ const AuthenticatedClientesIdRoute = AuthenticatedClientesIdRouteImport.update({
   path: '/clientes/$id',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedConfiguracaoNfseRoute =
+  AuthenticatedConfiguracaoNfseRouteImport.update({
+    id: '/configuracao/nfse',
+    path: '/configuracao/nfse',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedEmpresasIndexRoute =
   AuthenticatedEmpresasIndexRouteImport.update({
     id: '/empresas/',
@@ -152,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/admin/theme': typeof AuthenticatedAdminThemeRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
+  '/configuracao/nfse': typeof AuthenticatedConfiguracaoNfseRoute
   '/empresas/$id': typeof AuthenticatedEmpresasIdRoute
   '/exemplos/pessoas': typeof AuthenticatedExemplosPessoasRoute
   '/fornecedores/$id': typeof AuthenticatedFornecedoresIdRoute
@@ -173,6 +181,7 @@ export interface FileRoutesByTo {
   '/admin/theme': typeof AuthenticatedAdminThemeRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
+  '/configuracao/nfse': typeof AuthenticatedConfiguracaoNfseRoute
   '/empresas/$id': typeof AuthenticatedEmpresasIdRoute
   '/exemplos/pessoas': typeof AuthenticatedExemplosPessoasRoute
   '/fornecedores/$id': typeof AuthenticatedFornecedoresIdRoute
@@ -196,6 +205,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/theme': typeof AuthenticatedAdminThemeRoute
   '/_authenticated/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
   '/_authenticated/clientes/$id': typeof AuthenticatedClientesIdRoute
+  '/_authenticated/configuracao/nfse': typeof AuthenticatedConfiguracaoNfseRoute
   '/_authenticated/empresas/$id': typeof AuthenticatedEmpresasIdRoute
   '/_authenticated/exemplos/pessoas': typeof AuthenticatedExemplosPessoasRoute
   '/_authenticated/fornecedores/$id': typeof AuthenticatedFornecedoresIdRoute
@@ -219,6 +229,7 @@ export interface FileRouteTypes {
     | '/admin/theme'
     | '/admin/usuarios'
     | '/clientes/$id'
+    | '/configuracao/nfse'
     | '/empresas/$id'
     | '/exemplos/pessoas'
     | '/fornecedores/$id'
@@ -240,6 +251,7 @@ export interface FileRouteTypes {
     | '/admin/theme'
     | '/admin/usuarios'
     | '/clientes/$id'
+    | '/configuracao/nfse'
     | '/empresas/$id'
     | '/exemplos/pessoas'
     | '/fornecedores/$id'
@@ -262,6 +274,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/theme'
     | '/_authenticated/admin/usuarios'
     | '/_authenticated/clientes/$id'
+    | '/_authenticated/configuracao/nfse'
     | '/_authenticated/empresas/$id'
     | '/_authenticated/exemplos/pessoas'
     | '/_authenticated/fornecedores/$id'
@@ -358,6 +371,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientesIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/configuracao/nfse': {
+      id: '/_authenticated/configuracao/nfse'
+      path: '/configuracao/nfse'
+      fullPath: '/configuracao/nfse'
+      preLoaderRoute: typeof AuthenticatedConfiguracaoNfseRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/empresas/': {
       id: '/_authenticated/empresas/'
       path: '/empresas'
@@ -433,6 +453,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAdminThemeRoute: typeof AuthenticatedAdminThemeRoute
   AuthenticatedAdminUsuariosRoute: typeof AuthenticatedAdminUsuariosRoute
   AuthenticatedClientesIdRoute: typeof AuthenticatedClientesIdRoute
+  AuthenticatedConfiguracaoNfseRoute: typeof AuthenticatedConfiguracaoNfseRoute
   AuthenticatedEmpresasIdRoute: typeof AuthenticatedEmpresasIdRoute
   AuthenticatedExemplosPessoasRoute: typeof AuthenticatedExemplosPessoasRoute
   AuthenticatedFornecedoresIdRoute: typeof AuthenticatedFornecedoresIdRoute
@@ -454,6 +475,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminThemeRoute: AuthenticatedAdminThemeRoute,
   AuthenticatedAdminUsuariosRoute: AuthenticatedAdminUsuariosRoute,
   AuthenticatedClientesIdRoute: AuthenticatedClientesIdRoute,
+  AuthenticatedConfiguracaoNfseRoute: AuthenticatedConfiguracaoNfseRoute,
   AuthenticatedEmpresasIdRoute: AuthenticatedEmpresasIdRoute,
   AuthenticatedExemplosPessoasRoute: AuthenticatedExemplosPessoasRoute,
   AuthenticatedFornecedoresIdRoute: AuthenticatedFornecedoresIdRoute,
