@@ -16,6 +16,8 @@
             [v] mi:if-else(normalize-space(properties/required/value) = 'true', '', '.optional()')
         [e] maxMark
             [v] mi:if-else(@typeParameter != '', concat('.max(', @typeParameter, ')'), '')
+        [e] relOptionalMark
+            [v] mi:if-else(normalize-space(properties/required/value) = 'true' and not(exists(properties/tenantKey)), '', '.optional()')
     [e] patterns
         [e] header
             [v] // GERADO por frontend/zodSchema a partir de {{ @name }}. Nao edite: a saida e sobrescrita por inteiro.
@@ -40,7 +42,9 @@
             [v] {{ '' }}
             [v] export type {{ @name }} = z.infer<typeof {{ mi:first-lower(@name) }}Schema>
         [e] field-relation
-            [v]     // relacao omitida do schema: {{ @name }} ({{ @type }}, {{ @mode }})
+            [v]     // relacao to-many omitida do schema: {{ @name }} ({{ @type }}, {{ @mode }})
+        [e] field-relation-one
+            [v]     {{ @name }}: z.looseObject({ id: z.string() }){{ f#[relOptionalMark] }},
         [e] field-enum-string
             [v]     {{ @name }}: z.enum({{ @name }}Values){{ f#[optionalMark] }},
         [e] field-enum-number
@@ -118,10 +122,16 @@
             [v] fields
             [e] template
                 [e] match
-                    [v] attribute[@mode != 'directToField']
+                    [v] attribute[@mode != 'directToField' and @mode != 'oneToOne' and @mode != 'manyToOne']
                 [e] body
                     [e] write-pattern
                         [v] field-relation
+            [e] template
+                [e] match
+                    [v] attribute[@mode = 'oneToOne' or @mode = 'manyToOne']
+                [e] body
+                    [e] write-pattern
+                        [v] field-relation-one
             [e] template
                 [e] match
                     [v] attribute[@mode = 'directToField' and exists(properties/values) and @type = $mapNativeTypes/String/value]

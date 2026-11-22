@@ -11,10 +11,12 @@ export interface ScreenEntry {
   group?: string
   order?: number
   role?: Papel
+  platformOnly?: boolean
 }
 
 export const screens: ScreenEntry[] = [
   { name: 'GestaoPessoas', title: 'Gestão de Pessoas', stereo: 'list', route: '/pessoas', icon: 'users', group: 'Cadastros', order: 10, role: 'operador' },
-  { name: 'CriarPessoa', title: 'Nova pessoa', stereo: 'dialog', role: 'operador' },
-  { name: 'EditarPessoa', title: 'Editar pessoa', stereo: 'editor', route: '/pessoas/$id', icon: 'user-pen', role: 'operador' },
+  { name: 'FormularioPessoa', title: 'Cadastro de pessoa', stereo: 'editor', route: '/pessoas/$id', icon: 'user-pen', role: 'operador' },
+  { name: 'GestaoMunicipios', title: 'Gestão de Municípios', stereo: 'list', route: '/municipios', icon: 'settings', group: 'Administração', order: 79, platformOnly: true },
+  { name: 'FormularioMunicipio', title: 'Cadastro de município', stereo: 'editor', route: '/municipios/$id', icon: 'settings', platformOnly: true },
 ]

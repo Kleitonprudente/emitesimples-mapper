@@ -1,13 +1,13 @@
-// GERADO por frontend/screenRoute a partir de EditarPessoa. Nao edite: a saida e sobrescrita por inteiro.
+// GERADO por frontend/screenRoute a partir de FormularioPessoa. Nao edite: a saida e sobrescrita por inteiro.
 // Arquivo de destino: src/routes/_authenticated/pessoas/$id.tsx
 import { createFileRoute } from '@tanstack/react-router'
-import { EditarPessoaScreen } from '@/features/cadastros/pessoa/EditarPessoaScreen'
+import { FormularioPessoaScreen } from '@/features/cadastros/pessoa/FormularioPessoaScreen'
 
-function EditarPessoaPage() {
+function FormularioPessoaPage() {
   const { id } = Route.useParams()
-  return <EditarPessoaScreen id={ id } />
+  return <FormularioPessoaScreen id={ id } />
 }
 
 export const Route = createFileRoute('/_authenticated/pessoas/$id')({
-  component: EditarPessoaPage,
+  component: FormularioPessoaPage,
 })

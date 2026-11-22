@@ -17,7 +17,26 @@
         [e] import-react
             [v] import { {{ $reactImports }} } from 'react'
         [e] import-navigate
-            [v] import { useNavigate } from '@tanstack/react-router'
+            [v] import { {{ $routerImports }} } from '@tanstack/react-router'
+        [e] import-button
+            [v] import { Button } from '@/components/ui/button'
+        [e] import-icon
+            [v] import { resolveIcon } from '@/runtime/icons'
+        [e] link-icon-const
+            [v] const {{ mi:first-upper(normalize-space(value)) }}Icon = resolveIcon('{{ normalize-space(properties/icon/value) }}')
+        [e] links-start
+            [v] {{ '' }}
+            [v]   const links = (
+            [v]     <>
+        [e] link-item
+            [v]       <Button variant="outline" asChild>
+            [v]         <Link to="{{ normalize-space(properties/route/value) }}">
+            [v]           <{{ mi:first-upper(normalize-space(value)) }}Icon /> {{ normalize-space(properties/label/pt/value) }}
+            [v]         </Link>
+            [v]       </Button>
+        [e] links-end
+            [v]     </>
+            [v]   )
         [e] import-dialog
             [v] import { Button } from '@/components/ui/button'
             [v] import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -105,12 +124,21 @@
             [v]         getRowId={(r) => r.id}
             [v]         searchPlaceholder="{{ $placeholder }}"
             [v]         facets={FACETS}
+        [e] toolbar-novo
             [v]         toolbarActions={novo}
+        [e] toolbar-links
+            [v]         toolbarActions={
+            [v]           <>
+            [v]             {novo}
+            [v]             {links}
+            [v]           </>
+            [v]         }
+        [e] return-table-end
             [v]         empty={empty}
             [v]       />
         [e] return-dialog
             [v]       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            [v]         <DialogContent>
+            [v]         <DialogContent className="sm:max-w-3xl">
             [v]           <DialogHeader>
             [v]             <DialogTitle>{{ $createTitle }}</DialogTitle>
             [v]           </DialogHeader>
@@ -150,7 +178,7 @@
                 [e] var
                     [v] createClass
                     [e] expr
-                        [v] ($classes/class[@name = $createName and @mode = 'window.dialog'])[1]
+                        [v] ($classes/class[@name = $createName and (@mode = 'window.dialog' or @mode = 'window.editor')])[1]
                 [e] var
                     [v] hasCreate
                     [e] expr
@@ -170,7 +198,7 @@
                 [e] var
                     [v] createTitle
                     [e] expr
-                        [v] replace(normalize-space($createClass/properties/title/pt/value), "'", "\\'")
+                        [v] $createLabel
                 [e] var
                     [v] createPath
                     [e] expr
@@ -191,6 +219,18 @@
                     [v] usesRole
                     [e] expr
                         [v] $hasCreate or $hasRows
+                [e] var
+                    [v] linkActions
+                    [e] expr
+                        [v] actions/action[normalize-space(properties/type/value) = 'link' and exists(properties/route/value)]
+                [e] var
+                    [v] hasLinks
+                    [e] expr
+                        [v] exists($linkActions)
+                [e] var
+                    [v] routerImports
+                    [e] expr
+                        [v] string-join((if ($hasLinks) then 'Link' else (), if ($hasRows) then 'useNavigate' else ()), ', ')
                 [e] var
                     [v] reactImports
                     [e] expr
@@ -235,7 +275,7 @@
                     [e] write-pattern
                         [v] import-react
             [e] if
-                [v] $hasRows
+                [v] $routerImports != ''
                 [e] then
                     [e] write-pattern
                         [v] import-navigate
@@ -244,6 +284,11 @@
                 [e] then
                     [e] write-pattern
                         [v] import-dialog
+                [e] else-if
+                    [v] $hasLinks
+                    [e] then
+                        [e] write-pattern
+                            [v] import-button
             [e] if
                 [v] $usesRole
                 [e] then
@@ -256,6 +301,11 @@
                 [e] then
                     [e] write-pattern
                         [v] import-feedback
+                [e] else-if
+                    [v] $hasLinks
+                    [e] then
+                        [e] write-pattern
+                            [v] import-icon
             [e] write-pattern
                 [v] import-tablestate
             [e] write-pattern
@@ -274,6 +324,14 @@
                         [v] import-form
                     [e] write-pattern
                         [v] icon-const
+            [e] if
+                [v] $hasLinks
+                [e] then
+                    [e] apply-templates
+                        [e] select
+                            [v] $linkActions
+                        [e] mode
+                            [v] linkIcon
             [e] write-pattern
                 [v] facets-start
             [e] apply-templates
@@ -327,10 +385,32 @@
                 [e] else
                     [e] write-pattern
                         [v] create-none
+            [e] if
+                [v] $hasLinks
+                [e] then
+                    [e] write-pattern
+                        [v] links-start
+                    [e] apply-templates
+                        [e] select
+                            [v] $linkActions
+                        [e] mode
+                            [v] linkItem
+                    [e] write-pattern
+                        [v] links-end
             [e] write-pattern
                 [v] empty-const
             [e] write-pattern
                 [v] return-start
+            [e] if
+                [v] $hasLinks
+                [e] then
+                    [e] write-pattern
+                        [v] toolbar-links
+                [e] else
+                    [e] write-pattern
+                        [v] toolbar-novo
+            [e] write-pattern
+                [v] return-table-end
             [e] if
                 [v] $hasCreate
                 [e] then
@@ -339,6 +419,22 @@
             [e] write-pattern
                 [v] return-end
     [e] templates
+        [e] mode
+            [v] linkIcon
+            [e] template
+                [e] match
+                    [v] action
+                [e] body
+                    [e] write-pattern
+                        [v] link-icon-const
+        [e] mode
+            [v] linkItem
+            [e] template
+                [e] match
+                    [v] action
+                [e] body
+                    [e] write-pattern
+                        [v] link-item
         [e] mode
             [v] facet
             [e] template

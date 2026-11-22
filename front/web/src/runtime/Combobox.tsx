@@ -43,6 +43,7 @@ export function Combobox({
   placeholder = 'Selecione…',
   disabled,
   invalid,
+  describedBy,
 }: {
   id?: string
   source: FkSource
@@ -51,11 +52,12 @@ export function Combobox({
   placeholder?: string
   disabled?: boolean
   invalid?: boolean
+  describedBy?: string
 }) {
   const [open, setOpen] = useState(false)
   const [term, setTerm] = useState('')
   const [active, setActive] = useState(0)
-  const [pickedLabel, setPickedLabel] = useState<string | null>(null)
+  const [picked, setPicked] = useState<{ id: string; label: string } | null>(null)
   const debounced = useDebounced(term, 300)
   const listId = useId()
 
@@ -66,10 +68,11 @@ export function Combobox({
   })
   const options = query.data ?? []
 
-  const label = value ? (pickedLabel ?? source.labelOf?.(value) ?? value.id) : null
+  // O rotulo escolhido so vale para o MESMO id: um valor trocado de fora (ex.: preenchido pelo CEP) usa labelOf.
+  const label = value ? ((picked && picked.id === value.id ? picked.label : undefined) ?? source.labelOf?.(value) ?? value.id) : null
 
   function pick(o: FkOption) {
-    setPickedLabel(o.label)
+    setPicked({ id: o.id, label: o.label })
     onChange({ id: o.id })
     setOpen(false)
     setTerm('')
@@ -87,6 +90,7 @@ export function Combobox({
             aria-expanded={open}
             aria-controls={listId}
             aria-invalid={invalid || undefined}
+            aria-describedby={describedBy}
             disabled={disabled}
             className={cn('w-full justify-between font-normal aria-invalid:border-destructive', !label && 'text-muted-foreground')}
           >
@@ -95,7 +99,7 @@ export function Combobox({
           </Button>
         </PopoverTrigger>
         {value && !disabled && (
-          <Button type="button" variant="ghost" size="icon" aria-label="Limpar seleção" onClick={() => { setPickedLabel(null); onChange(null) }}>
+          <Button type="button" variant="ghost" size="icon" aria-label="Limpar seleção" onClick={() => { setPicked(null); onChange(null) }}>
             <X className="size-4" />
           </Button>
         )}

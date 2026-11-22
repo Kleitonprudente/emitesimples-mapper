@@ -14,7 +14,11 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ThemeRouteImport } from './routes/theme'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
+import { Route as AuthenticatedAdminMunicipiosRouteImport } from './routes/_authenticated/admin/municipios'
+import { Route as AuthenticatedAdminUsuariosRouteImport } from './routes/_authenticated/admin/usuarios'
 import { Route as AuthenticatedExemplosPessoasRouteImport } from './routes/_authenticated/exemplos/pessoas'
+import { Route as AuthenticatedMunicipiosIndexRouteImport } from './routes/_authenticated/municipios/index'
+import { Route as AuthenticatedMunicipiosIdRouteImport } from './routes/_authenticated/municipios/$id'
 import { Route as AuthenticatedPessoasIndexRouteImport } from './routes/_authenticated/pessoas/index'
 import { Route as AuthenticatedPessoasIdRouteImport } from './routes/_authenticated/pessoas/$id'
 
@@ -42,10 +46,34 @@ const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
   path: '/perfil',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAdminMunicipiosRoute =
+  AuthenticatedAdminMunicipiosRouteImport.update({
+    id: '/admin/municipios',
+    path: '/admin/municipios',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAdminUsuariosRoute =
+  AuthenticatedAdminUsuariosRouteImport.update({
+    id: '/admin/usuarios',
+    path: '/admin/usuarios',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedExemplosPessoasRoute =
   AuthenticatedExemplosPessoasRouteImport.update({
     id: '/exemplos/pessoas',
     path: '/exemplos/pessoas',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedMunicipiosIndexRoute =
+  AuthenticatedMunicipiosIndexRouteImport.update({
+    id: '/municipios/',
+    path: '/municipios/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedMunicipiosIdRoute =
+  AuthenticatedMunicipiosIdRouteImport.update({
+    id: '/municipios/$id',
+    path: '/municipios/$id',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedPessoasIndexRoute =
@@ -65,8 +93,12 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/theme': typeof ThemeRoute
   '/perfil': typeof AuthenticatedPerfilRoute
+  '/admin/municipios': typeof AuthenticatedAdminMunicipiosRoute
+  '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
   '/exemplos/pessoas': typeof AuthenticatedExemplosPessoasRoute
+  '/municipios/$id': typeof AuthenticatedMunicipiosIdRoute
   '/pessoas/$id': typeof AuthenticatedPessoasIdRoute
+  '/municipios/': typeof AuthenticatedMunicipiosIndexRoute
   '/pessoas/': typeof AuthenticatedPessoasIndexRoute
 }
 export interface FileRoutesByTo {
@@ -74,8 +106,12 @@ export interface FileRoutesByTo {
   '/theme': typeof ThemeRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/': typeof AuthenticatedIndexRoute
+  '/admin/municipios': typeof AuthenticatedAdminMunicipiosRoute
+  '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
   '/exemplos/pessoas': typeof AuthenticatedExemplosPessoasRoute
+  '/municipios/$id': typeof AuthenticatedMunicipiosIdRoute
   '/pessoas/$id': typeof AuthenticatedPessoasIdRoute
+  '/municipios': typeof AuthenticatedMunicipiosIndexRoute
   '/pessoas': typeof AuthenticatedPessoasIndexRoute
 }
 export interface FileRoutesById {
@@ -85,8 +121,12 @@ export interface FileRoutesById {
   '/theme': typeof ThemeRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/admin/municipios': typeof AuthenticatedAdminMunicipiosRoute
+  '/_authenticated/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
   '/_authenticated/exemplos/pessoas': typeof AuthenticatedExemplosPessoasRoute
+  '/_authenticated/municipios/$id': typeof AuthenticatedMunicipiosIdRoute
   '/_authenticated/pessoas/$id': typeof AuthenticatedPessoasIdRoute
+  '/_authenticated/municipios/': typeof AuthenticatedMunicipiosIndexRoute
   '/_authenticated/pessoas/': typeof AuthenticatedPessoasIndexRoute
 }
 export interface FileRouteTypes {
@@ -96,8 +136,12 @@ export interface FileRouteTypes {
     | '/login'
     | '/theme'
     | '/perfil'
+    | '/admin/municipios'
+    | '/admin/usuarios'
     | '/exemplos/pessoas'
+    | '/municipios/$id'
     | '/pessoas/$id'
+    | '/municipios/'
     | '/pessoas/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -105,8 +149,12 @@ export interface FileRouteTypes {
     | '/theme'
     | '/perfil'
     | '/'
+    | '/admin/municipios'
+    | '/admin/usuarios'
     | '/exemplos/pessoas'
+    | '/municipios/$id'
     | '/pessoas/$id'
+    | '/municipios'
     | '/pessoas'
   id:
     | '__root__'
@@ -115,8 +163,12 @@ export interface FileRouteTypes {
     | '/theme'
     | '/_authenticated/perfil'
     | '/_authenticated/'
+    | '/_authenticated/admin/municipios'
+    | '/_authenticated/admin/usuarios'
     | '/_authenticated/exemplos/pessoas'
+    | '/_authenticated/municipios/$id'
     | '/_authenticated/pessoas/$id'
+    | '/_authenticated/municipios/'
     | '/_authenticated/pessoas/'
   fileRoutesById: FileRoutesById
 }
@@ -163,11 +215,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPerfilRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/admin/municipios': {
+      id: '/_authenticated/admin/municipios'
+      path: '/admin/municipios'
+      fullPath: '/admin/municipios'
+      preLoaderRoute: typeof AuthenticatedAdminMunicipiosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/admin/usuarios': {
+      id: '/_authenticated/admin/usuarios'
+      path: '/admin/usuarios'
+      fullPath: '/admin/usuarios'
+      preLoaderRoute: typeof AuthenticatedAdminUsuariosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/exemplos/pessoas': {
       id: '/_authenticated/exemplos/pessoas'
       path: '/exemplos/pessoas'
       fullPath: '/exemplos/pessoas'
       preLoaderRoute: typeof AuthenticatedExemplosPessoasRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/municipios/': {
+      id: '/_authenticated/municipios/'
+      path: '/municipios'
+      fullPath: '/municipios/'
+      preLoaderRoute: typeof AuthenticatedMunicipiosIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/municipios/$id': {
+      id: '/_authenticated/municipios/$id'
+      path: '/municipios/$id'
+      fullPath: '/municipios/$id'
+      preLoaderRoute: typeof AuthenticatedMunicipiosIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/pessoas/': {
@@ -190,16 +270,24 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteChildren {
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedAdminMunicipiosRoute: typeof AuthenticatedAdminMunicipiosRoute
+  AuthenticatedAdminUsuariosRoute: typeof AuthenticatedAdminUsuariosRoute
   AuthenticatedExemplosPessoasRoute: typeof AuthenticatedExemplosPessoasRoute
+  AuthenticatedMunicipiosIdRoute: typeof AuthenticatedMunicipiosIdRoute
   AuthenticatedPessoasIdRoute: typeof AuthenticatedPessoasIdRoute
+  AuthenticatedMunicipiosIndexRoute: typeof AuthenticatedMunicipiosIndexRoute
   AuthenticatedPessoasIndexRoute: typeof AuthenticatedPessoasIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedAdminMunicipiosRoute: AuthenticatedAdminMunicipiosRoute,
+  AuthenticatedAdminUsuariosRoute: AuthenticatedAdminUsuariosRoute,
   AuthenticatedExemplosPessoasRoute: AuthenticatedExemplosPessoasRoute,
+  AuthenticatedMunicipiosIdRoute: AuthenticatedMunicipiosIdRoute,
   AuthenticatedPessoasIdRoute: AuthenticatedPessoasIdRoute,
+  AuthenticatedMunicipiosIndexRoute: AuthenticatedMunicipiosIndexRoute,
   AuthenticatedPessoasIndexRoute: AuthenticatedPessoasIndexRoute,
 }
 

@@ -10,6 +10,8 @@
             [v] mi:if-else(exists(properties/order/value), concat(', order: ', normalize-space(properties/order/value)), '')
         [e] optRole
             [v] mi:if-else(exists(properties/role/value), concat(", role: '", normalize-space(properties/role/value), "'"), '')
+        [e] optPlatformOnly
+            [v] mi:if-else(normalize-space(properties/platformOnly/value) = 'true', ', platformOnly: true', '')
     [e] patterns
         [e] header
             [v] // GERADO por frontend/screenManifest. Nao edite: a saida e sobrescrita por inteiro.
@@ -25,13 +27,14 @@
             [v]   group?: string
             [v]   order?: number
             [v]   role?: Papel
+            [v]   platformOnly?: boolean
             [v] }
             [v] {{ '' }}
             [v] export const screens: ScreenEntry[] = [
         [e] footer
             [v] ]
         [e] entry
-            [v]   { name: '{{ @name }}', title: '{{ replace(normalize-space(properties/title/pt/value), "'", "\\'") }}', stereo: '{{ substring-after(@mode, 'window.') }}'{{ f#[optRoute] }}{{ f#[optIcon] }}{{ f#[optGroup] }}{{ f#[optOrder] }}{{ f#[optRole] }} },
+            [v]   { name: '{{ @name }}', title: '{{ replace(normalize-space(properties/title/pt/value), "'", "\\'") }}', stereo: '{{ substring-after(@mode, 'window.') }}'{{ f#[optRoute] }}{{ f#[optIcon] }}{{ f#[optGroup] }}{{ f#[optOrder] }}{{ f#[optRole] }}{{ f#[optPlatformOnly] }} },
     [e] start
         [e] match
             [v] /

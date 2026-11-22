@@ -135,4 +135,23 @@ describe('lib/api', () => {
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }))
     expect(await api('/Pessoa/id/1', { method: 'DELETE' })).toBeUndefined()
   })
+
+  it('FormData segue como multipart: sem Content-Type forcado e sem JSON.stringify', async () => {
+    fetchMock.mockResolvedValueOnce(ok({ id: 'i1' }))
+    const form = new FormData()
+    form.append('arquivo', new File(['a;b'], 'm.csv'))
+    await api('/admin/municipios/importacao', { method: 'POST', body: form })
+    const init = fetchMock.mock.calls[0]![1] as RequestInit
+    expect(init.body).toBe(form)
+    expect((init.headers as Record<string, string>)['Content-Type']).toBeUndefined()
+    expect(authHeader(fetchMock.mock.calls[0]!)).toBe('Bearer t-old')
+  })
+
+  it('corpo objeto continua JSON com Content-Type', async () => {
+    fetchMock.mockResolvedValueOnce(ok({}))
+    await api('/Pessoa', { method: 'POST', body: { nome: 'A' } })
+    const init = fetchMock.mock.calls[0]![1] as RequestInit
+    expect(init.body).toBe('{"nome":"A"}')
+    expect((init.headers as Record<string, string>)['Content-Type']).toBe('application/json')
+  })
 })

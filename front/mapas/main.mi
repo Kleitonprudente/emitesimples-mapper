@@ -265,9 +265,13 @@
                 [Descriptor.window.list] GestaoPessoas
                     #
                         window/cadastros/pessoa/GestaoPessoas.mi
-                [Descriptor.window.dialog] CriarPessoa
+                [Descriptor.window.editor] FormularioPessoa
                     #
-                        window/cadastros/pessoa/CriarPessoa.mi
-                [Descriptor.window.editor] EditarPessoa
+                        window/cadastros/pessoa/FormularioPessoa.mi
+            [p] municipio
+                [Descriptor.window.list] GestaoMunicipios
                     #
-                        window/cadastros/pessoa/EditarPessoa.mi
+                        window/cadastros/municipio/GestaoMunicipios.mi
+                [Descriptor.window.editor] FormularioMunicipio
+                    #
+                        window/cadastros/municipio/FormularioMunicipio.mi

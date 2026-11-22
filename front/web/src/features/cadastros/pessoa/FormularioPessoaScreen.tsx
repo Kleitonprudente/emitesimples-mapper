@@ -1,11 +1,11 @@
-// GERADO por frontend/screenEditorById a partir de EditarPessoa. Nao edite: a saida e sobrescrita por inteiro.
+// GERADO por frontend/screenEditorById a partir de FormularioPessoa. Nao edite: a saida e sobrescrita por inteiro.
 import { useNavigate } from '@tanstack/react-router'
 import { useAtualizarPessoa, usePessoa } from '@/gen/api/pessoa'
 import { mutationFeedback } from '@/runtime/feedback'
 import { ErrorState, LoadingState } from '@/runtime/states'
-import { EditarPessoaForm, type EditarPessoaValues } from './EditarPessoa'
+import { FormularioPessoaForm, type FormularioPessoaValues } from './FormularioPessoa'
 
-export function EditarPessoaScreen({ id }: { id: string }) {
+export function FormularioPessoaScreen({ id }: { id: string }) {
   const loaded = usePessoa(id)
   const salvar = useAtualizarPessoa(id)
   const navigate = useNavigate()
@@ -14,11 +14,11 @@ export function EditarPessoaScreen({ id }: { id: string }) {
   if (loaded.isLoading) return <LoadingState />
   if (loaded.isError || !loaded.data) return <ErrorState error={loaded.error} onRetry={() => void loaded.refetch()} />
   // O back devolve null nos opcionais ausentes; o schema do formulario espera ausente (undefined).
-  const values = Object.fromEntries(Object.entries(loaded.data).filter(([, v]) => v !== null)) as EditarPessoaValues
+  const values = Object.fromEntries(Object.entries(loaded.data).filter(([, v]) => v !== null)) as FormularioPessoaValues
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">Editar pessoa</h1>
-      <EditarPessoaForm
+      <h1 className="text-2xl font-semibold">Cadastro de pessoa</h1>
+      <FormularioPessoaForm
         values={values}
         isSubmitting={salvar.isPending}
         serverError={salvar.error}

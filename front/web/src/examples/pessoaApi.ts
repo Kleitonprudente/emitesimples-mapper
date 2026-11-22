@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
 import { api } from '@/lib/api'
+import { fkSource } from '@/lib/fk-sources'
 import type { FkSource } from '@/runtime/Combobox'
 import { toListRequest, type TableState } from '@/runtime/table-state'
 
@@ -73,12 +74,5 @@ export function useRemoverPessoa() {
   })
 }
 
-/** FK Pessoa.cidade -> Municipio, com busca assincrona por nome. */
-export const municipioFk: FkSource = {
-  key: 'Municipio',
-  search: async (term) => {
-    const rows = await api<{ id: string; nome: string; uf: string }[]>('/Municipio', { query: { nome: term ? `*${term}*` : undefined, sortBy: 'nome' } })
-    return rows.map((m) => ({ id: m.id, label: `${m.nome} - ${m.uf}` }))
-  },
-  labelOf: (v) => (v.nome ? `${v.nome}${v.uf ? ` - ${v.uf}` : ''}` : undefined),
-}
+/** FK Pessoa.cidade -> Municipio, com busca assincrona por nome (registro central em lib/fk-sources). */
+export const municipioFk: FkSource = fkSource('Municipio')

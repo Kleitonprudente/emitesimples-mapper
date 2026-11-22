@@ -15,12 +15,14 @@
         [e] maxLen
             [v] mi:if-else($attr/@typeParameter != '', concat(', maxLength: ', $attr/@typeParameter), '')
         [e] commonOpts
-            [v] concat(mi:if-else(normalize-space($attr/properties/required/value) = 'true', ', required: true', ''), mi:if-else(exists(properties/mask), concat(", mask: '", normalize-space(properties/mask/value), "'"), ''), mi:if-else(exists(properties/width), concat(', width: ', normalize-space(properties/width/value)), ''))
+            [v] concat(mi:if-else(normalize-space($src/properties/required/value) = 'true', ', required: true', ''), mi:if-else(exists(properties/mask), concat(", mask: '", normalize-space(properties/mask/value), "'"), ''), mi:if-else(exists(properties/width), concat(', width: ', normalize-space(properties/width/value)), ''), mi:if-else(exists(properties/hint/pt/value), concat(", hint: '", replace(normalize-space(properties/hint/pt/value), "'", "\\'"), "'"), ''), mi:if-else(exists(properties/lookup/value), concat(", lookup: '", normalize-space(properties/lookup/value), "'"), ''))
     [e] patterns
         [e] header
             [v] // GERADO por frontend/screenForm a partir de {{ @name }}. Nao edite: a saida e sobrescrita por inteiro.
             [v] import { z } from 'zod'
             [v] import { AutoForm, type FieldLayout } from '@/runtime/AutoForm'
+        [e] import-fk
+            [v] import { fkSource } from '@/lib/fk-sources'
         [e] import-schema
             [v] import { {{ concat($entity, 'Schema', mi:if-else($enumImports != '', concat(', ', $enumImports), '')) }} } from '@/gen/schemas/{{ $entity }}'
         [e] schema-const
@@ -57,8 +59,12 @@
             [v]     { name: '{{ $fname }}', label: '{{ $lbl }}', kind: 'date'{{ f#[commonOpts] }} },
         [e] spec-enum
             [v]     { name: '{{ $fname }}', label: '{{ $lbl }}', options: {{ $fname }}Values.map((value) => ({ value, label: {{ $fname }}Labels[value] })){{ f#[commonOpts] }} },
+        [e] spec-fk
+            [v]     { name: '{{ $fname }}', label: '{{ $lbl }}', fk: fkSource('{{ $rel/@type }}'){{ f#[commonOpts] }} },
+        [e] section-comment
+            [v]   // --- {{ normalize-space(value) }} ---
         [e] todo-relation
-            [v]     // @TODO {{ $bean }}{{ normalize-space(value) }}: relacao ({{ $rel/@type }}) sem construto de FK/combobox no dialeto; campo omitido
+            [v]     // @TODO {{ $bean }}{{ normalize-space(value) }}: relacao to-many ({{ $rel/@type }}, {{ $rel/@mode }}) sem construto de lista no dialeto; campo omitido
         [e] todo-missing
             [v]     // @TODO {{ $bean }}{{ normalize-space(value) }}: atributo inexistente no dominio; campo omitido
         [e] todo-type
@@ -113,9 +119,18 @@
                 [e] var
                     [v] picks
                     [e] expr
-                        [v] string-join(distinct-values(for $f in form/rows//field return (for $a in $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = substring(normalize-space($f/value), 2) and @mode = 'directToField'] return concat($a/@name, ': true'))), ', ')
+                        [v] string-join(distinct-values(for $f in form/rows//field return (for $a in $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = substring(normalize-space($f/value), 2) and (@mode = 'directToField' or @mode = 'oneToOne' or @mode = 'manyToOne')] return concat($a/@name, ': true'))), ', ')
+                [e] var
+                    [v] usesFk
+                    [e] expr
+                        [v] exists(for $f in form/rows//field return $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = substring(normalize-space($f/value), 2) and (@mode = 'oneToOne' or @mode = 'manyToOne')])
             [e] write-pattern
                 [v] header
+            [e] if
+                [v] $usesFk
+                [e] then
+                    [e] write-pattern
+                        [v] import-fk
             [e] write-pattern
                 [v] import-schema
             [e] write-pattern
@@ -216,6 +231,15 @@
                         [v] row-close
             [e] template
                 [e] match
+                    [v] section
+                [e] parameters
+                    [e] bean
+                        [v] NOT_DEFINED
+                [e] body
+                    [e] write-pattern
+                        [v] section-comment
+            [e] template
+                [e] match
                     [v] *
                 [e] parameters
                     [e] bean
@@ -246,14 +270,23 @@
                             [e] expr
                                 [v] $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = $fname and @mode != 'directToField']
                         [e] var
+                            [v] src
+                            [e] expr
+                                [v] ($attr, $rel)[1]
+                        [e] var
                             [v] lbl
                             [e] expr
-                                [v] replace(normalize-space(if (exists(properties/label/pt/value)) then properties/label/pt/value else $attr/properties/title/pt/value), "'", "\\'")
+                                [v] replace(normalize-space((properties/label/pt/value, $src/properties/title/pt/value)[1]), "'", "\\'")
                     [e] if
-                        [v] not(exists($attr)) and exists($rel)
+                        [v] not(exists($attr)) and exists($rel) and ($rel/@mode = 'oneToOne' or $rel/@mode = 'manyToOne')
                         [e] then
                             [e] write-pattern
-                                [v] todo-relation
+                                [v] spec-fk
+                        [e] else-if
+                            [v] not(exists($attr)) and exists($rel)
+                            [e] then
+                                [e] write-pattern
+                                    [v] todo-relation
                         [e] else-if
                             [v] not(exists($attr))
                             [e] then

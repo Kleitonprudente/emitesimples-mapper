@@ -1,12 +1,13 @@
-import { useMemo, type CSSProperties } from 'react'
-import { useForm, type DefaultValues, type FieldValues, type Resolver } from 'react-hook-form'
+import { useCallback, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useForm, type DefaultValues, type FieldValues, type Path, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { ApiError } from '@/lib/api'
+import { ApiError, api } from '@/lib/api'
 import { errorMessage } from '@/runtime/feedback'
-import { FormField, resolveKind, type FieldSpec } from '@/runtime/FormField'
+import { FormField, resolveKind, type FieldSpec, type LookupState } from '@/runtime/FormField'
+import { onlyDigits } from '@/runtime/format'
 
 // Mensagens de validacao do zod em portugues.
 z.config(z.locales.pt())
@@ -28,13 +29,34 @@ export interface AutoFormProps<T extends FieldValues> {
   onCancel?: () => void
   /** Erro devolvido pela mutation (ApiError): aparece acima dos botoes. */
   serverError?: unknown
+  /** Campos que voltam ao valor inicial logo depois do envio (com sucesso ou nao). Uso: senha nunca fica no formulario. */
+  clearAfterSubmit?: string[]
 }
+
+/** Resposta de GET /cep/{cep} (o back consulta o ViaCEP). */
+export interface CepResult {
+  cep?: string
+  logradouro?: string
+  complemento?: string
+  bairro?: string
+  uf?: string
+  codigoIbge?: string
+  municipio?: { id: string; nome?: string; uf?: string; codigoIbge?: string } | null
+}
+
+interface LookupUi {
+  loading: boolean
+  error?: string
+  notice?: string
+}
+
+export const AVISO_MUNICIPIO = 'Município não encontrado na tabela; escolha manualmente'
 
 const flatten = (layout: FieldLayout): FieldSpec[] => layout.flatMap((r) => (Array.isArray(r) ? r : [r]))
 
-/** Campo vazio vira "ausente" (undefined), para o zod tratar obrigatorio x opcional. */
+/** Campo vazio (ou FK limpa pelo X do Combobox, que vira null) vira "ausente" (undefined), para o zod tratar obrigatorio x opcional. */
 function clean(values: Record<string, unknown>): Record<string, unknown> {
-  return Object.fromEntries(Object.entries(values).map(([k, v]) => [k, v === '' ? undefined : v]))
+  return Object.fromEntries(Object.entries(values).map(([k, v]) => [k, v === '' || v === null ? undefined : v]))
 }
 
 export function AutoForm<T extends FieldValues>({
@@ -47,6 +69,7 @@ export function AutoForm<T extends FieldValues>({
   submitLabel,
   onCancel,
   serverError,
+  clearAfterSubmit,
 }: AutoFormProps<T>) {
   const specs = useMemo(() => flatten(fields), [fields])
   const fkNames = useMemo(() => specs.filter((s) => resolveKind(s) === 'fk').map((s) => s.name), [specs])
@@ -72,6 +95,67 @@ export function AutoForm<T extends FieldValues>({
     mode: 'onTouched',
   })
 
+  /* ----- lookup de CEP: ao sair do campo com 8 digitos, preenche os irmaos por convencao de nome ----- */
+  const names = useMemo(() => new Set(specs.map((s) => s.name)), [specs])
+  const [lookups, setLookups] = useState<Record<string, LookupUi>>({})
+  const seqRef = useRef<Record<string, number>>({})
+  const focusRef = useRef<Record<string, string>>({})
+  const erroredRef = useRef<Set<string>>(new Set())
+  const setLookup = useCallback((name: string, ui: LookupUi) => setLookups((s) => ({ ...s, [name]: ui })), [])
+
+  /** Preenche os campos irmaos e devolve o aviso (municipio fora da tabela), se houver. */
+  const applyCep = useCallback(
+    (r: CepResult): string | undefined => {
+      const opts = { shouldDirty: true, shouldValidate: true }
+      const put = (n: string, v: unknown) => names.has(n) && form.setValue(n as Path<T>, v as never, opts)
+      // Campo vazio vindo do back nao apaga o que a pessoa digitou.
+      if (r.logradouro) put('logradouro', r.logradouro)
+      if (r.bairro) put('bairro', r.bairro)
+      if (r.complemento && !form.getValues('complemento' as Path<T>)) put('complemento', r.complemento)
+      if (names.has('cidade')) {
+        if (r.municipio?.id) put('cidade', r.municipio)
+        else return AVISO_MUNICIPIO
+      }
+      return undefined
+    },
+    [form, names],
+  )
+
+  const lookupFor = (spec: FieldSpec): LookupState | undefined => {
+    if (spec.lookup !== 'cep') return undefined
+    const name = spec.name
+    const cepNow = () => onlyDigits(String(form.getValues(name as Path<T>) ?? ''))
+    return {
+      loading: !!lookups[name]?.loading,
+      error: lookups[name]?.error,
+      notice: lookups[name]?.notice,
+      onFocus: () => {
+        focusRef.current[name] = cepNow()
+        // Ao voltar ao campo some a mensagem anterior; `erroredRef` lembra que a ultima busca falhou (deixa repetir).
+        setLookups((s) => (s[name]?.error || s[name]?.notice ? { ...s, [name]: { loading: false } } : s))
+      },
+      onBlur: () => {
+        const cep = cepNow()
+        if (cep.length !== 8) return
+        if (cep === focusRef.current[name] && !erroredRef.current.has(name)) return
+        const n = (seqRef.current[name] = (seqRef.current[name] ?? 0) + 1)
+        erroredRef.current.delete(name)
+        setLookup(name, { loading: true })
+        api<CepResult>(`/cep/${cep}`).then(
+          (r) => {
+            if (seqRef.current[name] !== n) return // resposta de uma busca antiga
+            setLookup(name, { loading: false, notice: applyCep(r) })
+          },
+          (e: unknown) => {
+            if (seqRef.current[name] !== n) return
+            erroredRef.current.add(name)
+            setLookup(name, { loading: false, error: errorMessage(e) })
+          },
+        )
+      },
+    }
+  }
+
   const submit = form.handleSubmit(async (parsed) => {
     // FK: o back recebe SO {id}.
     const out = { ...parsed } as Record<string, unknown>
@@ -79,7 +163,11 @@ export function AutoForm<T extends FieldValues>({
       const v = out[n] as { id?: string } | null | undefined
       out[n] = v?.id ? { id: v.id } : undefined
     }
-    await onSubmit(out as T)
+    try {
+      await onSubmit(out as T)
+    } finally {
+      for (const n of clearAfterSubmit ?? []) form.resetField(n as Path<T>)
+    }
   })
 
   const busy = isSubmitting || form.formState.isSubmitting
@@ -92,7 +180,7 @@ export function AutoForm<T extends FieldValues>({
           <div key={i} className="flex flex-col gap-4 md:flex-row">
             {cells.map((spec) => (
               <div key={spec.name} className="min-w-0 md:flex-[var(--w)]" style={{ '--w': spec.width ?? 1 } as CSSProperties}>
-                <FormField spec={spec} control={form.control} disabled={busy} />
+                <FormField spec={spec} control={form.control} disabled={busy} lookupState={lookupFor(spec)} />
               </div>
             ))}
           </div>

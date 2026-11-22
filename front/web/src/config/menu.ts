@@ -22,12 +22,14 @@ export interface MenuItem {
 
 const doMapa: MenuItem[] = screens
   .filter((s) => s.route && !s.route.includes('$'))
-  .map((s) => ({ name: s.name, route: s.route as string, title: s.title, icon: s.icon, group: s.group, order: s.order, role: s.role }))
+  .map((s) => ({ name: s.name, route: s.route as string, title: s.title, icon: s.icon, group: s.group, order: s.order, role: s.role, platformOnly: s.platformOnly }))
 
 export const menu: MenuItem[] = [
   { name: 'Inicio', route: '/', title: 'Início', icon: 'home', order: 0 },
   { name: 'PessoasExemplo', route: '/exemplos/pessoas', title: 'Pessoas (exemplo)', icon: 'users', group: 'Exemplos', order: 10, role: 'consulta' },
   ...doMapa,
+  { name: 'ImportarMunicipios', route: '/admin/municipios', title: 'Importar municípios', icon: 'upload', group: 'Administração', order: 80, platformOnly: true },
+  { name: 'UsuariosAdmin', route: '/admin/usuarios', title: 'Usuários', icon: 'user-cog', group: 'Administração', order: 81, platformOnly: true },
   { name: 'Perfil', route: '/perfil', title: 'Meu perfil', icon: 'user', group: 'Conta', order: 90 },
 ]
 

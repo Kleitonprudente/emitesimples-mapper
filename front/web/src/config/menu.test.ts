@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { visibleMenu, type MenuItem } from '@/config/menu'
+import { menu, visibleMenu, type MenuItem } from '@/config/menu'
 import type { SessionData } from '@/lib/api'
 
 const base: SessionData = { usuario: { id: '1', nome: 'A', email: 'a@x.com' }, empresa: null, papel: 'consulta', plataformaAdmin: false }
@@ -18,5 +18,19 @@ describe('menu por papel (so UX)', () => {
   it('administrador ve tudo da empresa, em ordem', () => expect(names({ ...base, papel: 'administrador' })).toEqual(['Inicio', 'Config', 'Notas']))
   it('plataformaAdmin e flag separada do papel', () => {
     expect(names({ ...base, papel: null, plataformaAdmin: true })).toEqual(['Inicio', 'Painel'])
+  })
+})
+
+describe('menu de administracao da plataforma', () => {
+  const admins = ['/admin/municipios', '/admin/usuarios']
+  const rotas = (s: SessionData) => visibleMenu(s, menu).flatMap((g) => g.items.map((i) => i.route))
+
+  it('itens do grupo Administracao sao platformOnly', () => {
+    const itens = menu.filter((i) => admins.includes(i.route))
+    expect(itens.map((i) => [i.group, i.platformOnly])).toEqual([['Administração', true], ['Administração', true]])
+  })
+  it('so o administrador da plataforma os ve', () => {
+    expect(rotas({ ...base, papel: 'administrador' })).not.toEqual(expect.arrayContaining(admins))
+    expect(rotas({ ...base, papel: null, plataformaAdmin: true })).toEqual(expect.arrayContaining(admins))
   })
 })

@@ -11,9 +11,6 @@ PROJETO="${MI_PROJETO:-emitesimples-front}"
 AQUI="$(cd "$(dirname "$0")/.." && pwd)"
 WEB="$AQUI/../web/src"
 RAIZ="br.com.emitesimples"
-DOM="$RAIZ.domain.cadastros"
-JAN="$RAIZ.window.cadastros.pessoa"
-F="$WEB/features/cadastros/pessoa"
 
 command -v mi >/dev/null 2>&1 || { echo "mi nao encontrado no PATH (use o Git Bash)" >&2; exit 2; }
 [ -d "$HOME/.mapperidea" ] || { echo "HOME ($HOME) nao tem .mapperidea" >&2; exit 2; }
@@ -33,18 +30,34 @@ gerar() {
   tr -d '\r' < "$saida" > "$destino"
 }
 
-# dominio (uma vez por entidade)
-gerar "$WEB/gen/schemas/pessoa.ts" zodSchema  modelName=Pessoa package="$DOM"
-gerar "$WEB/gen/api/pessoa.ts"     apiClient  modelName=Pessoa package="$DOM"
+# entidade <Entidade> <contexto> <slug-feature> <slug-rota> <Lista> <Formulario>
+# Dominio (zodSchema/apiClient) e as 6 saidas de tela de uma entidade. O pacote das janelas e
+# $RAIZ.window.<contexto>.<slug-feature>; o destino das telas, web/src/features/<contexto>/<slug-feature>.
+entidade() {
+  local ent="$1" ctx="$2" slug="$3" rota="$4" lista="$5" form="$6"
+  local arq; arq="$(echo "${ent:0:1}" | tr 'A-Z' 'a-z')${ent:1}"
+  local jan="$RAIZ.window.$ctx.$slug" f="$WEB/features/$ctx/$slug"
+  local dom="$RAIZ.domain.$ctx"
 
-# telas (uma vez por janela)
-gerar "$F/columns.tsx"               screenColumns    modelName=GestaoPessoas package="$JAN"
-gerar "$F/GestaoPessoasScreen.tsx"   screenPage       modelName=GestaoPessoas package="$JAN"
-gerar "$F/CriarPessoa.tsx"           screenForm       modelName=CriarPessoa   package="$JAN"
-gerar "$F/EditarPessoa.tsx"          screenForm       modelName=EditarPessoa  package="$JAN"
-gerar "$F/EditarPessoaScreen.tsx"    screenEditorById modelName=EditarPessoa  package="$JAN"
-gerar "$WEB/routes/_authenticated/pessoas/index.tsx"  screenRoute modelName=GestaoPessoas package="$JAN"
-gerar "$WEB/routes/_authenticated/pessoas/\$id.tsx"   screenRoute modelName=EditarPessoa  package="$JAN"
+  # dominio (uma vez por entidade)
+  gerar "$WEB/gen/schemas/$arq.ts" zodSchema modelName="$ent" package="$dom"
+  gerar "$WEB/gen/api/$arq.ts"     apiClient modelName="$ent" package="$dom"
+
+  # telas (uma vez por janela)
+  gerar "$f/columns.tsx"             screenColumns    modelName="$lista" package="$jan"
+  gerar "$f/${lista}Screen.tsx"      screenPage       modelName="$lista" package="$jan"
+  gerar "$f/$form.tsx"               screenForm       modelName="$form"  package="$jan"
+  gerar "$f/${form}Screen.tsx"       screenEditorById modelName="$form"  package="$jan"
+  gerar "$WEB/routes/_authenticated/$rota/index.tsx" screenRoute modelName="$lista" package="$jan"
+  gerar "$WEB/routes/_authenticated/$rota/\$id.tsx"  screenRoute modelName="$form"  package="$jan"
+}
+
+# saidas de versoes anteriores do mapa (formulario unico substituiu Criar/Editar)
+F="$WEB/features/cadastros/pessoa"
+rm -f "$F/CriarPessoa.tsx" "$F/EditarPessoa.tsx" "$F/EditarPessoaScreen.tsx"
+
+entidade Pessoa    cadastros pessoa    pessoas    GestaoPessoas    FormularioPessoa
+entidade Municipio cadastros municipio municipios GestaoMunicipios FormularioMunicipio
 
 # manifesto (um para o projeto todo)
 gerar "$WEB/gen/screens.ts" screenManifest

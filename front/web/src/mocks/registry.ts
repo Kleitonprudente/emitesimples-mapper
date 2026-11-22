@@ -1,5 +1,7 @@
 import type { LoginResponse, Papel } from '@/lib/api'
-import { EMPRESAS_MOCK, MOCK_EMAIL_BLOQUEADO, MOCK_SENHA, MOCK_USERS, buildPessoas, MUNICIPIOS, type MockUser, type Pessoa } from '@/mocks/fixtures'
+import { adminRoutes, getMunicipios, resetAdmin } from '@/mocks/admin'
+import { CEPS_MOCK, EMPRESAS_MOCK, MOCK_EMAIL_BLOQUEADO, MOCK_SENHA, MOCK_USERS, buildPessoas, type MockUser, type Pessoa } from '@/mocks/fixtures'
+import { erro, json } from '@/mocks/http'
 
 /* ---------------------------------------------------------------------------
  * Registry do modo mock. Chamado por lib/api.ts ANTES do fetch; devolve uma Response normal,
@@ -15,19 +17,17 @@ export interface MockRequest {
   token: string | null
 }
 
-const LATENCY_MS = 350
+let latencyMs = 350
+/** Para testes: sem latencia artificial. */
+export function setMockLatency(ms: number) {
+  latencyMs = ms
+}
 
 /** `?empty=1` na URL de carga forca listas vazias; `?empty=0` desliga. Lido uma vez (a navegacao interna perde a query). */
 let forceEmpty = new URLSearchParams(typeof window === 'undefined' ? '' : window.location.search).get('empty') === '1'
 export function setForceEmpty(v: boolean) {
   forceEmpty = v
 }
-
-const json = (status: number, body: unknown, headers: Record<string, string> = {}) =>
-  new Response(body === undefined ? null : JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', ...headers } })
-
-const erro = (status: number, codigo: string, mensagem: string, detalhes?: unknown, headers?: Record<string, string>) =>
-  json(status, { codigo, mensagem, ...(detalhes ? { detalhes } : {}) }, headers)
 
 /* ----- sessao fake (o "cookie" de refresh vira um item de sessionStorage; so ids, sem PII) ----- */
 
@@ -167,8 +167,24 @@ function entity(req: MockRequest): Response | null {
   const q = req.query ?? {}
   const body = req.body as Partial<Pessoa> | undefined
 
+  const cepRota = /^\/cep\/([^/]*)$/.exec(path)
+  if (cepRota && method === 'GET') {
+    const cep = decodeURIComponent(cepRota[1]!).replace(/\D/g, '')
+    if (cep.length !== 8) return erro(400, 'cep_invalido', 'CEP inválido: informe 8 dígitos.')
+    if (cep === '00000502') return erro(502, 'servico_cep_indisponivel', 'Serviço de consulta de CEP indisponível. Tente novamente em instantes.')
+    if (cep === '00000429') return erro(429, 'muitas_tentativas', 'Muitas consultas de CEP. Aguarde e tente novamente.', undefined, { 'Retry-After': '30' })
+    const achado = CEPS_MOCK[cep]
+    return achado ? json(200, achado) : erro(404, 'cep_nao_encontrado', 'CEP não encontrado.')
+  }
+
+  // Combobox de Empresa (vinculos de usuario). Contrato provisorio: GET /Empresa?razaoSocial=*termo*.
+  if (path === '/Empresa' && method === 'GET') {
+    const rows = applySort(applyFilters(Object.values(EMPRESAS_MOCK), q), q)
+    return json(200, rows.slice(0, 100))
+  }
+
   if (path === '/Municipio' && method === 'GET') {
-    const rows = forceEmpty ? [] : applySort(applyFilters(MUNICIPIOS, q), q)
+    const rows = forceEmpty ? [] : applySort(applyFilters(getMunicipios(), q), q)
     return json(200, rows.slice(0, 100))
   }
 
@@ -193,7 +209,7 @@ function entity(req: MockRequest): Response | null {
     if (!body?.nome || !body.documento || !body.tipoPessoa) return erro(400, 'dados_invalidos', 'Informe tipo, documento e nome.')
     if (pessoas.some((p) => p.documento === body.documento)) return erro(409, 'documento_duplicado', 'Já existe uma pessoa com este documento.')
     const now = new Date().toISOString().slice(0, 19)
-    const cidade = body.cidade?.id ? MUNICIPIOS.find((m) => m.id === body.cidade!.id) : undefined
+    const cidade = body.cidade?.id ? getMunicipios().find((m) => m.id === body.cidade!.id) : undefined
     const nova: Pessoa = { ...(body as Pessoa), id: `pes-${String(++seq).padStart(4, '0')}`, cidade: cidade ?? body.cidade, dataCriacao: now, dataAtualizacao: now }
     pessoas = [nova, ...pessoas]
     return json(200, nova)
@@ -210,7 +226,7 @@ function entity(req: MockRequest): Response | null {
       return new Response(null, { status: 204 })
     }
     if (method === 'PUT' || method === 'PATCH') {
-      const cidade = body?.cidade?.id ? MUNICIPIOS.find((m) => m.id === body.cidade!.id) : undefined
+      const cidade = body?.cidade?.id ? getMunicipios().find((m) => m.id === body.cidade!.id) : undefined
       const merged = { ...(method === 'PUT' ? {} : pessoas[idx]), ...body, cidade: cidade ?? body?.cidade, id, dataCriacao: pessoas[idx]!.dataCriacao, dataAtualizacao: new Date().toISOString().slice(0, 19) } as Pessoa
       pessoas = pessoas.map((p) => (p.id === id ? merged : p))
       return json(200, merged)
@@ -222,9 +238,15 @@ function entity(req: MockRequest): Response | null {
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 export async function handleMock(req: MockRequest): Promise<Response> {
-  await delay(LATENCY_MS)
-  const res = req.path.startsWith('/auth/') ? auth(req) : !req.token || req.token !== currentToken ? erro(401, 'sessao_invalida', 'Sua sessão expirou. Entre novamente.') : entity(req)
-  return res ?? erro(404, 'nao_encontrado', 'Recurso não encontrado (mock).')
+  await delay(latencyMs)
+  let res: Response | null
+  if (req.path.startsWith('/auth/')) res = auth(req)
+  else if (!req.token || req.token !== currentToken) res = erro(401, 'sessao_invalida', 'Sua sessão expirou. Entre novamente.')
+  else {
+    const c = readCookie()
+    const user = c ? MOCK_USERS.find((u) => u.id === c.userId) : undefined
+    res = (await adminRoutes(req, { plataformaAdmin: !!user?.plataformaAdmin, nome: user?.nome ?? '' })) ?? entity(req)
+  }  return res ?? erro(404, 'nao_encontrado', 'Recurso não encontrado (mock).')
 }
 
 /** Para testes: volta ao estado inicial. */
@@ -233,5 +255,6 @@ export function resetMock() {
   seq = pessoas.length
   currentToken = null
   forceEmpty = false
+  resetAdmin()
   writeCookie(null)
 }

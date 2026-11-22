@@ -11,7 +11,7 @@ import { useTableState } from '@/runtime/table-state'
 import { usePessoas, useCriarPessoa } from '@/gen/api/pessoa'
 import { tipoPessoaValues, tipoPessoaLabels } from '@/gen/schemas/pessoa'
 import { gestaoPessoasColumns } from './columns'
-import { CriarPessoaForm } from '@/features/cadastros/pessoa/CriarPessoa'
+import { FormularioPessoaForm } from '@/features/cadastros/pessoa/FormularioPessoa'
 
 const CriarPessoaIcon = resolveIcon('plus')
 
@@ -60,11 +60,11 @@ export function GestaoPessoasScreen() {
         empty={empty}
       />
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>Nova pessoa</DialogTitle>
           </DialogHeader>
-          <CriarPessoaForm
+          <FormularioPessoaForm
             isSubmitting={criar.isPending}
             serverError={criar.error}
             onCancel={() => setDialogOpen(false)}

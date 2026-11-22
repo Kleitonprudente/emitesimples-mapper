@@ -36,6 +36,7 @@ export const MUNICIPIOS = [
   { id: 'mun-5300108', nome: 'Brasília', uf: 'DF', codigoIbge: '5300108' },
   { id: 'mun-4205407', nome: 'Florianópolis', uf: 'SC', codigoIbge: '4205407' },
   { id: 'mun-3509502', nome: 'Campinas', uf: 'SP', codigoIbge: '3509502' },
+  { id: 'mun-4108809', nome: 'Guaíra', uf: 'PR', codigoIbge: '4108809' },
 ]
 
 export type Municipio = (typeof MUNICIPIOS)[number]
@@ -132,3 +133,26 @@ export const MOCK_USERS: MockUser[] = [
 
 /** Este e-mail sempre responde 429 (para ver a mensagem de espera). */
 export const MOCK_EMAIL_BLOQUEADO = 'bloqueado@exemplo.com.br'
+
+/* ----- CEP (GET /cep/{cep}; o back consulta o ViaCEP, o front nunca) ----- */
+
+export interface CepMock {
+  cep: string
+  logradouro: string
+  complemento: string
+  bairro: string
+  uf: string
+  codigoIbge: string
+  /** `null` quando o municipio nao existe na tabela do sistema. */
+  municipio: Municipio | null
+}
+
+const muni = (codigoIbge: string) => MUNICIPIOS.find((m) => m.codigoIbge === codigoIbge) ?? null
+
+/** CEPs conhecidos. Qualquer outro com 8 digitos responde 404; `00000502` -> 502; `00000429` -> 429. */
+export const CEPS_MOCK: Record<string, CepMock> = {
+  '85980000': { cep: '85980000', logradouro: 'Rua Quinze de Novembro', complemento: '', bairro: 'Centro', uf: 'PR', codigoIbge: '4108809', municipio: muni('4108809') },
+  '01310100': { cep: '01310100', logradouro: 'Avenida Paulista', complemento: 'de 612 a 1510 - lado par', bairro: 'Bela Vista', uf: 'SP', codigoIbge: '3550308', municipio: muni('3550308') },
+  // Municipio fora da tabela: o front avisa e deixa a escolha manual.
+  '69900001': { cep: '69900001', logradouro: 'Rua Epaminondas Jácome', complemento: '', bairro: 'Centro', uf: 'AC', codigoIbge: '1200401', municipio: null },
+}

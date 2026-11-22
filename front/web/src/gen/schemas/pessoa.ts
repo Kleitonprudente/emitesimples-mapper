@@ -36,9 +36,9 @@ export const pessoaSchema = z.object({
     id: z.string().max(36),
     dataCriacao: z.string(),
     dataAtualizacao: z.string(),
-    // relacao omitida do schema: empresa (Empresa, oneToOne)
-    // relacao omitida do schema: cidade (Municipio, oneToOne)
-    // relacao omitida do schema: contatos (Contato, oneToMany)
+    empresa: z.looseObject({ id: z.string() }).optional(),
+    cidade: z.looseObject({ id: z.string() }).optional(),
+    // relacao to-many omitida do schema: contatos (Contato, oneToMany)
 })
 
 export type Pessoa = z.infer<typeof pessoaSchema>

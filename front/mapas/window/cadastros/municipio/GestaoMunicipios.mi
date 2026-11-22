@@ -1,0 +1,75 @@
+[Descriptor.window.list] GestaoMunicipios
+    @
+        [e] title
+            [e] pt
+                [v] Gestão de Municípios
+        [e] route
+            [v] /municipios
+        [e] platformOnly
+            [v] true
+        [e] icon
+            [v] settings
+        [e] group
+            [v] Administração
+        [e] order
+            [v] 79
+    [g] source
+        [r] object: Municipio()
+    [e] columns
+        [e] field
+            [v] .codigoIbge
+        [e] field
+            [v] .nome
+        [e] field
+            [v] .uf
+    [e] search
+        @
+            [e] placeholder
+                [e] pt
+                    [v] Buscar por nome…
+        [e] field
+            [v] .nome
+    [e] actions
+        [e] action
+            [v] criarMunicipio
+            @
+                [e] type
+                    [v] primary
+                [e] label
+                    [e] pt
+                        [v] Novo município
+                [e] icon
+                    [v] plus
+                [e] opens
+                    [v] FormularioMunicipio
+        [e] action
+            [v] importarCsvIbge
+            @
+                [e] type
+                    [v] link
+                [e] label
+                    [e] pt
+                        [v] Importar CSV do IBGE
+                [e] icon
+                    [v] upload
+                [e] route
+                    [v] /admin/municipios
+        [e] action
+            [v] editarMunicipio
+            @
+                [e] type
+                    [v] row
+                [e] label
+                    [e] pt
+                        [v] Editar
+                [e] icon
+                    [v] pencil
+                [e] opens
+                    [v] FormularioMunicipio
+    [e] emptyState
+        @
+            [e] message
+                [e] pt
+                    [v] Nenhum município cadastrado ainda.
+            [e] action
+                [v] criarMunicipio

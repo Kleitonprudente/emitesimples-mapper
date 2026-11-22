@@ -1,0 +1,40 @@
+[Descriptor.window.editor] FormularioMunicipio
+    @
+        [e] title
+            [e] pt
+                [v] Cadastro de município
+        [e] route
+            [v] /municipios/$id
+        [e] platformOnly
+            [v] true
+        [e] icon
+            [v] settings
+    [g] source
+        [r] object: Municipio()
+    [e] form
+        [e] rows
+            [e] row
+                [e] field
+                    [v] .codigoIbge
+                    @
+                        [e] width
+                            [v] 25
+                [e] field
+                    [v] .nome
+                    @
+                        [e] width
+                            [v] 55
+                [e] field
+                    [v] .uf
+                    @
+                        [e] width
+                            [v] 20
+    [e] actions
+        [e] action
+            [v] salvar
+            @
+                [e] type
+                    [v] primary
+                [e] label
+                    [e] pt
+                        [v] Salvar

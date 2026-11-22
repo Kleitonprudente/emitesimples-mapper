@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { handleMock, resetMock } from '@/mocks/registry'
+import { handleMock, resetMock, setMockLatency } from '@/mocks/registry'
+
+setMockLatency(0)
 
 async function call(method: string, path: string, body?: unknown, token: string | null = null, query?: Record<string, string>) {
   const res = await handleMock({ method, path, body, token, query })
@@ -76,5 +78,115 @@ describe('mock registry', () => {
     expect((await call('POST', '/auth/senha', { senhaAtual: 'senha1234', novaSenha: 'a'.repeat(73) }, token)).status).toBe(400)
     expect((await call('POST', '/auth/senha', { senhaAtual: 'errada', novaSenha: 'novasenha123' }, token)).status).toBe(403)
     expect((await call('POST', '/auth/senha', { senhaAtual: 'senha1234', novaSenha: 'novasenha123' }, token)).status).toBe(204)
+  })
+})
+
+async function plataformaToken() {
+  const r = await call('POST', '/auth/login', { email: 'plataforma@exemplo.com.br', senha: 'senha1234' })
+  return r.body.accessToken as string
+}
+
+describe('mock registry: CEP e Municipio', () => {
+  beforeEach(() => resetMock())
+
+  it('GET /cep/{cep}: CEP conhecido devolve o endereco e o municipio da fixture (Guaira - PR)', async () => {
+    const token = await loginToken()
+    const r = await call('GET', '/cep/85980000', undefined, token)
+    expect(r.status).toBe(200)
+    expect(r.body).toMatchObject({ cep: '85980000', logradouro: 'Rua Quinze de Novembro', bairro: 'Centro', uf: 'PR', codigoIbge: '4108809' })
+    expect(r.body.municipio).toEqual({ id: 'mun-4108809', nome: 'Guaíra', uf: 'PR', codigoIbge: '4108809' })
+    expect((await call('GET', '/cep/85.980-000', undefined, token)).status).toBe(200)
+  })
+
+  it('CEP sem municipio na tabela -> municipio null; 404; cep_invalido; 502; 429', async () => {
+    const token = await loginToken()
+    expect((await call('GET', '/cep/69900001', undefined, token)).body.municipio).toBeNull()
+    const nf = await call('GET', '/cep/00000000', undefined, token)
+    expect([nf.status, nf.body.codigo]).toEqual([404, 'cep_nao_encontrado'])
+    const inv = await call('GET', '/cep/123', undefined, token)
+    expect([inv.status, inv.body.codigo]).toEqual([400, 'cep_invalido'])
+    expect((await call('GET', '/cep/00000502', undefined, token)).body.codigo).toBe('servico_cep_indisponivel')
+    const rl = await call('GET', '/cep/00000429', undefined, token)
+    expect([rl.status, rl.headers.get('Retry-After')]).toEqual([429, '30'])
+    expect((await call('GET', '/cep/85980000')).status).toBe(401)
+  })
+
+  it('GET /Municipio acha Guaira por nome com curinga', async () => {
+    const token = await loginToken()
+    const r = await call('GET', '/Municipio', undefined, token, { nome: '*gua*', sortBy: 'nome' })
+    expect(r.body.map((m: { nome: string }) => m.nome)).toEqual(['Guaíra'])
+  })
+})
+
+describe('mock registry: admin da plataforma', () => {
+  beforeEach(() => resetMock())
+
+  it('so administrador da plataforma acessa /admin (403 para os demais)', async () => {
+    const token = await loginToken()
+    const r = await call('GET', '/admin/usuarios/count', undefined, token)
+    expect([r.status, r.body.codigo]).toEqual([403, 'acesso_negado'])
+    expect((await call('GET', '/admin/municipios/importacoes', undefined, token)).status).toBe(403)
+  })
+
+  it('usuarios: lista paginada, count, busca e ordenacao', async () => {
+    const token = await plataformaToken()
+    const total = (await call('GET', '/admin/usuarios/count', undefined, token)).body.count as number
+    expect(total).toBeGreaterThan(20)
+    const p1 = await call('GET', '/admin/usuarios/0/9', undefined, token, { sortBy: 'nome' })
+    expect(p1.body).toHaveLength(10)
+    const busca = await call('GET', '/admin/usuarios/count', undefined, token, { busca: 'multi@' })
+    expect(busca.body.count).toBe(1)
+    const lista = await call('GET', '/admin/usuarios/0/9', undefined, token, { busca: 'DIEGO' })
+    expect(lista.body.map((u: { nome: string }) => u.nome)).toEqual(['Diego Multiempresa'])
+  })
+
+  it('usuarios: criar (validacoes e e-mail duplicado), editar, senha e vinculos sem exclusao', async () => {
+    const token = await plataformaToken()
+    const novo = { nome: 'Nova Pessoa', email: 'nova@exemplo.com.br', senha: 'temporaria1', ativo: true, vinculos: [{ empresaId: 'emp-1', papel: 'operador' }] }
+    expect((await call('POST', '/admin/usuarios', { ...novo, senha: 'curta' }, token)).body.codigo).toBe('senha_invalida')
+    const c = await call('POST', '/admin/usuarios', novo, token)
+    expect(c.status).toBe(200)
+    expect((await call('POST', '/admin/usuarios', novo, token)).body.codigo).toBe('email_duplicado')
+    const id = c.body.id as string
+    const u = await call('PATCH', `/admin/usuarios/${id}`, { nome: 'Nova Editada', whatsapp: '11999990000', ativo: false }, token)
+    expect(u.body).toMatchObject({ nome: 'Nova Editada', ativo: false })
+    expect((await call('POST', `/admin/usuarios/${id}/senha`, { senha: 'outrasenha1' }, token)).status).toBe(204)
+    expect((await call('POST', `/admin/usuarios/${id}/senha`, { senha: 'x' }, token)).status).toBe(400)
+
+    const v1 = await call('GET', `/admin/usuarios/${id}/vinculos`, undefined, token)
+    expect(v1.body).toHaveLength(1)
+    expect(v1.body[0].empresa.razaoSocial).toContain('Horizonte')
+    expect((await call('POST', `/admin/usuarios/${id}/vinculos`, { empresaId: 'emp-1', papel: 'consulta' }, token)).body.codigo).toBe('vinculo_duplicado')
+    const v2 = await call('POST', `/admin/usuarios/${id}/vinculos`, { empresaId: 'emp-2', papel: 'consulta' }, token)
+    expect(v2.status).toBe(200)
+    const off = await call('PATCH', `/admin/usuarios/${id}/vinculos/${v2.body.id}`, { papel: 'consulta', ativo: false }, token)
+    expect(off.body.ativo).toBe(false)
+    expect((await call('GET', `/admin/usuarios/${id}/vinculos`, undefined, token)).body).toHaveLength(2) // desativa, nunca exclui
+    expect((await call('GET', '/admin/usuarios/nao-existe/vinculos', undefined, token)).status).toBe(404)
+  })
+
+  it('GET /Empresa filtra por razaoSocial (Combobox de empresa)', async () => {
+    const token = await plataformaToken()
+    const r = await call('GET', '/Empresa', undefined, token, { razaoSocial: '*bella*' })
+    expect(r.body).toHaveLength(1)
+  })
+
+  it('importacao de municipios: resumo (criados, atualizados, inalterados, rejeitados) e historico', async () => {
+    const token = await plataformaToken()
+    const csv = ['codigoIbge;nome;uf', '4108809;Guaíra;PR', '4106902;Curitiba Nova;PR', '4100103;Abatiá;PR', '123;Curto;PR', '4100202;;PR'].join('\n')
+    const form = new FormData()
+    form.append('arquivo', new File([csv], 'municipios.csv', { type: 'text/csv' }))
+    const r = await call('POST', '/admin/municipios/importacao', form, token)
+    expect(r.status).toBe(200)
+    expect(r.body).toMatchObject({ linhasLidas: 5, criados: 1, atualizados: 1, inalterados: 1 })
+    expect(r.body.rejeitados).toEqual([
+      { linha: 5, motivo: expect.stringContaining('IBGE') },
+      { linha: 6, motivo: expect.stringContaining('Nome') },
+    ])
+    const hist = await call('GET', '/admin/municipios/importacoes', undefined, token)
+    expect(hist.body[0]).toMatchObject({ id: r.body.id, arquivo: 'municipios.csv', rejeitados: 2 })
+    const busca = await call('GET', '/Municipio', undefined, token, { nome: '*abati*' })
+    expect(busca.body).toHaveLength(1)
+    expect((await call('POST', '/admin/municipios/importacao', new FormData(), token)).body.codigo).toBe('arquivo_obrigatorio')
   })
 })
