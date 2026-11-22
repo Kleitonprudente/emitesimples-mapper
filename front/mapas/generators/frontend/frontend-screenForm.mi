@@ -15,12 +15,25 @@
         [e] maxLen
             [v] mi:if-else($attr/@typeParameter != '', concat(', maxLength: ', $attr/@typeParameter), '')
         [e] commonOpts
-            [v] concat(mi:if-else(normalize-space($src/properties/required/value) = 'true', ', required: true', ''), mi:if-else(exists(properties/mask), concat(", mask: '", normalize-space(properties/mask/value), "'"), ''), mi:if-else(exists(properties/width), concat(', width: ', normalize-space(properties/width/value)), ''), mi:if-else(exists(properties/hint/pt/value), concat(", hint: '", replace(normalize-space(properties/hint/pt/value), "'", "\\'"), "'"), ''), mi:if-else(exists(properties/lookup/value), concat(", lookup: '", normalize-space(properties/lookup/value), "'"), ''))
+            [v] concat(mi:if-else(normalize-space($src/properties/required/value) = 'true', ', required: true', ''), mi:if-else(exists(properties/mask), concat(", mask: '", normalize-space(properties/mask/value), "'"), ''), mi:if-else(normalize-space(properties/size/value) = ('xs', 's', 'm', 'l', 'xl', 'full'), concat(", size: '", normalize-space(properties/size/value), "'"), ''), mi:if-else(exists(properties/hint/pt/value), concat(", hint: '", replace(normalize-space(properties/hint/pt/value), "'", "\\'"), "'"), ''), mi:if-else(exists(properties/lookup/value), concat(", lookup: '", normalize-space(properties/lookup/value), "'"), ''))
+        [e] sectionOpts
+            [v] concat(mi:if-else(exists(properties/description/pt/value), concat(", description: '", replace(normalize-space(properties/description/pt/value), "'", "\\'"), "'"), ''), mi:if-else(normalize-space(properties/collapsible/value) = 'true', ', collapsible: true', ''), mi:if-else(normalize-space(properties/defaultOpen/value) = 'true', ', defaultOpen: true', ''))
     [e] patterns
         [e] header
             [v] // GERADO por frontend/screenForm a partir de {{ @name }}. Nao edite: a saida e sobrescrita por inteiro.
+        [e] header-imports
             [v] import { z } from 'zod'
             [v] import { AutoForm, type FieldLayout } from '@/runtime/AutoForm'
+        [e] err-size-missing
+            [v] // ERRO NO MODELO: campo {{ $fname }} sem size em {{ $janela }} (declare xs|s|m|l|xl|full)
+        [e] err-size-invalid
+            [v] // ERRO NO MODELO: campo {{ $fname }} com size '{{ $sz }}' invalido em {{ $janela }} (declare xs|s|m|l|xl|full)
+        [e] err-lookup
+            [v] // ERRO NO MODELO: campo {{ $fname }} com lookup '{{ $lk }}' em {{ $janela }} (so 'cep' e aceito)
+        [e] err-row-sum
+            [v] // ERRO NO MODELO: linha {{ concat('[', $names, ']') }} soma {{ $total }} colunas (esperado 12) em {{ $janela }}
+        [e] err-section-title
+            [v] // ERRO NO MODELO: secao sem titulo em {{ $janela }} (informe o titulo da secao)
         [e] import-fk
             [v] import { fkSource } from '@/lib/fk-sources'
         [e] import-schema
@@ -63,8 +76,8 @@
             [v]     { name: '{{ $fname }}', label: '{{ $lbl }}', options: {{ $fname }}Values.map((value) => ({ value, label: {{ $fname }}Labels[value] })){{ f#[commonOpts] }} },
         [e] spec-fk
             [v]     { name: '{{ $fname }}', label: '{{ $lbl }}', fk: fkSource('{{ $rel/@type }}'){{ f#[commonOpts] }} },
-        [e] section-comment
-            [v]   // --- {{ normalize-space(value) }} ---
+        [e] section-item
+            [v]   { section: '{{ replace(normalize-space(value), "'", "\\'") }}'{{ f#[sectionOpts] }} },
         [e] todo-relation
             [v]     // @TODO {{ $bean }}{{ normalize-space(value) }}: relacao to-many ({{ $rel/@type }}, {{ $rel/@mode }}) sem construto de lista no dialeto; campo omitido
         [e] todo-missing
@@ -128,6 +141,35 @@
                         [v] exists(for $f in form/rows//field return $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = substring(normalize-space($f/value), 2) and (@mode = 'oneToOne' or @mode = 'manyToOne')])
             [e] write-pattern
                 [v] header
+            [e] apply-templates
+                [e] select
+                    [v] form/rows//field
+                [e] parameters
+                    [e] janela
+                        [e] expr
+                            [v] string(@name)
+                [e] mode
+                    [v] erroField
+            [e] apply-templates
+                [e] select
+                    [v] form/rows/row
+                [e] parameters
+                    [e] janela
+                        [e] expr
+                            [v] string(@name)
+                [e] mode
+                    [v] erroRow
+            [e] apply-templates
+                [e] select
+                    [v] form/rows/section
+                [e] parameters
+                    [e] janela
+                        [e] expr
+                            [v] string(@name)
+                [e] mode
+                    [v] erroSection
+            [e] write-pattern
+                [v] header-imports
             [e] if
                 [v] $usesFk
                 [e] then
@@ -166,6 +208,92 @@
             [e] write-pattern
                 [v] component
     [e] templates
+        [e] mode
+            [v] erroField
+            [e] template
+                [e] match
+                    [v] field
+                [e] parameters
+                    [e] janela
+                        [v] NOT_DEFINED
+                [e] body
+                    [e] vars
+                        [e] var
+                            [v] fname
+                            [e] expr
+                                [v] normalize-space(value)
+                        [e] var
+                            [v] sz
+                            [e] expr
+                                [v] normalize-space(properties/size/value)
+                        [e] var
+                            [v] lk
+                            [e] expr
+                                [v] normalize-space(properties/lookup/value)
+                        [e] var
+                            [v] hasLookup
+                            [e] expr
+                                [v] exists(properties/lookup/value)
+                    [e] if
+                        [v] $sz = ''
+                        [e] then
+                            [e] write-pattern
+                                [v] err-size-missing
+                        [e] else-if
+                            [v] not($sz = ('xs', 's', 'm', 'l', 'xl', 'full'))
+                            [e] then
+                                [e] write-pattern
+                                    [v] err-size-invalid
+                    [e] if
+                        [v] $hasLookup and $lk != 'cep'
+                        [e] then
+                            [e] write-pattern
+                                [v] err-lookup
+        [e] mode
+            [v] erroRow
+            [e] template
+                [e] match
+                    [v] row
+                [e] parameters
+                    [e] janela
+                        [v] NOT_DEFINED
+                [e] body
+                    [e] vars
+                        [e] var
+                            [v] sizes
+                            [e] expr
+                                [v] for $f in field return normalize-space($f/properties/size/value)
+                        [e] var
+                            [v] allSized
+                            [e] expr
+                                [v] every $s in $sizes satisfies $s = ('xs', 's', 'm', 'l', 'xl', 'full')
+                        [e] var
+                            [v] total
+                            [e] expr
+                                [v] sum(for $s in $sizes return (2, 3, 4, 6, 8, 12)[position() = index-of(('xs', 's', 'm', 'l', 'xl', 'full'), $s)[1]])
+                        [e] var
+                            [v] names
+                            [e] expr
+                                [v] string-join(for $f in field return normalize-space($f/value), ', ')
+                    [e] if
+                        [v] $allSized and $total != 12
+                        [e] then
+                            [e] write-pattern
+                                [v] err-row-sum
+        [e] mode
+            [v] erroSection
+            [e] template
+                [e] match
+                    [v] section
+                [e] parameters
+                    [e] janela
+                        [v] NOT_DEFINED
+                [e] body
+                    [e] if
+                        [v] normalize-space(value) = ''
+                        [e] then
+                            [e] write-pattern
+                                [v] err-section-title
         [e] mode
             [v] defaults
             [e] template
@@ -239,7 +367,7 @@
                         [v] NOT_DEFINED
                 [e] body
                     [e] write-pattern
-                        [v] section-comment
+                        [v] section-item
             [e] template
                 [e] match
                     [v] *

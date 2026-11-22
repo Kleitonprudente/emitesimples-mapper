@@ -1,17 +1,14 @@
 // GERADO por frontend/screenPage a partir de GestaoEmpresas. Nao edite: a saida e sobrescrita por inteiro.
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { hasRole, useSession } from '@/lib/auth'
+import { canAct, useSession } from '@/lib/auth'
 import { DataTable, type Facet } from '@/runtime/DataTable'
-import { mutationFeedback } from '@/runtime/feedback'
 import { resolveIcon } from '@/runtime/icons'
 import { useTableState } from '@/runtime/table-state'
-import { useEmpresas, useCriarEmpresa } from '@/gen/api/empresa'
+import { useEmpresas } from '@/gen/api/empresa'
 import { situacaoValues, situacaoLabels } from '@/gen/schemas/empresa'
 import { gestaoEmpresasColumns } from './columns'
-import { FormularioEmpresaForm } from '@/features/configuracao/empresa/FormularioEmpresa'
 
 const CriarEmpresaIcon = resolveIcon('plus')
 
@@ -25,22 +22,15 @@ export function GestaoEmpresasScreen() {
   const columns = useMemo(
     () =>
       gestaoEmpresasColumns({
-        editarEmpresa: hasRole(session, 'consulta') ? (row) => void navigate({ to: '/empresas/$id', params: { id: row.id } }) : undefined,
+        editarEmpresa: canAct(session, 'consulta', true) ? (row) => void navigate({ to: '/empresas/$id', params: { id: row.id } }) : undefined,
       }),
     [session, navigate],
   )
   const [state, update] = useTableState({ sortBy: 'razaoSocial' })
   const result = useEmpresas(state, 'razaoSocial')
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const criar = useCriarEmpresa()
-  const fb = mutationFeedback({ success: 'Registro salvo.', onDone: () => setDialogOpen(false) })
-  const abrir = () => {
-    criar.reset()
-    setDialogOpen(true)
-  }
-  const canCriar = hasRole(session, 'consulta')
+  const canCriar = canAct(session, 'consulta', true)
   const novo = canCriar ? (
-    <Button onClick={abrir}>
+    <Button onClick={() => void navigate({ to: '/empresas/$id', params: { id: 'novo' } })}>
       <CriarEmpresaIcon /> Nova empresa
     </Button>
   ) : null
@@ -59,19 +49,6 @@ export function GestaoEmpresasScreen() {
         toolbarActions={novo}
         empty={empty}
       />
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Nova empresa</DialogTitle>
-          </DialogHeader>
-          <FormularioEmpresaForm
-            isSubmitting={criar.isPending}
-            serverError={criar.error}
-            onCancel={() => setDialogOpen(false)}
-            onSubmit={(v) => criar.mutateAsync(v).then(fb.onSuccess, () => {})}
-          />
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

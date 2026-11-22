@@ -1,14 +1,16 @@
 import { useState } from 'react'
-import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Label } from '@/components/ui/label'
+import { Combobox, type FkSource, type FkValue } from '@/runtime/Combobox'
+import { SearchInput } from '@/runtime/SearchInput'
 import { Skeleton } from '@/components/ui/skeleton'
-import { EnvBadge } from '@/components/EnvBadge'
-import { ThemeToggle } from '@/components/ThemeToggle'
 import { AutoForm } from '@/runtime/AutoForm'
 import { CardList } from '@/runtime/CardList'
 import { DataTable, type TableResult } from '@/runtime/DataTable'
@@ -18,10 +20,20 @@ import { EmptyState, ErrorState, LoadingState } from '@/runtime/states'
 import { useTableState } from '@/runtime/table-state'
 import { ApiError } from '@/lib/api'
 import type { ColumnDef } from '@tanstack/react-table'
+import { GuiaComponentes } from './GuiaComponentes'
+import { GuiaFormulario } from './GuiaFormulario'
 
-export const Route = createFileRoute('/theme')({
-  component: ThemePage,
-})
+
+const DEMO_CIDADES = [
+  { id: '1', label: 'Guaíra - PR' },
+  { id: '2', label: 'São Paulo - SP' },
+  { id: '3', label: 'Curitiba - PR' },
+]
+const DEMO_MUNICIPIOS: FkSource = {
+  key: 'demo-municipio',
+  search: async (term) => DEMO_CIDADES.filter((c) => c.label.toLowerCase().includes(term.toLowerCase())),
+  labelOf: (v) => DEMO_CIDADES.find((c) => c.id === v.id)?.label,
+}
 
 const PALETTE = ['neutral-0', 'neutral-50', 'neutral-100', 'neutral-200', 'neutral-300', 'neutral-500', 'neutral-700', 'neutral-800', 'neutral-900', 'neutral-950', 'blue-300', 'blue-500', 'blue-600', 'teal-400', 'teal-500', 'green-400', 'green-600', 'amber-400', 'amber-500', 'red-400', 'red-600', 'sky-400', 'sky-600']
 
@@ -67,7 +79,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
-function ThemePage() {
+export function GuiaDeEstilo() {
+  const [ultimaBusca, setUltimaBusca] = useState<string | null>(null)
+  const [municipio, setMunicipio] = useState<FkValue | null>(null)
   const [mode, setMode] = useState<'ok' | 'loading' | 'empty' | 'error'>('ok')
   const [state, update] = useTableState({ pageSize: 10 })
   const result: TableResult<Demo> = {
@@ -80,13 +94,9 @@ function ThemePage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-8 p-4 md:p-8">
+    <div className="flex max-w-5xl flex-col gap-8">
       <header className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-semibold">Guia de estilo</h1>
-        <EnvBadge />
-        <div className="ml-auto">
-          <ThemeToggle />
-        </div>
       </header>
       <p className="text-sm text-muted-foreground">
         Tokens em 3 tiers em <code>src/index.css</code>. Para re-tematizar, edite só o bloco “Tier 2: slots de marca”.
@@ -236,6 +246,87 @@ function ThemePage() {
         </div>
       </Section>
 
+      <Section title="Campo de busca com botão embutido (padrão B aprovado; A é alternativa)">
+        <Card>
+          <CardContent className="grid gap-6 md:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <p className="text-sm font-medium">A. Lupa à direita (Enter busca)</p>
+              <SearchInput variant="icon" onSearch={setUltimaBusca} placeholder="Buscar por nome…" />
+            </div>
+            <div className="flex flex-col gap-2">
+              <p className="text-sm font-medium">B. Botão de busca em destaque (PADRÃO)</p>
+              <SearchInput variant="button" onSearch={setUltimaBusca} placeholder="Buscar por nome…" />
+            </div>
+            <p className="text-sm text-muted-foreground md:col-span-2">
+              Última busca confirmada: <strong>{ultimaBusca === null ? '—' : ultimaBusca === '' ? '(vazia)' : ultimaBusca}</strong>. Com texto digitado aparece o X para limpar. Componentes:{' '}
+              <code>components/ui/input-group.tsx</code> e <code>runtime/SearchInput.tsx</code>.
+            </p>
+          </CardContent>
+        </Card>
+      </Section>
+
+      <Section title="Diálogo, menu e confirmação">
+        <div className="flex flex-wrap items-center gap-2">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline">Abrir diálogo</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Desativar empresa?</DialogTitle>
+                <DialogDescription>A empresa deixa de emitir notas, mas os dados são mantidos. Você pode reativá-la depois.</DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Cancelar</Button>
+                </DialogClose>
+                <Button variant="destructive" onClick={() => notifySuccess('Empresa desativada.')}>
+                  Desativar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">Menu de ações</Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuLabel>Ações</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>Editar</DropdownMenuItem>
+              <DropdownMenuItem>Ver notas</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        <p className="text-sm text-muted-foreground">Ações irreversíveis ou que desativam algo pedem confirmação em diálogo, com o botão destrutivo à direita.</p>
+      </Section>
+
+      <Section title="Combobox (chave estrangeira)">
+        <Card>
+          <CardContent className="flex max-w-sm flex-col gap-2">
+            <Label htmlFor="demo-municipio">Município</Label>
+            <Combobox id="demo-municipio" source={DEMO_MUNICIPIOS} value={municipio} onChange={setMunicipio} />
+            <p className="text-sm text-muted-foreground">Busca no servidor enquanto digita, rótulo “Cidade - UF” e botão para limpar.</p>
+          </CardContent>
+        </Card>
+      </Section>
+
+      <Section title="Padrão de formulário (grade de 12 colunas)">
+        <GuiaFormulario />
+      </Section>
+
+      <Section title="Cadastro: lista e formulário em página única">
+        <Card>
+          <CardContent className="flex flex-col gap-2 text-sm">
+            <p>
+              <strong>/entidades</strong>: lista com busca, filtros e o botão “Nova ...”. <strong>/entidades/novo</strong> e <strong>/entidades/$id</strong>: o mesmo formulário para criar e editar. Nada se
+              exclui; desativa-se pela situação.
+            </p>
+            <p className="text-muted-foreground">Veja as telas reais em Administração: Empresas, Municípios e Usuários. As regras estão em <code>front/docs/padroes-de-ui.md</code>.</p>
+          </CardContent>
+        </Card>
+      </Section>
+
       <Section title="Feedback (toast)">
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => notifySuccess('Registro salvo com sucesso.')}>
@@ -248,6 +339,10 @@ function ThemePage() {
             Erro inesperado (sem texto técnico)
           </Button>
         </div>
+      </Section>
+
+      <Section title="Catálogo completo de componentes">
+        <GuiaComponentes />
       </Section>
     </div>
   )

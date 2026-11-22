@@ -26,3 +26,13 @@ class RO {
 Element.prototype.scrollIntoView ??= () => {}
 Element.prototype.hasPointerCapture ??= () => false
 Element.prototype.releasePointerCapture ??= () => {}
+// embla (carousel) usa IntersectionObserver.
+class IO {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  takeRecords() {
+    return []
+  }
+}
+;(globalThis as unknown as { IntersectionObserver: typeof IO }).IntersectionObserver ??= IO

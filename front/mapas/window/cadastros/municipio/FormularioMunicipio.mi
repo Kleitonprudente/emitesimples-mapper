@@ -17,18 +17,18 @@
                 [e] field
                     [v] .codigoIbge
                     @
-                        [e] width
-                            [v] 25
+                        [e] size
+                            [v] m
                 [e] field
                     [v] .nome
                     @
-                        [e] width
-                            [v] 55
+                        [e] size
+                            [v] l
                 [e] field
                     [v] .uf
                     @
-                        [e] width
-                            [v] 20
+                        [e] size
+                            [v] xs
     [e] actions
         [e] action
             [v] salvar

@@ -1,15 +1,33 @@
 import { useId } from 'react'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Search } from 'lucide-react'
 import { Controller, type Control, type FieldValues, type Path } from 'react-hook-form'
 import { Input } from '@/components/ui/input'
+import { InputGroup, InputGroupButton, InputGroupInput } from '@/components/ui/input-group'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Combobox, type FkSource, type FkValue } from '@/runtime/Combobox'
 import { MASKS, applyMask, onlyDigits, type MaskKind } from '@/runtime/format'
+import { SEARCH_BUTTON_CLASS } from '@/runtime/SearchInput'
 
 export type FieldKind = 'text' | 'email' | 'password' | 'textarea' | 'number' | 'currency' | 'boolean' | 'date' | 'enum' | 'fk'
+
+/** Tamanho de um campo na grade de 12 colunas. */
+export type FieldSize = 'xs' | 's' | 'm' | 'l' | 'xl' | 'full'
+
+/** Colunas (de 12) de cada tamanho. */
+export const SIZE_COLS: Record<FieldSize, number> = { xs: 2, s: 3, m: 4, l: 6, xl: 8, full: 12 }
+
+/** Classes LITERAIS (o Tailwind so gera o que aparece escrito): 12 no mobile, 6 entre sm e md, N a partir de md. */
+export const SIZE_CLASS: Record<FieldSize, string> = {
+  xs: 'col-span-12 sm:col-span-6 md:col-span-2',
+  s: 'col-span-12 sm:col-span-6 md:col-span-3',
+  m: 'col-span-12 sm:col-span-6 md:col-span-4',
+  l: 'col-span-12 sm:col-span-6 md:col-span-6',
+  xl: 'col-span-12 sm:col-span-6 md:col-span-8',
+  full: 'col-span-12',
+}
 
 export interface FieldSpec {
   name: string
@@ -33,7 +51,12 @@ export interface FieldSpec {
   /** `value` numerico (enum numerico do back) volta como numero em `onChange`: o select so trafega texto. */
   options?: { value: string | number; label: string }[]
   fk?: FkSource
-  /** Peso de proporcao dentro da linha (padrao 1). */
+  /**
+   * Tamanho na grade de 12 colunas (md+): xs=2, s=3, m=4, l=6, xl=8, full=12. Se omitido, utoSize decide pelo tipo e
+   * pelo maxLength.
+   */
+  size?: FieldSize
+  /** @deprecated Use size. Peso de proporcao dentro da linha (padrao 1); so vale em linhas sem nenhum size. */
   width?: number
   maxLength?: number
 }
@@ -47,6 +70,8 @@ export interface LookupState {
   notice?: string
   onFocus: () => void
   onBlur: () => void
+  /** Busca explicita (botao de busca ou Enter): consulta mesmo que o CEP nao tenha mudado; com menos de 8 digitos avisa no campo. */
+  onSearch: () => void
 }
 
 export function resolveKind(spec: FieldSpec): FieldKind {
@@ -56,17 +81,43 @@ export function resolveKind(spec: FieldSpec): FieldKind {
   return 'text'
 }
 
+/** Tamanho automatico quando size e omitido: pelo tipo do campo e, no texto, pelo maxLength. */
+export function autoSize(spec: FieldSpec): FieldSize {
+  const kind = resolveKind(spec)
+  if (kind === 'textarea') return 'full'
+  if (kind === 'boolean' || kind === 'date' || kind === 'number' || kind === 'currency') return 's'
+  if (kind === 'fk') return 'l'
+  if (kind === 'enum') return 'm'
+  if (spec.mask) return 's'
+  const n = spec.maxLength
+  if (n === undefined) return 'm'
+  if (n <= 5) return 'xs'
+  if (n <= 15) return 's'
+  if (n <= 30) return 'm'
+  if (n <= 100) return 'l'
+  if (n <= 255) return 'xl'
+  return 'full'
+}
+
+export const resolveSize = (spec: FieldSpec): FieldSize => spec.size ?? autoSize(spec)
+
+/** Linhas do textarea por maxLength. */
+export const textareaRows = (maxLength?: number): number => (maxLength === undefined ? 4 : maxLength <= 200 ? 3 : maxLength <= 2000 ? 6 : 8)
+
 /** Um campo: tipo -> controle (camada 3). Trocar este mapa troca o design system sem tocar em tela. */
 export function FormField<T extends FieldValues>({
   spec,
   control,
   disabled,
   lookupState,
+  grid,
 }: {
   spec: FieldSpec
   control: Control<T>
   disabled?: boolean
   lookupState?: LookupState
+  /** Dentro da grade de 12 colunas: o Switch desce para alinhar com a caixa dos inputs vizinhos. */
+  grid?: boolean
 }) {
   const uid = useId()
   const id = `${uid}-${spec.name}`
@@ -98,7 +149,7 @@ export function FormField<T extends FieldValues>({
         switch (kind) {
           case 'textarea':
             node = (
-              <Textarea {...common} placeholder={spec.placeholder} maxLength={spec.maxLength} value={field.value ?? ''} onChange={field.onChange} onBlur={field.onBlur} ref={field.ref} />
+              <Textarea {...common} rows={textareaRows(spec.maxLength)} placeholder={spec.placeholder} maxLength={spec.maxLength} value={field.value ?? ''} onChange={field.onChange} onBlur={field.onBlur} ref={field.ref} />
             )
             break
           case 'number':
@@ -155,41 +206,65 @@ export function FormField<T extends FieldValues>({
           default: {
             const mask = spec.mask
             const loading = !!lookupState?.loading
-            node = (
-              <div className="relative">
-                <Input
-                  {...common}
-                  aria-busy={loading || undefined}
-                  className={loading ? 'pr-9' : undefined}
-                  type={kind === 'password' ? 'password' : kind === 'email' ? 'email' : 'text'}
-                  inputMode={mask ? MASKS[mask].inputMode : undefined}
-                  placeholder={spec.placeholder}
-                  maxLength={mask ? undefined : spec.maxLength}
-                  value={mask ? applyMask(mask, field.value) : (field.value ?? '')}
-                  onChange={(e) => field.onChange(mask ? onlyDigits(e.target.value).slice(0, MASKS[mask].maxDigits) : e.target.value)}
-                  onFocus={lookupState?.onFocus}
-                  onBlur={() => {
-                    field.onBlur()
-                    lookupState?.onBlur()
-                  }}
-                  ref={field.ref}
-                />
+            // Campo com busca (CEP): padrao B do guia, InputGroup com botao de busca em destaque colado a direita. Enter e o botao consultam; sair do campo tambem.
+            if (lookupState) {
+              node = (
+              <>
+                <InputGroup>
+                  <InputGroupInput
+                    {...common}
+                    aria-busy={loading || undefined}
+                    type="text"
+                    inputMode={mask ? MASKS[mask].inputMode : undefined}
+                    placeholder={spec.placeholder}
+                    maxLength={mask ? undefined : spec.maxLength}
+                    value={mask ? applyMask(mask, field.value) : (field.value ?? '')}
+                    onChange={(e) => field.onChange(mask ? onlyDigits(e.target.value).slice(0, MASKS[mask].maxDigits) : e.target.value)}
+                    onFocus={lookupState.onFocus}
+                    onBlur={() => {
+                      field.onBlur()
+                      lookupState.onBlur()
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        lookupState.onSearch()
+                      }
+                    }}
+                    ref={field.ref}
+                  />
+                  <InputGroupButton type="button" variant="default" aria-label="Buscar endereço pelo CEP" disabled={isDisabled || loading} className={SEARCH_BUTTON_CLASS} onClick={lookupState.onSearch}>
+                    {loading ? <Loader2 className="animate-spin" aria-hidden /> : <Search aria-hidden />}
+                  </InputGroupButton>
+                </InputGroup>
                 {loading && (
-                  <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
-                    <Loader2 className="size-4 animate-spin" aria-hidden />
-                    <span className="sr-only" role="status">
-                      Buscando endereço…
-                    </span>
+                  <span className="sr-only" role="status">
+                    Buscando endereço…
                   </span>
                 )}
-              </div>
+              </>
+              )
+              break
+            }
+            node = (
+              <Input
+                {...common}
+                type={kind === 'password' ? 'password' : kind === 'email' ? 'email' : 'text'}
+                inputMode={mask ? MASKS[mask].inputMode : undefined}
+                placeholder={spec.placeholder}
+                maxLength={mask ? undefined : spec.maxLength}
+                value={mask ? applyMask(mask, field.value) : (field.value ?? '')}
+                onChange={(e) => field.onChange(mask ? onlyDigits(e.target.value).slice(0, MASKS[mask].maxDigits) : e.target.value)}
+                onBlur={field.onBlur}
+                ref={field.ref}
+              />
             )
           }
         }
         return (
           <div className="flex flex-col gap-1.5">
             {kind === 'boolean' ? (
-              <div className="flex items-center gap-3">
+              <div className={grid ? 'flex min-h-9 items-center gap-3 sm:mt-5' : 'flex items-center gap-3'}>
                 {node}
                 <Label htmlFor={id}>{spec.label}</Label>
               </div>
@@ -204,6 +279,11 @@ export function FormField<T extends FieldValues>({
               </Label>
             )}
             {kind !== 'boolean' && node}
+            {kind === 'textarea' && spec.maxLength !== undefined && (
+              <p aria-hidden className="text-right text-xs text-muted-foreground">
+                {String(field.value ?? '').length}/{spec.maxLength}
+              </p>
+            )}
             {spec.description && !hasError && <p className="text-xs text-muted-foreground">{spec.description}</p>}
             {spec.hint && (
               <p id={hintId} className="text-xs text-muted-foreground">

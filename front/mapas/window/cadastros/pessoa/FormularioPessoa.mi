@@ -18,39 +18,61 @@
             [e] row
                 [e] field
                     [v] .tipoPessoa
+                    @
+                        [e] size
+                            [v] s
                 [e] field
                     [v] .documento
+                    @
+                        [e] size
+                            [v] s
+                [e] field
+                    [v] .inscricaoMunicipal
+                    @
+                        [e] size
+                            [v] s
+                [e] field
+                    [v] .rgInscricaoEstadual
+                    @
+                        [e] size
+                            [v] s
             [e] row
                 [e] field
                     [v] .nome
                     @
-                        [e] width
-                            [v] 60
+                        [e] size
+                            [v] l
                 [e] field
                     [v] .nomeFantasia
                     @
-                        [e] width
-                            [v] 40
-            [e] row
-                [e] field
-                    [v] .inscricaoMunicipal
-                [e] field
-                    [v] .rgInscricaoEstadual
+                        [e] size
+                            [v] l
             [e] row
                 [e] field
                     [v] .tipoDestinatario
+                    @
+                        [e] size
+                            [v] l
                 [e] field
                     [v] .consumidorFinal
+                    @
+                        [e] size
+                            [v] l
             [e] section
                 [v] Contato
             [e] row
                 [e] field
                     [v] .email
+                    @
+                        [e] size
+                            [v] xl
                 [e] field
                     [v] .telefone
                     @
                         [e] mask
                             [v] phone
+                        [e] size
+                            [v] m
             [e] section
                 [v] Endereço
             [e] row
@@ -59,8 +81,8 @@
                     @
                         [e] mask
                             [v] postalCode
-                        [e] width
-                            [v] 30
+                        [e] size
+                            [v] s
                         [e] hint
                             [e] pt
                                 [v] Ao sair do campo, o endereço é preenchido.
@@ -69,36 +91,59 @@
                 [e] field
                     [v] .logradouro
                     @
-                        [e] width
-                            [v] 50
+                        [e] size
+                            [v] l
                 [e] field
                     [v] .numeroEndereco
                     @
-                        [e] width
-                            [v] 20
+                        [e] size
+                            [v] s
             [e] row
                 [e] field
                     [v] .complemento
+                    @
+                        [e] size
+                            [v] m
                 [e] field
                     [v] .bairro
+                    @
+                        [e] size
+                            [v] m
                 [e] field
                     [v] .cidade
                     @
                         [e] label
                             [e] pt
                                 [v] Município
+                        [e] size
+                            [v] m
             [e] section
                 [v] Pessoa estrangeira (exportação)
+                @
+                    [e] collapsible
+                        [v] true
             [e] row
                 [e] field
                     [v] .codigoPais
+                    @
+                        [e] size
+                            [v] m
                 [e] field
                     [v] .codigoPostal
+                    @
+                        [e] size
+                            [v] xl
             [e] row
                 [e] field
                     [v] .nomeMunicipioExterior
+                    @
+                        [e] size
+                            [v] l
                 [e] field
                     [v] .nomeProvincia
+                    @
+                        [e] size
+                            [v] l
     [e] actions
         [e] action
             [v] salvar

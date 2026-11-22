@@ -19,35 +19,51 @@
                 [e] field
                     [v] .razaoSocial
                     @
-                        [e] width
-                            [v] 60
+                        [e] size
+                            [v] l
                 [e] field
                     [v] .nomeFantasia
                     @
-                        [e] width
-                            [v] 40
+                        [e] size
+                            [v] l
             [e] row
                 [e] field
                     [v] .documento
+                    @
+                        [e] size
+                            [v] m
                 [e] field
                     [v] .inscricaoMunicipal
+                    @
+                        [e] size
+                            [v] m
                 [e] field
                     [v] .rgInscricaoEstadual
+                    @
+                        [e] size
+                            [v] m
             [e] section
                 [v] Contato
             [e] row
                 [e] field
                     [v] .email
+                    @
+                        [e] size
+                            [v] l
                 [e] field
                     [v] .whatsapp
                     @
                         [e] mask
                             [v] phone
+                        [e] size
+                            [v] s
                 [e] field
                     [v] .telefone
                     @
                         [e] mask
                             [v] phone
+                        [e] size
+                            [v] s
             [e] section
                 [v] Endereço
             [e] row
@@ -56,8 +72,8 @@
                     @
                         [e] mask
                             [v] postalCode
-                        [e] width
-                            [v] 30
+                        [e] size
+                            [v] s
                         [e] hint
                             [e] pt
                                 [v] Ao sair do campo, o endereço é preenchido.
@@ -66,38 +82,58 @@
                 [e] field
                     [v] .logradouro
                     @
-                        [e] width
-                            [v] 50
+                        [e] size
+                            [v] l
                 [e] field
                     [v] .numeroEndereco
                     @
-                        [e] width
-                            [v] 20
+                        [e] size
+                            [v] s
             [e] row
                 [e] field
                     [v] .complemento
+                    @
+                        [e] size
+                            [v] m
                 [e] field
                     [v] .bairro
+                    @
+                        [e] size
+                            [v] m
                 [e] field
                     [v] .municipio
                     @
                         [e] label
                             [e] pt
                                 [v] Município
+                        [e] size
+                            [v] m
             [e] section
                 [v] Tributação
             [e] row
                 [e] field
                     [v] .regimeTributario
+                    @
+                        [e] size
+                            [v] l
                 [e] field
                     [v] .regimeIbsCbs
+                    @
+                        [e] size
+                            [v] l
             [e] section
                 [v] Conta
             [e] row
                 [e] field
                     [v] .situacao
+                    @
+                        [e] size
+                            [v] m
                 [e] field
                     [v] .urlWebhook
+                    @
+                        [e] size
+                            [v] xl
     [e] actions
         [e] action
             [v] salvar

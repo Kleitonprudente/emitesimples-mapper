@@ -13,14 +13,39 @@
             [v] // GERADO por frontend/screenEditorById a partir de {{ @name }}. Nao edite: a saida e sobrescrita por inteiro.
         [e] import-navigate
             [v] import { useNavigate } from '@tanstack/react-router'
+        [e] import-format
+            [v] import { formatDateTime } from '@/runtime/format'
         [e] imports
-            [v] import { useAtualizar{{ $bean }}, use{{ $bean }} } from '@/gen/api/{{ $entity }}'
+            [v] import { useAtualizar{{ $bean }}, useCriar{{ $bean }}, use{{ $bean }} } from '@/gen/api/{{ $entity }}'
             [v] import { mutationFeedback } from '@/runtime/feedback'
             [v] import { ErrorState, LoadingState } from '@/runtime/states'
             [v] import { {{ @name }}Form, {{ @name }}FieldNames, type {{ @name }}Values } from './{{ @name }}'
         [e] component-start
             [v] {{ '' }}
+            [v] // Rota unica: o id literal 'novo' cria; qualquer outro id edita. Dois componentes para os hooks nao dependerem do id.
             [v] export function {{ @name }}Screen({ id }: { id: string }) {
+            [v]   return id === 'novo' ? <{{ @name }}Novo /> : <{{ @name }}Editar id={id} />
+            [v] }
+        [e] novo-start
+            [v] {{ '' }}
+            [v] function {{ @name }}Novo() {
+            [v]   const criar = useCriar{{ $bean }}()
+        [e] novo-body
+            [v]   return (
+            [v]     <div className="flex max-w-5xl flex-col gap-4">
+            [v]       <h1 className="text-2xl font-semibold">{{ $newTitle }}</h1>
+            [v]       <{{ @name }}Form
+            [v]         isSubmitting={criar.isPending}
+            [v]         serverError={criar.error}
+        [e] novo-end
+            [v]         onSubmit={(v) => criar.mutateAsync(v).then(fb.onSuccess, () => {})}
+            [v]       />
+            [v]     </div>
+            [v]   )
+            [v] }
+        [e] editar-start
+            [v] {{ '' }}
+            [v] function {{ @name }}Editar({ id }: { id: string }) {
             [v]   const loaded = use{{ $bean }}(id)
             [v]   const salvar = useAtualizar{{ $bean }}(id)
         [e] back-with-list
@@ -37,7 +62,7 @@
             [v]   // O PUT substitui o registro inteiro: o que o formulario nao edita (ex.: referencias de integracao) segue como veio.
             [v]   const preservar = Object.fromEntries(Object.entries(values).filter(([k]) => !{{ @name }}FieldNames.includes(k)))
             [v]   return (
-            [v]     <div className="flex flex-col gap-4">
+            [v]     <div className="flex max-w-5xl flex-col gap-4">
             [v]       <h1 className="text-2xl font-semibold">{{ $title }}</h1>
             [v]       <{{ @name }}Form
             [v]         values={values}
@@ -48,6 +73,13 @@
         [e] body-end
             [v]         onSubmit={(v) => salvar.mutateAsync({ ...preservar, ...v } as typeof v).then(fb.onSuccess, () => {})}
             [v]       />
+        [e] audit-line
+            [v]       {loaded.data.dataCriacao && (
+            [v]         <p className="text-xs text-muted-foreground">
+            [v]           Criado em {formatDateTime(loaded.data.dataCriacao)}{loaded.data.dataAtualizacao ? <> &middot; Atualizado em {formatDateTime(loaded.data.dataAtualizacao)}</> : null}
+            [v]         </p>
+            [v]       )}
+        [e] editar-close
             [v]     </div>
             [v]   )
             [v] }
@@ -75,9 +107,21 @@
                     [e] expr
                         [v] replace(normalize-space(properties/title/pt/value), "'", "\\'")
                 [e] var
+                    [v] newLabel
+                    [e] expr
+                        [v] normalize-space((for $c in $classes/class[@mode = 'window.list'] return $c/actions/action[normalize-space(properties/type/value) = 'primary' and normalize-space(properties/opens/value) = $modelName]/properties/label/pt/value)[1])
+                [e] var
+                    [v] newTitle
+                    [e] expr
+                        [v] if ($newLabel != '') then $newLabel else concat('Novo ', $bean)
+                [e] var
                     [v] listRoute
                     [e] expr
                         [v] normalize-space((for $c in $classes/class[@mode = 'window.list' and exists(actions/action/properties/opens/value[normalize-space(.) = $modelName])] return $c/properties/route/value)[1])
+                [e] var
+                    [v] hasAudit
+                    [e] expr
+                        [v] exists($classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = 'dataCriacao']) and exists($classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = 'dataAtualizacao'])
             [e] write-pattern
                 [v] header
             [e] if
@@ -88,10 +132,36 @@
                         [e] then
                             [e] write-pattern
                                 [v] import-navigate
+                    [e] if
+                        [v] $hasAudit
+                        [e] then
+                            [e] write-pattern
+                                [v] import-format
                     [e] write-pattern
                         [v] imports
                     [e] write-pattern
                         [v] component-start
+                    [e] write-pattern
+                        [v] novo-start
+                    [e] if
+                        [v] $listRoute != ''
+                        [e] then
+                            [e] write-pattern
+                                [v] back-with-list
+                        [e] else
+                            [e] write-pattern
+                                [v] back-none
+                    [e] write-pattern
+                        [v] novo-body
+                    [e] if
+                        [v] $listRoute != ''
+                        [e] then
+                            [e] write-pattern
+                                [v] cancel-with-list
+                    [e] write-pattern
+                        [v] novo-end
+                    [e] write-pattern
+                        [v] editar-start
                     [e] if
                         [v] $listRoute != ''
                         [e] then
@@ -109,6 +179,13 @@
                                 [v] cancel-with-list
                     [e] write-pattern
                         [v] body-end
+                    [e] if
+                        [v] $hasAudit
+                        [e] then
+                            [e] write-pattern
+                                [v] audit-line
+                    [e] write-pattern
+                        [v] editar-close
                 [e] else
                     [e] write-pattern
                         [v] todo-route

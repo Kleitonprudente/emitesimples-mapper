@@ -66,3 +66,10 @@ gerar "$WEB/gen/screens.ts" screenManifest
 [ "$FALHOU" = 0 ] || { echo "Geracao incompleta: veja as FALHA acima." >&2; exit 1; }
 echo "Geracao concluida. Pendencias deixadas pelos geradores:"
 grep -rn '@TODO' "$WEB/gen" "$WEB/features" "$WEB/routes" 2>/dev/null || echo "  (nenhuma)"
+
+# verificador do padrao de UI (camada 3): so roda se existir
+if [ -f "$AQUI/../web/scripts/verificar-padrao-ui.mjs" ]; then
+  node "$AQUI/../web/scripts/verificar-padrao-ui.mjs" || { echo "Padrao de UI violado: veja acima." >&2; exit 1; }
+else
+  echo "verificador de padrao de UI ausente"
+fi

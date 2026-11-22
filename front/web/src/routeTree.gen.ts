@@ -11,10 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as ThemeRouteImport } from './routes/theme'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedAdminMunicipiosRouteImport } from './routes/_authenticated/admin/municipios'
+import { Route as AuthenticatedAdminThemeRouteImport } from './routes/_authenticated/admin/theme'
 import { Route as AuthenticatedAdminUsuariosRouteImport } from './routes/_authenticated/admin/usuarios'
 import { Route as AuthenticatedEmpresasIndexRouteImport } from './routes/_authenticated/empresas/index'
 import { Route as AuthenticatedEmpresasIdRouteImport } from './routes/_authenticated/empresas/$id'
@@ -33,11 +33,6 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ThemeRoute = ThemeRouteImport.update({
-  id: '/theme',
-  path: '/theme',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -54,6 +49,11 @@ const AuthenticatedAdminMunicipiosRoute =
     path: '/admin/municipios',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedAdminThemeRoute = AuthenticatedAdminThemeRouteImport.update({
+  id: '/admin/theme',
+  path: '/admin/theme',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAdminUsuariosRoute =
   AuthenticatedAdminUsuariosRouteImport.update({
     id: '/admin/usuarios',
@@ -104,9 +104,9 @@ const AuthenticatedPessoasIdRoute = AuthenticatedPessoasIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/login': typeof LoginRoute
-  '/theme': typeof ThemeRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/admin/municipios': typeof AuthenticatedAdminMunicipiosRoute
+  '/admin/theme': typeof AuthenticatedAdminThemeRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
   '/empresas/$id': typeof AuthenticatedEmpresasIdRoute
   '/exemplos/pessoas': typeof AuthenticatedExemplosPessoasRoute
@@ -118,10 +118,10 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
-  '/theme': typeof ThemeRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/': typeof AuthenticatedIndexRoute
   '/admin/municipios': typeof AuthenticatedAdminMunicipiosRoute
+  '/admin/theme': typeof AuthenticatedAdminThemeRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
   '/empresas/$id': typeof AuthenticatedEmpresasIdRoute
   '/exemplos/pessoas': typeof AuthenticatedExemplosPessoasRoute
@@ -135,10 +135,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
-  '/theme': typeof ThemeRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/admin/municipios': typeof AuthenticatedAdminMunicipiosRoute
+  '/_authenticated/admin/theme': typeof AuthenticatedAdminThemeRoute
   '/_authenticated/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
   '/_authenticated/empresas/$id': typeof AuthenticatedEmpresasIdRoute
   '/_authenticated/exemplos/pessoas': typeof AuthenticatedExemplosPessoasRoute
@@ -153,9 +153,9 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
-    | '/theme'
     | '/perfil'
     | '/admin/municipios'
+    | '/admin/theme'
     | '/admin/usuarios'
     | '/empresas/$id'
     | '/exemplos/pessoas'
@@ -167,10 +167,10 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
-    | '/theme'
     | '/perfil'
     | '/'
     | '/admin/municipios'
+    | '/admin/theme'
     | '/admin/usuarios'
     | '/empresas/$id'
     | '/exemplos/pessoas'
@@ -183,10 +183,10 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_authenticated'
     | '/login'
-    | '/theme'
     | '/_authenticated/perfil'
     | '/_authenticated/'
     | '/_authenticated/admin/municipios'
+    | '/_authenticated/admin/theme'
     | '/_authenticated/admin/usuarios'
     | '/_authenticated/empresas/$id'
     | '/_authenticated/exemplos/pessoas'
@@ -200,7 +200,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
-  ThemeRoute: typeof ThemeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -217,13 +216,6 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/theme': {
-      id: '/theme'
-      path: '/theme'
-      fullPath: '/theme'
-      preLoaderRoute: typeof ThemeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/': {
@@ -245,6 +237,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/municipios'
       fullPath: '/admin/municipios'
       preLoaderRoute: typeof AuthenticatedAdminMunicipiosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/admin/theme': {
+      id: '/_authenticated/admin/theme'
+      path: '/admin/theme'
+      fullPath: '/admin/theme'
+      preLoaderRoute: typeof AuthenticatedAdminThemeRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/admin/usuarios': {
@@ -310,6 +309,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAdminMunicipiosRoute: typeof AuthenticatedAdminMunicipiosRoute
+  AuthenticatedAdminThemeRoute: typeof AuthenticatedAdminThemeRoute
   AuthenticatedAdminUsuariosRoute: typeof AuthenticatedAdminUsuariosRoute
   AuthenticatedEmpresasIdRoute: typeof AuthenticatedEmpresasIdRoute
   AuthenticatedExemplosPessoasRoute: typeof AuthenticatedExemplosPessoasRoute
@@ -324,6 +324,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAdminMunicipiosRoute: AuthenticatedAdminMunicipiosRoute,
+  AuthenticatedAdminThemeRoute: AuthenticatedAdminThemeRoute,
   AuthenticatedAdminUsuariosRoute: AuthenticatedAdminUsuariosRoute,
   AuthenticatedEmpresasIdRoute: AuthenticatedEmpresasIdRoute,
   AuthenticatedExemplosPessoasRoute: AuthenticatedExemplosPessoasRoute,
@@ -341,7 +342,6 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
-  ThemeRoute: ThemeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

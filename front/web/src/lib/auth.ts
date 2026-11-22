@@ -88,3 +88,11 @@ export const PAPEL_LABEL: Record<Papel, string> = {
   operador: 'Operador',
   consulta: 'Consulta',
 }
+
+/**
+ * Pode agir na tela? Tela so da plataforma (`platformOnly`): vale o administrador da plataforma, que nao tem papel de empresa.
+ * Demais telas: papel minimo da empresa. So UX: o back decide.
+ */
+export function canAct(s: SessionData | null, min: Papel, platformOnly = false): boolean {
+  return platformOnly ? !!s?.plataformaAdmin : hasRole(s, min)
+}

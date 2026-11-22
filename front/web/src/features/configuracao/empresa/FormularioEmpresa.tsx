@@ -16,42 +16,42 @@ const DEFAULTS: Partial<FormularioEmpresaValues> = {
 }
 
 const FIELDS: FieldLayout = [
-  // --- Identificação ---
+  { section: 'Identificação' },
   [
-    { name: 'razaoSocial', label: 'Razão Social', maxLength: 60, required: true, width: 60 },
-    { name: 'nomeFantasia', label: 'Nome Fantasia', maxLength: 60, required: true, width: 40 },
+    { name: 'razaoSocial', label: 'Razão Social', maxLength: 60, required: true, size: 'l' },
+    { name: 'nomeFantasia', label: 'Nome Fantasia', maxLength: 60, required: true, size: 'l' },
   ],
   [
-    { name: 'documento', label: 'CNPJ / CPF', maxLength: 14, required: true },
-    { name: 'inscricaoMunicipal', label: 'Inscrição Municipal', maxLength: 20 },
-    { name: 'rgInscricaoEstadual', label: 'RG / Inscrição Estadual', maxLength: 20 },
+    { name: 'documento', label: 'CNPJ / CPF', maxLength: 14, required: true, size: 'm' },
+    { name: 'inscricaoMunicipal', label: 'Inscrição Municipal', maxLength: 20, size: 'm' },
+    { name: 'rgInscricaoEstadual', label: 'RG / Inscrição Estadual', maxLength: 20, size: 'm' },
   ],
-  // --- Contato ---
+  { section: 'Contato' },
   [
-    { name: 'email', label: 'E-mail', maxLength: 60, required: true },
-    { name: 'whatsapp', label: 'WhatsApp', maxLength: 20, required: true, mask: 'phone' },
-    { name: 'telefone', label: 'Telefone', maxLength: 14, required: true, mask: 'phone' },
+    { name: 'email', label: 'E-mail', maxLength: 60, required: true, size: 'l' },
+    { name: 'whatsapp', label: 'WhatsApp', maxLength: 20, required: true, mask: 'phone', size: 's' },
+    { name: 'telefone', label: 'Telefone', maxLength: 14, required: true, mask: 'phone', size: 's' },
   ],
-  // --- Endereço ---
+  { section: 'Endereço' },
   [
-    { name: 'cep', label: 'CEP', maxLength: 8, required: true, mask: 'postalCode', width: 30, hint: 'Ao sair do campo, o endereço é preenchido.', lookup: 'cep' },
-    { name: 'logradouro', label: 'Logradouro', maxLength: 60, required: true, width: 50 },
-    { name: 'numeroEndereco', label: 'Número do Endereço', maxLength: 60, required: true, width: 20 },
+    { name: 'cep', label: 'CEP', maxLength: 8, required: true, mask: 'postalCode', size: 's', hint: 'Ao sair do campo, o endereço é preenchido.', lookup: 'cep' },
+    { name: 'logradouro', label: 'Logradouro', maxLength: 60, required: true, size: 'l' },
+    { name: 'numeroEndereco', label: 'Número do Endereço', maxLength: 60, required: true, size: 's' },
   ],
   [
-    { name: 'complemento', label: 'Complemento', maxLength: 60 },
-    { name: 'bairro', label: 'Bairro', maxLength: 60, required: true },
-    { name: 'municipio', label: 'Município', fk: fkSource('Municipio'), required: true },
+    { name: 'complemento', label: 'Complemento', maxLength: 60, size: 'm' },
+    { name: 'bairro', label: 'Bairro', maxLength: 60, required: true, size: 'm' },
+    { name: 'municipio', label: 'Município', fk: fkSource('Municipio'), required: true, size: 'm' },
   ],
-  // --- Tributação ---
+  { section: 'Tributação' },
   [
-    { name: 'regimeTributario', label: 'Regime Tributário', options: regimeTributarioValues.map((value) => ({ value, label: regimeTributarioLabels[value] })), required: true },
-    { name: 'regimeIbsCbs', label: 'Regime do IBS/CBS', options: regimeIbsCbsValues.map((value) => ({ value, label: regimeIbsCbsLabels[value] })) },
+    { name: 'regimeTributario', label: 'Regime Tributário', options: regimeTributarioValues.map((value) => ({ value, label: regimeTributarioLabels[value] })), required: true, size: 'l' },
+    { name: 'regimeIbsCbs', label: 'Regime do IBS/CBS', options: regimeIbsCbsValues.map((value) => ({ value, label: regimeIbsCbsLabels[value] })), size: 'l' },
   ],
-  // --- Conta ---
+  { section: 'Conta' },
   [
-    { name: 'situacao', label: 'Situação da Conta', options: situacaoValues.map((value) => ({ value, label: situacaoLabels[value] })), required: true },
-    { name: 'urlWebhook', label: 'URL do Webhook', maxLength: 200 },
+    { name: 'situacao', label: 'Situação da Conta', options: situacaoValues.map((value) => ({ value, label: situacaoLabels[value] })), required: true, size: 'm' },
+    { name: 'urlWebhook', label: 'URL do Webhook', maxLength: 200, size: 'xl' },
   ],
 ]
 

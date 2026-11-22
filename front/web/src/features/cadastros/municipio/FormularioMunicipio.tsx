@@ -15,9 +15,9 @@ const DEFAULTS: Partial<FormularioMunicipioValues> = {
 
 const FIELDS: FieldLayout = [
   [
-    { name: 'codigoIbge', label: 'Código IBGE', maxLength: 7, required: true, width: 25 },
-    { name: 'nome', label: 'Nome', maxLength: 100, required: true, width: 55 },
-    { name: 'uf', label: 'UF', maxLength: 2, required: true, width: 20 },
+    { name: 'codigoIbge', label: 'Código IBGE', maxLength: 7, required: true, size: 'm' },
+    { name: 'nome', label: 'Nome', maxLength: 100, required: true, size: 'l' },
+    { name: 'uf', label: 'UF', maxLength: 2, required: true, size: 'xs' },
   ],
 ]
 

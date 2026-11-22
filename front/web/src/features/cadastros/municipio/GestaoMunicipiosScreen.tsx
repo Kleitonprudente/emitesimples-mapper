@@ -1,16 +1,13 @@
 // GERADO por frontend/screenPage a partir de GestaoMunicipios. Nao edite: a saida e sobrescrita por inteiro.
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { hasRole, useSession } from '@/lib/auth'
+import { canAct, useSession } from '@/lib/auth'
 import { DataTable, type Facet } from '@/runtime/DataTable'
-import { mutationFeedback } from '@/runtime/feedback'
 import { resolveIcon } from '@/runtime/icons'
 import { useTableState } from '@/runtime/table-state'
-import { useMunicipios, useCriarMunicipio } from '@/gen/api/municipio'
+import { useMunicipios } from '@/gen/api/municipio'
 import { gestaoMunicipiosColumns } from './columns'
-import { FormularioMunicipioForm } from '@/features/cadastros/municipio/FormularioMunicipio'
 
 const CriarMunicipioIcon = resolveIcon('plus')
 const ImportarCsvIbgeIcon = resolveIcon('upload')
@@ -24,22 +21,15 @@ export function GestaoMunicipiosScreen() {
   const columns = useMemo(
     () =>
       gestaoMunicipiosColumns({
-        editarMunicipio: hasRole(session, 'consulta') ? (row) => void navigate({ to: '/municipios/$id', params: { id: row.id } }) : undefined,
+        editarMunicipio: canAct(session, 'consulta', true) ? (row) => void navigate({ to: '/municipios/$id', params: { id: row.id } }) : undefined,
       }),
     [session, navigate],
   )
   const [state, update] = useTableState({ sortBy: 'nome' })
   const result = useMunicipios(state, 'nome')
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const criar = useCriarMunicipio()
-  const fb = mutationFeedback({ success: 'Registro salvo.', onDone: () => setDialogOpen(false) })
-  const abrir = () => {
-    criar.reset()
-    setDialogOpen(true)
-  }
-  const canCriar = hasRole(session, 'consulta')
+  const canCriar = canAct(session, 'consulta', true)
   const novo = canCriar ? (
-    <Button onClick={abrir}>
+    <Button onClick={() => void navigate({ to: '/municipios/$id', params: { id: 'novo' } })}>
       <CriarMunicipioIcon /> Novo município
     </Button>
   ) : null
@@ -73,19 +63,6 @@ export function GestaoMunicipiosScreen() {
         }
         empty={empty}
       />
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Novo município</DialogTitle>
-          </DialogHeader>
-          <FormularioMunicipioForm
-            isSubmitting={criar.isPending}
-            serverError={criar.error}
-            onCancel={() => setDialogOpen(false)}
-            onSubmit={(v) => criar.mutateAsync(v).then(fb.onSuccess, () => {})}
-          />
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

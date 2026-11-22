@@ -42,18 +42,74 @@ Um conceito, uma janela, um arquivo: cada entidade tem UMA janela de formulario 
 `Descriptor.window.editor` com `route` `/pessoas/$id`). Escolheu-se `window.editor` e nao um `window.form` novo porque o
 editor ja e aceito pelo servidor e ja dispara `screenRoute`/`screenEditorById`. O gerador `screenForm` produz
 `FormularioPessoa.tsx` (`FormularioPessoaForm`, com `values?`) e a lista referencia a MESMA janela em duas acoes:
-- acao `primary` (`criarPessoa`, `opens FormularioPessoa`): `screenPage` abre o form num `Dialog` (titulo = label da acao),
-  sem `values`, ligado a `useCriarPessoa`;
-- acao `row` (`editarPessoa`, `opens FormularioPessoa`): navega para `/pessoas/$id`, que renderiza o mesmo form preenchido
-  (`screenEditorById`, `useAtualizarPessoa`).
+- acao `primary` (`criarPessoa`, `opens FormularioPessoa`): `screenPage` gera um botao que navega para a rota do editor com
+  `params: { id: 'novo' }` (sem Dialog); `canAct(session, role, platformOnly)` como antes;
+- acao `row` (`editarPessoa`, `opens FormularioPessoa`): navega para `/pessoas/$id` com o id da linha.
+
+`screenEditorById` limita a largura (`max-w-5xl` no container) e, no modo edicao, quando o dominio tem `dataCriacao` e
+`dataAtualizacao`, emite apos o formulario a linha `Criado em ... · Atualizado em ...` (`formatDateTime` de `@/runtime/format`).
+
+Criar e editar usam a MESMA pagina de rota (`/pessoas/$id`): o id literal `novo` significa CRIAR (`/pessoas/novo`), qualquer
+outro id edita. `screenEditorById` gera `FormularioPessoaScreen` como despachante entre dois componentes (hooks fixos por
+componente): `FormularioPessoaNovo` (`useCriarPessoa`, form vazio, titulo = label da acao primary da lista, ex. "Nova pessoa";
+sem a acao, "Novo <Bean>") e `FormularioPessoaEditar` (`usePessoa(id)`, `useAtualizarPessoa`, merge `{ ...preservar, ...v }`
+so aqui). Ambos voltam a lista em sucesso/cancelamento (`mutationFeedback`). `screenRoute` nao mudou.
+O ramo Dialog do `screenPage` so sobrevive no gerador: acao `primary` que `opens` um `window.dialog`, ou um `window.editor` sem `$`
+na rota, agora e ERRO NO MODELO (ver "Regras impostas pelo gerador"); nenhum mapa atual usa.
 
 Propriedades do campo no layout do form (`form/rows//field/@`):
-- `width`, `mask`, `label/pt`: como antes. `label/pt` tambem vale para relacao (senao usa o `title/pt` da relacao no dominio).
+- `size` (`xs|s|m|l|xl|full`) OBRIGATORIO em todo campo de `row` -> `size: 'l'` no FieldSpec (grade de 12 colunas, tabela abaixo);
+  faltando ou invalido e ERRO NO MODELO. (O tamanho automatico do runtime fica so como rede de seguranca.) `width` esta DEPRECADO: mapa antigo que ainda o
+  declare e aceito, mas ele e ignorado (nao emite nada); remova.
+- `mask`, `label/pt`: como antes. `label/pt` tambem vale para relacao (senao usa o `title/pt` da relacao no dominio).
 - `hint/pt` -> `hint: '...'` (texto de ajuda); `lookup` (valor `cep`) -> `lookup: 'cep'`.
 - campo de relacao to-one (`[r]`, mode oneToOne/manyToOne) -> `fk: fkSource('<Entidade>')` (import de `@/lib/fk-sources`);
   o zod da relacao e `z.looseObject({ id: z.string() })`, opcional exceto relacao `required` que nao seja `tenantKey`.
-- `[e] section` + `[v] Titulo` direto em `rows` (irmao de `row`/`field`): marcador de secao, hoje so emite comentario
-  `// --- Titulo ---` no FIELDS (o runtime ainda nao tem cabecalho de secao).
+- `[e] section` + `[v] Titulo` direto em `rows` (irmao de `row`/`field`): secao; emite o item de layout
+  `{ section: 'Titulo' }` no FIELDS, antes das linhas da secao. Propriedades da secao (bloco `@` filho da secao):
+  `description/pt` -> `description: '...'`; `collapsible` = `true` -> `collapsible: true`; `defaultOpen` = `true` ->
+  `defaultOpen: true` (so faz sentido com `collapsible`). Sem propriedades, so `{ section: 'Titulo' }`.
+
+### Grade de 12 colunas (regra "a linha soma 12")
+
+Cada `row` e uma linha da grade; a soma dos `size` dos campos da linha deve dar EXATAMENTE 12 (imposto pelo gerador `screenForm`, que
+e a fonte unica desta tabela; o verificador do front le a mesma tabela):
+
+| size | colunas | uso tipico |
+|---|---|---|
+| `xs` | 2 | UF, codigos curtos |
+| `s` | 3 | documento, CEP, numero, telefone, data, booleano |
+| `m` | 4 | complemento, bairro, municipio, enum |
+| `l` | 6 | nome, e-mail, FK, logradouro |
+| `xl` | 8 | URL, textos longos |
+| `full` | 12 | textarea, linha inteira |
+
+Exemplos: Identificacao `[s s s s]`; `[l l]`; Endereco `[s l s]` e `[m m m]`; Municipio `[m l xs]`.
+
+## Regras impostas pelo gerador
+
+O padrao de UI (`front/docs/padroes-de-ui.md`) e imposto na geracao: o gerador escreve `// ERRO NO MODELO: ...` no topo da saida
+(logo apos a linha `GERADO por ...`) e o `scripts/gerar.sh` recusa o arquivo (FALHA, nada e gravado). Corrija o MAPA, nunca a saida.
+O verificador `web/scripts/verificar-padrao-ui.mjs` (se existir) roda ao final do `gerar.sh`; falha dele faz o script sair com 1.
+
+`screenForm` (formulario):
+
+| Mensagem | Como corrigir |
+|---|---|
+| `campo <.nome> sem size em <Janela> (declare xs\|s\|m\|l\|xl\|full)` | declare `size` no `field` (tabela acima). Todo campo de `row` exige. |
+| `campo <.nome> com size '<x>' invalido em <Janela> ...` | use um de `xs, s, m, l, xl, full`. |
+| `linha [<campos>] soma N colunas (esperado 12) em <Janela>` | ajuste os `size` da linha (ou mova campo de linha) ate somar 12. So e emitido quando todos os campos da linha tem size valido. |
+| `secao sem titulo em <Janela> (informe o titulo da secao)` | coloque o titulo em `[v]` direto na `section`. |
+| `campo <.nome> com lookup '<x>' em <Janela> (so 'cep' e aceito)` | `lookup` so aceita `cep`; remova ou troque. |
+
+`screenPage` (lista):
+
+| Mensagem | Como corrigir |
+|---|---|
+| `lista <Lista> abre '<X>' fora da pagina unica: cadastro deve criar na pagina unica: opens deve apontar para window.editor com rota /x/$id` | a acao `primary` (ou o `opens` da lista) aponta para `window.dialog`, ou para `window.editor` cuja rota nao tem `$`. Aponte para o editor do cadastro (`/pessoas/$id`). |
+
+Padrao: criar e editar em pagina unica. O ramo Dialog do `screenPage` ainda existe no gerador, mas o caminho "criar em dialog a
+partir de uma lista" agora e ERRO (o codigo e gerado, junto do erro, so para diagnostico).
 
 ## Propriedades novas (Municipio)
 
@@ -85,9 +141,8 @@ Dialeto (plano secao 5):
    do runtime (`nome` + `uf`), nao do mapa. Nao ha como o mapa escolher quais campos da entidade-alvo aparecem/buscam.
 2. **Mascara condicional**: `documento` deveria ser CPF ou CNPJ conforme `tipoPessoa`/tamanho. O dialeto so tem mask fixa
    (`cpf`|`cnpj`). A coluna e o campo ficaram SEM mascara. Proposta: `mask cpfCnpj` (decide por tipo/numero de digitos).
-3. **Secoes no form**: `[e] section` + `[v] Titulo` ja existe no mapa/gerador, mas so vira comentario no `FIELDS`. Falta o runtime
-   aceitar um item de layout de cabecalho (proposta: `FieldLayout` ganhar `{ section: string }` e o gerador emiti-lo no lugar do comentario).
-   Tambem o nome (`section` com `[v]` direto, nao `title/pt`) e convencao nossa, nao do plano.
+3. **Secoes no form**: RESOLVIDO no gerador (emite `{ section: ... }`, com `collapsible`/`defaultOpen`/`description`); depende do runtime
+   aceitar o item no `FieldLayout`. O nome (`section` com `[v]` direto, nao `title/pt`) e convencao nossa, nao do plano.
 4. **Campos de exportacao condicionais** (`codigoPais`, `codigoPostal`, `nomeMunicipioExterior`, `nomeProvincia`): sempre
    visiveis no form (agora numa secao "Pessoa estrangeira (exportacao)" abaixo do endereco). Falta `condition` em `field`/`section` (so existe em action/step).
 5. **Lista `contatos` (`[o] contatos: Contato()`)**: edicao master-detalhe nao existe (`window.iframe`/`useFieldArray` e futuro). Fora do editor. A historia pede varios contatos com tipo, WhatsApp e e-mail.

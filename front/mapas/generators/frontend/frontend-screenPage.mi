@@ -14,6 +14,8 @@
     [e] patterns
         [e] header
             [v] // GERADO por frontend/screenPage a partir de {{ @name }}. Nao edite: a saida e sobrescrita por inteiro.
+        [e] err-create-dialog
+            [v] // ERRO NO MODELO: lista {{ @name }} abre '{{ $badOpens }}' fora da pagina unica: cadastro deve criar na pagina unica: opens deve apontar para window.editor com rota /x/{{ '$id' }}
         [e] import-react
             [v] import { {{ $reactImports }} } from 'react'
         [e] import-navigate
@@ -41,7 +43,7 @@
             [v] import { Button } from '@/components/ui/button'
             [v] import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
         [e] import-auth
-            [v] import { hasRole, useSession } from '@/lib/auth'
+            [v] import { canAct, useSession } from '@/lib/auth'
         [e] import-runtime
             [v] import { DataTable, type Facet } from '@/runtime/DataTable'
         [e] import-feedback
@@ -88,7 +90,7 @@
             [v]     [session, navigate],
             [v]   )
         [e] wire-edit
-            [v]         {{ normalize-space(value) }}: hasRole(session, '{{ $role }}') ? (row) => void navigate({ to: '{{ $route }}', params: { {{ $param }}: row.id } }) : undefined,
+            [v]         {{ normalize-space(value) }}: canAct(session, '{{ $role }}', {{ $listPlatform }}) ? (row) => void navigate({ to: '{{ $route }}', params: { {{ $param }}: row.id } }) : undefined,
         [e] wire-todo
             [v]         // @TODO {{ normalize-space(value) }}: acao de linha sem destino window.editor com $id em opens
         [e] use-state-table
@@ -102,9 +104,16 @@
             [v]     criar.reset()
             [v]     setDialogOpen(true)
             [v]   }
-            [v]   const canCriar = hasRole(session, '{{ $createRole }}')
+            [v]   const canCriar = canAct(session, '{{ $createRole }}', {{ $platformOnly }})
             [v]   const novo = canCriar ? (
             [v]     <Button onClick={abrir}>
+            [v]       <{{ mi:first-upper($createId) }}Icon /> {{ $createLabel }}
+            [v]     </Button>
+            [v]   ) : null
+        [e] create-route
+            [v]   const canCriar = canAct(session, '{{ $createRole }}', {{ $platformOnly }})
+            [v]   const novo = canCriar ? (
+            [v]     <Button onClick={() => void navigate({ to: '{{ $createRoute }}', params: { {{ $createParam }}: 'novo' } })}>
             [v]       <{{ mi:first-upper($createId) }}Icon /> {{ $createLabel }}
             [v]     </Button>
             [v]   ) : null
@@ -208,6 +217,10 @@
                     [e] expr
                         [v] if (exists($createClass/properties/role/value)) then normalize-space($createClass/properties/role/value) else if (exists(properties/role/value)) then normalize-space(properties/role/value) else 'consulta'
                 [e] var
+                    [v] platformOnly
+                    [e] expr
+                        [v] if (normalize-space(properties/platformOnly/value) = 'true') then 'true' else 'false'
+                [e] var
                     [v] rowActions
                     [e] expr
                         [v] actions/action[normalize-space(properties/type/value) = 'row']
@@ -220,6 +233,42 @@
                     [e] expr
                         [v] $hasCreate or $hasRows
                 [e] var
+                    [v] createRoute
+                    [e] expr
+                        [v] normalize-space($createClass/properties/route/value)
+                [e] var
+                    [v] createParam
+                    [e] expr
+                        [v] substring-after($createRoute, '$')
+                [e] var
+                    [v] createByRoute
+                    [e] expr
+                        [v] $hasCreate and $createClass/@mode = 'window.editor' and contains($createRoute, '$')
+                [e] var
+                    [v] createByDialog
+                    [e] expr
+                        [v] $hasCreate and not($createByRoute)
+                [e] var
+                    [v] listOpens
+                    [e] expr
+                        [v] normalize-space(properties/opens/value)
+                [e] var
+                    [v] listOpensDialog
+                    [e] expr
+                        [v] $listOpens != '' and exists($classes/class[@name = $listOpens and @mode = 'window.dialog'])
+                [e] var
+                    [v] padraoViolado
+                    [e] expr
+                        [v] $createByDialog or $listOpensDialog
+                [e] var
+                    [v] badOpens
+                    [e] expr
+                        [v] if ($createByDialog) then $createName else $listOpens
+                [e] var
+                    [v] needsNavigate
+                    [e] expr
+                        [v] $hasRows or $createByRoute
+                [e] var
                     [v] linkActions
                     [e] expr
                         [v] actions/action[normalize-space(properties/type/value) = 'link' and exists(properties/route/value)]
@@ -230,15 +279,15 @@
                 [e] var
                     [v] routerImports
                     [e] expr
-                        [v] string-join((if ($hasLinks) then 'Link' else (), if ($hasRows) then 'useNavigate' else ()), ', ')
+                        [v] string-join((if ($hasLinks) then 'Link' else (), if ($needsNavigate) then 'useNavigate' else ()), ', ')
                 [e] var
                     [v] reactImports
                     [e] expr
-                        [v] string-join((if ($hasRows) then 'useMemo' else (), if ($hasCreate) then 'useState' else ()), ', ')
+                        [v] string-join((if ($hasRows) then 'useMemo' else (), if ($createByDialog) then 'useState' else ()), ', ')
                 [e] var
                     [v] apiImports
                     [e] expr
-                        [v] string-join((concat('use', normalize-space(attributes/attribute[@name = 'object']/@type), 's'), if ($hasCreate) then concat('useCriar', normalize-space(attributes/attribute[@name = 'object']/@type)) else ()), ', ')
+                        [v] string-join((concat('use', normalize-space(attributes/attribute[@name = 'object']/@type), 's'), if ($createByDialog) then concat('useCriar', normalize-space(attributes/attribute[@name = 'object']/@type)) else ()), ', ')
                 [e] var
                     [v] facetImports
                     [e] expr
@@ -270,6 +319,11 @@
             [e] write-pattern
                 [v] header
             [e] if
+                [v] $padraoViolado
+                [e] then
+                    [e] write-pattern
+                        [v] err-create-dialog
+            [e] if
                 [v] $reactImports != ''
                 [e] then
                     [e] write-pattern
@@ -280,12 +334,12 @@
                     [e] write-pattern
                         [v] import-navigate
             [e] if
-                [v] $hasCreate
+                [v] $createByDialog
                 [e] then
                     [e] write-pattern
                         [v] import-dialog
                 [e] else-if
-                    [v] $hasLinks
+                    [v] $hasLinks or $createByRoute
                     [e] then
                         [e] write-pattern
                             [v] import-button
@@ -297,12 +351,12 @@
             [e] write-pattern
                 [v] import-runtime
             [e] if
-                [v] $hasCreate
+                [v] $createByDialog
                 [e] then
                     [e] write-pattern
                         [v] import-feedback
                 [e] else-if
-                    [v] $hasLinks
+                    [v] $hasLinks or $createByRoute
                     [e] then
                         [e] write-pattern
                             [v] import-icon
@@ -318,10 +372,13 @@
             [e] write-pattern
                 [v] import-columns
             [e] if
-                [v] $hasCreate
+                [v] $createByDialog
                 [e] then
                     [e] write-pattern
                         [v] import-form
+            [e] if
+                [v] $hasCreate
+                [e] then
                     [e] write-pattern
                         [v] icon-const
             [e] if
@@ -358,10 +415,13 @@
                     [e] write-pattern
                         [v] use-session
             [e] if
-                [v] $hasRows
+                [v] $needsNavigate
                 [e] then
                     [e] write-pattern
                         [v] use-navigate
+            [e] if
+                [v] $hasRows
+                [e] then
                     [e] write-pattern
                         [v] columns-memo-start
                     [e] apply-templates
@@ -371,6 +431,9 @@
                             [e] listRole
                                 [e] expr
                                     [v] mi:if-else(exists(properties/role/value), normalize-space(properties/role/value), 'consulta')
+                            [e] listPlatform
+                                [e] expr
+                                    [v] $platformOnly
                         [e] mode
                             [v] rowWire
                     [e] write-pattern
@@ -378,10 +441,15 @@
             [e] write-pattern
                 [v] use-state-table
             [e] if
-                [v] $hasCreate
+                [v] $createByDialog
                 [e] then
                     [e] write-pattern
                         [v] create-hooks
+                [e] else-if
+                    [v] $createByRoute
+                    [e] then
+                        [e] write-pattern
+                            [v] create-route
                 [e] else
                     [e] write-pattern
                         [v] create-none
@@ -412,7 +480,7 @@
             [e] write-pattern
                 [v] return-table-end
             [e] if
-                [v] $hasCreate
+                [v] $createByDialog
                 [e] then
                     [e] write-pattern
                         [v] return-dialog
@@ -473,6 +541,8 @@
                 [e] parameters
                     [e] listRole
                         [v] consulta
+                    [e] listPlatform
+                        [v] false
                 [e] body
                     [e] vars
                         [e] var

@@ -149,6 +149,37 @@ describe('AutoForm: lookup de CEP', () => {
     expect(screen.getByLabelText('Complemento')).toHaveValue('ap 3')
   })
 
+  it('botao de busca em destaque: clique consulta sem sair do campo e repete mesmo sem mudanca', async () => {
+    apiMock.mockResolvedValue(RESPOSTA)
+    const user = userEvent.setup()
+    renderForm()
+    await user.type(screen.getByLabelText('CEP'), '85980000')
+    await user.click(screen.getByRole('button', { name: 'Buscar endereço pelo CEP' }))
+    await waitFor(() => expect(screen.getByLabelText('Logradouro')).toHaveValue('Rua Quinze de Novembro'))
+    expect(apiMock).toHaveBeenCalledTimes(1)
+    await user.click(screen.getByRole('button', { name: 'Buscar endereço pelo CEP' }))
+    await waitFor(() => expect(apiMock).toHaveBeenCalledTimes(2))
+  })
+
+  it('Enter no campo CEP consulta e nao envia o formulario', async () => {
+    apiMock.mockResolvedValue(RESPOSTA)
+    const user = userEvent.setup()
+    const onSubmit = renderForm()
+    await user.type(screen.getByLabelText('CEP'), '85980000{Enter}')
+    await waitFor(() => expect(screen.getByLabelText('Bairro')).toHaveValue('Centro'))
+    expect(apiMock).toHaveBeenCalledWith('/cep/85980000')
+    expect(onSubmit).not.toHaveBeenCalled()
+  })
+
+  it('botao com CEP incompleto avisa no campo e nao chama a API', async () => {
+    const user = userEvent.setup()
+    renderForm()
+    await user.type(screen.getByLabelText('CEP'), '8598')
+    await user.click(screen.getByRole('button', { name: 'Buscar endereço pelo CEP' }))
+    expect(await screen.findByText('Informe os 8 dígitos do CEP.')).toBeInTheDocument()
+    expect(apiMock).not.toHaveBeenCalled()
+  })
+
   it('CEP incompleto nao chama a API; sem mudanca ao sair nao repete a busca', async () => {
     apiMock.mockResolvedValue(RESPOSTA)
     const user = userEvent.setup()
