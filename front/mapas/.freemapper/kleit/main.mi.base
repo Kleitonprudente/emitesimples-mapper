@@ -1,0 +1,299 @@
+[p] br.com.emitesimples
+    @
+        [e] title
+            [e] pt
+                [v] Emite Simples
+            [e] en
+                [v] Emite Simples
+        [e] description
+            [e] pt
+                [v] Front do emissor de NFS-e. Projeto de telas: o domínio é cópia somente-leitura do back (dominio/) e as telas ficam em window/. Namespace raiz igual ao do back.
+            [e] en
+                [v] Front of the NFS-e issuer. Screen project: the domain is a read-only copy of the back (dominio/) and the screens live in window/. Root namespace identical to the back.
+    config
+        structVersion
+            2
+        [e] mapperidea
+            [e] maps
+                [e] mapNativeTypes
+                    [e] String
+                        [v] Texto
+                    [e] BigString
+                        [v] TextoLongo
+                    [e] Integer
+                        [v] Inteiro
+                    [e] Long
+                        [v] InteiroLongo
+                    [e] Double
+                        [v] Double
+                    [e] BigDecimal
+                        [v] ValorMonetario
+                        [v] Decimal
+                    [e] Boolean
+                        [v] Boolean
+                    [e] Date
+                        [v] Data
+                    [e] DateTime
+                        [v] DataHora
+                    [e] Binary
+                        [v] Binario
+                [e] toSwaggerTypes
+                    [e] Texto
+                        [v] string
+                    [e] TextoLongo
+                        [v] string
+                    [e] Inteiro
+                        [v] integer
+                    [e] InteiroLongo
+                        [v] integer
+                    [e] ValorMonetario
+                        [v] number
+                    [e] Decimal
+                        [v] number
+                    [e] Double
+                        [v] number
+                    [e] Boolean
+                        [v] boolean
+                    [e] Data
+                        [v] string
+                    [e] DataHora
+                        [v] string
+                    [e] Binario
+                        [v] string
+                [e] bigDecimalDefaults
+                    [e] precision
+                        [v] 15
+                    [e] scale
+                        [v] 2
+                    [e] scaleByType
+                        [e] Decimal
+                            [v] 4
+                [e] nondeterministicSearchField
+                    [v] nome
+                    [v] nomeFantasia
+                    [v] razaoSocial
+            [e] generators
+                [e] struct
+                    #
+                        generators/struct.mi
+                [e] frontend
+                    [e] zodSchema
+                        #
+                            generators/frontend/frontend-zodSchema.mi
+                    [e] apiClient
+                        #
+                            generators/frontend/frontend-apiClient.mi
+                    [e] screenColumns
+                        #
+                            generators/frontend/frontend-screenColumns.mi
+                    [e] screenPage
+                        #
+                            generators/frontend/frontend-screenPage.mi
+                    [e] screenForm
+                        #
+                            generators/frontend/frontend-screenForm.mi
+                    [e] screenEditorById
+                        #
+                            generators/frontend/frontend-screenEditorById.mi
+                    [e] screenManifest
+                        #
+                            generators/frontend/frontend-screenManifest.mi
+                    [e] screenRoute
+                        #
+                            generators/frontend/frontend-screenRoute.mi
+    [p] domain
+        @
+            [e] title
+                [e] pt
+                    [v] Domínio
+                [e] en
+                    [v] Domain
+            [e] description
+                [e] pt
+                    [v] Modelo de domínio do emissor, organizado por contexto delimitado. Ordem de modelagem: configuracao e cadastros juntos (dependência mútua, e cadastros também referencia usuarios por causa da ImportacaoMunicipio, formando o laço cadastros, usuarios, configuracao, cadastros), depois usuarios (depende de configuracao), nfse (depende de configuracao, cadastros e usuarios), integranotas (depende de configuracao e nfse) e admin (depende de configuracao e usuarios; nenhum outro contexto o referencia).
+                [e] en
+                    [v] Domain model of the issuer, organized by bounded context. Modeling order: configuracao and cadastros together (mutual dependency, and cadastros also references usuarios because of ImportacaoMunicipio, forming the loop cadastros, usuarios, configuracao, cadastros), then usuarios (depends on configuracao), nfse (depends on configuracao, cadastros and usuarios), integranotas (depends on configuracao and nfse) and admin (depends on configuracao and usuarios; no other context references it).
+        [p] configuracao
+            @
+                [e] title
+                    [e] pt
+                        [v] Configuração
+                    [e] en
+                        [v] Configuration
+                [e] description
+                    [e] pt
+                        [v] Contexto com a Empresa, a empresa usuária e tenant do modelo, e seus detalhes AtividadeEmpresa e QsaEmpresa. Tem dependência mútua com cadastros: a Empresa referencia o Municipio (cadastros), e Pessoa e Servico (cadastros) referenciam a Empresa. Não é erro, pois a relação entre contextos é sempre referência, mas quebra o princípio de modelar do mais independente para o mais dependente. Empresa e Municipio devem ser modelados juntos. O contexto admin depende deste (referencia a Empresa), e este não depende dele.
+                    [e] en
+                        [v] Context with Empresa, the company that uses the system and tenant of the model, and its details AtividadeEmpresa and QsaEmpresa. It has a mutual dependency with cadastros: Empresa references Municipio (cadastros), and Pessoa and Servico (cadastros) reference Empresa. This is not an error, since the relation between contexts is always a reference, but it breaks the principle of modeling from the most independent to the most dependent. Empresa and Municipio must be modeled together. The admin context depends on this one (it references Empresa), and this one does not depend on it.
+            [b] Empresa
+                #
+                    dominio/Configuracao/Empresa.mi
+            [b] AtividadeEmpresa
+                #
+                    dominio/Configuracao/AtividadeEmpresa.mi
+            [b] QsaEmpresa
+                #
+                    dominio/Configuracao/QsaEmpresa.mi
+        [p] cadastros
+            @
+                [e] title
+                    [e] pt
+                        [v] Cadastros
+                    [e] en
+                        [v] Registries
+                [e] description
+                    [e] pt
+                        [v] Contexto com Municipio (dado de referência compartilhado), Pessoa, Servico, Contato e ImportacaoMunicipio. Depende de configuracao (Empresa) e de usuarios (a ImportacaoMunicipio referencia o Usuario). Tem dependência mútua com configuracao: Pessoa e Servico referenciam a Empresa (configuracao), e a Empresa referencia o Municipio daqui. Forma o laço cadastros, usuarios, configuracao, cadastros. Não é erro, pois a relação entre contextos é sempre referência, mas quebra o princípio de modelar do mais independente para o mais dependente. Municipio e Empresa devem ser modelados juntos.
+                    [e] en
+                        [v] Context with Municipio (shared reference data), Pessoa, Servico, Contato and ImportacaoMunicipio. It depends on configuracao (Empresa) and on usuarios (ImportacaoMunicipio references Usuario). It has a mutual dependency with configuracao: Pessoa and Servico reference Empresa (configuracao), and Empresa references the Municipio held here. It forms the loop cadastros, usuarios, configuracao, cadastros. This is not an error, since the relation between contexts is always a reference, but it breaks the principle of modeling from the most independent to the most dependent. Municipio and Empresa must be modeled together.
+            [b] Municipio
+                #
+                    dominio/Cadastros/Municipio.mi
+            [b] Pessoa
+                #
+                    dominio/Cadastros/Pessoa.mi
+            [b] Servico
+                #
+                    dominio/Cadastros/Servico.mi
+            [b] Contato
+                #
+                    dominio/Cadastros/Contato.mi
+            [b] ImportacaoMunicipio
+                #
+                    dominio/Cadastros/ImportacaoMunicipio.mi
+        [p] usuarios
+            @
+                [e] title
+                    [e] pt
+                        [v] Usuários
+                    [e] en
+                        [v] Users
+                [e] description
+                    [e] pt
+                        [v] Contexto que depende de configuracao, com Usuario, VinculoUsuario, ClienteAcesso, TokenRenovacao e ConfirmacaoCadastro (a confirmação do signup por link de e-mail). O contexto cadastros agora o referencia (ImportacaoMunicipio referencia o Usuario), fechando o laço cadastros, usuarios, configuracao, cadastros. Entre contextos a relação é sempre referência.
+                    [e] en
+                        [v] Context that depends on configuracao, with Usuario, VinculoUsuario, ClienteAcesso, TokenRenovacao and ConfirmacaoCadastro (the signup confirmation by e-mail link). The cadastros context now references it (ImportacaoMunicipio references Usuario), closing the loop cadastros, usuarios, configuracao, cadastros. Between contexts the relation is always a reference.
+            [b] Usuario
+                #
+                    dominio/Usuarios/Usuario.mi
+            [b] VinculoUsuario
+                #
+                    dominio/Usuarios/VinculoUsuario.mi
+            [b] ClienteAcesso
+                #
+                    dominio/Usuarios/ClienteAcesso.mi
+            [b] TokenRenovacao
+                #
+                    dominio/Usuarios/TokenRenovacao.mi
+            [b] ConfirmacaoCadastro
+                #
+                    dominio/Usuarios/ConfirmacaoCadastro.mi
+        [p] nfse
+            @
+                [e] title
+                    [e] pt
+                        [v] NFS-e
+                    [e] en
+                        [v] NFS-e
+                [e] description
+                    [e] pt
+                        [v] Contexto que depende de configuracao, cadastros e usuarios, com Nota e Cancelamento. Entre contextos a relação é sempre referência.
+                    [e] en
+                        [v] Context that depends on configuracao, cadastros and usuarios, with Nota and Cancelamento. Between contexts the relation is always a reference.
+            [b] Nota
+                #
+                    dominio/Nfse/Nota.mi
+            [b] Cancelamento
+                #
+                    dominio/Nfse/Cancelamento.mi
+        [p] integranotas
+            @
+                [e] title
+                    [e] pt
+                        [v] IntegraNotas
+                    [e] en
+                        [v] IntegraNotas
+                [e] description
+                    [e] pt
+                        [v] Contexto que depende de configuracao e nfse, com ChamadaGateway e EventoWebhook. Último na ordem de dependência dos contextos. Entre contextos a relação é sempre referência.
+                    [e] en
+                        [v] Context that depends on configuracao and nfse, with ChamadaGateway and EventoWebhook. Last in the context dependency order. Between contexts the relation is always a reference.
+            [b] ChamadaGateway
+                #
+                    dominio/IntegraNotas/ChamadaGateway.mi
+            [b] EventoWebhook
+                #
+                    dominio/IntegraNotas/EventoWebhook.mi
+        [p] admin
+            @
+                [e] title
+                    [e] pt
+                        [v] Admin
+                    [e] en
+                        [v] Admin
+                [e] description
+                    [e] pt
+                        [v] Contexto de administração e suporte da plataforma, que depende de configuracao (Empresa) e usuarios (Usuario); nenhum outro contexto o referencia. Reúne Plano, AssinaturaEmpresa, FaturaCrm e HistoricoSituacaoEmpresa. A cobrança é do CRM (PerfexCRM da Marke) e este sistema não processa pagamento. EM ABERTO: se o suporte é o mesmo papel do administrador da plataforma ou um papel separado, os limites do plano, como o CRM comunica as faturas e o log de sincronização com o CRM.
+                    [e] en
+                        [v] Platform administration and support context, which depends on configuracao (Empresa) and usuarios (Usuario); no other context references it. Holds Plano, AssinaturaEmpresa, FaturaCrm and HistoricoSituacaoEmpresa. Billing is done by the CRM (Marke PerfexCRM) and this system does not process payment. OPEN: whether support is the same role as the platform administrator or a separate role, the plan limits, how the CRM communicates invoices and the CRM synchronization log.
+            [b] Plano
+                #
+                    dominio/Admin/Plano.mi
+            [b] AssinaturaEmpresa
+                #
+                    dominio/Admin/AssinaturaEmpresa.mi
+            [b] FaturaCrm
+                #
+                    dominio/Admin/FaturaCrm.mi
+            [b] HistoricoSituacaoEmpresa
+                #
+                    dominio/Admin/HistoricoSituacaoEmpresa.mi
+    [p] window
+        @
+            [e] title
+                [e] pt
+                    [v] Telas
+                [e] en
+                    [v] Screens
+            [e] description
+                [e] pt
+                    [v] Mapas de tela do front (dialeto do plano de metodologia do front). Cada tela referencia por nome um bean do domínio, que vive neste projeto como cópia somente-leitura do back (pasta dominio). O caminho de pacotes é 1:1 com a pasta gerada.
+                [e] en
+                    [v] Front screen maps (dialect of the front methodology plan). Each screen references a domain bean by name, which lives in this project as a read-only copy of the back (dominio folder). The package path maps 1:1 to the generated folder.
+        [p] cadastros
+            [p] cliente
+                [Descriptor.window.list] GestaoClientes
+                    #
+                        window/cadastros/cliente/GestaoClientes.mi
+                [Descriptor.window.editor] FormularioCliente
+                    #
+                        window/cadastros/cliente/FormularioCliente.mi
+            [p] fornecedor
+                [Descriptor.window.list] GestaoFornecedores
+                    #
+                        window/cadastros/fornecedor/GestaoFornecedores.mi
+                [Descriptor.window.editor] FormularioFornecedor
+                    #
+                        window/cadastros/fornecedor/FormularioFornecedor.mi
+            [p] municipio
+                [Descriptor.window.list] GestaoMunicipios
+                    #
+                        window/cadastros/municipio/GestaoMunicipios.mi
+                [Descriptor.window.editor] FormularioMunicipio
+                    #
+                        window/cadastros/municipio/FormularioMunicipio.mi
+            [p] servico
+                [Descriptor.window.list] GestaoServicos
+                    #
+                        window/cadastros/servico/GestaoServicos.mi
+                [Descriptor.window.editor] FormularioServico
+                    #
+                        window/cadastros/servico/FormularioServico.mi
+        [p] configuracao
+            [p] empresa
+                [Descriptor.window.list] GestaoEmpresas
+                    #
+                        window/configuracao/empresa/GestaoEmpresas.mi
+                [Descriptor.window.editor] FormularioEmpresa
+                    #
+                        window/configuracao/empresa/FormularioEmpresa.mi
