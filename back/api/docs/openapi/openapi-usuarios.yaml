@@ -2,7 +2,7 @@ swagger: '2.0'
 info:
   version: v1
   title: Emitesimples API Usuários
-  description: Contexto que depende de configuracao, com Usuario, VinculoUsuario, ClienteAcesso, TokenRenovacao e ConfirmacaoCadastro (a confirmação do signup por link de e-mail). O contexto cadastros agora o referencia (ImportacaoMunicipio referencia o Usuario), fechando o laço cadastros, usuarios, configuracao, cadastros. Entre contextos a relação é sempre referência.
+  description: Contexto que depende de configuracao, com Usuario, VinculoUsuario, ClienteAcesso, TokenRenovacao e ConfirmacaoCadastro (a confirmação do signup por link de e-mail). Nenhum contexto anterior o referencia (a ImportacaoMunicipio, de cadastros, guarda só o idUsuario). Entre contextos a relação é sempre referência.
 host: localhost:8080
 securityDefinitions:
   usuarios_auth:

@@ -5,7 +5,6 @@ import br.com.emitesimples.cadastros.domain.ImportacaoMunicipio;
 import br.com.emitesimples.cadastros.entity.ImportacaoMunicipioEntity;
 import java.util.List;
 import java.util.ArrayList;
-import br.com.emitesimples.usuarios.entity.UsuarioEntity;
 
 /*
  * ImportacaoMunicipio entity builder
@@ -27,7 +26,7 @@ public class ImportacaoMunicipioEntityBuilder {
     public String id;
     public LocalDateTime dataCriacao;
     public LocalDateTime dataAtualizacao;
-    public UsuarioEntity usuario;
+    public String idUsuario;
 
     public ImportacaoMunicipioEntityBuilder() {
     }
@@ -111,8 +110,8 @@ public class ImportacaoMunicipioEntityBuilder {
         return this;
     }
 
-    public ImportacaoMunicipioEntityBuilder withUsuario(UsuarioEntity usuario) {
-        this.usuario = usuario;
+    public ImportacaoMunicipioEntityBuilder withIdUsuario(String idUsuario) {
+        this.idUsuario = idUsuario;
         return this;
     }
 
@@ -137,7 +136,7 @@ public class ImportacaoMunicipioEntityBuilder {
                 .withId(importacaoMunicipio.getId())
                 .withDataCriacao(importacaoMunicipio.getDataCriacao())
                 .withDataAtualizacao(importacaoMunicipio.getDataAtualizacao())
-                .withUsuario(UsuarioEntity.builderOf().withModel(importacaoMunicipio.getUsuario()).build());
+                .withIdUsuario(importacaoMunicipio.getIdUsuario());
     }
 
     public List<ImportacaoMunicipioEntity> withModelList(List<ImportacaoMunicipio> importacaoMunicipioList) {

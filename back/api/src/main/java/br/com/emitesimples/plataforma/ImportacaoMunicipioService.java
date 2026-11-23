@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.jboss.logging.Logger;
 
 /**
@@ -150,7 +151,7 @@ public class ImportacaoMunicipioService {
                 .withLinhasRejeitadas(rejeicoes.size())
                 .withResumoRejeicoes(resumo(rejeicoes))
                 .withDataCriacao(agora).withDataAtualizacao(agora)
-                .withUsuario(em.getReference(UsuarioEntity.class, usuarioId))
+                .withIdUsuario(usuarioId)
                 .build();
         em.persist(h);
         em.flush();
@@ -214,7 +215,7 @@ public class ImportacaoMunicipioService {
                         .withLinhasIguais(0).withLinhasRejeitadas(0)
                         .withResumoRejeicoes(motivo)
                         .withDataCriacao(agora).withDataAtualizacao(agora)
-                        .withUsuario(em.getReference(UsuarioEntity.class, usuarioId))
+                        .withIdUsuario(usuarioId)
                         .build());
             });
         } catch (RuntimeException e) {
@@ -224,13 +225,23 @@ public class ImportacaoMunicipioService {
 
     /** Ultimas importacoes, da mais recente para a mais antiga. */
     public List<ImportacaoResumo> ultimas(int limite) {
-        return QuarkusTransaction.requiringNew().call(() -> em.createQuery(
-                        "select i from ImportacaoMunicipioEntity i join fetch i.usuario "
-                                + "order by i.dataHoraInicio desc, i.id desc", ImportacaoMunicipioEntity.class)
-                .setMaxResults(limite).getResultList().stream()
-                .map(i -> paraResumo(i, new UsuarioRef(i.getUsuario().getId(), i.getUsuario().getNome(),
-                        i.getUsuario().getEmail()), null))
-                .toList());
+        return QuarkusTransaction.requiringNew().call(() -> {
+            List<ImportacaoMunicipioEntity> historico = em.createQuery(
+                            "select i from ImportacaoMunicipioEntity i order by i.dataHoraInicio desc, i.id desc",
+                            ImportacaoMunicipioEntity.class)
+                    .setMaxResults(limite).getResultList();
+            // o usuario e so um id de auditoria (CN-REL-002): busca os nomes de uma vez; usuario apagado fica so com o id
+            List<String> ids = historico.stream().map(ImportacaoMunicipioEntity::getIdUsuario).distinct().toList();
+            Map<String, UsuarioEntity> usuarios = ids.isEmpty() ? Map.of()
+                    : em.createQuery("select u from UsuarioEntity u where u.id in :ids", UsuarioEntity.class)
+                            .setParameter("ids", ids).getResultStream()
+                            .collect(Collectors.toMap(UsuarioEntity::getId, u -> u));
+            return historico.stream().map(i -> {
+                UsuarioEntity u = usuarios.get(i.getIdUsuario());
+                return paraResumo(i, new UsuarioRef(i.getIdUsuario(), u == null ? null : u.getNome(),
+                        u == null ? null : u.getEmail()), null);
+            }).toList();
+        });
     }
 
     private static ImportacaoResumo paraResumo(ImportacaoMunicipioEntity h, UsuarioRef usuario, List<Rejeicao> rejeicoes) {

@@ -2,7 +2,7 @@ swagger: '2.0'
 info:
   version: v1
   title: Emitesimples API Cadastros
-  description: Contexto com Municipio (dado de referência compartilhado), Pessoa, Servico, Contato e ImportacaoMunicipio. Depende de configuracao (Empresa) e de usuarios (a ImportacaoMunicipio referencia o Usuario). Tem dependência mútua com configuracao: Pessoa e Servico referenciam a Empresa (configuracao), e a Empresa referencia o Municipio daqui. Forma o laço cadastros, usuarios, configuracao, cadastros. Não é erro, pois a relação entre contextos é sempre referência, mas quebra o princípio de modelar do mais independente para o mais dependente. Municipio e Empresa devem ser modelados juntos.
+  description: Contexto com Municipio (dado de referência compartilhado), Pessoa, Servico, Contato e ImportacaoMunicipio. Depende só de configuracao (Empresa); a ImportacaoMunicipio guarda o usuário apenas como idUsuario (referência de auditoria), sem relação com o contexto usuarios. Tem dependência mútua com configuracao: Pessoa e Servico referenciam a Empresa (configuracao), e a Empresa referencia o Municipio daqui. Não é erro, pois a relação entre contextos é sempre referência, mas quebra o princípio de modelar do mais independente para o mais dependente. Municipio e Empresa devem ser modelados juntos.
 host: localhost:8080
 securityDefinitions:
   cadastros_auth:
@@ -87,12 +87,10 @@ tags:
              Registro da plataforma, não de uma empresa: não tem empresa, não tem tenantKey e 
             não tem ambiente (não depende do gateway). Só o administrador da plataforma 
             envia; essa regra é da aplicação e o mapa não a expressa.
-             Vive no contexto cadastros (domain.cadastros) e referencia o Usuario do contexto 
-            usuarios, que já referencia configuracao, que por sua vez referencia cadastros. 
-            É mais uma volta no ciclo de dependência entre contextos, como a dependência 
-            mútua entre configuracao e cadastros: não é erro, pois entre contextos a relação 
-            é sempre referência, mas quebra o princípio de modelar do mais independente para 
-            o mais dependente.
+             Vive no contexto cadastros (domain.cadastros). O usuário que fez a importação é 
+            guardado só como id (idUsuario, referência de auditoria, CN-REL-002), sem 
+            relação com o Usuario do contexto usuarios; assim cadastros não depende de 
+            usuarios.
 
 paths:
   /Municipio:
@@ -3630,13 +3628,10 @@ paths:
         in: "query"
         description: "Filtra registros por versão"
         type: integer
-      - name: "usuario.id"
+      - name: "idUsuario"
         in: "query"
-        description: "Filtra registros por usuario usando ID interno da API"
-        type: integer
-        minimum: 0
-        maximum: 2147483647
-        format: int32
+        description: "Filtra registros por idUsuario"
+        type: string
       produces:
       - "application/json"
       responses:
@@ -3830,13 +3825,10 @@ paths:
         in: "query"
         description: "Filtra registros por versão"
         type: integer
-      - name: "usuario.id"
+      - name: "idUsuario"
         in: "query"
-        description: "Filtra registros por usuario usando ID interno da API"
-        type: integer
-        minimum: 0
-        maximum: 2147483647
-        format: int32
+        description: "Filtra registros por idUsuario"
+        type: string
       produces:
       - "application/json"
       responses: 
@@ -3957,13 +3949,10 @@ paths:
         in: "query"
         description: "Filtra registros por versão"
         type: integer
-      - name: "usuario.id"
+      - name: "idUsuario"
         in: "query"
-        description: "Filtra registros por usuario usando ID interno da API"
-        type: integer
-        minimum: 0
-        maximum: 2147483647
-        format: int32
+        description: "Filtra registros por idUsuario"
+        type: string
       produces:
       - "application/json"
       responses: 
@@ -4112,13 +4101,10 @@ paths:
         in: "query"
         description: "Filtra registros por versão"
         type: integer
-      - name: "usuario.id"
+      - name: "idUsuario"
         in: "query"
-        description: "Filtra registros por usuario usando ID interno da API"
-        type: integer
-        minimum: 0
-        maximum: 2147483647
-        format: int32
+        description: "Filtra registros por idUsuario"
+        type: string
       produces:
       - "application/json"
       responses:
@@ -5161,12 +5147,10 @@ definitions:
              Registro da plataforma, não de uma empresa: não tem empresa, não tem tenantKey e 
             não tem ambiente (não depende do gateway). Só o administrador da plataforma 
             envia; essa regra é da aplicação e o mapa não a expressa.
-             Vive no contexto cadastros (domain.cadastros) e referencia o Usuario do contexto 
-            usuarios, que já referencia configuracao, que por sua vez referencia cadastros. 
-            É mais uma volta no ciclo de dependência entre contextos, como a dependência 
-            mútua entre configuracao e cadastros: não é erro, pois entre contextos a relação 
-            é sempre referência, mas quebra o princípio de modelar do mais independente para 
-            o mais dependente.
+             Vive no contexto cadastros (domain.cadastros). O usuário que fez a importação é 
+            guardado só como id (idUsuario, referência de auditoria, CN-REL-002), sem 
+            relação com o Usuario do contexto usuarios; assim cadastros não depende de 
+            usuarios.
 
     type: object
     required:
@@ -5181,7 +5165,7 @@ definitions:
       - id
       - dataCriacao
       - dataAtualizacao
-      - usuario
+      - idUsuario
     properties:
       id:
         type: integer
@@ -5317,14 +5301,15 @@ definitions:
         description: |
             Data e hora da última alteração do registro.
 
-      usuario:
+      idUsuario:
+        type: string
+        maxLength: 36
+        pattern: \w*\W*
         description: |
-            Administrador da plataforma que enviou o arquivo. O Usuario é global, sem 
-            tenant. Só o administrador da plataforma envia; a regra é da aplicação e o mapa 
-            não a expressa.
+            Id do usuário (administrador da plataforma) que fez a importação, guardado só 
+            como referência de auditoria, sem carregar o objeto Usuario. Só o administrador 
+            da plataforma envia; a regra é da aplicação e o mapa não a expressa.
 
-        allOf:
-          - $ref: '#/definitions/IdReference'
   configuracao.Empresa:
     description: |
             Empresa usuária do sistema e tenant do modelo. Cada empresa só emite e só 
@@ -5710,104 +5695,6 @@ definitions:
 
         allOf:
           - $ref: '#/definitions/IdReference'
-  usuarios.Usuario:
-    description: |
-            Identidade de uma pessoa que entra no sistema. É global: uma pessoa pode ter 
-            vínculo com várias empresas, por isso não tem tenantKey, e o isolamento por 
-            empresa está no VinculoUsuario. Vive no contexto usuarios (domain.usuarios), que 
-            depende de configuracao e cadastros.
-             O e-mail é único no sistema inteiro (o mapa não expressa unicidade, ela é regra 
-            de negócio e índice único no banco).
-             NUNCA guarda a senha, só o hash. NUNCA guarda token.
-
-    type: object
-    required:
-      - nome
-      - email
-      - ativo
-      - administradorPlataforma
-      - id
-      - dataCriacao
-      - dataAtualizacao
-    properties:
-      id:
-        type: integer
-        minimum: 0
-        maximum: 9999999999999
-        format: int64
-        description: |
-            ID para referência interna da API
-      version:
-        type: string
-        format: date-time
-        description: |
-            Data e hora da versão do registro. Usado principalmente para sincronização e controle de lock otimista.
-            Mantido pela API, não deve ser alterado, mas em caso de alterações deve ser copiado o valor recebido.
-            Em inclusões deve vir vazio, ao gravar a API irá retornar a primeira versão.
-            Em alterações deve vir o mesmo valor que verio no ultimo retorno de consulta do registro, ao gravar o sistema vai gerar um novo valor.
-            Somente com o valor certo desse campo, que registros podem ser atualizados.
-      nome:
-        type: string
-        maxLength: 120
-        pattern: \w*\W*
-        description: |
-            Nome da pessoa. No signup é o nome do responsável, o primeiro usuário da 
-            empresa.
-
-      email:
-        type: string
-        maxLength: 160
-        pattern: \w*\W*
-        description: |
-            E-mail usado no login. Único no sistema, sem diferenciar maiúsculas de 
-            minúsculas. No signup, nome, e-mail e WhatsApp do responsável viram dados do 
-            Usuario.
-
-      whatsapp:
-        type: string
-        maxLength: 20
-        pattern: \w*\W*
-        description: |
-            WhatsApp da pessoa, até 20 caracteres. Opcional: o primeiro usuário, do signup, 
-            o terá; usuários criados depois podem não ter.
-
-      ativo:
-        type: boolean
-        description: |
-            Usuário inativo não consegue entrar nem renovar o acesso.
-
-      administradorPlataforma:
-        type: boolean
-        description: |
-            Indica o administrador da plataforma, que pode cadastrar empresas em modo 
-            irrestrito. Necessário porque a Empresa é o tenant e carrega tenantKey no 
-            próprio id.
-
-      dataUltimoAcesso:
-        type: string
-        format: date-time
-        description: |
-            Data e hora do último login bem-sucedido. Vazia se nunca entrou.
-
-      id:
-        type: string
-        maxLength: 36
-        pattern: \w*\W*
-        description: |
-            Identificador interno do registro (UUID).
-
-      dataCriacao:
-        type: string
-        format: date-time
-        description: |
-            Data e hora em que o registro foi gravado.
-
-      dataAtualizacao:
-        type: string
-        format: date-time
-        description: |
-            Data e hora da última alteração do registro.
-
   configuracao.AtividadeEmpresa:
     description: |
             Atividade econômica (CNAE) de uma Empresa, com tipo, código CNAE e descrição. 

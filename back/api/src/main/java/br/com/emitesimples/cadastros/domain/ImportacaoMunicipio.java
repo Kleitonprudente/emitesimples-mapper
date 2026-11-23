@@ -6,7 +6,6 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import br.com.emitesimples.usuarios.domain.Usuario;
 
 /*
 * Histórico dos envios do arquivo de cidades (CSV do IBGE) feitos pelo 
@@ -18,12 +17,10 @@ import br.com.emitesimples.usuarios.domain.Usuario;
  * Registro da plataforma, não de uma empresa: não tem empresa, não tem tenantKey e 
 * não tem ambiente (não depende do gateway). Só o administrador da plataforma 
 * envia; essa regra é da aplicação e o mapa não a expressa.
- * Vive no contexto cadastros (domain.cadastros) e referencia o Usuario do contexto 
-* usuarios, que já referencia configuracao, que por sua vez referencia cadastros. 
-* É mais uma volta no ciclo de dependência entre contextos, como a dependência 
-* mútua entre configuracao e cadastros: não é erro, pois entre contextos a relação 
-* é sempre referência, mas quebra o princípio de modelar do mais independente para 
-* o mais dependente.
+ * Vive no contexto cadastros (domain.cadastros). O usuário que fez a importação é 
+* guardado só como id (idUsuario, referência de auditoria, CN-REL-002), sem 
+* relação com o Usuario do contexto usuarios; assim cadastros não depende de 
+* usuarios.
 
 */
 public class ImportacaoMunicipio {
@@ -82,8 +79,9 @@ public class ImportacaoMunicipio {
     @JsonFormat(pattern="yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime dataAtualizacao;
 
-    @NotNull(message = "The attribute usuario can't be null.")
-    private Usuario usuario;
+    @NotEmpty(message = "The attribute idUsuario can't be empty.")
+    @Size(max = 36, message = "Attribute idUsuario must have 36 characters maximum.")
+    private String idUsuario;
 
     public ImportacaoMunicipio() {
         this.version = null;
@@ -102,7 +100,7 @@ public class ImportacaoMunicipio {
         this.id = null;
         this.dataCriacao = null;
         this.dataAtualizacao = null;
-        this.usuario = null;
+        this.idUsuario = null;
     }
     public ImportacaoMunicipio(
         LocalDateTime version,
@@ -121,7 +119,7 @@ public class ImportacaoMunicipio {
         String id,
         LocalDateTime dataCriacao,
         LocalDateTime dataAtualizacao,
-        Usuario usuario
+        String idUsuario
     ) {
         this.version = version;
         this.nomeArquivo = nomeArquivo;
@@ -139,7 +137,7 @@ public class ImportacaoMunicipio {
         this.id = id;
         this.dataCriacao = dataCriacao;
         this.dataAtualizacao = dataAtualizacao;
-        this.usuario = usuario;
+        this.idUsuario = idUsuario;
     }
     public void setVersion(LocalDateTime version) {
         this.version = version;
@@ -269,12 +267,12 @@ public class ImportacaoMunicipio {
         return this.dataAtualizacao;
     }
 
-    public void setUsuario(Usuario usuario) {
-        this.usuario = usuario;
+    public void setIdUsuario(String idUsuario) {
+        this.idUsuario = idUsuario;
     }
 
-    public Usuario getUsuario() {
-        return this.usuario;
+    public String getIdUsuario() {
+        return this.idUsuario;
     }
 
     @JsonIgnore
@@ -306,7 +304,7 @@ public class ImportacaoMunicipio {
             this.resumoRejeicoes != null || 
             this.dataCriacao != null || 
             this.dataAtualizacao != null || 
-            this.usuario != null;
+            this.idUsuario != null;
     }
 
 }

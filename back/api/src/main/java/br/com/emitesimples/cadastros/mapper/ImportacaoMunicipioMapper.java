@@ -10,16 +10,11 @@ import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import br.com.emitesimples.exceptions.NotFoundException;
-import br.com.emitesimples.usuarios.domain.Usuario;
-import br.com.emitesimples.usuarios.mapper.UsuarioMapper;
-import br.com.emitesimples.usuarios.entity.UsuarioEntity;
 
 @ApplicationScoped
 public class ImportacaoMunicipioMapper {
 
     @Inject ImportacaoMunicipioRepository repository;
-    @Inject 
-    UsuarioMapper usuarioMapper;
 
     public ImportacaoMunicipio entityToApi(ImportacaoMunicipioEntity entity) {
         if ( entity == null ) {
@@ -44,7 +39,7 @@ public class ImportacaoMunicipioMapper {
         importacaoMunicipio.setId( entity.getId() );
         importacaoMunicipio.setDataCriacao( entity.getDataCriacao() );
         importacaoMunicipio.setDataAtualizacao( entity.getDataAtualizacao() );
-        importacaoMunicipio.setUsuario(usuarioMapper.entityToApi(entity.getUsuario() ));
+        importacaoMunicipio.setIdUsuario( entity.getIdUsuario() );
 
         this.setApiDefaultValues(importacaoMunicipio);
 
@@ -80,7 +75,7 @@ public class ImportacaoMunicipioMapper {
             importacaoMunicipioBuilder.id = api.getId();
             importacaoMunicipioBuilder.dataCriacao = api.getDataCriacao();
             importacaoMunicipioBuilder.dataAtualizacao = api.getDataAtualizacao();
-            importacaoMunicipioBuilder.usuario = usuarioMapper.apiToEntity(api.getUsuario());
+            importacaoMunicipioBuilder.idUsuario = api.getIdUsuario();
             entity = importacaoMunicipioBuilder.build();
             this.setEntityDefaultValues(entity);
         }
@@ -135,15 +130,7 @@ public class ImportacaoMunicipioMapper {
         api.setId( entity.getId() );
         api.setDataCriacao( entity.getDataCriacao() );
         api.setDataAtualizacao( entity.getDataAtualizacao() );
-
-        if ( entity.getUsuario() != null ) {
-            if ( api.getUsuario() == null ) {
-                api.setUsuario( new Usuario() );
-            }
-            usuarioMapper.updateEntityToApi(entity.getUsuario(), api.getUsuario());
-        } else {
-            api.setUsuario( null );
-        }
+        api.setIdUsuario( entity.getIdUsuario() );
 
         this.setApiDefaultValues(api);
 
@@ -178,15 +165,7 @@ public class ImportacaoMunicipioMapper {
             entity.setId( api.getId() );
             entity.setDataCriacao( api.getDataCriacao() );
             entity.setDataAtualizacao( api.getDataAtualizacao() );
-
-            if ( api.getUsuario() != null ) {
-                if ( entity.getUsuario() == null ) {
-                    entity.setUsuario( new UsuarioEntity() );
-                }
-                entity.setUsuario(usuarioMapper.updateApiToEntity( api.getUsuario(), entity.getUsuario()));
-            } else {
-                entity.setUsuario( null );
-            }
+            entity.setIdUsuario( api.getIdUsuario() );
 
             this.setEntityDefaultValues(entity);
         }
@@ -214,12 +193,7 @@ public class ImportacaoMunicipioMapper {
         if (api.getId() != null) entity.setId( api.getId() ); 
         if (api.getDataCriacao() != null) entity.setDataCriacao( api.getDataCriacao() ); 
         if (api.getDataAtualizacao() != null) entity.setDataAtualizacao( api.getDataAtualizacao() ); 
-        if ( api.getUsuario() != null ) {
-            if ( entity.getUsuario() == null ) {
-                entity.setUsuario( new UsuarioEntity() );
-            }
-            entity.setUsuario(usuarioMapper.updateApiToEntity( api.getUsuario(), entity.getUsuario()));
-        }
+        if (api.getIdUsuario() != null) entity.setIdUsuario( api.getIdUsuario() ); 
 
         return entity;
     }

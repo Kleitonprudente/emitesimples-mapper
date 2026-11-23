@@ -57,14 +57,12 @@ public class ImportacaoMunicipioResource {
         @QueryParam("id") String id,
         @QueryParam("dataCriacao") String dataCriacao,
         @QueryParam("dataAtualizacao") String dataAtualizacao,
-        @QueryParam("nome") String usuarioNome,
-        @QueryParam("email") String usuarioEmail,
-        @QueryParam("usuario.id") String usuarioId
+        @QueryParam("idUsuario") String idUsuario
     ) {
         Sort sort = Sort.by(sortBy != null ? sortBy : "id")
                         .direction(sortDirection.equalsIgnoreCase("desc") ?
                                    Sort.Direction.Descending : Sort.Direction.Ascending);
-        List<ImportacaoMunicipioEntity> entityList = repository.findWithFilters(0, 100, sort, nomeArquivo, codificacaoDetectada, separadorDetectado, estado, dataHoraInicio, dataHoraFim, linhasLidas, linhasInseridas, linhasAtualizadas, linhasIguais, linhasRejeitadas, resumoRejeicoes, id, dataCriacao, dataAtualizacao, usuarioNome, usuarioEmail, usuarioId);
+        List<ImportacaoMunicipioEntity> entityList = repository.findWithFilters(0, 100, sort, nomeArquivo, codificacaoDetectada, separadorDetectado, estado, dataHoraInicio, dataHoraFim, linhasLidas, linhasInseridas, linhasAtualizadas, linhasIguais, linhasRejeitadas, resumoRejeicoes, id, dataCriacao, dataAtualizacao, idUsuario);
 
         return mapper.entityListToApiList(entityList);
     }
@@ -107,13 +105,11 @@ public class ImportacaoMunicipioResource {
         @QueryParam("id") String id,
         @QueryParam("dataCriacao") String dataCriacao,
         @QueryParam("dataAtualizacao") String dataAtualizacao,
-        @QueryParam("nome") String usuarioNome,
-        @QueryParam("email") String usuarioEmail,
-        @QueryParam("usuario.id") String usuarioId
+        @QueryParam("idUsuario") String idUsuario
     ) {
 
         CountResult countResult = new CountResult();
-        countResult.setCount(repository.countWithFilters( nomeArquivo, codificacaoDetectada, separadorDetectado, estado, dataHoraInicio, dataHoraFim, linhasLidas, linhasInseridas, linhasAtualizadas, linhasIguais, linhasRejeitadas, resumoRejeicoes, id, dataCriacao, dataAtualizacao, usuarioNome, usuarioEmail, usuarioId));
+        countResult.setCount(repository.countWithFilters( nomeArquivo, codificacaoDetectada, separadorDetectado, estado, dataHoraInicio, dataHoraFim, linhasLidas, linhasInseridas, linhasAtualizadas, linhasIguais, linhasRejeitadas, resumoRejeicoes, id, dataCriacao, dataAtualizacao, idUsuario));
         return countResult;
     }
 
@@ -142,9 +138,7 @@ public class ImportacaoMunicipioResource {
         @QueryParam("id") String id,
         @QueryParam("dataCriacao") String dataCriacao,
         @QueryParam("dataAtualizacao") String dataAtualizacao,
-        @QueryParam("nome") String usuarioNome,
-        @QueryParam("email") String usuarioEmail,
-        @QueryParam("usuario.id") String usuarioId
+        @QueryParam("idUsuario") String idUsuario
     ) {
 
         if (from > to) {
@@ -157,7 +151,7 @@ public class ImportacaoMunicipioResource {
         Sort sort = Sort.by(sortBy != null ? sortBy : "id")
                         .direction(sortDirection.equalsIgnoreCase("desc") ?
                                    Sort.Direction.Descending : Sort.Direction.Ascending);
-        List<ImportacaoMunicipioEntity> entityList = repository.findWithFilters(from, limit, sort, nomeArquivo, codificacaoDetectada, separadorDetectado, estado, dataHoraInicio, dataHoraFim, linhasLidas, linhasInseridas, linhasAtualizadas, linhasIguais, linhasRejeitadas, resumoRejeicoes, id, dataCriacao, dataAtualizacao, usuarioNome, usuarioEmail, usuarioId);
+        List<ImportacaoMunicipioEntity> entityList = repository.findWithFilters(from, limit, sort, nomeArquivo, codificacaoDetectada, separadorDetectado, estado, dataHoraInicio, dataHoraFim, linhasLidas, linhasInseridas, linhasAtualizadas, linhasIguais, linhasRejeitadas, resumoRejeicoes, id, dataCriacao, dataAtualizacao, idUsuario);
 
         return mapper.entityListToApiList(entityList);
     }

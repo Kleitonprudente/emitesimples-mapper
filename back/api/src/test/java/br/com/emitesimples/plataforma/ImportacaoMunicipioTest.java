@@ -75,7 +75,6 @@ class ImportacaoMunicipioTest extends BaseApiTest {
     private ImportacaoMunicipioEntity historico(String id) {
         return QuarkusTransaction.requiringNew().call(() -> {
             ImportacaoMunicipioEntity h = em.find(ImportacaoMunicipioEntity.class, id);
-            h.getUsuario().getId(); // carrega
             return h;
         });
     }
@@ -306,18 +305,20 @@ class ImportacaoMunicipioTest extends BaseApiTest {
     // -------------------------------------------------------------------------------------- tudo ou nada
 
     @Test
-    void falhaNoMeioDesfazTudo() {
-        // o usuario do token deixa de existir: o historico (FK) falha no fim e a transacao inteira volta
+    void usuarioApagadoNaoImpedeAImportacaoEOHistoricoGuardaSoOId() {
+        // V8: o usuario e so um id de auditoria (CN-REL-002), sem FK. Se ele deixa de existir, a importacao nao falha e o
+        // historico continua com o id (a listagem mostra o id, sem nome nem e-mail).
         Usr u = dados.usuario(true, true);
         String t = token(u.email());
         QuarkusTransaction.requiringNew().run(() -> em.createQuery("delete from UsuarioEntity x where x.id = :i")
                 .setParameter("i", u.id()).executeUpdate());
         String c = codigo();
-        long antes = totalMunicipios();
-        enviar(t, "f.csv", win(CAB_IBGE, "1;" + c + ";X;" + nome("Fantasma") + ";SP")).then().statusCode(500)
-                .body("codigo", equalTo("erro_interno")).body("mensagem", not(containsString("SQL")));
-        assertNull(municipio(c), "nada pode ter sido gravado");
-        assertEquals(antes, totalMunicipios());
+        String id = enviar(t, "f.csv", win(CAB_IBGE, "1;" + c + ";X;" + nome("Fantasma") + ";SP")).then().statusCode(200)
+                .extract().jsonPath().getString("id");
+        assertNotNull(municipio(c));
+        assertEquals(u.id(), historico(id).getIdUsuario());
+        chamar("GET", "/api/admin/municipios/importacoes?limite=1", admin(), null).then().statusCode(200)
+                .body("[0].usuario.id", equalTo(u.id())).body("[0].usuario.nome", equalTo(null));
     }
 
     // ----------------------------------------------------------------------------------------- listagem

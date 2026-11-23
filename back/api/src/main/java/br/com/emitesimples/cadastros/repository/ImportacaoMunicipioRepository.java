@@ -68,14 +68,12 @@ public class ImportacaoMunicipioRepository implements PanacheRepositoryBase<Impo
         String id,
         String dataCriacao,
         String dataAtualizacao,
-        String usuarioNome,
-        String usuarioEmail,
-        String usuarioId
+        String idUsuario
     ) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<ImportacaoMunicipioEntity> cq = cb.createQuery(ImportacaoMunicipioEntity.class);
         Root<ImportacaoMunicipioEntity> root = cq.from(ImportacaoMunicipioEntity.class);
-        List<Predicate> predicates = buildPredicates(cb, root, nomeArquivo, codificacaoDetectada, separadorDetectado, estado, dataHoraInicio, dataHoraFim, linhasLidas, linhasInseridas, linhasAtualizadas, linhasIguais, linhasRejeitadas, resumoRejeicoes, id, dataCriacao, dataAtualizacao, usuarioNome, usuarioEmail, usuarioId);
+        List<Predicate> predicates = buildPredicates(cb, root, nomeArquivo, codificacaoDetectada, separadorDetectado, estado, dataHoraInicio, dataHoraFim, linhasLidas, linhasInseridas, linhasAtualizadas, linhasIguais, linhasRejeitadas, resumoRejeicoes, id, dataCriacao, dataAtualizacao, idUsuario);
         cq.where(cb.and(predicates.toArray(new Predicate[0])));
 
         if (sort != null) {
@@ -109,14 +107,12 @@ public class ImportacaoMunicipioRepository implements PanacheRepositoryBase<Impo
         String id,
         String dataCriacao,
         String dataAtualizacao,
-        String usuarioNome,
-        String usuarioEmail,
-        String usuarioId
+        String idUsuario
     ) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<ImportacaoMunicipioEntity> root = cq.from(ImportacaoMunicipioEntity.class);
-        List<Predicate> predicates = buildPredicates(cb, root, nomeArquivo, codificacaoDetectada, separadorDetectado, estado, dataHoraInicio, dataHoraFim, linhasLidas, linhasInseridas, linhasAtualizadas, linhasIguais, linhasRejeitadas, resumoRejeicoes, id, dataCriacao, dataAtualizacao, usuarioNome, usuarioEmail, usuarioId);
+        List<Predicate> predicates = buildPredicates(cb, root, nomeArquivo, codificacaoDetectada, separadorDetectado, estado, dataHoraInicio, dataHoraFim, linhasLidas, linhasInseridas, linhasAtualizadas, linhasIguais, linhasRejeitadas, resumoRejeicoes, id, dataCriacao, dataAtualizacao, idUsuario);
         cq.select(cb.count(root)).where(cb.and(predicates.toArray(new Predicate[0])));
 
         return em.createQuery(cq).getSingleResult();
@@ -140,9 +136,7 @@ public class ImportacaoMunicipioRepository implements PanacheRepositoryBase<Impo
         String id,
         String dataCriacao,
         String dataAtualizacao,
-        String usuarioNome,
-        String usuarioEmail,
-        String usuarioId
+        String idUsuario
     ) {
         List<Predicate> predicates = new ArrayList<>();
 
@@ -161,9 +155,7 @@ public class ImportacaoMunicipioRepository implements PanacheRepositoryBase<Impo
         if (id != null) getPredicateFromField(predicates, "id", id, root, cb, false);
         if (dataCriacao != null) getPredicateFromField(predicates, "dataCriacao", dataCriacao, root, cb, false);
         if (dataAtualizacao != null) getPredicateFromField(predicates, "dataAtualizacao", dataAtualizacao, root, cb, false);
-        if (usuarioId != null) {
-            predicates.add(cb.equal(root.join("usuario", JoinType.INNER).get("id"), usuarioId));
-        }
+        if (idUsuario != null) getPredicateFromField(predicates, "idUsuario", idUsuario, root, cb, false);
         return predicates;
     }
 

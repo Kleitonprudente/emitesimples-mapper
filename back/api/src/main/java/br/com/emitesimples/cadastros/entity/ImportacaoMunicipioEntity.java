@@ -10,10 +10,6 @@ import jakarta.persistence.Version;
 import java.time.LocalDateTime;
 import br.com.emitesimples.cadastros.domain.ImportacaoMunicipio;
 import br.com.emitesimples.cadastros.builder.ImportacaoMunicipioEntityBuilder;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import br.com.emitesimples.usuarios.entity.UsuarioEntity;
 
 /*
 * Histórico dos envios do arquivo de cidades (CSV do IBGE) feitos pelo 
@@ -25,12 +21,10 @@ import br.com.emitesimples.usuarios.entity.UsuarioEntity;
  * Registro da plataforma, não de uma empresa: não tem empresa, não tem tenantKey e 
 * não tem ambiente (não depende do gateway). Só o administrador da plataforma 
 * envia; essa regra é da aplicação e o mapa não a expressa.
- * Vive no contexto cadastros (domain.cadastros) e referencia o Usuario do contexto 
-* usuarios, que já referencia configuracao, que por sua vez referencia cadastros. 
-* É mais uma volta no ciclo de dependência entre contextos, como a dependência 
-* mútua entre configuracao e cadastros: não é erro, pois entre contextos a relação 
-* é sempre referência, mas quebra o princípio de modelar do mais independente para 
-* o mais dependente.
+ * Vive no contexto cadastros (domain.cadastros). O usuário que fez a importação é 
+* guardado só como id (idUsuario, referência de auditoria, CN-REL-002), sem 
+* relação com o Usuario do contexto usuarios; assim cadastros não depende de 
+* usuarios.
 
 */
 @Entity
@@ -86,9 +80,8 @@ public class ImportacaoMunicipioEntity {
     @Column(name="DATA_ATUALIZACAO")
     private LocalDateTime dataAtualizacao;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name="USUARIO_ID", nullable = false)
-    private UsuarioEntity usuario;
+    @Column(name="ID_USUARIO", length=36)
+    private String idUsuario;
 
     public ImportacaoMunicipioEntity() {
     }
@@ -109,7 +102,7 @@ public class ImportacaoMunicipioEntity {
         String id,
         LocalDateTime dataCriacao,
         LocalDateTime dataAtualizacao,
-        UsuarioEntity usuario
+        String idUsuario
     ) {
         this.nomeArquivo = nomeArquivo;
         this.codificacaoDetectada = codificacaoDetectada;
@@ -126,7 +119,7 @@ public class ImportacaoMunicipioEntity {
         this.id = id;
         this.dataCriacao = dataCriacao;
         this.dataAtualizacao = dataAtualizacao;
-        this.usuario = usuario;
+        this.idUsuario = idUsuario;
     }
 
     public ImportacaoMunicipioEntity(ImportacaoMunicipioEntityBuilder builder) {
@@ -146,7 +139,7 @@ public class ImportacaoMunicipioEntity {
         this.id = builder.id;
         this.dataCriacao = builder.dataCriacao;
         this.dataAtualizacao = builder.dataAtualizacao;
-        this.usuario = builder.usuario;
+        this.idUsuario = builder.idUsuario;
     }
 
     public static ImportacaoMunicipioEntityBuilder builderOf() {
@@ -280,12 +273,12 @@ public class ImportacaoMunicipioEntity {
         return this.dataAtualizacao;
     }
 
-    public void setUsuario(UsuarioEntity usuario) {
-        this.usuario = usuario;
+    public void setIdUsuario(String idUsuario) {
+        this.idUsuario = idUsuario;
     }
 
-    public UsuarioEntity getUsuario() {
-        return this.usuario;
+    public String getIdUsuario() {
+        return this.idUsuario;
     }
 
 }
