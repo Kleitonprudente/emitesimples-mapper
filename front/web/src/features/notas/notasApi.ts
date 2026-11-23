@@ -13,10 +13,17 @@ import type { TableState } from '@/runtime/table-state'
  *   GET  /nfse/notas/{id}                        -> NotaDetalhe
  *   POST /nfse/notas {pessoaId, servicoId, valorServicos, informacoesComplementares?, discriminacao?} -> 200 NotaDetalhe (cria E envia)
  *   POST /nfse/notas/{id}/enviar  (corpo opcional, mesmos campos: aplica e reenvia, mantendo o numero) -> NotaDetalhe
- *   POST /nfse/notas/{id}/atualizar              -> NotaDetalhe (consulta o gateway agora)
+ *   POST /nfse/notas/{id}/atualizar              -> NotaDetalhe (consulta o gateway agora; tambem consulta um cancelamento em processamento)
+ *   POST /nfse/notas/{id}/cancelar {codigoMotivo: 1|2|9, motivo: string 15..255 apos trim} (operador+) -> 200 NotaDetalhe
+ *        Cancelar so vale para nota `autorizada`, dentro do MES VIGENTE da emissao (o back decide; o cliente so adianta o aviso).
+ *        1 = Erro de emissao, 2 = Servico nao concluido, 9 = Outros. Concluido: estado `cancelada`; pendente: a nota segue `autorizada`
+ *        com `cancelamento.estado = 'processando'` ate /atualizar (ou o webhook) concluir.
+ *        NotaDetalhe ganha `cancelamento` ({estado: 'processando'|'concluido'|'recusado', codigoMotivo, motivo, codigoRetorno,
+ *        mensagemRetorno, dataHoraEvento, solicitadoEm} | null) e `podeCancelar` (boolean; ausente = o cliente calcula).
  *   GET  /nfse/notas/{id}/pdf                    -> application/pdf (404 pdf_indisponivel)
  * Erros {codigo, mensagem, detalhes?}: 409 nfse_nao_habilitada|emitente_nao_cadastrado|emitente_de_outro_ambiente|certificado_nao_valido|
- *   servico_inativo|nota_em_processamento|nota_nao_editavel|nota_em_conflito; 422 tomador_incompleto (detalhes.campos);
+ *   servico_inativo|nota_em_processamento|nota_nao_editavel|nota_em_conflito; cancelar: 409 nota_nao_autorizada|
+ *   cancelamento_fora_do_mes|cancelamento_em_andamento|cancelamento_recusado (mensagem do gateway)|emissao_producao_bloqueada; 422 tomador_incompleto (detalhes.campos);
  *   400 requisicao_invalida (detalhes.campos)|discriminacao_obrigatoria; 404; 403; 429. Leitura tolerante (campo ausente = padrao seguro).
  * ------------------------------------------------------------------------- */
 
@@ -70,6 +77,22 @@ export interface NotaDetalhe extends NotaItem {
   editavel: boolean
   podeReenviar: boolean
   podeAtualizar: boolean
+  cancelamento: Cancelamento | null
+  /** Ausente no back = undefined (o cliente calcula). */
+  podeCancelar?: boolean
+}
+
+export type EstadoCancelamento = 'processando' | 'concluido' | 'recusado'
+export type CodigoMotivo = 1 | 2 | 9
+
+export interface Cancelamento {
+  estado: EstadoCancelamento
+  codigoMotivo?: number
+  motivo?: string
+  codigoRetorno?: string
+  mensagemRetorno?: string
+  dataHoraEvento?: string
+  solicitadoEm?: string
 }
 
 export interface CorpoNota {
@@ -106,6 +129,23 @@ export function lerNota(raw: unknown): NotaItem {
   }
 }
 
+const ESTADOS_CANCELAMENTO: readonly EstadoCancelamento[] = ['processando', 'concluido', 'recusado']
+
+function lerCancelamento(raw: unknown): Cancelamento | null {
+  if (!raw || typeof raw !== 'object') return null
+  const c = rec(raw)
+  if (!ESTADOS_CANCELAMENTO.includes(c.estado as EstadoCancelamento)) return null
+  return {
+    estado: c.estado as EstadoCancelamento,
+    codigoMotivo: typeof c.codigoMotivo === 'number' ? c.codigoMotivo : undefined,
+    motivo: str(c.motivo),
+    codigoRetorno: str(c.codigoRetorno),
+    mensagemRetorno: str(c.mensagemRetorno),
+    dataHoraEvento: str(c.dataHoraEvento),
+    solicitadoEm: str(c.solicitadoEm),
+  }
+}
+
 export function lerDetalhe(raw: unknown): NotaDetalhe {
   const r = rec(raw)
   return {
@@ -123,10 +163,51 @@ export function lerDetalhe(raw: unknown): NotaDetalhe {
     editavel: r.editavel === true,
     podeReenviar: r.podeReenviar === true,
     podeAtualizar: r.podeAtualizar === true,
+    cancelamento: lerCancelamento(r.cancelamento),
+    podeCancelar: typeof r.podeCancelar === 'boolean' ? r.podeCancelar : undefined,
   }
 }
 
 export const aguardaPrefeitura = (e: EstadoNota): boolean => e === 'processando' || e === 'emitida_offline'
+
+export const cancelamentoEmProcessamento = (n: Pick<NotaDetalhe, 'cancelamento'>): boolean => n.cancelamento?.estado === 'processando'
+
+/* ----- cancelamento: regras do cliente (so UX; o back decide) ----- */
+
+export const MOTIVOS_CANCELAMENTO: readonly { codigo: CodigoMotivo; rotulo: string }[] = [
+  { codigo: 1, rotulo: 'Erro de emissão' },
+  { codigo: 2, rotulo: 'Serviço não concluído' },
+  { codigo: 9, rotulo: 'Outros' },
+]
+export const rotuloMotivo = (codigo?: number): string | undefined => MOTIVOS_CANCELAMENTO.find((m) => m.codigo === codigo)?.rotulo
+
+export const JUSTIFICATIVA_MIN = 15
+export const JUSTIFICATIVA_MAX = 255
+const MSG_JUSTIFICATIVA = `A justificativa deve ter de ${JUSTIFICATIVA_MIN} a ${JUSTIFICATIVA_MAX} caracteres.`
+
+export const cancelarSchema = z.object({
+  codigoMotivo: z.union([z.literal(1), z.literal(2), z.literal(9)], { error: 'Escolha o tipo do motivo.' }),
+  motivo: z.string().trim().min(JUSTIFICATIVA_MIN, MSG_JUSTIFICATIVA).max(JUSTIFICATIVA_MAX, MSG_JUSTIFICATIVA),
+})
+export type CorpoCancelamento = z.infer<typeof cancelarSchema>
+
+export const MENSAGEM_FORA_DO_MES = 'O cancelamento só é possível dentro do mês vigente da emissão da nota.'
+const FUSO = 'America/Sao_Paulo'
+
+/** Ano-mes (AAAA-MM) de um instante no fuso de Sao Paulo. Texto sem fuso ("2026-11-10T14:00:00") ja e horario local de Sao Paulo. */
+function anoMes(v: string | Date): string | undefined {
+  if (typeof v === 'string' && !/(Z|[+-]\d{2}:?\d{2})$/i.test(v)) return /^\d{4}-\d{2}/.test(v) ? v.slice(0, 7) : undefined
+  const d = typeof v === 'string' ? new Date(v) : v
+  if (Number.isNaN(d.getTime())) return undefined
+  const p = new Intl.DateTimeFormat('en-CA', { timeZone: FUSO, year: 'numeric', month: '2-digit' }).formatToParts(d)
+  return `${p.find((x) => x.type === 'year')?.value}-${p.find((x) => x.type === 'month')?.value}`
+}
+
+/** A emissao foi no mes corrente (fuso America/Sao_Paulo)? Sem data valida, assume que sim e deixa o back decidir. */
+export function dentroDoMesVigente(dataEmissao: string | undefined, agora: Date = new Date()): boolean {
+  const emitido = dataEmissao ? anoMes(dataEmissao) : undefined
+  return !emitido || emitido === anoMes(agora)
+}
 
 /* ----- consultas ----- */
 
@@ -162,7 +243,7 @@ export function useNota(id: string) {
   return useQuery({
     queryKey: notasKeys.one(id),
     queryFn: async () => lerDetalhe(await api<unknown>(`/nfse/notas/${encodeURIComponent(id)}`)),
-    refetchInterval: (cq) => (cq.state.data && aguardaPrefeitura(cq.state.data.estado) ? INTERVALO_DETALHE_MS : false),
+    refetchInterval: (cq) => (cq.state.data && (aguardaPrefeitura(cq.state.data.estado) || cancelamentoEmProcessamento(cq.state.data)) ? INTERVALO_DETALHE_MS : false),
   })
 }
 
@@ -192,6 +273,17 @@ export function useAtualizarNota(id: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async () => lerDetalhe(await api<unknown>(`/nfse/notas/${encodeURIComponent(id)}/atualizar`, { method: 'POST' })),
+    onSuccess: (nota) => {
+      qc.setQueryData(notasKeys.one(id), nota)
+      return qc.invalidateQueries({ queryKey: ['nfse', 'notas', 'list'] })
+    },
+  })
+}
+
+export function useCancelarNota(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (v: CorpoCancelamento) => lerDetalhe(await api<unknown>(`/nfse/notas/${encodeURIComponent(id)}/cancelar`, { method: 'POST', body: v })),
     onSuccess: (nota) => {
       qc.setQueryData(notasKeys.one(id), nota)
       return qc.invalidateQueries({ queryKey: ['nfse', 'notas', 'list'] })
@@ -269,6 +361,8 @@ const CAMPOS: Record<string, string> = {
   valorServicos: 'valor dos serviços',
   discriminacao: 'descrição do serviço',
   informacoesComplementares: 'informações complementares',
+  codigoMotivo: 'tipo do motivo',
+  motivo: 'justificativa',
 }
 
 function nomesDosCampos(detalhes?: Record<string, unknown>): string[] {
@@ -300,6 +394,16 @@ export function mensagemErroNota(e: ApiError): string {
       return 'Esta nota não pode mais ser editada.'
     case 'nota_em_conflito':
       return 'A prefeitura indicou conflito nesta nota. Não reenvie: use Atualizar agora.'
+    case 'nota_nao_autorizada':
+      return 'Só é possível cancelar uma nota autorizada.'
+    case 'cancelamento_fora_do_mes':
+      return MENSAGEM_FORA_DO_MES
+    case 'cancelamento_em_andamento':
+      return 'Já existe um cancelamento em andamento para esta nota. Use Atualizar agora para consultar.'
+    case 'cancelamento_recusado':
+      return e.mensagem || 'A prefeitura recusou o cancelamento da nota.'
+    case 'emissao_producao_bloqueada':
+      return 'Esta operação está bloqueada no ambiente de produção.'
     case 'discriminacao_obrigatoria':
       return 'Informe a descrição do serviço.'
     case 'tomador_incompleto': {

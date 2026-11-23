@@ -3,6 +3,8 @@ package br.com.emitesimples.nfseemissao;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -20,7 +22,9 @@ import br.com.emitesimples.cadastros.entity.ServicoEntity;
 import br.com.emitesimples.configuracao.entity.EmpresaEntity;
 import br.com.emitesimples.gateway.WebhookToken;
 import br.com.emitesimples.integranotas.entity.EventoWebhookEntity;
+import br.com.emitesimples.nfse.entity.CancelamentoEntity;
 import br.com.emitesimples.nfse.entity.NotaEntity;
+import br.com.emitesimples.tenant.ContextoTenantBanco;
 import br.com.emitesimples.plataforma.SegredoService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -75,6 +79,9 @@ class NfseEmissaoTest extends BaseApiTest {
 
     @Inject
     WebhookToken webhookToken;
+
+    @Inject
+    ContextoTenantBanco contexto;
 
     private String plataforma;
 
@@ -950,6 +957,408 @@ class NfseEmissaoTest extends BaseApiTest {
             String tudo = Arrays.toString(l);
             assertFalse(tudo.contains(c.tokenEmitente()) || tudo.contains(pdfB64) || tudo.contains("razao_social"));
         }
+    }
+
+    // ------------------------------------------------------------------------------------------ cancelamento
+
+    private static final String MOTIVO = "Valor informado errado na emissao";
+
+    /** Cria a nota ja autorizada (o stub devolve 100 no proprio envio: nenhuma consulta, nada de backoff do job). */
+    private String autorizada(Cen c) {
+        stub("/_nfse/modo_envio", "100");
+        try {
+            Response r = criar(c);
+            r.then().statusCode(200).body("estado", equalTo("autorizada"));
+            return r.jsonPath().getString("id");
+        } finally {
+            stub("/_nfse/modo_envio", "5023");
+        }
+    }
+
+    private Response cancelar(String token, String id, Object codigo, Object motivo) {
+        Map<String, Object> m = new HashMap<>();
+        m.put("codigoMotivo", codigo);
+        m.put("motivo", motivo);
+        return chamar("POST", URL + "/" + id + "/cancelar", token, m);
+    }
+
+    private Response cancelar(Cen c, String id) {
+        return cancelar(c.adm(), id, 1, MOTIVO);
+    }
+
+    private int chamadasCancela() throws Exception {
+        return estadoStub().path("cancelamentos").asInt();
+    }
+
+    private List<CancelamentoEntity> cancelamentos(String notaId) {
+        return QuarkusTransaction.requiringNew().call(() -> em.createQuery(
+                "select c from CancelamentoEntity c where c.nota.id = :n order by c.dataCriacao", CancelamentoEntity.class)
+                .setParameter("n", notaId).getResultList());
+    }
+
+    @Test
+    void cancelarNotaAutorizadaEnviaAoGatewayEViraCancelada() throws Exception {
+        Cen c = cenario();
+        String id = autorizada(c);
+        chamar("GET", URL + "/" + id, c.adm(), null).then().statusCode(200).body("podeCancelar", equalTo(true))
+                .body("cancelamento", nullValue());
+        cancelar(c, id).then().statusCode(200).body("estado", equalTo("cancelada")).body("podeCancelar", equalTo(false))
+                .body("podeAtualizar", equalTo(false)).body("cancelamento.estado", equalTo("concluido"))
+                .body("cancelamento.codigoMotivo", equalTo(1)).body("cancelamento.motivo", equalTo(MOTIVO))
+                .body("cancelamento.codigoRetorno", equalTo(101))
+                .body("cancelamento.mensagemRetorno", containsString("cancelamento"))
+                .body("cancelamento.dataHoraEvento", equalTo("2026-11-23T09:30:00"))
+                .body("cancelamento.solicitadoEm", notNullValue());
+        JsonNode st = estadoStub();
+        assertEquals(1, st.path("cancelamentos").asInt());
+        JsonNode env = st.path("ultimoCancelamento");
+        assertEquals(c.tokenEmitente(), env.path("authorization").asText());
+        assertEquals(nota(id).getChave(), env.path("corpo").path("chave").asText());
+        assertEquals(1, env.path("corpo").path("codigo_cancelamento").asInt());
+        assertEquals(MOTIVO, env.path("corpo").path("motivo_cancelamento").asText());
+        assertEquals(3, env.path("corpo").size());
+        NotaEntity n = nota(id);
+        assertEquals("cancelada", n.getEstado());
+        assertEquals(101, n.getCodigoRetorno());
+        List<CancelamentoEntity> cs = cancelamentos(id);
+        assertEquals(1, cs.size());
+        CancelamentoEntity ce = cs.get(0);
+        assertEquals("concluido", ce.getEstado());
+        assertEquals(c.emp(), QuarkusTransaction.requiringNew().call(() -> em.find(CancelamentoEntity.class, ce.getId())
+                .getEmpresa().getId()));
+        assertEquals("homologacao", ce.getAmbiente());
+        assertTrue(new String(ce.getXml(), "UTF-8").startsWith("<NFSe"));
+        assertTrue(new String(ce.getPdf(), "UTF-8").startsWith("%PDF"));
+        // o PDF do evento sai em /cancelamento/pdf
+        byte[] pdf = given().header("Authorization", "Bearer " + c.adm()).get(URL + "/" + id + "/cancelamento/pdf").then()
+                .statusCode(200).contentType("application/pdf").extract().asByteArray();
+        assertEquals("%PDF", new String(pdf, 0, 4, "UTF-8"));
+        // idempotente: nota ja cancelada devolve o detalhe e NAO chama o gateway de novo
+        cancelar(c, id).then().statusCode(200).body("estado", equalTo("cancelada"))
+                .body("cancelamento.estado", equalTo("concluido"));
+        assertEquals(1, chamadasCancela());
+        assertEquals(1, cancelamentos(id).size());
+        // ChamadaGateway: so metadados
+        List<Object[]> ls = QuarkusTransaction.requiringNew().call(() -> em.createQuery(
+                "select c.rota, c.versaoApi, c.codigoRetorno, c.resumoEnvio, c.mensagemRetorno from ChamadaGatewayEntity c "
+                        + "where c.nota.id = :n and c.operacao = 'cancelar_nfse'", Object[].class).setParameter("n", id)
+                .getResultList());
+        assertEquals(1, ls.size());
+        assertEquals("/v1/nfse/cancela", ls.get(0)[0]);
+        assertEquals("v1", ls.get(0)[1]);
+        assertEquals(101, ls.get(0)[2]);
+        assertFalse(Arrays.toString(ls.get(0)).contains(c.tokenEmitente()));
+        assertFalse(Arrays.toString(ls.get(0)).contains(MOTIVO));
+    }
+
+    @Test
+    void operadorTambemCancelaECodigosDeMotivo2e9() throws Exception {
+        Cen c = cenario();
+        String operador = token(dados.usuarioComPapel(c.emp(), "operador").email());
+        String a = autorizada(c);
+        cancelar(operador, a, 2, "Servico nao foi concluido a tempo").then().statusCode(200)
+                .body("estado", equalTo("cancelada")).body("cancelamento.codigoMotivo", equalTo(2));
+        assertEquals(2, estadoStub().path("ultimoCancelamento").path("corpo").path("codigo_cancelamento").asInt());
+        String b = autorizada(c);
+        cancelar(c.adm(), b, 9, "  Outro motivo qualquer aqui  ").then().statusCode(200).body("estado", equalTo("cancelada"))
+                .body("cancelamento.motivo", equalTo("Outro motivo qualquer aqui"));
+        assertEquals(9, estadoStub().path("ultimoCancelamento").path("corpo").path("codigo_cancelamento").asInt());
+    }
+
+    @Test
+    void cincoMilEQuinzeJaCanceladaNoGatewayESucessoIdempotente() {
+        Cen c = cenario();
+        String id = autorizada(c);
+        stub("/_nfse/modo_cancela", "5015");
+        cancelar(c, id).then().statusCode(200).body("estado", equalTo("cancelada"))
+                .body("cancelamento.estado", equalTo("concluido")).body("cancelamento.codigoRetorno", equalTo(5015));
+        assertEquals("cancelada", nota(id).getEstado());
+    }
+
+    @Test
+    void cincoMilETrezeDa409ECancelamentoRecusadoENotaContinuaAutorizada() throws Exception {
+        Cen c = cenario();
+        String id = autorizada(c);
+        stub("/_nfse/modo_cancela", "5013");
+        cancelar(c, id).then().statusCode(409).body("codigo", equalTo("cancelamento_recusado"))
+                .body("mensagem", containsString("autorizada")).body("detalhes.codigoRetorno", equalTo(5013));
+        assertEquals("autorizada", nota(id).getEstado());
+        List<CancelamentoEntity> cs = cancelamentos(id);
+        assertEquals(1, cs.size());
+        assertEquals("recusado", cs.get(0).getEstado());
+        assertEquals(5013, cs.get(0).getCodigoRetorno());
+        assertNotNull(cs.get(0).getMensagemRetorno());
+        chamar("GET", URL + "/" + id, c.adm(), null).then().body("estado", equalTo("autorizada"))
+                .body("podeCancelar", equalTo(true)).body("cancelamento.estado", equalTo("recusado"))
+                .body("cancelamento.codigoRetorno", equalTo(5013));
+        // depois de recusado, da para tentar de novo
+        stub("/_nfse/modo_cancela", "101");
+        cancelar(c, id).then().statusCode(200).body("estado", equalTo("cancelada"));
+        assertEquals(2, cancelamentos(id).size());
+    }
+
+    @Test
+    void validacaoDoGatewayCincoMilEUmERecusaELegivel() {
+        Cen c = cenario();
+        String id = autorizada(c);
+        stub("/_nfse/modo_cancela", "5001");
+        cancelar(c, id).then().statusCode(409).body("codigo", equalTo("cancelamento_recusado"))
+                .body("mensagem", equalTo("Erro de validação."));
+        assertEquals("autorizada", nota(id).getEstado());
+    }
+
+    @Test
+    void tokenRecusadoNoCancelamentoDa409SemVazarOToken() {
+        Cen c = cenario();
+        String id = autorizada(c);
+        stub("/_nfse/modo_cancela", "6001");
+        String corpo = cancelar(c, id).then().statusCode(409).body("codigo", equalTo("cancelamento_recusado")).extract().asString();
+        assertFalse(corpo.contains(c.tokenEmitente()));
+        assertEquals("recusado", cancelamentos(id).get(0).getEstado());
+        assertEquals("autorizada", nota(id).getEstado());
+    }
+
+    @Test
+    void foraDoMesVigenteRecusaSemChamarOGateway() throws Exception {
+        Cen c = cenario();
+        String id = autorizada(c);
+        QuarkusTransaction.requiringNew().run(() -> em.find(NotaEntity.class, id)
+                .setDataEmissao(LocalDateTime.now().minusMonths(1).withDayOfMonth(15)));
+        chamar("GET", URL + "/" + id, c.adm(), null).then().body("podeCancelar", equalTo(false));
+        cancelar(c, id).then().statusCode(409).body("codigo", equalTo("cancelamento_fora_do_mes")).body("mensagem",
+                equalTo("O cancelamento só é possível dentro do mês vigente da emissão da nota."));
+        assertEquals(0, chamadasCancela());
+        assertEquals(0, cancelamentos(id).size());
+        assertEquals("autorizada", nota(id).getEstado());
+    }
+
+    @Test
+    void mesVigenteUsaMesEAnoEmSaoPaulo() {
+        var agora = LocalDateTime.now(NfsePayloadMapper.SAO_PAULO);
+        assertTrue(NfseEmissaoService.mesVigente(agora));
+        assertTrue(NfseEmissaoService.mesVigente(agora.withDayOfMonth(1).withHour(0).withMinute(0)));
+        assertFalse(NfseEmissaoService.mesVigente(agora.minusMonths(1)));
+        assertFalse(NfseEmissaoService.mesVigente(agora.minusYears(1))); // mesmo mes, outro ano
+        assertFalse(NfseEmissaoService.mesVigente(agora.plusMonths(1)));
+        assertFalse(NfseEmissaoService.mesVigente(null));
+    }
+
+    @Test
+    void soSeCancelaNotaAutorizada() throws Exception {
+        Cen c = cenario();
+        String id = criarProcessando(c);
+        cancelar(c, id).then().statusCode(409).body("codigo", equalTo("nota_nao_autorizada"));
+        QuarkusTransaction.requiringNew().run(() -> em.find(NotaEntity.class, id).setEstado("rejeitada"));
+        cancelar(c, id).then().statusCode(409).body("codigo", equalTo("nota_nao_autorizada"));
+        assertEquals(0, chamadasCancela());
+        assertEquals(0, cancelamentos(id).size());
+    }
+
+    @Test
+    void motivoECodigoInvalidosDao400ComOsCampos() throws Exception {
+        Cen c = cenario();
+        String id = autorizada(c);
+        String curto = "a".repeat(14);
+        String longo = "a".repeat(256);
+        cancelar(c.adm(), id, 1, curto).then().statusCode(400).body("codigo", equalTo("requisicao_invalida"))
+                .body("detalhes.campos.campo", hasItem("motivo"));
+        cancelar(c.adm(), id, 1, " ".repeat(10) + curto + " ".repeat(10)).then().statusCode(400) // conta depois do trim
+                .body("detalhes.campos.campo", hasItem("motivo"));
+        cancelar(c.adm(), id, 1, longo).then().statusCode(400).body("detalhes.campos.campo", hasItem("motivo"));
+        cancelar(c.adm(), id, 1, null).then().statusCode(400).body("detalhes.campos.campo", hasItem("motivo"));
+        cancelar(c.adm(), id, 3, MOTIVO).then().statusCode(400).body("detalhes.campos.campo", hasItem("codigoMotivo"));
+        cancelar(c.adm(), id, 0, MOTIVO).then().statusCode(400).body("detalhes.campos.campo", hasItem("codigoMotivo"));
+        cancelar(c.adm(), id, null, MOTIVO).then().statusCode(400).body("detalhes.campos.campo", hasItem("codigoMotivo"));
+        cancelar(c.adm(), id, 7, curto).then().statusCode(400)
+                .body("detalhes.campos.campo", hasItems("codigoMotivo", "motivo"));
+        chamar("POST", URL + "/" + id + "/cancelar", c.adm(), null).then().statusCode(400);
+        // limites exatos passam
+        cancelar(c.adm(), id, 1, "a".repeat(15)).then().statusCode(200);
+        String outra = autorizada(c);
+        cancelar(c.adm(), outra, 9, "b".repeat(255)).then().statusCode(200);
+        assertEquals(2, chamadasCancela());
+    }
+
+    @Test
+    void papeisDoCancelamento() throws Exception {
+        Cen c = cenario();
+        String id = autorizada(c);
+        String consulta = token(dados.usuarioComPapel(c.emp(), "consulta").email());
+        cancelar(consulta, id, 1, MOTIVO).then().statusCode(403);
+        cancelar(null, id, 1, MOTIVO).then().statusCode(401);
+        String plat = token(dados.usuario(true, true).email());
+        cancelar(plat, id, 1, MOTIVO).then().statusCode(403).body("codigo", equalTo("empresa_nao_selecionada"));
+        // leitura do PDF do evento: consulta pode; sem PDF -> 404 pdf_indisponivel
+        chamar("GET", URL + "/" + id + "/cancelamento/pdf", consulta, null).then().statusCode(404)
+                .body("codigo", equalTo("pdf_indisponivel"));
+        chamar("GET", URL + "/" + id + "/cancelamento/pdf", null, null).then().statusCode(401);
+        assertEquals(0, chamadasCancela());
+        assertEquals("autorizada", nota(id).getEstado());
+    }
+
+    @Test
+    void notaDeOutraEmpresaOuInexistenteDa404EIsolaOCancelamento() throws Exception {
+        Cen a = cenario();
+        Cen b = cenario();
+        String id = autorizada(a);
+        cancelar(b, id).then().statusCode(404);
+        cancelar(b, UUID.randomUUID().toString()).then().statusCode(404);
+        chamar("GET", URL + "/" + id + "/cancelamento/pdf", b.adm(), null).then().statusCode(404)
+                .body("codigo", equalTo("nao_encontrado"));
+        var up = dados.usuario(true, true);
+        dados.vincular(up.id(), b.emp(), "administrador", true);
+        cancelar(token(up.email(), b.emp()), id, 1, MOTIVO).then().statusCode(404);
+        assertEquals(0, chamadasCancela());
+        assertEquals(0, cancelamentos(id).size());
+        assertEquals("autorizada", nota(id).getEstado());
+        // a empresa dona cancela e o detalhe da outra empresa continua 404
+        cancelar(a, id).then().statusCode(200);
+        chamar("GET", URL + "/" + id, b.adm(), null).then().statusCode(404);
+        // RLS: sessao da empresa B nao enxerga o Cancelamento da empresa A
+        long visiveis = contexto.comoEmpresa(b.emp(), () -> QuarkusTransaction.requiringNew().call(() -> em.createQuery(
+                "select count(c) from CancelamentoEntity c", Long.class).getSingleResult()));
+        assertEquals(0, visiveis);
+    }
+
+    @Test
+    void cancelamentoEmProducaoBloqueado() throws Exception {
+        Cen c = cenario();
+        String id = autorizada(c);
+        QuarkusTransaction.requiringNew().run(() -> em.createNativeQuery(
+                "update configuracao_integranotas set ambiente_ativo = 'producao'").executeUpdate());
+        try {
+            cancelar(c, id).then().statusCode(409).body("codigo", equalTo("emissao_producao_bloqueada"));
+        } finally {
+            QuarkusTransaction.requiringNew().run(() -> em.createNativeQuery(
+                    "update configuracao_integranotas set ambiente_ativo = 'homologacao'").executeUpdate());
+        }
+        assertEquals(0, chamadasCancela());
+        assertEquals(0, cancelamentos(id).size());
+        assertEquals("autorizada", nota(id).getEstado());
+    }
+
+    @Test
+    void respostaInconclusivaDeixaProcessandoEAConsultaComCentoEUmConclui() throws Exception {
+        Cen c = cenario();
+        String id = autorizada(c);
+        stub("/_nfse/modo_cancela", "5023");
+        cancelar(c, id).then().statusCode(200).body("estado", equalTo("autorizada"))
+                .body("cancelamento.estado", equalTo("processando")).body("podeCancelar", equalTo(false))
+                .body("podeAtualizar", equalTo(true));
+        assertEquals("processando", cancelamentos(id).get(0).getEstado());
+        // um segundo pedido enquanto ha um em processamento
+        cancelar(c, id).then().statusCode(409).body("codigo", equalTo("cancelamento_em_andamento"));
+        assertEquals(1, chamadasCancela());
+        // o gateway ainda diz autorizada: continua pendente
+        stub("/_nfse/modo_consulta", "100");
+        atualizar(c, id).then().statusCode(200).body("estado", equalTo("autorizada"))
+                .body("cancelamento.estado", equalTo("processando"));
+        // 101: nota cancelada E registro concluido
+        stub("/_nfse/modo_consulta", "101");
+        atualizar(c, id).then().statusCode(200).body("estado", equalTo("cancelada"))
+                .body("cancelamento.estado", equalTo("concluido")).body("cancelamento.codigoRetorno", equalTo(101))
+                .body("cancelamento.dataHoraEvento", equalTo("2026-11-21T10:00:00")).body("podeAtualizar", equalTo(false));
+        CancelamentoEntity ce = cancelamentos(id).get(0);
+        assertTrue(new String(ce.getXml(), "UTF-8").startsWith("<NFSe"));
+        assertTrue(new String(ce.getPdf(), "UTF-8").startsWith("%PDF"));
+    }
+
+    @Test
+    void falhaDeRedeOuRespostaInvalidaTambemDeixaProcessando() {
+        for (String modo : new String[] {"500", "json"}) {
+            Cen c = cenario();
+            String id = autorizada(c);
+            stub("/_nfse/modo_cancela", modo);
+            cancelar(c, id).then().statusCode(200).body("estado", equalTo("autorizada"))
+                    .body("cancelamento.estado", equalTo("processando"));
+            assertEquals("autorizada", nota(id).getEstado());
+        }
+    }
+
+    @Test
+    void timeoutDoGatewayDeixaProcessando() {
+        Cen c = cenario();
+        String id = autorizada(c);
+        stub("/_nfse/modo_cancela", "lento");
+        cancelar(c, id).then().statusCode(200).body("estado", equalTo("autorizada"))
+                .body("cancelamento.estado", equalTo("processando"));
+    }
+
+    @Test
+    void jobConcluiCancelamentoPendente() throws Exception {
+        Cen c = cenario();
+        String id = autorizada(c);
+        stub("/_nfse/modo_cancela", "5023");
+        cancelar(c, id).then().statusCode(200).body("cancelamento.estado", equalTo("processando"));
+        stub("/_nfse/modo_consulta", "101");
+        for (int i = 0; i < 5 && !"cancelada".equals(nota(id).getEstado()); i++) {
+            acompanhamento.executarCiclo();
+        }
+        assertEquals("cancelada", nota(id).getEstado());
+        assertEquals("concluido", cancelamentos(id).get(0).getEstado());
+    }
+
+    @Test
+    void webhookTambemConcluiOCancelamentoPendente() throws Exception {
+        Cen c = cenario();
+        String id = autorizada(c);
+        stub("/_nfse/modo_cancela", "5023");
+        cancelar(c, id).then().statusCode(200);
+        stub("/_nfse/modo_consulta", "101");
+        webhook(c.emp(), eventoForjado(nota(id).getChave(), nota(id).getId().replace("-", ""))).then().statusCode(200);
+        esperar(id, "cancelada");
+        for (int i = 0; i < 50 && !"concluido".equals(cancelamentos(id).get(0).getEstado()); i++) {
+            Thread.sleep(100);
+        }
+        assertEquals("concluido", cancelamentos(id).get(0).getEstado());
+    }
+
+    @Test
+    void pedidoPendenteHaMaisDe24hSemConfirmacaoViraRecusadoELiberaNovoPedido() throws Exception {
+        Cen c = cenario();
+        String id = autorizada(c);
+        stub("/_nfse/modo_cancela", "5023");
+        cancelar(c, id).then().statusCode(200);
+        String cid = cancelamentos(id).get(0).getId();
+        QuarkusTransaction.requiringNew().run(() -> em.find(CancelamentoEntity.class, cid)
+                .setDataCriacao(LocalDateTime.now().minusHours(25)));
+        stub("/_nfse/modo_consulta", "100");
+        atualizar(c, id).then().statusCode(200).body("estado", equalTo("autorizada"))
+                .body("cancelamento.estado", equalTo("recusado")).body("podeCancelar", equalTo(true));
+        stub("/_nfse/modo_cancela", "101");
+        cancelar(c, id).then().statusCode(200).body("estado", equalTo("cancelada"));
+    }
+
+    @Test
+    void emitenteDeOutroAmbienteOuSemCadastroNaoCancela() throws Exception {
+        Cen c = cenario();
+        String id = autorizada(c);
+        empresa(c.emp(), e -> e.setAmbiente("producao"));
+        cancelar(c, id).then().statusCode(409).body("codigo", equalTo("emitente_de_outro_ambiente"));
+        empresa(c.emp(), e -> {
+            e.setAmbiente("homologacao");
+            e.setStatusCadastro("pendente");
+        });
+        cancelar(c, id).then().statusCode(409).body("codigo", equalTo("emitente_nao_cadastrado"));
+        assertEquals(0, chamadasCancela());
+        assertEquals(0, cancelamentos(id).size());
+    }
+
+    @Test
+    void cancelamentoNaoVazaTokenNemMotivoNosLogs() throws Exception {
+        Cen c = cenario();
+        String id = autorizada(c);
+        List<String> logs = new ArrayList<>();
+        Handler h = capturarLogs(logs);
+        try {
+            stub("/_nfse/modo_cancela", "500");
+            cancelar(c, id).then().statusCode(200);
+        } finally {
+            LogManager.getLogManager().getLogger("").removeHandler(h);
+        }
+        String todos = String.join("\n", logs);
+        assertFalse(todos.contains(c.tokenEmitente()));
+        assertFalse(todos.contains(MOTIVO));
     }
 
     private static void assertNull(Object o) {

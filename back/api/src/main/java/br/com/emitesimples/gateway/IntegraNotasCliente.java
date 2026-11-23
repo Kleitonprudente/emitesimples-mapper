@@ -313,6 +313,14 @@ public class IntegraNotasCliente {
         return interpretarNfse(chamar("GET", urlBase, "/v1/nfse/" + chave, tokenEmitente, null, MAX_BYTES_CONSULTA));
     }
 
+    /**
+     * {@code POST {urlBase}/v1/nfse/cancela} com o token do EMITENTE. O corpo ({@code chave, codigo_cancelamento,
+     * motivo_cancelamento}) e montado em {@code NfsePayloadMapper}. A resposta de sucesso traz xml/pdf do evento (Base64).
+     */
+    public RetornoNfse cancelarNfse(String urlBase, String tokenEmitente, JsonNode payload) {
+        return interpretarNfse(chamar("POST", urlBase, "/v1/nfse/cancela", tokenEmitente, payload, MAX_BYTES_CONSULTA));
+    }
+
     static RetornoNfse interpretarNfse(Resposta r) {
         int status = r.status();
         JsonNode raiz = r.raiz();

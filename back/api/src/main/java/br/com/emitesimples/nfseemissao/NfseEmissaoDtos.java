@@ -34,7 +34,17 @@ public final class NfseEmissaoDtos {
                               LocalDateTime dataCriacao, String informacoesComplementares, String discriminacao,
                               String descricao, String codigoServico, List<ErroRetorno> errosRetorno, String linkPdf,
                               String codigoVerificacao, LocalDateTime dataHoraEvento, boolean editavel,
-                              boolean podeReenviar, boolean podeAtualizar) {
+                              boolean podeReenviar, boolean podeAtualizar, CancelamentoInfo cancelamento,
+                              boolean podeCancelar) {
+    }
+
+    /** Ultimo pedido de cancelamento da nota ({@code estado}: processando, concluido, recusado). Sem xml/pdf. */
+    public record CancelamentoInfo(String estado, Integer codigoMotivo, String motivo, Integer codigoRetorno,
+                                   String mensagemRetorno, LocalDateTime dataHoraEvento, LocalDateTime solicitadoEm) {
+    }
+
+    /** Corpo de POST /api/nfse/notas/{id}/cancelar: codigoMotivo 1, 2 ou 9; motivo de 15 a 255 caracteres (apos trim). */
+    public record CancelarEntrada(Integer codigoMotivo, String motivo) {
     }
 
     /** Corpo de POST /api/nfse/notas (pessoaId, servicoId e valorServicos obrigatorios). */

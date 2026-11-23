@@ -399,6 +399,8 @@ public class IntegraNotasStubResource implements QuarkusTestResourceLifecycleMan
      */
     private volatile String modoEnvio = "5023";
     private volatile String modoConsulta = "100";
+    private volatile String modoCancela = "101";
+    private final java.util.List<JsonNode> cancelamentos = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
     private final java.util.List<JsonNode> envios = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
     private final java.util.List<String> consultas = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
     private final java.util.Map<String, String> identPorChave = new java.util.concurrent.ConcurrentHashMap<>();
@@ -416,9 +418,12 @@ public class IntegraNotasStubResource implements QuarkusTestResourceLifecycleMan
             switch (path) {
                 case "/_nfse/modo_envio" -> modoEnvio = corpo;
                 case "/_nfse/modo_consulta" -> modoConsulta = corpo;
+                case "/_nfse/modo_cancela" -> modoCancela = corpo;
                 case "/_nfse/reset" -> {
                     modoEnvio = "5023";
                     modoConsulta = "100";
+                    modoCancela = "101";
+                    cancelamentos.clear();
                     envios.clear();
                     consultas.clear();
                     ultimoAuthEnvio = null;
@@ -436,6 +441,12 @@ public class IntegraNotasStubResource implements QuarkusTestResourceLifecycleMan
             com.fasterxml.jackson.databind.node.ObjectNode o = JSON.createObjectNode();
             o.put("envios", envios.size());
             o.put("consultas", consultas.size());
+            o.put("cancelamentos", cancelamentos.size());
+            synchronized (cancelamentos) {
+                if (!cancelamentos.isEmpty()) {
+                    o.set("ultimoCancelamento", cancelamentos.get(cancelamentos.size() - 1));
+                }
+            }
             o.put("authEnvio", ultimoAuthEnvio);
             o.put("authConsulta", ultimoAuthConsulta);
             synchronized (envios) {
@@ -455,6 +466,10 @@ public class IntegraNotasStubResource implements QuarkusTestResourceLifecycleMan
         }
         if (path.equals("/v2/nfse") && "POST".equals(m)) {
             envioNfse(ex);
+            return true;
+        }
+        if (path.equals("/v1/nfse/cancela") && "POST".equals(m)) {
+            cancelaNfse(ex);
             return true;
         }
         if (path.startsWith("/v1/nfse/") && "GET".equals(m)) {
@@ -526,6 +541,42 @@ public class IntegraNotasStubResource implements QuarkusTestResourceLifecycleMan
             case "100" -> responder(ex, 200, autorizado(chave, true));
             case "100sem" -> responder(ex, 200, "{\"sucesso\":true,\"codigo\":100,\"mensagem\":\"ok\",\"chave\":\"" + chave + "\"}");
             default -> responder(ex, 200, "{\"sucesso\":true,\"codigo\":5023,\"mensagem\":\"Lote em processamento, aguarde e tente novamente mais tarde.\",\"chave\":\"" + chave + "\"}");
+        }
+    }
+
+    /** Modos de /_nfse/modo_cancela: 101 (padrao), 5015, 5013, 5001, 6001, 500, json, 5023, lento. */
+    private void cancelaNfse(HttpExchange ex) throws IOException {
+        byte[] bytes = ex.getRequestBody().readAllBytes();
+        String auth = ex.getRequestHeaders().getFirst("Authorization");
+        JsonNode corpo;
+        try {
+            corpo = JSON.readTree(bytes);
+        } catch (IOException e) {
+            responder(ex, 200, "{\"sucesso\":false,\"codigo\":5001,\"mensagem\":\"JSON inválido.\"}");
+            return;
+        }
+        com.fasterxml.jackson.databind.node.ObjectNode reg = JSON.createObjectNode();
+        reg.put("authorization", auth);
+        reg.set("corpo", corpo);
+        cancelamentos.add(reg);
+        String modo = modoCancela;
+        if (auth == null || auth.isBlank() || modo.equals("6001")) {
+            responder(ex, 200, "{\"sucesso\":false,\"codigo\":6001,\"mensagem\":\"Token inválido.\"}");
+            return;
+        }
+        switch (modo) {
+            case "5015" -> responder(ex, 200, "{\"sucesso\":false,\"codigo\":5015,\"mensagem\":\"NFS-e já cancelada.\"}");
+            case "5013" -> responder(ex, 200, "{\"sucesso\":false,\"codigo\":5013,\"mensagem\":\"Só é possível cancelar uma NFS-e autorizada.\"}");
+            case "5001" -> responder(ex, 200, "{\"sucesso\":false,\"codigo\":5001,\"mensagem\":\"Erro de validação.\",\"erros\":[{\"campo\":\"motivo_cancelamento\",\"erro\":\"tamanho\",\"descricao\":\"Motivo inválido\"}]}");
+            case "500" -> responder(ex, 500, "{\"erro\":\"interno\"}");
+            case "json" -> responder(ex, 200, "<html>nao e json</html>");
+            case "5023" -> responder(ex, 200, "{\"sucesso\":true,\"codigo\":5023,\"mensagem\":\"Cancelamento em processamento.\"}");
+            case "lento" -> {
+                dormir(4000);
+                responder(ex, 200, "{\"sucesso\":true,\"codigo\":101,\"mensagem\":\"Homologado o cancelamento da NFS-e\"}");
+            }
+            default -> responder(ex, 200, "{\"sucesso\":true,\"codigo\":101,\"mensagem\":\"Homologado o cancelamento da NFS-e\","
+                    + "\"data_hora_evento\":\"2026-11-23 09:30:00\",\"xml\":\"" + b64(XML_MINIMO) + "\",\"pdf\":\"" + b64(PDF_MINIMO) + "\"}");
         }
     }
 

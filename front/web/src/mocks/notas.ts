@@ -10,7 +10,10 @@ import { alocarNumeroNfseMock, nfseConfigMock } from '@/mocks/nfse-config'
  *   GET  /nfse/notas/{id}                         -> detalhe
  *   POST /nfse/notas                              (operador+) {pessoaId, servicoId, valorServicos, informacoesComplementares?, discriminacao?}
  *   POST /nfse/notas/{id}/enviar                  (operador+) corpo opcional; reenvia mantendo o numero
- *   POST /nfse/notas/{id}/atualizar               (operador+) consulta o gateway agora
+ *   POST /nfse/notas/{id}/atualizar               (operador+) consulta o gateway agora (tambem conclui um cancelamento processando na 2a chamada)
+ *   POST /nfse/notas/{id}/cancelar                (operador+) {codigoMotivo: 1|2|9, motivo 15..255 apos trim} -> detalhe. 400 requisicao_invalida;
+ *        409 nota_nao_autorizada | cancelamento_em_andamento | cancelamento_fora_do_mes (mes da emissao != mes atual, fuso America/Sao_Paulo).
+ *        Sucesso: estado cancelada com `cancelamento` concluido; valorServicos 888.88 fica pendente (cancelamento.estado processando).
  *   GET  /nfse/notas/{id}/pdf                     -> application/pdf (404 pdf_indisponivel)
  * E, para as FKs da tela, o cadastro de Servico (so leitura): GET /Servico, /Servico/{from}/{to}, /Servico/count, /Servico/id/{id}.
  *
@@ -23,8 +26,19 @@ import { alocarNumeroNfseMock, nfseConfigMock } from '@/mocks/nfse-config'
 export const TEMPO_AUTORIZACAO_MS = 8000
 export const VALOR_REJEICAO = 666.66
 export const VALOR_CONFLITO = 777.77
+export const VALOR_CANCELAMENTO_PENDENTE = 888.88
 
 export type EstadoNota = 'rascunho' | 'processando' | 'emitida_offline' | 'autorizada' | 'rejeitada' | 'em_conflito' | 'cancelada' | 'descartada'
+
+interface CancelamentoMock {
+  estado: 'processando' | 'concluido' | 'recusado'
+  codigoMotivo: number
+  motivo: string
+  codigoRetorno: string | null
+  mensagemRetorno: string | null
+  dataHoraEvento: string | null
+  solicitadoEm: string
+}
 
 interface Nota {
   id: string
@@ -49,6 +63,7 @@ interface Nota {
   linkPdf: string | null
   codigoVerificacao: string | null
   dataHoraEvento: string | null
+  cancelamento: CancelamentoMock | null
   /** Interno: instante (ms) em que foi enviada e quantas consultas ja fez. */
   enviadaEm: number
   consultas: number
@@ -97,6 +112,7 @@ function base(i: number, parcial: Partial<Nota>): Nota {
     linkPdf: null,
     codigoVerificacao: null,
     dataHoraEvento: null,
+    cancelamento: null,
     enviadaEm: 0,
     consultas: 0,
     ...parcial,
@@ -112,9 +128,17 @@ const autorizadaCom = (n: number): Partial<Nota> => ({
   dataHoraEvento: '2026-11-10T14:00:30',
 })
 
+function mesAnterior(): string {
+  const d = new Date()
+  d.setDate(1)
+  d.setMonth(d.getMonth() - 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-15T14:00:00`
+}
+
 const sementes = (): Nota[] => [
   base(0, autorizadaCom(1)),
-  base(1, autorizadaCom(2)),
+  // Emitida no mes anterior: serve para ver o aviso "fora do mes vigente" no cancelamento.
+  base(1, { ...autorizadaCom(2), dataEmissao: mesAnterior() }),
   base(2, {
     estado: 'rejeitada',
     codigoRetorno: 'E160',
@@ -170,7 +194,21 @@ function progredir(n: Nota): void {
   if (n.estado === 'processando' && n.enviadaEm > 0 && Date.now() - n.enviadaEm >= TEMPO_AUTORIZACAO_MS) autorizar(n)
 }
 
-const podeAtualizar = (n: Nota) => n.estado === 'processando' || n.estado === 'emitida_offline' || n.estado === 'em_conflito'
+const cancelando = (n: Nota) => n.cancelamento?.estado === 'processando'
+const podeAtualizar = (n: Nota) => n.estado === 'processando' || n.estado === 'emitida_offline' || n.estado === 'em_conflito' || cancelando(n)
+const anoMes = (d: Date) => {
+  const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit' }).formatToParts(d)
+  return `${p.find((x) => x.type === 'year')?.value}-${p.find((x) => x.type === 'month')?.value}`
+}
+/** dataEmissao sem fuso e horario local de Sao Paulo. */
+const noMesVigente = (n: Nota) => n.dataEmissao.slice(0, 7) === anoMes(new Date())
+const podeCancelar = (n: Nota) => n.estado === 'autorizada' && !cancelando(n) && noMesVigente(n)
+function concluirCancelamento(n: Nota): void {
+  if (!n.cancelamento) return
+  n.estado = 'cancelada'
+  n.cancelamento = { ...n.cancelamento, estado: 'concluido', codigoRetorno: '101', mensagemRetorno: 'Cancelamento homologado pela prefeitura.', dataHoraEvento: agoraIso() }
+}
+
 const podeReenviar = (n: Nota) => n.estado === 'rascunho' || n.estado === 'rejeitada'
 
 function item(n: Nota) {
@@ -206,6 +244,8 @@ function detalhe(n: Nota) {
     editavel: podeReenviar(n),
     podeReenviar: podeReenviar(n),
     podeAtualizar: podeAtualizar(n),
+    cancelamento: n.cancelamento,
+    podeCancelar: podeCancelar(n),
   }
 }
 
@@ -355,7 +395,7 @@ export function notasRoutes(req: { method: string; path: string; query?: Q; body
     return json(200, filtradas(q).slice(from, to + 1).map(item))
   }
 
-  const rota = /^\/nfse\/notas\/([^/]+)(?:\/(enviar|atualizar|pdf))?$/.exec(path)
+  const rota = /^\/nfse\/notas\/([^/]+)(?:\/(enviar|atualizar|cancelar|pdf))?$/.exec(path)
   if (!rota) return null
   const nota = notas.find((n) => n.id === rota[1])
   if (!nota) return erro(404, 'nao_encontrado', 'Nota não encontrada.')
@@ -371,10 +411,30 @@ export function notasRoutes(req: { method: string; path: string; query?: Q; body
 
   if (acao === 'atualizar' && method === 'POST') {
     if (!escreve) return negado()
-    if (podeAtualizar(nota) && nota.estado !== 'em_conflito') {
+    if (cancelando(nota)) {
+      nota.consultas += 1
+      if (nota.consultas >= 2) concluirCancelamento(nota)
+    } else if (podeAtualizar(nota) && nota.estado !== 'em_conflito') {
       nota.consultas += 1
       if (nota.consultas >= 2) autorizar(nota)
     }
+    return json(200, detalhe(nota))
+  }
+
+  if (acao === 'cancelar' && method === 'POST') {
+    if (!escreve) return negado()
+    const b = (req.body ?? {}) as { codigoMotivo?: unknown; motivo?: unknown }
+    const campos: Record<string, string> = {}
+    if (b.codigoMotivo !== 1 && b.codigoMotivo !== 2 && b.codigoMotivo !== 9) campos.codigoMotivo = 'Escolha o tipo do motivo.'
+    const motivo = typeof b.motivo === 'string' ? b.motivo.trim() : ''
+    if (motivo.length < 15 || motivo.length > 255) campos.motivo = 'A justificativa deve ter de 15 a 255 caracteres.'
+    if (Object.keys(campos).length > 0) return erro(400, 'requisicao_invalida', 'Dados inválidos.', { campos })
+    if (cancelando(nota)) return erro(409, 'cancelamento_em_andamento', 'Já existe um cancelamento em andamento para esta nota.')
+    if (nota.estado !== 'autorizada') return erro(409, 'nota_nao_autorizada', 'Só é possível cancelar uma nota autorizada.')
+    if (!noMesVigente(nota)) return erro(409, 'cancelamento_fora_do_mes', 'O cancelamento só é possível dentro do mês vigente da emissão da nota.')
+    nota.cancelamento = { estado: 'processando', codigoMotivo: b.codigoMotivo as number, motivo, codigoRetorno: null, mensagemRetorno: null, dataHoraEvento: null, solicitadoEm: agoraIso() }
+    nota.consultas = 0
+    if (nota.valorServicos !== VALOR_CANCELAMENTO_PENDENTE) concluirCancelamento(nota)
     return json(200, detalhe(nota))
   }
 

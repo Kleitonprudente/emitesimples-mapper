@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ajustarNfseConfig } from '@/mocks/nfse-config'
-import { TEMPO_AUTORIZACAO_MS, VALOR_CONFLITO, VALOR_REJEICAO } from '@/mocks/notas'
+import { TEMPO_AUTORIZACAO_MS, VALOR_CANCELAMENTO_PENDENTE, VALOR_CONFLITO, VALOR_REJEICAO } from '@/mocks/notas'
 import { handleMock, resetMock, setMockLatency } from '@/mocks/registry'
 
 setMockLatency(0)
@@ -143,5 +143,63 @@ describe('mock de notas NFS-e', () => {
   it('o certificado enviado em Empresa passa a valer no GET /configuracao/nfse', async () => {
     ajustarNfseConfig({ habilitada: true, serie: '1', statusCadastro: 'cadastrado' })
     expect((await call('GET', '/configuracao/nfse', undefined, token)).body.certificadoSituacao).toBe('nao_enviado')
+  })
+
+  describe('cancelar', () => {
+    const motivo = { codigoMotivo: 1, motivo: 'Valor emitido errado, nota refeita.' }
+    const autorizada = async (extra: object = {}) => {
+      habilita()
+      const a = (await call('POST', '/nfse/notas', corpo(extra), token)).body
+      await call('POST', `/nfse/notas/${a.id}/atualizar`, undefined, token)
+      return (await call('POST', `/nfse/notas/${a.id}/atualizar`, undefined, token)).body
+    }
+
+    it('nota autorizada do mes vigente vira cancelada com o bloco de cancelamento', async () => {
+      const a = await autorizada()
+      expect([a.estado, a.podeCancelar]).toEqual(['autorizada', true])
+      const r = await call('POST', `/nfse/notas/${a.id}/cancelar`, motivo, token)
+      expect(r.status).toBe(200)
+      expect(r.body).toMatchObject({ estado: 'cancelada', podeCancelar: false, cancelamento: { estado: 'concluido', codigoMotivo: 1, motivo: motivo.motivo } })
+      expect((await call('GET', `/nfse/notas/${a.id}`, undefined, token)).body.estado).toBe('cancelada')
+    })
+
+    it('valida o corpo (15 a 255 apos trim, codigo 1|2|9) com 400 e campos', async () => {
+      const a = await autorizada()
+      const curto = await call('POST', `/nfse/notas/${a.id}/cancelar`, { codigoMotivo: 1, motivo: '   curto   ' }, token)
+      expect([curto.status, curto.body.codigo]).toEqual([400, 'requisicao_invalida'])
+      expect(curto.body.detalhes.campos.motivo).toBeTruthy()
+      const longo = await call('POST', `/nfse/notas/${a.id}/cancelar`, { codigoMotivo: 9, motivo: 'x'.repeat(256) }, token)
+      expect(longo.status).toBe(400)
+      const codigo = await call('POST', `/nfse/notas/${a.id}/cancelar`, { codigoMotivo: 3, motivo: 'x'.repeat(15) }, token)
+      expect(codigo.body.detalhes.campos.codigoMotivo).toBeTruthy()
+      expect((await call('POST', `/nfse/notas/${a.id}/cancelar`, { codigoMotivo: 2, motivo: 'x'.repeat(255) }, token)).status).toBe(200)
+    })
+
+    it('fora do mes vigente: 409 cancelamento_fora_do_mes e a nota segue autorizada', async () => {
+      const antes = (await call('GET', '/nfse/notas/nota-0002', undefined, token)).body
+      expect([antes.estado, antes.podeCancelar]).toEqual(['autorizada', false])
+      const r = await call('POST', '/nfse/notas/nota-0002/cancelar', motivo, token)
+      expect([r.status, r.body.codigo]).toEqual([409, 'cancelamento_fora_do_mes'])
+      expect((await call('GET', '/nfse/notas/nota-0002', undefined, token)).body.estado).toBe('autorizada')
+    })
+
+    it('nota que nao esta autorizada: 409 nota_nao_autorizada; consulta: 403; inexistente: 404', async () => {
+      habilita()
+      const p = (await call('POST', '/nfse/notas', corpo(), token)).body
+      expect((await call('POST', `/nfse/notas/${p.id}/cancelar`, motivo, token)).body.codigo).toBe('nota_nao_autorizada')
+      expect((await call('POST', '/nfse/notas/nota-0005/cancelar', motivo, token)).body.codigo).toBe('nota_nao_autorizada')
+      expect((await call('POST', '/nfse/notas/nao-existe/cancelar', motivo, token)).status).toBe(404)
+      const c = await login('consulta@exemplo.com.br')
+      expect((await call('POST', '/nfse/notas/nota-0001/cancelar', motivo, c)).status).toBe(403)
+    })
+
+    it('valor 888.88 fica processando (nota segue autorizada) e conclui na 2a consulta; repetir da 409', async () => {
+      const a = await autorizada({ valorServicos: VALOR_CANCELAMENTO_PENDENTE })
+      const r = await call('POST', `/nfse/notas/${a.id}/cancelar`, motivo, token)
+      expect(r.body).toMatchObject({ estado: 'autorizada', podeAtualizar: true, podeCancelar: false, cancelamento: { estado: 'processando' } })
+      expect((await call('POST', `/nfse/notas/${a.id}/cancelar`, motivo, token)).body.codigo).toBe('cancelamento_em_andamento')
+      expect((await call('POST', `/nfse/notas/${a.id}/atualizar`, undefined, token)).body.estado).toBe('autorizada')
+      expect((await call('POST', `/nfse/notas/${a.id}/atualizar`, undefined, token)).body).toMatchObject({ estado: 'cancelada', cancelamento: { estado: 'concluido' } })
+    })
   })
 })

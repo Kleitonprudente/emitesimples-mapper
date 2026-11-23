@@ -2,11 +2,14 @@ package br.com.emitesimples.nfseemissao;
 
 import br.com.emitesimples.auth.AuthService;
 import br.com.emitesimples.gateway.IntegraNotasCliente.RetornoNfse;
+import br.com.emitesimples.nfse.entity.CancelamentoEntity;
 import br.com.emitesimples.nfse.entity.NotaEntity;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import jakarta.persistence.EntityManager;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -143,6 +146,104 @@ final class NfseRetorno {
             n.setMensagemRetorno(limitar(c == 5006 ? "A IntegraNotas não encontrou esta nota. Use Atualizar mais tarde."
                     : r.mensagem(), 500));
             n.setDataAtualizacao(AuthService.agora());
+        }
+    }
+
+    // ------------------------------------------------------------------------------------- cancelamento
+
+    enum ResultadoCancelamento {
+        /** 101 ou 5015: a nota virou cancelada. */
+        CONCLUIDO,
+        /** O gateway recusou (5013, 5001...): a nota continua autorizada; o chamador devolve 409. */
+        RECUSADO,
+        /** Resposta nao conclusiva / falha de rede: fica pendente ate o acompanhamento ver o 101. */
+        PROCESSANDO
+    }
+
+    static final String MSG_CANCELAMENTO_SEM_CONFIRMACAO =
+            "O IntegraNotas não confirmou o cancelamento. Verifique a nota e solicite o cancelamento novamente.";
+    static final Duration LIMITE_CANCELAMENTO_PENDENTE = Duration.ofHours(24);
+
+    /**
+     * Aplica a resposta de {@code POST /v1/nfse/cancela} (ou a falha de infraestrutura {@code falha}, codigo estavel do
+     * cliente) ao registro de Cancelamento e a nota. Decide pelo {@code codigo}: 101 e 5015 (ja cancelada, idempotente)
+     * concluem; falha de rede/indisponibilidade, 5023/5030/5034/5027/8429, 7xxx, 9xxx, 0 e sucesso com codigo desconhecido
+     * deixam {@code processando}; token recusado e qualquer outra recusa (5013...) marcam {@code recusado}.
+     */
+    static ResultadoCancelamento aplicarCancelamento(NotaEntity n, CancelamentoEntity c, RetornoNfse r, String falha) {
+        var agora = AuthService.agora();
+        c.setDataAtualizacao(agora);
+        if (r == null) {
+            if ("integranotas_token_recusado".equals(falha)) {
+                recusar(c, null, MSG_TOKEN, agora);
+                return ResultadoCancelamento.RECUSADO;
+            }
+            c.setMensagemRetorno(MSG_INDISPONIVEL);
+            return ResultadoCancelamento.PROCESSANDO;
+        }
+        int cod = r.codigo();
+        boolean sucesso = !Boolean.FALSE.equals(r.sucesso());
+        if (cod == 5015 || sucesso && cod == 101) {
+            concluir(c, r, cod);
+            if (!"cancelada".equals(n.getEstado())) {
+                cancelar(n, r);
+            }
+            return ResultadoCancelamento.CONCLUIDO;
+        }
+        boolean inconclusivo = cod == 0 || cod == 5023 || cod == 5030 || cod == 5034 || cod == 5027 || cod == 8429
+                || cod >= 7000 && cod <= 7999 || cod >= 9000 && cod <= 9999 || sucesso;
+        c.setCodigoRetorno(cod);
+        c.setMensagemRetorno(limitar(r.mensagem(), 500));
+        if (inconclusivo) {
+            return ResultadoCancelamento.PROCESSANDO;
+        }
+        recusar(c, cod, r.mensagem(), agora);
+        return ResultadoCancelamento.RECUSADO;
+    }
+
+    private static void recusar(CancelamentoEntity c, Integer cod, String mensagem, java.time.LocalDateTime agora) {
+        c.setEstado("recusado");
+        c.setCodigoRetorno(cod);
+        c.setMensagemRetorno(limitar(mensagem, 500));
+        c.setDataHoraRecusa(agora);
+    }
+
+    private static void concluir(CancelamentoEntity c, RetornoNfse r, int codigo) {
+        c.setEstado("concluido");
+        c.setCodigoRetorno(codigo);
+        c.setMensagemRetorno(limitar(r.mensagem(), 500));
+        LocalDateTime evento = dataEvento(texto(r.raiz(), "data_hora_evento"));
+        if (evento != null) {
+            c.setDataHoraEvento(evento);
+        }
+        byte[] xml = ArquivoGateway.decodificar(texto(r.raiz(), "xml"));
+        if (xml != null) {
+            c.setXml(xml);
+        }
+        byte[] pdf = ArquivoGateway.decodificar(texto(r.raiz(), "pdf"));
+        if (pdf != null) {
+            c.setPdf(pdf);
+        }
+        c.setDataAtualizacao(AuthService.agora());
+    }
+
+    /**
+     * Depois de aplicar uma CONSULTA: se a nota esta cancelada, conclui o(s) Cancelamento(s) pendente(s) com o retorno 101;
+     * se a nota segue autorizada e o pedido pendente tem mais de 24 h, marca-o {@code recusado} (sem confirmacao) para
+     * liberar um novo pedido. Nota travada pelo chamador.
+     */
+    static void concluirCancelamentoPendente(EntityManager em, NotaEntity n, RetornoNfse r) {
+        List<CancelamentoEntity> pendentes = em.createQuery("select c from CancelamentoEntity c where c.nota.id = :n "
+                + "and c.empresa.id = :e and c.estado = 'processando'", CancelamentoEntity.class)
+                .setParameter("n", n.getId()).setParameter("e", n.getEmpresa().getId()).getResultList();
+        for (CancelamentoEntity c : pendentes) {
+            if ("cancelada".equals(n.getEstado())) {
+                concluir(c, r, 101);
+            } else if ("autorizada".equals(n.getEstado()) && r.codigo() == 100 && c.getDataCriacao() != null
+                    && c.getDataCriacao().isBefore(AuthService.agora().minus(LIMITE_CANCELAMENTO_PENDENTE))) {
+                recusar(c, null, MSG_CANCELAMENTO_SEM_CONFIRMACAO, AuthService.agora());
+                c.setDataAtualizacao(AuthService.agora());
+            }
         }
     }
 

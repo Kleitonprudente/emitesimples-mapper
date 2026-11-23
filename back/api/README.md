@@ -708,10 +708,12 @@ bloqueados (409 `emissao_producao_bloqueada`) salvo `emitesimples.nfse.permitir-
 |---|---|
 | `GET /api/nfse/notas/{from}/{to}?estado=&busca=` | lista (até 100 por chamada), `dataCriacao` desc; busca por número, nome da pessoa (sem diferenciar caixa; diferencia acentos) e chave; **sem xml/pdf** |
 | `GET /api/nfse/notas/count?estado=&busca=` | `{count}` |
-| `GET /api/nfse/notas/{id}` | item + `informacoesComplementares, discriminacao, descricao, codigoServico, errosRetorno [{campo,erro,descricao}]\|null, linkPdf, codigoVerificacao, dataHoraEvento, editavel, podeReenviar, podeAtualizar` |
+| `GET /api/nfse/notas/{id}` | item + `informacoesComplementares, discriminacao, descricao, codigoServico, errosRetorno [{campo,erro,descricao}]\|null, linkPdf, codigoVerificacao, dataHoraEvento, editavel, podeReenviar, podeAtualizar, cancelamento, podeCancelar` |
 | `POST /api/nfse/notas` | `{pessoaId, servicoId, valorServicos, informacoesComplementares?, discriminacao?}`: cria **e envia**; 200 com o detalhe |
 | `POST /api/nfse/notas/{id}/enviar` | corpo opcional com os mesmos campos (só o que vier muda); só `rascunho`/`rejeitada` |
 | `POST /api/nfse/notas/{id}/atualizar` | consulta o gateway agora e devolve o detalhe |
+| `POST /api/nfse/notas/{id}/cancelar` | `{codigoMotivo: 1|2|9, motivo: 15..255 caracteres após trim}` (administrador|operador): cancela a nota **autorizada** no mês vigente da emissão; 200 com o detalhe (`estado` `cancelada` quando concluído). Ver "Cancelamento" abaixo |
+| `GET /api/nfse/notas/{id}/cancelamento/pdf` | PDF do evento de cancelamento (`inline`); 404 `pdf_indisponivel` se não houver |
 | `GET /api/nfse/notas/{id}/pdf` | `application/pdf` (`inline`) do PDF guardado; senão 404 `pdf_indisponivel` (o front usa `linkPdf`) |
 
 Item da lista: `id, numero, serie, estado, dataEmissao, valorServicos, pessoa{id,nome,documento}, servico{id,nome}, chave, numeroNfse, codigoRetorno, mensagemRetorno, temPdf, dataCriacao`.
@@ -720,6 +722,18 @@ Erros: 409 `nfse_nao_habilitada`, `emissao_producao_bloqueada`, `emitente_nao_ca
 (`detalhes.campos`: documento, logradouro, numeroEndereco, bairro, cidade); 400 `requisicao_invalida` (`detalhes.campos`: `valorServicos` 0,01 a 9999999999999,99 com até 2 casas,
 `informacoesComplementares` ≤ 2000, `discriminacao` ≤ 2000) e `discriminacao_obrigatoria`; 429 (30 criar/enviar por minuto por usuário, `emitesimples.nfse.limite-envios-por-minuto`);
 502/504 só em `/atualizar` (token recusado, resposta inválida, indisponível).
+
+### Cancelamento (`POST /api/nfse/notas/{id}/cancelar`)
+
+Corpo `{codigoMotivo, motivo}`: `codigoMotivo` 1 (erro de emissão), 2 (serviço não concluído) ou 9 (outros); `motivo` de 15 a 255 caracteres contados após `trim`.
+O detalhe da nota ganhou `cancelamento` (`null` ou `{estado, codigoMotivo, motivo, codigoRetorno, mensagemRetorno, dataHoraEvento, solicitadoEm}`, do pedido mais recente; `estado`
+`processando`|`concluido`|`recusado`) e `podeCancelar` (`autorizada` e mês vigente e sem cancelamento em processamento). `podeAtualizar` também vale para `autorizada` com cancelamento `processando`.
+
+- **Mês vigente**: mês/ano de `dataEmissao` == mês/ano de agora em `America/Sao_Paulo`; senão 409 `cancelamento_fora_do_mes` ("O cancelamento só é possível dentro do mês vigente da emissão da nota.") sem chamar o gateway. Regra do produto; prazos por município continuam não documentados.
+- **Fluxo**: uma transação trava a nota, valida e grava o `Cancelamento` `processando` (um por vez: 409 `cancelamento_em_andamento`); o gateway (`POST /v1/nfse/cancela`, `{chave, codigo_cancelamento, motivo_cancelamento}`, token do emitente) é chamado **fora** da transação e a chamada vai para `ChamadaGateway` (`cancelar_nfse`, sem motivo nem token).
+- **Retorno** (pelo `codigo`): 101 ou 5015 (já cancelada, idempotente) = `cancelada` + Cancelamento `concluido` (xml/pdf do evento decodificados com `ArquivoGateway`); recusa (5013, 5001, 5006..., e token recusado) = Cancelamento `recusado` com `codigoRetorno/mensagemRetorno` e **409 `cancelamento_recusado`** com a mensagem do gateway (a nota segue `autorizada`; dá para tentar de novo); resposta inconclusiva (5023, 5030, 5034, 5027, 8429, 7xxx, 9xxx, 0, sucesso com código desconhecido), timeout, rede ou resposta inválida = **200** com o Cancelamento `processando` (a nota segue `autorizada`).
+- **Acompanhamento**: o job, o `/atualizar` e o webhook consultam também notas `autorizada` com cancelamento `processando`; ao receber 101 a nota vira `cancelada` e o Cancelamento `concluido`. Pedido pendente há mais de 24 h em que o gateway ainda diz autorizada (100) vira `recusado` ("não confirmou") para liberar novo pedido.
+- Outros erros: 404 nota; 409 `nota_nao_autorizada` (nota já `cancelada` = sucesso idempotente, devolve o detalhe sem chamar o gateway), `emissao_producao_bloqueada` (mesma regra da emissão), `emitente_nao_cadastrado`, `emitente_de_outro_ambiente`; 400 `requisicao_invalida` (`detalhes.campos`: `codigoMotivo`, `motivo`); 403/429 como nos demais POSTs (o limite de 30/min é o mesmo de criar/enviar).
 
 ### Estados e transições
 

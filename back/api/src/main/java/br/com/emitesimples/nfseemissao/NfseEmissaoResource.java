@@ -72,6 +72,21 @@ public class NfseEmissaoResource {
     }
 
     @POST
+    @Path("/{id}/cancelar")
+    @RolesAllowed({"administrador", "operador", "plataforma_admin"})
+    public NotaDetalhe cancelar(@PathParam("id") String id, CancelarEntrada corpo) {
+        return service.cancelar(id, corpo);
+    }
+
+    @GET
+    @Path("/{id}/cancelamento/pdf")
+    @Produces({"application/pdf", "application/json"})
+    @RolesAllowed({"administrador", "operador", "consulta", "plataforma_admin"})
+    public Response pdfCancelamento(@PathParam("id") String id) {
+        return Response.ok(service.pdfCancelamento(id)).type("application/pdf").header("Content-Disposition", "inline").build();
+    }
+
+    @POST
     @Path("/{id}/atualizar")
     @RolesAllowed({"administrador", "operador", "plataforma_admin"})
     public NotaDetalhe atualizar(@PathParam("id") String id) {

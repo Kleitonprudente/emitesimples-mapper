@@ -113,6 +113,7 @@ public class NfseAcompanhamentoService {
             NotaEntity n = travar(empresaId, notaId);
             if (n != null) {
                 NfseRetorno.aplicarConsulta(n, r);
+                NfseRetorno.concluirCancelamentoPendente(em, n, r);
             }
         });
         return true;
@@ -120,7 +121,7 @@ public class NfseAcompanhamentoService {
 
     private Ctx contexto(String empresaId, String notaId) {
         NotaEntity n = carregar(empresaId, notaId, false);
-        if (n == null || !NfseRetorno.emAndamento(n.getEstado()) || n.getChave() == null) {
+        if (n == null || n.getChave() == null || !NfseRetorno.emAndamento(n.getEstado()) && !cancelamentoPendente(n)) {
             return null;
         }
         EmpresaEntity e = em.find(EmpresaEntity.class, empresaId);
@@ -131,6 +132,13 @@ public class NfseAcompanhamentoService {
             return null;
         }
         return new Ctx(n.getChave(), n.getAmbiente(), e.getReferenciaTokenEmpresa(), NfsePayloadMapper.identificacao(notaId));
+    }
+
+    /** Nota autorizada com pedido de cancelamento ainda sem resposta conclusiva: acompanhada ate ver o 101. */
+    private boolean cancelamentoPendente(NotaEntity n) {
+        return "autorizada".equals(n.getEstado()) && em.createQuery("select count(c) from CancelamentoEntity c where "
+                + "c.nota.id = :n and c.empresa.id = :e and c.estado = 'processando'", Long.class)
+                .setParameter("n", n.getId()).setParameter("e", n.getEmpresa().getId()).getSingleResult() > 0;
     }
 
     NotaEntity carregar(String empresaId, String notaId, boolean travar) {
@@ -165,10 +173,15 @@ public class NfseAcompanhamentoService {
         }
         LocalDateTime corte = AuthService.agora().minus(LIMITE_ACOMPANHAMENTO);
         String amb = ativo;
-        List<?> linhas = contexto.comoSistema(() -> QuarkusTransaction.requiringNew().call(() -> em.createQuery(
+        List<Object> linhas = new java.util.ArrayList<>(contexto.comoSistema(() -> QuarkusTransaction.requiringNew().call(() -> em.createQuery(
                 "select n.id, n.empresa.id, n.dataCriacao from NotaEntity n where n.estado in ('processando','emitida_offline') "
                         + "and n.chave is not null and n.ambiente = :a and n.dataCriacao > :c order by n.dataAtualizacao asc, n.id")
-                .setParameter("a", amb).setParameter("c", corte).setMaxResults(500).getResultList()));
+                .setParameter("a", amb).setParameter("c", corte).setMaxResults(500).getResultList())));
+        // notas autorizadas com cancelamento pendente (a idade vem do pedido, sem corte de 24 h: a consulta o expira)
+        linhas.addAll(contexto.comoSistema(() -> QuarkusTransaction.requiringNew().call(() -> em.createQuery(
+                "select n.id, n.empresa.id, c.dataCriacao from CancelamentoEntity c join c.nota n where c.estado = 'processando' "
+                        + "and n.estado = 'autorizada' and n.chave is not null and n.ambiente = :a order by c.dataAtualizacao asc, c.id")
+                .setParameter("a", amb).setMaxResults(100).getResultList())));
         Instant agora = Instant.now();
         int feitas = 0;
         for (Object o : linhas) {

@@ -54,6 +54,15 @@ final class NfsePayloadMapper {
     private NfsePayloadMapper() {
     }
 
+    /** Corpo de {@code POST /v1/nfse/cancela}: chave (50 digitos), codigo_cancelamento (1, 2 ou 9) e motivo_cancelamento. */
+    static ObjectNode cancelamento(String chave, int codigoMotivo, String motivo) {
+        ObjectNode o = JSON.createObjectNode();
+        o.put("chave", chave);
+        o.put("codigo_cancelamento", codigoMotivo);
+        o.put("motivo_cancelamento", motivo);
+        return o;
+    }
+
     /** Payload montado + um resumo curto e seguro para o log do gateway (sem dados do tomador). */
     record Montado(ObjectNode corpo, String identificacao, String resumo) {
     }

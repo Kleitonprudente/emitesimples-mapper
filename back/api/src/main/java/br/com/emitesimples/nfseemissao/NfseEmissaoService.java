@@ -6,6 +6,7 @@ import br.com.emitesimples.cadastros.entity.ServicoEntity;
 import br.com.emitesimples.configuracao.entity.EmpresaEntity;
 import br.com.emitesimples.gateway.IntegraNotasCliente;
 import br.com.emitesimples.gateway.IntegraNotasCliente.RetornoNfse;
+import br.com.emitesimples.nfse.entity.CancelamentoEntity;
 import br.com.emitesimples.nfse.entity.NotaEntity;
 import br.com.emitesimples.nfseconfig.CertificadoSituacao;
 import br.com.emitesimples.nfseemissao.NfseEmissaoDtos.*;
@@ -25,6 +26,7 @@ import jakarta.persistence.TypedQuery;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -298,6 +300,166 @@ public class NfseEmissaoService {
         return detalhe(emp, id);
     }
 
+    // ------------------------------------------------------------------------------------------- cancelamento
+
+    static final String MSG_FORA_DO_MES = "O cancelamento só é possível dentro do mês vigente da emissão da nota.";
+
+    private record Motivo(int codigo, String texto) {
+    }
+
+    private record PreCancel(String cancelamentoId, String chave, String tokenRef, String ambiente, String identificacao) {
+    }
+
+    /** Mes/ano da emissao == mes/ano de agora em America/Sao_Paulo. */
+    static boolean mesVigente(LocalDateTime dataEmissao) {
+        return dataEmissao != null && YearMonth.from(dataEmissao).equals(YearMonth.now(NfsePayloadMapper.SAO_PAULO));
+    }
+
+    /**
+     * Cancela a nota autorizada: valida, grava o pedido {@code processando} (trava a nota: um por vez), chama o gateway FORA
+     * de transacao e aplica o retorno. 101/5015: nota {@code cancelada}; recusa do gateway: 409 {@code cancelamento_recusado}
+     * (nota segue autorizada); resposta inconclusiva ou falha de rede: o pedido fica {@code processando} e o acompanhamento
+     * (job, /atualizar, webhook) o conclui ao ver o 101. Nota ja cancelada: sucesso idempotente.
+     */
+    public NotaDetalhe cancelar(String id, CancelarEntrada in) {
+        limite.consumir(jwt.getSubject());
+        String emp = empresaDaSessao();
+        Motivo motivo = validarCancelamento(in);
+        String ativo = config.ambienteAtivo();
+        String usuarioId = jwt.getSubject();
+        PreCancel pre = QuarkusTransaction.requiringNew().call(() -> prepararCancelamento(emp, id, motivo, ativo, usuarioId));
+        if (pre == null) {
+            return detalhe(emp, id); // ja cancelada
+        }
+        RetornoNfse r = null;
+        String falha = null;
+        long ini = System.nanoTime();
+        try {
+            String token = segredos.ler(pre.tokenRef());
+            String urlBase = config.urlBase(pre.ambiente());
+            ini = System.nanoTime();
+            r = cliente.cancelarNfse(urlBase, token, NfsePayloadMapper.cancelamento(pre.chave(), motivo.codigo(), motivo.texto()));
+        } catch (ApiException ex) {
+            falha = ex.getCodigo();
+        } catch (RuntimeException ex) {
+            LOG.warnf("NFS-e: cofre/config indisponivel no cancelamento (empresa=%s, %s)", emp, ex.getClass().getSimpleName());
+            falha = "integranotas_indisponivel";
+        }
+        long ms = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - ini);
+        chamadas.registrar(emp, id, "cancelar_nfse", "POST", "/v1/nfse/cancela", "v1", r == null ? null : r.httpStatus(),
+                r == null ? null : r.codigo(), r == null ? falha : r.mensagem(), ms, pre.chave(), pre.identificacao(),
+                "codigo_cancelamento=" + motivo.codigo(), pre.ambiente());
+        RetornoNfse retorno = r;
+        String falhaFinal = falha;
+        NfseRetorno.ResultadoCancelamento res = QuarkusTransaction.requiringNew().call(() -> {
+            NotaEntity n = acompanhamento.carregar(emp, id, true);
+            CancelamentoEntity c = em.find(CancelamentoEntity.class, pre.cancelamentoId());
+            if (n == null || c == null || !"processando".equals(c.getEstado())) {
+                return NfseRetorno.ResultadoCancelamento.PROCESSANDO; // concluido por outro caminho (consulta/webhook)
+            }
+            return NfseRetorno.aplicarCancelamento(n, c, retorno, falhaFinal);
+        });
+        if (res == NfseRetorno.ResultadoCancelamento.RECUSADO) {
+            String msg = QuarkusTransaction.requiringNew().call(() -> {
+                CancelamentoEntity c = em.find(CancelamentoEntity.class, pre.cancelamentoId());
+                return c == null ? null : c.getMensagemRetorno();
+            });
+            throw new ApiException(409, "cancelamento_recusado",
+                    msg == null ? "O IntegraNotas recusou o cancelamento da nota." : msg,
+                    retorno == null || retorno.codigo() == 0 ? null : Map.of("codigoRetorno", retorno.codigo()));
+        }
+        return detalhe(emp, id);
+    }
+
+    private PreCancel prepararCancelamento(String emp, String id, Motivo m, String ativo, String usuarioId) {
+        NotaEntity n = acompanhamento.carregar(emp, id, true);
+        if (n == null) {
+            throw naoEncontrado("Nota não encontrada.");
+        }
+        if ("cancelada".equals(n.getEstado())) {
+            return null;
+        }
+        boolean producao = IntegraNotasConfigService.PRODUCAO.equals(ativo)
+                || IntegraNotasConfigService.PRODUCAO.equals(n.getAmbiente());
+        if (producao && !permitirProducao) {
+            throw new ApiException(409, "emissao_producao_bloqueada",
+                    "O cancelamento em produção está bloqueado nesta fase. Use o ambiente de homologação.");
+        }
+        if (!"autorizada".equals(n.getEstado()) || n.getChave() == null) {
+            throw new ApiException(409, "nota_nao_autorizada", "Só é possível cancelar uma nota autorizada.");
+        }
+        if (!mesVigente(n.getDataEmissao())) {
+            throw new ApiException(409, "cancelamento_fora_do_mes", MSG_FORA_DO_MES);
+        }
+        long pendentes = em.createQuery("select count(c) from CancelamentoEntity c where c.nota.id = :n and c.empresa.id = :e "
+                + "and c.estado = 'processando'", Long.class).setParameter("n", id).setParameter("e", emp).getSingleResult();
+        if (pendentes > 0) {
+            throw new ApiException(409, "cancelamento_em_andamento",
+                    "Já há um cancelamento desta nota em processamento. Use Atualizar para ver o resultado.");
+        }
+        EmpresaEntity e = em.find(EmpresaEntity.class, emp);
+        if (e.getReferenciaTokenEmpresa() == null || !"cadastrado".equals(e.getStatusCadastro())) {
+            throw new ApiException(409, "emitente_nao_cadastrado",
+                    "O emitente ainda não foi cadastrado no IntegraNotas. Habilite a NFS-e da empresa.");
+        }
+        if (!ativo.equals(e.getAmbiente()) || !ativo.equals(n.getAmbiente())) {
+            throw new ApiException(409, "emitente_de_outro_ambiente",
+                    "A nota ou o emitente pertence a outro ambiente do IntegraNotas. Troque para o ambiente da nota.");
+        }
+        var agora = AuthService.agora();
+        CancelamentoEntity c = CancelamentoEntity.builderOf()
+                .withCodigoMotivo(m.codigo()).withMotivo(m.texto()).withEstado("processando")
+                .withAmbiente(n.getAmbiente()).withDataHoraAprovacao(agora)
+                .withEmpresa(e).withNota(n)
+                .withPreparadoPorUsuario(usuario(usuarioId)).withAprovadoPor(usuario(usuarioId))
+                .withDataCriacao(agora).withDataAtualizacao(agora)
+                .build();
+        em.persist(c);
+        em.flush();
+        return new PreCancel(c.getId(), n.getChave(), e.getReferenciaTokenEmpresa(), n.getAmbiente(),
+                NfsePayloadMapper.identificacao(id));
+    }
+
+    private static Motivo validarCancelamento(CancelarEntrada in) {
+        if (in == null) {
+            throw invalido(List.of(erro("corpo", "Informe o motivo do cancelamento.")));
+        }
+        List<Map<String, String>> f = new ArrayList<>();
+        Integer cod = in.codigoMotivo();
+        if (cod == null || cod != 1 && cod != 2 && cod != 9) {
+            f.add(erro("codigoMotivo", "Informe o tipo do motivo: 1 (erro de emissão), 2 (serviço não concluído) ou 9 (outros)."));
+        }
+        String texto = in.motivo() == null ? "" : in.motivo().strip();
+        if (texto.length() < 15 || texto.length() > 255) {
+            f.add(erro("motivo", "A justificativa deve ter de 15 a 255 caracteres."));
+        }
+        if (!f.isEmpty()) {
+            throw invalido(f);
+        }
+        return new Motivo(cod, texto);
+    }
+
+    /** PDF do evento de cancelamento (o mais recente concluido com PDF); 404 {@code pdf_indisponivel} se nao houver. */
+    public byte[] pdfCancelamento(String id) {
+        String emp = empresaDaSessao();
+        return QuarkusTransaction.requiringNew().call(() -> {
+            boolean existe = em.createQuery("select count(n) from NotaEntity n where n.id = :id and n.empresa.id = :emp",
+                    Long.class).setParameter("id", id).setParameter("emp", emp).getSingleResult() > 0;
+            if (!existe) {
+                throw naoEncontrado("Nota não encontrada.");
+            }
+            List<byte[]> l = em.createQuery("select c.pdf from CancelamentoEntity c where c.nota.id = :id and c.empresa.id = :emp "
+                    + "and c.estado = 'concluido' order by c.dataCriacao desc", byte[].class)
+                    .setParameter("id", id).setParameter("emp", emp).getResultList();
+            for (byte[] p : l) {
+                if (p != null) {
+                    return p;
+                }
+            }
+            throw new ApiException(404, "pdf_indisponivel", "O PDF do cancelamento não está disponível.");
+        });
+    }
+
     // ------------------------------------------------------------------------------------------- leitura
 
     private static final String SELECT = "select n.id, n.numero, n.serie, n.estado, n.dataEmissao, n.valorServicos, p.id, p.nome, "
@@ -365,7 +527,10 @@ public class NfseEmissaoService {
             if (l.isEmpty()) {
                 throw naoEncontrado("Nota não encontrada.");
             }
-            return detalhe(l.get(0));
+            List<CancelamentoEntity> cs = em.createQuery("select c from CancelamentoEntity c where c.nota.id = :n and c.empresa.id = :e "
+                    + "order by c.dataCriacao desc", CancelamentoEntity.class).setParameter("n", id).setParameter("e", emp)
+                    .setMaxResults(1).getResultList();
+            return detalhe(l.get(0), cs.isEmpty() ? null : cs.get(0));
         });
     }
 
@@ -394,15 +559,19 @@ public class NfseEmissaoService {
                 (String) l[14], Boolean.TRUE.equals(l[15]), (LocalDateTime) l[16]);
     }
 
-    private static NotaDetalhe detalhe(Object[] l) {
+    private static NotaDetalhe detalhe(Object[] l, CancelamentoEntity c) {
         NotaItem i = item(l);
         String estado = i.estado();
         boolean editavel = "rascunho".equals(estado) || "rejeitada".equals(estado);
-        boolean atualizar = NfseRetorno.emAndamento(estado) && i.chave() != null;
+        boolean pendente = c != null && "processando".equals(c.getEstado());
+        boolean atualizar = (NfseRetorno.emAndamento(estado) || "autorizada".equals(estado) && pendente) && i.chave() != null;
+        boolean podeCancelar = "autorizada".equals(estado) && !pendente && mesVigente(i.dataEmissao());
+        CancelamentoInfo info = c == null ? null : new CancelamentoInfo(c.getEstado(), c.getCodigoMotivo(), c.getMotivo(),
+                c.getCodigoRetorno(), c.getMensagemRetorno(), c.getDataHoraEvento(), c.getDataCriacao());
         return new NotaDetalhe(i.id(), i.numero(), i.serie(), estado, i.dataEmissao(), i.valorServicos(), i.pessoa(),
                 i.servico(), i.chave(), i.numeroNfse(), i.codigoRetorno(), i.mensagemRetorno(), i.temPdf(),
                 i.dataCriacao(), (String) l[17], (String) l[18], (String) l[19], (String) l[20], erros((String) l[21]),
-                (String) l[22], (String) l[23], (LocalDateTime) l[24], editavel, editavel, atualizar);
+                (String) l[22], (String) l[23], (LocalDateTime) l[24], editavel, editavel, atualizar, info, podeCancelar);
     }
 
     /** Parse tolerante do texto salvo: array JSON de {campo, erro, descricao}; qualquer outro texto vira uma descricao. */

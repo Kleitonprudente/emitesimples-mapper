@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ApiError } from '@/lib/api'
@@ -20,7 +20,7 @@ const BASE = {
   pessoa: { id: 'p1', nome: 'Ana Paula', documento: '12345678909' }, servico: { id: 's1', nome: 'Consultoria' },
   chave: null, numeroNfse: null, codigoRetorno: null, mensagemRetorno: null, temPdf: false, dataCriacao: '2026-11-10T14:00:00',
   informacoesComplementares: null, discriminacao: 'Serviço prestado.', descricao: null, codigoServico: '170101', errosRetorno: null,
-  linkPdf: null, codigoVerificacao: null, dataHoraEvento: null, editavel: false, podeReenviar: false, podeAtualizar: false,
+  linkPdf: null, codigoVerificacao: null, dataHoraEvento: null, editavel: false, podeReenviar: false, podeAtualizar: false, cancelamento: null,
 }
 const nota = (o: object = {}) => ({ ...BASE, ...o })
 const REJEITADA = nota({
@@ -290,5 +290,204 @@ describe('NotaDetalhe', () => {
     renderTela()
     await userEvent.setup().click(await screen.findByRole('button', { name: 'Voltar à lista' }))
     expect(navegar).toHaveBeenCalledWith({ to: '/notas' })
+  })
+
+  describe('cancelar NFS-e', () => {
+    const JUSTIFICATIVA = 'Valor emitido errado, nota refeita.'
+    const CANCELADA = nota({
+      estado: 'cancelada',
+      cancelamento: { estado: 'concluido', codigoMotivo: 1, motivo: JUSTIFICATIVA, mensagemRetorno: 'Cancelamento homologado.', solicitadoEm: '2026-11-23T11:00:00', dataHoraEvento: '2026-11-23T11:00:05' },
+    })
+    const PENDENTE = nota({ cancelamento: { estado: 'processando', codigoMotivo: 1, motivo: JUSTIFICATIVA, solicitadoEm: '2026-11-23T11:00:00' }, podeAtualizar: true })
+    const botaoCancelar = () => screen.queryByRole('button', { name: 'Cancelar NFS-e' })
+    const abrirModal = async () => {
+      await userEvent.setup().click(await screen.findByRole('button', { name: 'Cancelar NFS-e' }))
+      return await screen.findByRole('dialog')
+    }
+    const digitar = (dialogo: HTMLElement, valor: string) => fireEvent.change(within(dialogo).getByLabelText('Justificativa'), { target: { value: valor } })
+    const confirmar = (dialogo: HTMLElement) => within(dialogo).getByRole('button', { name: /Cancelar nota|Cancelando/ })
+
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(new Date('2026-11-23T15:00:00Z'))
+    })
+
+    it('operador ve o botao em nota autorizada do mes vigente', async () => {
+      prepara(nota())
+      renderTela()
+      expect(await screen.findByRole('button', { name: 'Cancelar NFS-e' })).toBeInTheDocument()
+    })
+
+    it.each([
+      ['consulta', 'autorizada', {}],
+      ['operador', 'rejeitada', {}],
+      ['operador', 'processando', {}],
+      ['operador', 'cancelada', {}],
+      ['operador', 'autorizada', { podeCancelar: false }],
+      ['operador', 'autorizada', { cancelamento: { estado: 'processando' } }],
+    ])('%s com nota %s %j: sem botao Cancelar', async (papel, estado, extra) => {
+      sessao.atual = com(papel)
+      prepara(nota({ estado, ...extra }))
+      renderTela()
+      await screen.findByRole('heading', { name: 'Nota 1-100' })
+      expect(botaoCancelar()).not.toBeInTheDocument()
+    })
+
+    it('fora do mes vigente avisa na pagina e nao abre o modal nem chama a API', async () => {
+      prepara(nota({ dataEmissao: '2026-10-20T14:00:00', podeCancelar: false }))
+      renderTela()
+      await userEvent.setup().click(await screen.findByRole('button', { name: 'Cancelar NFS-e' }))
+      expect(screen.getByText('O cancelamento só é possível dentro do mês vigente da emissão da nota.')).toBeInTheDocument()
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(posts()).toHaveLength(0)
+    })
+
+    it('fuso de Sao Paulo: emissao em UTC no dia 1 de dezembro 01h ainda e novembro', async () => {
+      vi.setSystemTime(new Date('2026-11-30T20:00:00Z'))
+      prepara(nota({ dataEmissao: '2026-12-01T01:00:00Z' }))
+      renderTela()
+      await abrirModal()
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+    })
+
+    it('o modal so habilita Cancelar nota com 15 a 255 caracteres apos trim e mostra o contador', async () => {
+      prepara(nota())
+      renderTela()
+      const d = await abrirModal()
+      expect(within(d).getByText('0/255')).toBeInTheDocument()
+      expect(confirmar(d)).toBeDisabled()
+      digitar(d, '   ' + 'a'.repeat(14) + '   ')
+      expect(within(d).getByText('14/255')).toBeInTheDocument()
+      expect(confirmar(d)).toBeDisabled()
+      digitar(d, 'a'.repeat(15))
+      expect(confirmar(d)).toBeEnabled()
+      digitar(d, 'a'.repeat(255))
+      expect(within(d).getByText('255/255')).toBeInTheDocument()
+      expect(confirmar(d)).toBeEnabled()
+      digitar(d, 'a'.repeat(256))
+      expect(confirmar(d)).toBeDisabled()
+      expect(within(d).getByText('A justificativa deve ter de 15 a 255 caracteres.')).toBeInTheDocument()
+      expect(posts()).toHaveLength(0)
+    })
+
+    it('Voltar fecha o modal sem chamar a API', async () => {
+      prepara(nota())
+      renderTela()
+      const d = await abrirModal()
+      await userEvent.setup().click(within(d).getByRole('button', { name: 'Voltar' }))
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+      expect(posts()).toHaveLength(0)
+    })
+
+    it('sucesso: envia o corpo, a nota vira Cancelada, mostra o bloco e avisa por toast', async () => {
+      prepara(nota())
+      aoPost = async () => {
+        atual = CANCELADA
+        return atual
+      }
+      renderTela()
+      const d = await abrirModal()
+      digitar(d, `  ${JUSTIFICATIVA}  `)
+      await userEvent.setup().click(confirmar(d))
+      await waitFor(() => expect(posts()).toHaveLength(1))
+      expect(posts()[0]).toEqual(['/nfse/notas/n1/cancelar', { method: 'POST', body: { codigoMotivo: 1, motivo: JUSTIFICATIVA } }])
+      await waitFor(() => expect(toastMock.success).toHaveBeenCalledWith('Nota cancelada.'))
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+      expect(screen.getByText('Cancelada')).toBeInTheDocument()
+      expect(screen.getByText('Cancelamento')).toBeInTheDocument()
+      expect(screen.getByText('Erro de emissão')).toBeInTheDocument()
+      expect(screen.getByText(JUSTIFICATIVA)).toBeInTheDocument()
+      expect(screen.getByText('Cancelamento homologado.')).toBeInTheDocument()
+      expect(botaoCancelar()).not.toBeInTheDocument()
+    })
+
+    it('envia o tipo escolhido no Select', async () => {
+      prepara(nota())
+      aoPost = async () => CANCELADA
+      renderTela()
+      const d = await abrirModal()
+      const user = userEvent.setup()
+      await user.click(within(d).getByRole('combobox', { name: 'Tipo do motivo' }))
+      await user.click(await screen.findByRole('option', { name: 'Outros' }))
+      digitar(d, JUSTIFICATIVA)
+      await user.click(confirmar(d))
+      await waitFor(() => expect(posts()).toHaveLength(1))
+      expect(posts()[0]![1]).toEqual({ method: 'POST', body: { codigoMotivo: 9, motivo: JUSTIFICATIVA } })
+    })
+
+    it('durante o envio desabilita e mostra Cancelando…', async () => {
+      prepara(nota())
+      let liberar: (v: unknown) => void = () => {}
+      aoPost = () => new Promise((r) => (liberar = r))
+      renderTela()
+      const d = await abrirModal()
+      digitar(d, JUSTIFICATIVA)
+      await userEvent.setup().click(confirmar(d))
+      const botao = await within(d).findByRole('button', { name: /Cancelando…/ })
+      expect(botao).toBeDisabled()
+      expect(within(d).getByRole('button', { name: 'Voltar' })).toBeDisabled()
+      liberar(CANCELADA)
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    })
+
+    it('erro 409 do back vira mensagem legivel no modal, que continua aberto', async () => {
+      prepara(nota())
+      aoPost = async () => {
+        throw new ApiError(409, 'cancelamento_fora_do_mes', 'x')
+      }
+      renderTela()
+      const d = await abrirModal()
+      digitar(d, JUSTIFICATIVA)
+      await userEvent.setup().click(confirmar(d))
+      expect(await within(d).findByText('O cancelamento só é possível dentro do mês vigente da emissão da nota.')).toBeInTheDocument()
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+      expect(confirmar(d)).toBeEnabled()
+      expect(toastMock.success).not.toHaveBeenCalled()
+    })
+
+    it('recusa do gateway mostra a mensagem do gateway no modal', async () => {
+      prepara(nota())
+      aoPost = async () => {
+        throw new ApiError(409, 'cancelamento_recusado', 'Prazo de cancelamento expirado na prefeitura.')
+      }
+      renderTela()
+      const d = await abrirModal()
+      digitar(d, JUSTIFICATIVA)
+      await userEvent.setup().click(confirmar(d))
+      expect(await within(d).findByText('Prazo de cancelamento expirado na prefeitura.')).toBeInTheDocument()
+    })
+
+    it('cancelamento pendente: mostra "Cancelamento em processamento" e Atualizar agora consulta de novo', async () => {
+      prepara(nota())
+      aoPost = async (path) => {
+        if (path.endsWith('/cancelar')) {
+          atual = PENDENTE
+          return atual
+        }
+        atual = CANCELADA
+        return atual
+      }
+      renderTela()
+      const d = await abrirModal()
+      digitar(d, JUSTIFICATIVA)
+      await userEvent.setup().click(confirmar(d))
+      expect(await screen.findByText('Cancelamento em processamento')).toBeInTheDocument()
+      await waitFor(() => expect(toastMock.success).toHaveBeenCalledWith('Cancelamento solicitado. Aguardando a confirmação da prefeitura.'))
+      expect(botaoCancelar()).not.toBeInTheDocument()
+      expect(screen.queryByText('NFS-e autorizada.')).not.toBeInTheDocument()
+      await userEvent.setup().click(screen.getByRole('button', { name: 'Atualizar agora' }))
+      await waitFor(() => expect(posts()[1]![0]).toBe('/nfse/notas/n1/atualizar'))
+      expect(await screen.findByText('Cancelada')).toBeInTheDocument()
+      expect(screen.queryByText('Cancelamento em processamento')).not.toBeInTheDocument()
+    })
+
+    it('cancelamento recusado aparece no bloco e a nota autorizada pode tentar de novo', async () => {
+      prepara(nota({ cancelamento: { estado: 'recusado', codigoMotivo: 2, motivo: JUSTIFICATIVA, mensagemRetorno: 'Prazo expirado.' } }))
+      renderTela()
+      expect(await screen.findByText('Recusado')).toBeInTheDocument()
+      expect(screen.getByText('Serviço não concluído')).toBeInTheDocument()
+      expect(screen.getByText('Prazo expirado.')).toBeInTheDocument()
+      expect(botaoCancelar()).toBeInTheDocument()
+    })
   })
 })
