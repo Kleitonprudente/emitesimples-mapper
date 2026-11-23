@@ -9,11 +9,11 @@
             [e] pt
                 [v] Histórico dos envios do arquivo de cidades (CSV do IBGE) feitos pelo administrador da plataforma. É o rastro de quem alterou a tabela de municípios e quando, e guarda o relatório de cada importação (totais e resumo das linhas rejeitadas). Regra da importação, detalhada em docs/carga-municipios.md: atualiza ou insere pelo código IBGE e nunca apaga cidades, pois Pessoa e Empresa as referenciam; linhas inválidas são rejeitadas e relatadas, sem adivinhar.
                   | Registro da plataforma, não de uma empresa: não tem empresa, não tem tenantKey e não tem ambiente (não depende do gateway). Só o administrador da plataforma envia; essa regra é da aplicação e o mapa não a expressa.
-                  | Vive no contexto cadastros (domain.cadastros) e referencia o Usuario do contexto usuarios, que já referencia configuracao, que por sua vez referencia cadastros. É mais uma volta no ciclo de dependência entre contextos, como a dependência mútua entre configuracao e cadastros: não é erro, pois entre contextos a relação é sempre referência, mas quebra o princípio de modelar do mais independente para o mais dependente.
+                  | Vive no contexto cadastros (domain.cadastros). O usuário que fez a importação é guardado só como id (idUsuario, referência de auditoria, CN-REL-002), sem relação com o Usuario do contexto usuarios; assim cadastros não depende de usuarios.
             [e] en
                 [v] History of the uploads of the city file (IBGE CSV) made by the platform administrator. It is the trail of who changed the municipality table and when, and holds the report of each import (totals and summary of the rejected lines). Import rule, detailed in docs/carga-municipios.md: it updates or inserts by IBGE code and never deletes cities, since Pessoa and Empresa reference them; invalid lines are rejected and reported, without guessing.
                   | Platform record, not a company record: it has no company, no tenantKey and no environment (it does not depend on the gateway). Only the platform administrator uploads; that rule belongs to the application and the map does not express it.
-                  | Lives in the cadastros context (domain.cadastros) and references the Usuario of the usuarios context, which already references configuracao, which in turn references cadastros. It is one more turn in the dependency cycle between contexts, like the mutual dependency between configuracao and cadastros: not an error, since between contexts the relation is always a reference, but it breaks the principle of modeling from the most independent to the most dependent.
+                  | Lives in the cadastros context (domain.cadastros). The user who made the import is kept only as an id (idUsuario, audit reference, CN-REL-002), with no relation to the Usuario of the usuarios context; so cadastros does not depend on usuarios.
     [g] arquivo
         [d] nomeArquivo: Texto(255)
             @
@@ -279,20 +279,20 @@
                         [v] Date and time of the last change to the record.
                 [e] required
                     [v] true
-    [g] relacionamentos
-        [r] usuario: Usuario()
+    [g] auditoria
+        [d] idUsuario: Texto(36)
             @
                 [e] cn
-                    [v] usuario_id
+                    [v] id_usuario
                 [e] title
                     [e] pt
-                        [v] Usuário
+                        [v] Id do usuário
                     [e] en
-                        [v] User
+                        [v] User id
                 [e] description
                     [e] pt
-                        [v] Administrador da plataforma que enviou o arquivo. O Usuario é global, sem tenant. Só o administrador da plataforma envia; a regra é da aplicação e o mapa não a expressa.
+                        [v] Id do usuário (administrador da plataforma) que fez a importação, guardado só como referência de auditoria, sem carregar o objeto Usuario. Só o administrador da plataforma envia; a regra é da aplicação e o mapa não a expressa.
                     [e] en
-                        [v] Platform administrator who uploaded the file. Usuario is global, with no tenant. Only the platform administrator uploads; the rule belongs to the application and the map does not express it.
+                        [v] Id of the user (platform administrator) who made the import, kept only as an audit reference, without loading the Usuario object. Only the platform administrator uploads; the rule belongs to the application and the map does not express it.
                 [e] required
                     [v] true
