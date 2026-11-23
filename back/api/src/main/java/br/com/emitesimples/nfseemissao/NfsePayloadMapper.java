@@ -26,17 +26,26 @@ import java.util.Map;
  * nos 40 do gateway) e e a chave de correlacao com o webhook e com a consulta.
  *
  * <p>NAO enviados por decisao: {@code ibs_cbs}; {@code tributos_nacionais} quando o CST for '00' e nao houver valores (a doc
- * so exige {@code cst} se o bloco for enviado); {@code tributos_totais} (so com
- * {@code emitesimples.integranotas.enviar-tributos-totais=true}).
+ * so exige {@code cst} se o bloco for enviado).
  *
- * <p>A CONFIRMAR EM HOMOLOGACAO: (1) o nome exato do campo do percentual do Simples dentro de {@code tributos_totais}
- * (aqui {@link #CAMPO_PERCENTUAL_SIMPLES}); (2) se {@code numero} aceita o valor sem zeros a esquerda (envia-se o numero
+ * <p>{@code servico.tributos_totais.percentual_tributos_simples_nacional}: enviado para optantes do Simples Nacional
+ * (CRT 1 e 2) com o percentual do cadastro do servico. CONFIRMADO em homologacao: para ME/EPP o governo recusa o indicador
+ * de valor total de tributos (E0712) e o percentual do SN e o que deve ir. Desligavel com
+ * {@code emitesimples.integranotas.enviar-tributos-totais=false}.
+ *
+ * <p>A CONFIRMAR EM HOMOLOGACAO: (1) se {@code tributos_totais} fica dentro de {@code servico} (como na documentacao) e nao
+ * na raiz; (2) se {@code numero} aceita o valor sem zeros a esquerda (envia-se o numero
  * como string simples); (3) se {@code tipo_destinatario} pode ir para tomador PF; (4) quais blocos o gateway exige por si.
  */
 final class NfsePayloadMapper {
 
-    /** A CONFIRMAR EM HOMOLOGACAO: nome do campo do percentual do Simples Nacional em {@code tributos_totais}. */
-    static final String CAMPO_PERCENTUAL_SIMPLES = "percentual_simples_nacional";
+    /** Campo do percentual do Simples Nacional em {@code tributos_totais} (informado pelo usuario, confirmado em homologacao). */
+    static final String CAMPO_PERCENTUAL_SIMPLES = "percentual_tributos_simples_nacional";
+
+    /** Optante do Simples Nacional ME/EPP: CRT 1 (Simples) e 2 (Simples com excesso de sublimite). */
+    static boolean optanteSimples(Integer crt) {
+        return crt != null && (crt == 1 || crt == 2);
+    }
 
     static final ZoneId SAO_PAULO = ZoneId.of("America/Sao_Paulo");
     private static final ObjectMapper JSON = new ObjectMapper();
@@ -77,6 +86,22 @@ final class NfsePayloadMapper {
         return f;
     }
 
+    /**
+     * Regime de apuracao dos tributos do SN (regApTribSN) padrao pelo CRT da empresa: 1 Simples Nacional => 1 (federais e
+     * municipal pelo SN); 2 Simples com excesso de sublimite => 2 (federais pelo SN e ISSQN pela NFS-e); MEI (4) e regime
+     * normal (3) nao enviam. A CONFIRMAR com o contador: quem recolhe o ISS por fora do SN precisa de 2 ou 3.
+     */
+    static Integer regimeApuracaoPadrao(Integer crt) {
+        if (crt == null) {
+            return null;
+        }
+        return switch (crt) {
+            case 1 -> 1;
+            case 2 -> 2;
+            default -> null;
+        };
+    }
+
     static Montado montar(NotaEntity n, PessoaEntity p, boolean enviarTributosTotais) {
         ObjectNode raiz = JSON.createObjectNode();
         raiz.put("data_emissao", EMISSAO.format(n.getDataEmissao().truncatedTo(ChronoUnit.SECONDS).atZone(SAO_PAULO)
@@ -85,7 +110,13 @@ final class NfsePayloadMapper {
         raiz.put("serie", n.getSerie());
         String identificacao = identificacao(n.getId());
         raiz.put("identificacao", identificacao);
-        raiz.put("data_competencia", n.getDataCompetencia().toString());
+        // dCompet: o gateway exige data E hora com fuso (padrao ^AAAA-MM-DD(T| )hh:mm:ss-0[0-5]:00$, confirmado em homologacao);
+        // a competencia e uma data, entao vai o inicio daquele dia em Sao Paulo (nunca depois da emissao).
+        raiz.put("data_competencia", EMISSAO.format(n.getDataCompetencia().atStartOfDay(SAO_PAULO).toOffsetDateTime()));
+        // regApTribSN: o governo (E0166, 5028) exige para o optante do Simples Nacional ME/EPP; vem da nota (snapshot).
+        if (n.getRegimeApuracao() != null) {
+            raiz.put("regime_apuracao", n.getRegimeApuracao());
+        }
         if (!vazio(n.getInformacoesComplementares())) {
             raiz.put("informacoes_complementares", n.getInformacoesComplementares());
         }
@@ -129,9 +160,10 @@ final class NfsePayloadMapper {
             valor(tn, "valor_csll", n.getValorCsll());
         }
 
-        // A CONFIRMAR EM HOMOLOGACAO: unico ponto de montagem de tributos_totais (desligado por padrao).
+        // Unico ponto de montagem de tributos_totais: so para optante do Simples Nacional, com o percentual do servico.
         ServicoEntity sv = n.getServico();
-        if (enviarTributosTotais && sv != null && sv.getPercentualTributosSimples() != null) {
+        Integer crt = n.getEmpresa() == null ? null : n.getEmpresa().getRegimeTributario();
+        if (enviarTributosTotais && optanteSimples(crt) && sv != null && sv.getPercentualTributosSimples() != null) {
             s.putObject("tributos_totais").put(CAMPO_PERCENTUAL_SIMPLES,
                     sv.getPercentualTributosSimples().setScale(2, RoundingMode.HALF_UP));
         }

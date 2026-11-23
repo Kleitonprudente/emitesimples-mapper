@@ -30,6 +30,15 @@ class NfseUnidadeTest {
                 raiz.path("mensagem").asText(null), raiz.path("chave").asText(null), raiz);
     }
 
+    @Test
+    void regimeDeApuracaoPadraoPorCrtDaEmpresa() {
+        assertEquals(1, NfsePayloadMapper.regimeApuracaoPadrao(1)); // Simples Nacional: federais e municipal pelo SN
+        assertEquals(2, NfsePayloadMapper.regimeApuracaoPadrao(2)); // excesso de sublimite: ISSQN pela NFS-e
+        assertNull(NfsePayloadMapper.regimeApuracaoPadrao(3)); // regime normal nao envia
+        assertNull(NfsePayloadMapper.regimeApuracaoPadrao(4)); // MEI nao envia
+        assertNull(NfsePayloadMapper.regimeApuracaoPadrao(null));
+    }
+
     private static NotaEntity nota(String estado) {
         NotaEntity n = new NotaEntity();
         n.setEstado(estado);
@@ -145,11 +154,22 @@ class NfseUnidadeTest {
     }
 
     @Test
-    void tributosTotaisSoComAFlagLigada() {
+    void tributosTotaisSoComAFlagLigadaEParaOptanteDoSimples() {
         NotaEntity n = nota("processando");
         ServicoEntity s = new ServicoEntity();
         s.setPercentualTributosSimples(new BigDecimal("6"));
         n.setServico(s);
+        var emp = new br.com.emitesimples.configuracao.entity.EmpresaEntity();
+        emp.setRegimeTributario(1);
+        n.setEmpresa(emp);
+        // MEI e regime normal nao enviam o bloco, mesmo com percentual e flag ligada
+        for (int crt : new int[] {3, 4}) {
+            emp.setRegimeTributario(crt);
+            assertTrue(NfsePayloadMapper.montar(n, pessoa(), true).corpo().path("servico").path("tributos_totais").isMissingNode(), "crt " + crt);
+        }
+        emp.setRegimeTributario(2);
+        assertEquals(0, new BigDecimal("6.00").compareTo(NfsePayloadMapper.montar(n, pessoa(), true).corpo().path("servico").path("tributos_totais").path("percentual_tributos_simples_nacional").decimalValue()));
+        emp.setRegimeTributario(1);
         assertTrue(NfsePayloadMapper.montar(n, pessoa(), false).corpo().path("servico").path("tributos_totais").isMissingNode());
         var tt = NfsePayloadMapper.montar(n, pessoa(), true).corpo().path("servico").path("tributos_totais");
         assertEquals(0, new BigDecimal("6.00").compareTo(tt.path(NfsePayloadMapper.CAMPO_PERCENTUAL_SIMPLES).decimalValue()));

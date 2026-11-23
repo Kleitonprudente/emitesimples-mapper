@@ -48,7 +48,7 @@ public class NfseEmissaoService {
     static final BigDecimal VALOR_MAX = new BigDecimal("9999999999999.99");
     static final long MAX_NUMERO = 999_999_999L;
 
-    @ConfigProperty(name = "emitesimples.integranotas.enviar-tributos-totais", defaultValue = "false")
+    @ConfigProperty(name = "emitesimples.integranotas.enviar-tributos-totais", defaultValue = "true")
     boolean enviarTributosTotais;
 
     @ConfigProperty(name = "emitesimples.nfse.permitir-emissao-producao", defaultValue = "false")
@@ -123,6 +123,7 @@ public class NfseEmissaoService {
         preCondicoes(e, ativo);
         PessoaEntity p = pessoa(emp, c.pessoaId());
         ServicoEntity s = servico(emp, c.servicoId());
+        exigirTributosAproximados(e, s);
         tomadorCompleto(p);
         String discriminacao = discriminacaoFinal(c.discriminacao(), s);
         long proximo = (e.getUltimoNumeroNfse() == null ? 0 : e.getUltimoNumeroNfse()) + 1L;
@@ -169,9 +170,11 @@ public class NfseEmissaoService {
         n.setPessoa(p);
         if (c.servicoId() != null) {
             ServicoEntity s = servico(emp, c.servicoId());
+            exigirTributosAproximados(e, s);
             n.setServico(s);
             snapshot(n, s, discriminacaoFinal(c.discriminacao(), s), c.valor() != null ? c.valor() : n.getValorServicos());
         } else {
+            exigirTributosAproximados(e, n.getServico());
             if (c.valor() != null) {
                 n.setValorServicos(c.valor());
             }
@@ -236,6 +239,10 @@ public class NfseEmissaoService {
         Pre pre = QuarkusTransaction.requiringNew().call(() -> {
             NotaEntity n = acompanhamento.carregar(emp, notaId, false);
             EmpresaEntity e = em.find(EmpresaEntity.class, emp);
+            if (n.getRegimeApuracao() == null) {
+                // notas antigas (e reenvios) ganham o regime padrao do CRT da empresa; fica gravado na nota
+                n.setRegimeApuracao(NfsePayloadMapper.regimeApuracaoPadrao(e.getRegimeTributario()));
+            }
             return new Pre(NfsePayloadMapper.montar(n, n.getPessoa(), enviarTributosTotais), e.getReferenciaTokenEmpresa(),
                     n.getAmbiente());
         });
@@ -467,6 +474,15 @@ public class NfseEmissaoService {
     private PessoaEntity pessoa(String emp, String id) {
         return buscar("select p from PessoaEntity p where p.id = :id and p.empresa.id = :e", PessoaEntity.class, id, emp,
                 "Tomador não encontrado.");
+    }
+
+    /** Optante do Simples (ME/EPP): o governo exige o percentual de tributos do SN (E0712), vem do cadastro do servico. */
+    private void exigirTributosAproximados(EmpresaEntity e, ServicoEntity s) {
+        if (enviarTributosTotais && NfsePayloadMapper.optanteSimples(e.getRegimeTributario()) && s != null
+                && s.getPercentualTributosSimples() == null) {
+            throw new ApiException(409, "servico_sem_tributos_aproximados",
+                    "Informe \"Tributos aprox. Simples (%)\" no cadastro do serviço: é obrigatório para empresas do Simples Nacional.");
+        }
     }
 
     private ServicoEntity servico(String emp, String id) {

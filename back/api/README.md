@@ -554,11 +554,24 @@ O token do emitente **nunca** sai por API (só o boolean). `certificadoSituacao`
 3. Dados da empresa (razão social, fantasia, documento 11/14 dígitos, regime 1-4, telefone 6-14 dígitos, logradouro, número, bairro, CEP 8, município
    com IBGE 7 e UF): senão 422 `cadastro_incompleto`, `detalhes.campos [{campo, mensagem}]`, "Complete os dados da empresa para habilitar a NFS-e."
 4. Numeração (abaixo): 409 `numeracao_invalida`.
-5. Se a empresa ainda não tem emitente no ambiente ativo (`statusCadastro != cadastrado`, sem token no cofre ou ambiente diferente): chama
-   `criarEmitente` (nome=fantasia, razao, crt=regimeTributario, cnpj ou cpf pelo tamanho, cmun=IBGE, telefone só dígitos, `regime_cibs` se a empresa
-   tem, `webhook` só se há `urlPublicaWebhook` configurada). Sucesso: token no cofre (`SegredoService`; id em `referenciaTokenEmpresa`),
-   `statusCadastro=cadastrado`, `dataCadastroGateway=agora`, `ambiente`=ativo. Falha: `statusCadastro=erro`, **não habilita**, responde 502/504 com o código
-   estável acima; um novo PUT depois de corrigido recupera. Já cadastrado: **não recria** (idempotente).
+5. **Garantir o emitente** no gateway quando é preciso (habilitando de novo `false -> true`, `statusCadastro != cadastrado` ou ambiente diferente; gravar série/número com a
+   NFS-e já habilitada e emitente cadastrado **não** chama o gateway). Dados enviados: nome=fantasia, razao, crt=regimeTributario, cmun=IBGE, telefone só dígitos, `regime_cibs` se a
+   empresa tem; cnpj ou cpf (só no cadastro). Fluxo:
+   - **Há token do emitente no cofre** (mesmo ambiente): `PUT /v1/emitente` (token do EMITENTE, sem cnpj/cpf/`documentos`) sincroniza os dados. Validação recusada (5001...):
+     502 `integranotas_recusou` com `detalhes.erros`, não habilita (status continua `cadastrado`). Token do emitente recusado (6000-6003, ou ilegível no cofre) e há token da softhouse:
+     **recupera** (abaixo); sem token da softhouse: 502 `integranotas_token_recusado`. Indisponível / resposta inválida: mesmos erros estáveis, não habilita.
+   - **Sem token**: `POST /v1/soft/emitente` (cadastro, com `webhook` se há URL pública). Sucesso: token no cofre (id em `referenciaTokenEmpresa`), `statusCadastro=cadastrado`,
+     `dataCadastroGateway=agora`, `ambiente`=ativo. Se o gateway diz que o emitente **já existe** (código 5008 OU mensagem com "já existe"/"já cadastrado", com ou sem acento;
+     detecção num lugar só: `IntegraNotasCliente.emitenteJaExiste`) -> **recupera**. Outra falha: `statusCadastro=erro`, não habilita, 502/504 com o código estável; novo PUT recupera.
+   - **Recuperar**: `listarEmitentes` com o token da softhouse (sem ele: 409 `integranotas_nao_configurada`); acha pelo CNPJ/CPF (só dígitos, comparação normalizada), guarda **só** o
+     token do emitente casado no cofre (substitui e apaga o anterior), `statusCadastro=cadastrado`, `dataCadastroGateway=agora`, e sincroniza com `PUT /v1/emitente` (falha de validação
+     bloqueia, mas o token já fica registrado). Não achou, veio sem token ou a listagem falhou: 409 `emitente_existente_sem_token` ("Este CNPJ já está cadastrado na IntegraNotas, mas o
+     token do emitente não pôde ser obtido. Confira o token da softhouse ou fale com o suporte.") e `statusCadastro=erro`.
+   - **Webhook** (best-effort): garantido o emitente sem criá-lo agora e havendo URL pública, `POST /v1/emitente/webhook {webhook}`. Falha NÃO bloqueia: a resposta traz
+     `avisos: ["webhook_nao_atualizado"]` (campo opcional, só aparece se houver aviso; junto dos avisos do certificado).
+   - **Rotas A CONFIRMAR EM HOMOLOGAÇÃO** (constantes em `IntegraNotasCliente`): listagem `GET /v1/soft/emitente` (token da softhouse; resposta `{emitentes:[{cnpj, token, ...}]}`) e
+     webhook `POST /v1/emitente/webhook`. Confirmada pelo usuário: `PUT /v1/emitente`. **Não** use "Gera novo token" para recuperar: ele invalida o token antigo.
+   - A lista contém tokens de OUTROS emitentes: nada dela vai para log, resposta ou banco (só o token do CNPJ casado é guardado, cifrado).
 6. Grava `nfseHabilitada=true`, `serieNfse`, `ultimoNumeroNfse`.
 
 **Numeração**: `ultimoNumero` nunca menor que o atual nem que o maior número de nota da empresa na série (tabela `nota`; sem notas, a lista é vazia).
@@ -588,7 +601,7 @@ A escrita da Empresa é à mão (EntityManager, RLS ativa); o `/api/Empresa` ger
 ### Códigos de erro desta fase
 
 `integranotas_nao_configurada` (409), `cadastro_incompleto` (422), `numeracao_invalida` (409), `operacao_em_andamento` (409), `empresa_nao_selecionada` (403),
-`url_webhook_muito_longa` (409), `url_base_nao_permitida` (409), `integranotas_token_recusado|recusou|resposta_invalida` (502), `integranotas_indisponivel` (504),
+`emitente_existente_sem_token` (409), `url_webhook_muito_longa` (409), `url_base_nao_permitida` (409), `integranotas_token_recusado|recusou|resposta_invalida` (502), `integranotas_indisponivel` (504),
 `corpo_grande_demais` (413), 429 no webhook, `requisicao_invalida` (400).
 
 ### Riscos e decisões
@@ -606,6 +619,8 @@ A escrita da Empresa é à mão (EntityManager, RLS ativa); o `/api/Empresa` ger
 Código à mão em `nfseconfig/EmpresaDadosResource` e `EmpresaDadosService`. Provado em `EmpresaDadosTest`. A empresa é sempre a do token; a escrita é à
 mão (EntityManager sob a RLS da empresa); o `/api/Empresa` gerado continua só plataforma (403 para o administrador da empresa).
 `plataforma_admin` sem empresa na sessão: 403 `empresa_nao_selecionada` (no PUT, 403 pelo papel).
+
+**Sincronização com o gateway** (`PUT /api/configuracao/empresa`): depois de salvar, se `statusCadastro=cadastrado` e há token do emitente, tenta `PUT /v1/emitente` (best-effort). O salvamento nunca falha por isso; se o gateway não atualizar, a resposta traz `avisos: ["emitente_nao_atualizado"]` (campo opcional).
 
 **`GET /api/configuracao/empresa`** (administrador, operador, consulta) -> `{ razaoSocial, nomeFantasia, documento, inscricaoMunicipal|null,
 rgInscricaoEstadual|null, email|null, whatsapp|null, telefone|null, cep, logradouro, numeroEndereco, complemento|null, bairro,

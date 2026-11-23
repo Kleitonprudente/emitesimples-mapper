@@ -171,6 +171,7 @@ class NfseEmissaoTest extends BaseApiTest {
             s.setDescricaoCurta("Desenvolvimento");
             s.setDiscriminacaoPadrao("Servico de desenvolvimento prestado");
             s.setAliquotaIss(new BigDecimal("2.50"));
+            s.setPercentualTributosSimples(new BigDecimal("13.75")); // Simples (CRT 1): o governo exige (E0712)
         });
         return id;
     }
@@ -243,7 +244,11 @@ class NfseEmissaoTest extends BaseApiTest {
         assertEquals("1", p.path("serie").asText());
         assertEquals(id.replace("-", ""), p.path("identificacao").asText());
         assertTrue(p.path("data_emissao").asText().matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}-03:00"), p.path("data_emissao").asText());
-        assertEquals(LocalDate.now(NfsePayloadMapper.SAO_PAULO).toString(), p.path("data_competencia").asText());
+        // o gateway real exige data e hora com fuso na competencia (ex.: 2020-05-16T12:33:20-03:00)
+        assertEquals(LocalDate.now(NfsePayloadMapper.SAO_PAULO) + "T00:00:00-03:00", p.path("data_competencia").asText());
+        assertTrue(p.path("data_competencia").asText().matches("^(20[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]))(\s|T)(2[0-3]|[01][0-9]):?([0-5][0-9]):?([0-5][0-9])-(0[0-5]):00$"), p.path("data_competencia").asText());
+        // optante do Simples Nacional (CRT 1): o governo exige o regime de apuracao (E0166, confirmado em homologacao)
+        assertEquals(1, p.path("regime_apuracao").asInt(), p.toString());
         assertEquals("Pedido 77", p.path("informacoes_complementares").asText());
         JsonNode t = p.path("tomador");
         assertEquals(14, t.path("cnpj").asText().length());
@@ -268,8 +273,10 @@ class NfseEmissaoTest extends BaseApiTest {
         assertEquals(1, s.path("tributos_municipais").path("tipo_operacao").asInt());
         assertEquals(0, new BigDecimal("2.50").compareTo(s.path("tributos_municipais").path("aliquota_iss").decimalValue()));
         assertFalse(s.path("tributos_municipais").path("iss_retido").asBoolean());
-        // por padrao: sem tributos_nacionais (CST 00), sem ibs_cbs, sem tributos_totais, sem prestador
-        for (String ausente : new String[] {"tributos_nacionais", "ibs_cbs", "tributos_totais"}) {
+        // Simples Nacional: tributos_totais com o percentual do servico (E0712 confirmado em homologacao)
+        assertEquals(0, new BigDecimal("13.75").compareTo(s.path("tributos_totais").path("percentual_tributos_simples_nacional").decimalValue()), s.toString());
+        // sem tributos_nacionais (CST 00), sem ibs_cbs, sem prestador
+        for (String ausente : new String[] {"tributos_nacionais", "ibs_cbs"}) {
             assertTrue(s.path(ausente).isMissingNode(), ausente);
             assertTrue(p.path(ausente).isMissingNode(), ausente);
         }
@@ -288,6 +295,26 @@ class NfseEmissaoTest extends BaseApiTest {
         JsonNode t = estadoStub().path("ultimoEnvio").path("corpo").path("tomador");
         assertEquals(11, t.path("cpf").asText().length());
         assertTrue(t.path("cnpj").isMissingNode());
+    }
+
+    @Test
+    void simplesNacionalExigePercentualDeTributosNoCadastroDoServico() {
+        Cen c = cenario();
+        QuarkusTransaction.requiringNew().run(() -> em.find(ServicoEntity.class, c.servico()).setPercentualTributosSimples(null));
+        chamar("POST", URL, c.adm(), corpo(c, "10.00")).then().statusCode(409).body("codigo", equalTo("servico_sem_tributos_aproximados"));
+        // nada foi consumido: sem nota e sem numero queimado
+        assertEquals(0, QuarkusTransaction.requiringNew().call(() -> ((Number) em.createNativeQuery(
+                "select count(*) from nota where empresa_id = :e").setParameter("e", c.emp()).getSingleResult()).intValue()));
+        QuarkusTransaction.requiringNew().run(() -> em.find(ServicoEntity.class, c.servico()).setPercentualTributosSimples(new BigDecimal("5")));
+        criar(c).then().statusCode(200);
+    }
+
+    @Test
+    void meiNaoExigeNemEnviaTributosTotais() {
+        Cen c = cenario();
+        empresa(c.emp(), e -> e.setRegimeTributario(4)); // MEI
+        QuarkusTransaction.requiringNew().run(() -> em.find(ServicoEntity.class, c.servico()).setPercentualTributosSimples(null));
+        criar(c).then().statusCode(200);
     }
 
     @Test

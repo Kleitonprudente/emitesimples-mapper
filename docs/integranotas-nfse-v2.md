@@ -47,6 +47,17 @@ de preenchimento.
 
 - Valores monetários: `number` (`100.00`). Percentuais em **pontos percentuais**: 5% é `5.00`, nunca `0.05`.
 - Datas e horas: ISO com fuso (`2020-05-16T12:33:20-03:00`). Datas simples: `2025-12-31`.
+- **Confirmado em homologação (2026-11-22):** `data_competencia` NÃO aceita data simples. O gateway valida o padrão
+  `^(20AA-MM-DD)(\s|T)(hh):?(mm):?(ss)-(00 a 05):00$` (mensagem 5001: "Data da prestação do serviço. (dCompet) ex.
+  2020-05-16T12:33:20-03:00"). O fuso só pode ser de `-00:00` a `-05:00` (use `America/Sao_Paulo`, `-03:00`). O sistema
+  envia o início do dia da competência (`2026-11-22T00:00:00-03:00`). Moral: o gateway valida cada campo por padrão
+  estrito; um 5001 em homologação aponta o campo e o padrão esperado, e o ajuste vai no `NfsePayloadMapper`.
+- **Confirmado em homologação (2026-11-22), 5028 do governo:** (1) E0166: para o optante do Simples Nacional ME/EPP o
+  `regime_apuracao` (regApTribSN) é obrigatório; o sistema envia `1` para CRT 1 (Simples) e `2` para CRT 2 (excesso de
+  sublimite) e nada para MEI/regime normal (a confirmar com o contador: quem recolhe o ISS por fora do SN precisa de 2 ou 3).
+  (2) E0712: para ME/EPP o indicador de valor total de tributos NÃO pode ser informado; o que vai é
+  `servico.tributos_totais.percentual_tributos_simples_nacional` (percentual do cadastro do serviço, ex.: `13.75`). O sistema
+  exige esse percentual no serviço (409 `servico_sem_tributos_aproximados`) antes de criar a nota, sem queimar numeração.
 - Quebra de linha: apenas `\n`. Tamanho máximo do corpo: 1,2 MB (erro `8000`).
 - Campos opcionais aceitam `null`. `required: true` dentro de um bloco opcional vale **se o bloco for enviado**; o
   schema não diz quais blocos são obrigatórios por si — confirmar em homologação.
