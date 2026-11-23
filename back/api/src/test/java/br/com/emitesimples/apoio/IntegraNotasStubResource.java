@@ -93,6 +93,9 @@ public class IntegraNotasStubResource implements QuarkusTestResourceLifecycleMan
             if (nfse(ex, path)) {
                 return;
             }
+            if (emitenteExistente(ex, path)) {
+                return;
+            }
             if (!path.equals("/v1/soft/emitente") || !"POST".equals(ex.getRequestMethod())) {
                 responder(ex, 404, "{}");
                 return;
@@ -166,8 +169,22 @@ public class IntegraNotasStubResource implements QuarkusTestResourceLifecycleMan
                 responder(ex, 200, "{\"sucesso\":true,\"codigo\":200,\"mensagem\":\"Sucesso.\"}");
                 return;
             }
+            String doc = corpo.path("cnpj").asText(corpo.path("cpf").asText("")).replaceAll("[^0-9]", "");
+            if (emitentesPorDoc.containsKey(doc)) {
+                if (nome.contains(M_JA5008)) {
+                    responder(ex, 200, "{\"sucesso\":false,\"codigo\":5008,\"mensagem\":\"Voce esta tentando criar algo.\"}");
+                } else if (nome.contains(M_JA_SEM_ACENTO)) {
+                    responder(ex, 200, "{\"sucesso\":false,\"codigo\":4004,\"mensagem\":\"Esse CNPJ [" + doc
+                            + "] JA EXISTE cadastrado em nosso sistema\"}");
+                } else {
+                    responder(ex, 200, "{\"sucesso\":false,\"codigo\":4004,\"mensagem\":\"Esse CNPJ [" + doc
+                            + "] já existe cadastrado em nosso sistema\"}");
+                }
+                return;
+            }
             String token = "emitente-" + UUID.randomUUID();
             tokensEmitidos.add(token);
+            emitentesPorDoc.put(doc, token);
             ultima = JSON.writeValueAsString(Map.of("authorization", auth, "corpo", corpo, "tokenDevolvido", token));
             responder(ex, 200, "{\"sucesso\":true,\"codigo\":200,\"mensagem\":\"Sucesso.\",\"token\":\"" + token + "\"}");
         } catch (IOException e) {
@@ -175,6 +192,170 @@ public class IntegraNotasStubResource implements QuarkusTestResourceLifecycleMan
         } finally {
             ex.close();
         }
+    }
+
+    // ------------------------------------------------------------------------------------- emitente existente
+
+    public static final String M_JA5008 = "#ja5008";
+    public static final String M_JA_SEM_ACENTO = "#jasem";
+    public static final String M_PUT5001 = "#put5001";
+    /** Modos da listagem (POST /_modo_lista): ok, 500, json, erro, semtoken. */
+    private volatile String modoLista = "ok";
+    private volatile boolean webhookFalha;
+    private final java.util.Set<String> ocultos = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private final Map<String, String> emitentesPorDoc = new java.util.concurrent.ConcurrentHashMap<>();
+    private final AtomicInteger contagemPut = new AtomicInteger();
+    private final AtomicInteger contagemLista = new AtomicInteger();
+    private final AtomicInteger contagemWebhook = new AtomicInteger();
+    private volatile String ultimoPut = "{}";
+    private volatile String ultimoWebhook = "{}";
+    private volatile String ultimaLista = "{}";
+
+    private static String param(HttpExchange ex, String nome) {
+        String q = ex.getRequestURI().getRawQuery();
+        if (q == null) {
+            return null;
+        }
+        for (String p : q.split("&")) {
+            int i = p.indexOf('=');
+            if (i > 0 && p.substring(0, i).equals(nome)) {
+                return java.net.URLDecoder.decode(p.substring(i + 1), StandardCharsets.UTF_8);
+            }
+        }
+        return null;
+    }
+
+    private boolean emitenteExistente(HttpExchange ex, String path) throws IOException {
+        String m = ex.getRequestMethod();
+        switch (path) {
+            case "/_semear" -> {
+                String doc = param(ex, "doc");
+                String token = param(ex, "token");
+                emitentesPorDoc.put(doc, token);
+                if ("1".equals(param(ex, "oculto"))) {
+                    ocultos.add(doc);
+                }
+                tokensEmitidos.add(token);
+                responder(ex, 200, "{}");
+                return true;
+            }
+            case "/_revogar" -> {
+                tokensEmitidos.remove(param(ex, "token"));
+                responder(ex, 200, "{}");
+                return true;
+            }
+            case "/_modo_lista" -> {
+                modoLista = new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8).strip();
+                responder(ex, 200, "{}");
+                return true;
+            }
+            case "/_webhook_falha" -> {
+                webhookFalha = "sim".equals(new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8).strip());
+                responder(ex, 200, "{}");
+                return true;
+            }
+            case "/_contagem_put" -> {
+                responder(ex, 200, String.valueOf(contagemPut.get()));
+                return true;
+            }
+            case "/_contagem_lista" -> {
+                responder(ex, 200, String.valueOf(contagemLista.get()));
+                return true;
+            }
+            case "/_contagem_webhook" -> {
+                responder(ex, 200, String.valueOf(contagemWebhook.get()));
+                return true;
+            }
+            case "/_ultimo_put" -> {
+                responder(ex, 200, ultimoPut);
+                return true;
+            }
+            case "/_ultimo_webhook" -> {
+                responder(ex, 200, ultimoWebhook);
+                return true;
+            }
+            case "/_ultima_lista" -> {
+                responder(ex, 200, ultimaLista);
+                return true;
+            }
+            default -> {
+            }
+        }
+        String auth = ex.getRequestHeaders().getFirst("Authorization");
+        if (path.equals("/v1/emitente") && "PUT".equals(m)) {
+            contagemPut.incrementAndGet();
+            byte[] bytes = ex.getRequestBody().readAllBytes();
+            if (auth == null || !tokensEmitidos.contains(auth)) {
+                responder(ex, 200, "{\"sucesso\":false,\"codigo\":6001,\"mensagem\":\"Token inválido.\"}");
+                return true;
+            }
+            JsonNode corpo = JSON.readTree(bytes);
+            ultimoPut = JSON.writeValueAsString(Map.of("authorization", auth, "corpo", corpo));
+            if (corpo.has("cnpj") || corpo.has("cpf") || corpo.has("documentos") || corpo.has("webhook")
+                    || corpo.path("nome").asText("").contains(M_PUT5001)) {
+                responder(ex, 200, "{\"sucesso\":false,\"codigo\":5001,\"mensagem\":\"Erro de validação.\","
+                        + "\"erros\":[{\"campo\":\"cep\",\"erro\":\"invalido\",\"descricao\":\"CEP inválido\"}]}");
+                return true;
+            }
+            responder(ex, 200, "{\"sucesso\":true,\"codigo\":200,\"mensagem\":\"Dados atualizados com sucesso.\"}");
+            return true;
+        }
+        if (path.equals("/v1/emitente/webhook") && "POST".equals(m)) {
+            contagemWebhook.incrementAndGet();
+            byte[] bytes = ex.getRequestBody().readAllBytes();
+            if (webhookFalha) {
+                responder(ex, 500, "{\"erro\":\"interno\"}");
+                return true;
+            }
+            if (auth == null || !tokensEmitidos.contains(auth)) {
+                responder(ex, 200, "{\"sucesso\":false,\"codigo\":6001,\"mensagem\":\"Token inválido.\"}");
+                return true;
+            }
+            ultimoWebhook = JSON.writeValueAsString(Map.of("authorization", auth, "corpo", JSON.readTree(bytes)));
+            responder(ex, 200, "{\"sucesso\":true,\"codigo\":200,\"mensagem\":\"Webhook atualizado.\"}");
+            return true;
+        }
+        if (path.equals("/v1/soft/emitente") && "GET".equals(m)) {
+            contagemLista.incrementAndGet();
+            if (auth == null || auth.isBlank() || auth.equals(TOKEN_RECUSADO)) {
+                responder(ex, 200, "{\"sucesso\":false,\"codigo\":6001,\"mensagem\":\"Token inválido.\"}");
+                return true;
+            }
+            switch (modoLista) {
+                case "lento" -> {
+                    dormir(4000);
+                    responder(ex, 200, "{}");
+                }
+                case "500" -> responder(ex, 500, "{\"erro\":\"interno\"}");
+                case "json" -> responder(ex, 200, "<html>nao e json</html>");
+                case "erro" -> responder(ex, 200, "{\"sucesso\":false,\"codigo\":4001,\"mensagem\":\"Falha ao listar.\"}");
+                default -> {
+                    StringBuilder sb = new StringBuilder("{\"sucesso\":true,\"codigo\":200,\"mensagem\":\"Sucesso.\",\"emitentes\":[");
+                    sb.append("{\"status\":\"ativo\",\"nome\":\"Outro 1\",\"razao\":\"Outro 1\",\"cnpj\":\"11.111.111/0001-11\","
+                            + "\"token\":\"token-de-outro-emitente-1\"}");
+                    for (var en : emitentesPorDoc.entrySet()) {
+                        if (ocultos.contains(en.getKey())) {
+                            continue;
+                        }
+                        String d = en.getKey();
+                        String fmt = d.length() == 14
+                                ? d.substring(0, 2) + "." + d.substring(2, 5) + "." + d.substring(5, 8) + "/" + d.substring(8, 12)
+                                        + "-" + d.substring(12) : d;
+                        sb.append(",{\"status\":\"ativo\",\"nome\":\"X\",\"razao\":\"X\",\"cnpj\":\"").append(fmt).append("\"");
+                        if (!modoLista.equals("semtoken")) {
+                            sb.append(",\"token\":\"").append(en.getValue()).append("\"");
+                        }
+                        sb.append("}");
+                    }
+                    sb.append(",{\"status\":\"ativo\",\"nome\":\"Outro 2\",\"razao\":\"Outro 2\",\"cnpj\":\"22222222000122\","
+                            + "\"token\":\"token-de-outro-emitente-2\"}]}");
+                    ultimaLista = "{\"authorization\":" + JSON.writeValueAsString(auth) + "}";
+                    responder(ex, 200, sb.toString());
+                }
+            }
+            return true;
+        }
+        return false;
     }
 
     /** Modos do {@code POST /v1/certificado} (escolhidos por {@code POST /_modo_certificado}): ok, 5003, 5011, 5029, 6001, 500, lento, json, semcodigo, 5003http400. */

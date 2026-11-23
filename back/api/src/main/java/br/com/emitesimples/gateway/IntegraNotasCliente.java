@@ -21,6 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -140,6 +141,106 @@ public class IntegraNotasCliente {
             throw respostaInvalida();
         }
         return new EmitenteCriado(token);
+    }
+
+    // ------------------------------------------------------------------------------------- emitente existente
+
+    /** Rota da listagem de emitentes da softhouse. A CONFIRMAR EM HOMOLOGACAO (o metodo/rota exatos nao estao confirmados). */
+    static final String ROTA_LISTA_EMITENTES = "/v1/soft/emitente";
+    /** Rota de atualizacao do emitente (token do EMITENTE). Confirmada pelo usuario: PUT /v1/emitente. */
+    static final String ROTA_ATUALIZA_EMITENTE = "/v1/emitente";
+    /** Rota para registrar o webhook de um emitente existente (token do EMITENTE). A CONFIRMAR EM HOMOLOGACAO. */
+    static final String ROTA_WEBHOOK_EMITENTE = "/v1/emitente/webhook";
+    /** Codigo generico da tabela do gateway: "Voce esta tentando criar algo que ja existe." */
+    static final int GW_JA_EXISTE = 5008;
+
+    /**
+     * {@code PUT {urlBase}/v1/emitente} com o token do EMITENTE: sincroniza os dados (mesmo mapeamento do cadastro, SEM
+     * cnpj/cpf, SEM {@code documentos} e SEM webhook). Nao cria e nao devolve token. Validacao recusada (5001...): 502
+     * {@code integranotas_recusou} com {@code detalhes.erros}; token do emitente recusado (6000-6003): 502
+     * {@code integranotas_token_recusado}.
+     */
+    public void atualizarEmitente(String urlBase, String tokenEmitente, EmitenteNovo d) {
+        ObjectNode corpo = JSON.createObjectNode();
+        corpo.put("nome", d.nome());
+        corpo.put("razao", d.razao());
+        corpo.put("crt", d.crt());
+        corpo.put("telefone", d.telefone());
+        corpo.put("rua", d.rua());
+        corpo.put("numero", d.numero());
+        corpo.put("bairro", d.bairro());
+        corpo.put("cmun", d.cmun());
+        corpo.put("municipio", d.municipio());
+        corpo.put("uf", d.uf());
+        corpo.put("cep", d.cep());
+        if (d.im() != null) {
+            corpo.put("im", d.im());
+        }
+        if (d.email() != null) {
+            corpo.put("email", d.email());
+        }
+        if (d.complemento() != null) {
+            corpo.put("complemento", d.complemento());
+        }
+        if (d.regimeCibs() != null) {
+            corpo.put("regime_cibs", d.regimeCibs().intValue());
+        }
+        interpretar(chamar("PUT", urlBase, ROTA_ATUALIZA_EMITENTE, tokenEmitente, corpo), "atualização do emitente", true);
+    }
+
+    /**
+     * Procura o emitente pelo CNPJ/CPF (so digitos, comparacao normalizada) na lista da softhouse e devolve SO o token dele.
+     * A lista traz tokens de OUTROS emitentes: nada dela e guardado, registrado ou devolvido. Rota A CONFIRMAR EM HOMOLOGACAO.
+     * Lanca as excecoes estaveis do gateway (token recusado, indisponivel, resposta invalida).
+     */
+    public Optional<String> tokenDoEmitente(String urlBase, String tokenSofthouse, String documentoDigitos) {
+        Resposta r = chamar("GET", urlBase, ROTA_LISTA_EMITENTES, tokenSofthouse, null, MAX_BYTES_CONSULTA);
+        JsonNode raiz = interpretar(r, "listagem de emitentes");
+        JsonNode lista = raiz.get("emitentes");
+        if (lista == null || !lista.isArray()) {
+            throw respostaInvalida();
+        }
+        for (JsonNode e : lista) {
+            String doc = texto(e, "cnpj");
+            if (doc == null) {
+                doc = texto(e, "cpf");
+            }
+            if (doc != null && documentoDigitos.equals(doc.replaceAll("[^0-9]", ""))) {
+                String token = texto(e, "token");
+                return token == null || token.isBlank() ? Optional.empty() : Optional.of(token.strip());
+            }
+        }
+        return Optional.empty();
+    }
+
+    /** {@code POST {urlBase}/v1/emitente/webhook} {@code {webhook}} com o token do EMITENTE. Rota A CONFIRMAR EM HOMOLOGACAO. */
+    public void atualizarWebhook(String urlBase, String tokenEmitente, String urlWebhook) {
+        ObjectNode corpo = JSON.createObjectNode();
+        corpo.put("webhook", urlWebhook);
+        interpretar(chamar("POST", urlBase, ROTA_WEBHOOK_EMITENTE, tokenEmitente, corpo), "registro do webhook", true);
+    }
+
+    /**
+     * O gateway recusou o cadastro porque o emitente JA existe? Lugar UNICO da deteccao: codigo 5008 OU texto com
+     * "ja existe" / "ja cadastrado" (com ou sem acento, qualquer caixa) na mensagem ou nos erros. O codigo especifico de
+     * "CNPJ ja existe" nao esta documentado.
+     */
+    public static boolean emitenteJaExiste(ApiException falha) {
+        if (falha == null || !"integranotas_recusou".equals(falha.getCodigo())) {
+            return false;
+        }
+        StringBuilder texto = new StringBuilder(String.valueOf(falha.getMessage()));
+        if (falha.getDetalhes() instanceof Map<?, ?> det) {
+            if (Integer.valueOf(GW_JA_EXISTE).equals(det.get("codigoGateway"))) {
+                return true;
+            }
+            if (det.get("erros") instanceof List<?> erros) {
+                erros.forEach(x -> texto.append(' ').append(x));
+            }
+        }
+        String t = java.text.Normalizer.normalize(texto, java.text.Normalizer.Form.NFD).replaceAll("\\p{M}", "")
+                .toLowerCase(Locale.ROOT);
+        return t.contains("ja existe") || t.contains("ja cadastrado");
     }
 
     /** Codigos do gateway para certificado recusado (decide-se pelo codigo, nunca pelo texto). */

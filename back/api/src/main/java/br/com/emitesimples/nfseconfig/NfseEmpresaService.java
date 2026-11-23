@@ -4,7 +4,6 @@ import br.com.emitesimples.auth.AuthService;
 import br.com.emitesimples.cadastros.entity.MunicipioEntity;
 import br.com.emitesimples.configuracao.entity.EmpresaEntity;
 import br.com.emitesimples.gateway.IntegraNotasCliente;
-import br.com.emitesimples.gateway.IntegraNotasCliente.EmitenteCriado;
 import br.com.emitesimples.gateway.IntegraNotasCliente.EmitenteNovo;
 import br.com.emitesimples.gateway.WebhookToken;
 import br.com.emitesimples.plataforma.IntegraNotasConfigService;
@@ -23,6 +22,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 
 import java.util.regex.Pattern;
@@ -60,7 +60,7 @@ public class NfseEmpresaService {
     }
 
     /** O que a validacao decidiu: criar o emitente (dados) ou nao (null). */
-    private record Plano(EmitenteNovo novo, String ambiente) {
+    private record Plano(EmitenteNovo dados, String ambiente, boolean garantir, String refToken, String documento) {
     }
 
     @Inject
@@ -125,23 +125,11 @@ public class NfseEmpresaService {
 
         Plano plano = QuarkusTransaction.requiringNew().call(() -> planejar(empresaId, serie, ultimo, cfg, integracao));
 
-        String novoSegredo = null;
-        if (plano.novo() != null) {
-            String ambiente = plano.ambiente();
-            String tokenSofthouse = config.tokenSofthouse(ambiente).orElseThrow(NfseEmpresaService::naoConfigurada);
-            EmitenteCriado criado;
-            try {
-                criado = cliente.criarEmitente(config.urlBase(ambiente), tokenSofthouse, plano.novo());
-            } catch (ApiException falha) {
-                marcarErro(empresaId, falha.getCodigo());
-                throw falha;
-            }
-            novoSegredo = segredos.guardar(criado.token());
-        }
-        String segredoParaGravar = novoSegredo;
+        List<String> avisos = new ArrayList<>();
+        String novoSegredo = plano.garantir() ? garantirEmitente(empresaId, plano, avisos) : null;
         NfseDto gravado;
         try {
-            gravado = gravar(empresaId, serie, ultimo, plano.ambiente(), segredoParaGravar, integracao);
+            gravado = gravar(empresaId, serie, ultimo, plano.ambiente(), novoSegredo, integracao);
         } catch (RuntimeException e) {
             if (novoSegredo != null) {
                 // o emitente JA existe no gateway: o segredo fica no cofre (recuperavel pelo suporte); nada do valor no log
@@ -150,34 +138,153 @@ public class NfseEmpresaService {
             }
             throw e;
         }
-        return enviarCertificadoPendente(empresaId, gravado, integracao);
+        return enviarCertificadoPendente(empresaId, gravado, integracao, avisos);
+    }
+
+    // ------------------------------------------------------------------------------------------- garantir o emitente
+
+    /**
+     * Garante o emitente no gateway ANTES de habilitar. Com token no cofre para o ambiente: sincroniza os dados
+     * ({@code PUT /v1/emitente}); token recusado -> tenta recuperar pela lista da softhouse. Sem token: cria
+     * ({@code POST /v1/soft/emitente}); se o CNPJ ja existe no gateway -> recupera o token pela lista e sincroniza. O webhook
+     * (best-effort) e registrado depois, so quando o emitente nao foi criado agora (o POST ja leva o webhook).
+     *
+     * @return id do segredo do emitente NOVO criado agora (a gravar junto com a habilitacao) ou null (nada a gravar: o token
+     *         ja estava no cofre ou foi registrado na recuperacao)
+     */
+    private String garantirEmitente(String empresaId, Plano p, List<String> avisos) {
+        String ambiente = p.ambiente();
+        String urlBase = config.urlBase(ambiente);
+        if (p.refToken() != null) {
+            String tokenEmitente = null;
+            try {
+                tokenEmitente = segredos.ler(p.refToken());
+            } catch (RuntimeException e) {
+                LOG.warnf("NFS-e: token do emitente ilegivel no cofre (empresa=%s, %s)", empresaId, e.getClass().getSimpleName());
+            }
+            if (tokenEmitente != null) {
+                try {
+                    cliente.atualizarEmitente(urlBase, tokenEmitente, p.dados());
+                    enviarWebhook(urlBase, tokenEmitente, p.dados().webhook(), avisos);
+                    return null;
+                } catch (ApiException falha) {
+                    if (!"integranotas_token_recusado".equals(falha.getCodigo())
+                            || config.tokenSofthouse(ambiente).isEmpty()) {
+                        throw falha; // validacao recusada, indisponivel, resposta invalida: nao habilita
+                    }
+                    LOG.infof("NFS-e: token do emitente recusado, recuperando pela lista (empresa=%s)", empresaId);
+                }
+            } else if (config.tokenSofthouse(ambiente).isEmpty()) {
+                throw naoConfigurada();
+            }
+            recuperar(empresaId, p, urlBase, avisos);
+            return null;
+        }
+        String tokenSofthouse = config.tokenSofthouse(ambiente).orElseThrow(NfseEmpresaService::naoConfigurada);
+        try {
+            return segredos.guardar(cliente.criarEmitente(urlBase, tokenSofthouse, p.dados()).token());
+        } catch (ApiException falha) {
+            if (IntegraNotasCliente.emitenteJaExiste(falha)) {
+                LOG.infof("NFS-e: emitente ja existe no gateway, recuperando pela lista (empresa=%s)", empresaId);
+                recuperar(empresaId, p, urlBase, avisos);
+                return null;
+            }
+            marcarErro(empresaId, falha.getCodigo());
+            throw falha;
+        }
+    }
+
+    /**
+     * Recupera o token do emitente que ja existe no gateway (lista da softhouse), registra no cofre (substitui o anterior) e
+     * sincroniza os dados. Falha de validacao na sincronizacao bloqueia (o token ja fica registrado). Nao achou, veio sem
+     * token ou a listagem falhou: 409 {@code emitente_existente_sem_token} e statusCadastro=erro.
+     */
+    private void recuperar(String empresaId, Plano p, String urlBase, List<String> avisos) {
+        String ambiente = p.ambiente();
+        String tokenSofthouse = config.tokenSofthouse(ambiente).orElseThrow(NfseEmpresaService::naoConfigurada);
+        Optional<String> achado;
+        try {
+            achado = cliente.tokenDoEmitente(urlBase, tokenSofthouse, p.documento());
+        } catch (ApiException falha) {
+            marcarErro(empresaId, falha.getCodigo());
+            throw semToken();
+        }
+        if (achado.isEmpty()) {
+            marcarErro(empresaId, "emitente_nao_listado");
+            throw semToken();
+        }
+        String tokenEmitente = achado.get();
+        String segredo = segredos.guardar(tokenEmitente);
+        registrarToken(empresaId, segredo, ambiente);
+        cliente.atualizarEmitente(urlBase, tokenEmitente, p.dados());
+        enviarWebhook(urlBase, tokenEmitente, p.dados().webhook(), avisos);
+    }
+
+    /** Webhook e best-effort: falha NAO bloqueia, so vira aviso. */
+    private void enviarWebhook(String urlBase, String tokenEmitente, String webhook, List<String> avisos) {
+        if (webhook == null) {
+            return;
+        }
+        try {
+            cliente.atualizarWebhook(urlBase, tokenEmitente, webhook);
+        } catch (ApiException falha) {
+            LOG.infof("NFS-e: webhook nao atualizado no gateway (codigo=%s)", falha.getCodigo());
+            avisos.add("webhook_nao_atualizado");
+        }
+    }
+
+    /** Registra o token recuperado: referencia, status, data, ambiente (e remove o segredo substituido). */
+    private void registrarToken(String empresaId, String novoSegredo, String ambiente) {
+        String antigo = QuarkusTransaction.requiringNew().call(() -> {
+            EmpresaEntity e = carregar(empresaId, true);
+            String a = e.getReferenciaTokenEmpresa();
+            aplicarToken(e, novoSegredo, ambiente, AuthService.agora());
+            return a;
+        });
+        if (antigo != null && !antigo.equals(novoSegredo)) {
+            segredos.remover(antigo);
+        }
+    }
+
+    private static void aplicarToken(EmpresaEntity e, String novoSegredo, String ambiente, LocalDateTime agora) {
+        e.setReferenciaTokenEmpresa(novoSegredo);
+        e.setStatusCadastro("cadastrado");
+        e.setDataCadastroGateway(agora);
+        e.setAmbiente(ambiente);
+        e.setDataAtualizacao(agora);
+        if (CertificadoSituacao.guardado(e) && CertificadoSituacao.VALIDO.equals(e.getSituacaoCertificado())) {
+            // emitente novo/recuperado: ele ainda nao conhece o certificado
+            e.setSituacaoCertificado(CertificadoSituacao.NAO_ENVIADO);
+        }
     }
 
     /**
      * Habilitou com sucesso: se ha certificado guardado que o gateway ainda nao aceitou, envia agora. Falha NAO desfaz a
      * habilitacao: o estado volta no DTO (situacao do certificado) e em {@code avisos}.
      */
-    private NfseDto enviarCertificadoPendente(String empresaId, NfseDto gravado, boolean integracao) {
+    private NfseDto enviarCertificadoPendente(String empresaId, NfseDto gravado, boolean integracao, List<String> avisos) {
         boolean pendente = QuarkusTransaction.requiringNew().call(() -> CertificadoSituacao.pendenteDeEnvio(carregar(empresaId, false)));
-        if (!pendente) {
+        if (pendente) {
+            var desfecho = certificados.enviarGuardado(empresaId);
+            if (!desfecho.enviado()) {
+                String c = desfecho.falha().getCodigo();
+                avisos.add(c.endsWith("_gateway") ? "certificado_recusado" : "certificado_nao_enviado");
+            }
+        } else if (avisos.isEmpty()) {
             return gravado;
-        }
-        var desfecho = certificados.enviarGuardado(empresaId);
-        List<String> avisos = new ArrayList<>();
-        if (!desfecho.enviado()) {
-            String c = desfecho.falha().getCodigo();
-            avisos.add(c.endsWith("_gateway") ? "certificado_recusado" : "certificado_nao_enviado");
         }
         return QuarkusTransaction.requiringNew().call(() -> dto(carregar(empresaId, false), integracao, avisos));
     }
 
-    /** Transacao 1 (com lock): valida tudo e decide se o emitente precisa ser criado. */
+    /** Transacao 1 (com lock): valida tudo e decide se o emitente precisa ser garantido no gateway. */
     private Plano planejar(String empresaId, String serie, long ultimo, IntegraNotasConfigService.Atual cfg,
             boolean integracao) {
         EmpresaEntity e = carregar(empresaId, true);
         String ambiente = cfg.ambienteAtivo();
-        boolean criar = !jaCadastrado(e, ambiente);
-        if (criar && !integracao) {
+        // garantir: habilitando de novo (false->true), sem emitente cadastrado ou em outro ambiente
+        boolean garantir = !jaCadastrado(e, ambiente) || !Boolean.TRUE.equals(e.getNfseHabilitada());
+        String ref = ambiente.equals(e.getAmbiente()) ? e.getReferenciaTokenEmpresa() : null;
+        if (garantir && ref == null && !integracao) {
             throw naoConfigurada();
         }
         List<Map<String, String>> faltas = camposFaltantes(e);
@@ -186,10 +293,10 @@ public class NfseEmpresaService {
                     Map.of("campos", faltas));
         }
         validarNumeracao(e, serie, ultimo);
-        if (!criar) {
-            return new Plano(null, ambiente);
+        if (!garantir) {
+            return new Plano(null, ambiente, false, null, null);
         }
-        return new Plano(montarEmitente(e, cfg), ambiente);
+        return new Plano(montarEmitente(e, webhookDe(e, cfg)), ambiente, true, ref, digitos(e.getDocumento()));
     }
 
     /** Transacao 2 (falha do gateway): so marca erro; nunca derruba um emitente que ja estava cadastrado no ambiente. */
@@ -217,14 +324,7 @@ public class NfseEmpresaService {
             var agora = AuthService.agora();
             if (novoSegredo != null) {
                 antigo[0] = e.getReferenciaTokenEmpresa();
-                e.setReferenciaTokenEmpresa(novoSegredo);
-                e.setStatusCadastro("cadastrado");
-                e.setDataCadastroGateway(agora);
-                e.setAmbiente(ambiente);
-                if (CertificadoSituacao.guardado(e) && CertificadoSituacao.VALIDO.equals(e.getSituacaoCertificado())) {
-                    // emitente novo (outro ambiente): ele ainda nao conhece o certificado
-                    e.setSituacaoCertificado(CertificadoSituacao.NAO_ENVIADO);
-                }
+                aplicarToken(e, novoSegredo, ambiente, agora);
             }
             e.setNfseHabilitada(true);
             e.setSerieNfse(serie);
@@ -298,7 +398,7 @@ public class NfseEmpresaService {
         return r == null ? 0 : ((Number) r).longValue();
     }
 
-    private static List<Map<String, String>> camposFaltantes(EmpresaEntity e) {
+    static List<Map<String, String>> camposFaltantes(EmpresaEntity e) {
         List<Map<String, String>> f = new ArrayList<>();
         if (vazio(e.getRazaoSocial()) || e.getRazaoSocial().strip().length() < 2) {
             f.add(erro("razaoSocial", "Informe a razão social."));
@@ -338,17 +438,29 @@ public class NfseEmpresaService {
         return f;
     }
 
-    private EmitenteNovo montarEmitente(EmpresaEntity e, IntegraNotasConfigService.Atual cfg) {
+    /** URL do webhook desta empresa (null se nao ha URL publica configurada). */
+    private String webhookDe(EmpresaEntity e, IntegraNotasConfigService.Atual cfg) {
+        if (cfg.urlPublicaWebhook() == null) {
+            return null;
+        }
+        String webhook = webhookToken.url(cfg.urlPublicaWebhook(), e.getId());
+        if (webhook.length() > 200) {
+            throw new ApiException(409, "url_webhook_muito_longa",
+                    "A URL pública do webhook ficou longa demais para o IntegraNotas. Fale com o suporte.");
+        }
+        return webhook;
+    }
+
+    private static ApiException semToken() {
+        return new ApiException(409, "emitente_existente_sem_token",
+                "Este CNPJ já está cadastrado na IntegraNotas, mas o token do emitente não pôde ser obtido. "
+                        + "Confira o token da softhouse ou fale com o suporte.");
+    }
+
+    /** Mapeia a Empresa para os dados do emitente (cadastro e sincronizacao). Exige {@link #camposFaltantes} vazio. */
+    static EmitenteNovo montarEmitente(EmpresaEntity e, String webhook) {
         String doc = digitos(e.getDocumento());
         MunicipioEntity m = e.getMunicipio();
-        String webhook = null;
-        if (cfg.urlPublicaWebhook() != null) {
-            webhook = webhookToken.url(cfg.urlPublicaWebhook(), e.getId());
-            if (webhook.length() > 200) {
-                throw new ApiException(409, "url_webhook_muito_longa",
-                        "A URL pública do webhook ficou longa demais para o IntegraNotas. Fale com o suporte.");
-            }
-        }
         Integer cibs = e.getRegimeIbsCbs() != null && e.getRegimeIbsCbs() >= 0 && e.getRegimeIbsCbs() <= 4
                 ? e.getRegimeIbsCbs() : null;
         return new EmitenteNovo(corta(e.getNomeFantasia(), 60), corta(e.getRazaoSocial(), 60), e.getRegimeTributario(),

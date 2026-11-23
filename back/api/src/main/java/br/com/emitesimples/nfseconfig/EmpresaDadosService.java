@@ -3,6 +3,7 @@ package br.com.emitesimples.nfseconfig;
 import br.com.emitesimples.auth.AuthService;
 import br.com.emitesimples.cadastros.entity.MunicipioEntity;
 import br.com.emitesimples.configuracao.entity.EmpresaEntity;
+import br.com.emitesimples.gateway.IntegraNotasCliente;
 import br.com.emitesimples.security.ApiException;
 import br.com.emitesimples.tenant.EscopoTenant;
 import io.quarkus.narayana.jta.QuarkusTransaction;
@@ -39,7 +40,13 @@ public class EmpresaDadosService {
                              String rgInscricaoEstadual, String email, String whatsapp, String telefone, String cep,
                              String logradouro, String numeroEndereco, String complemento, String bairro,
                              MunicipioDto municipio, Integer regimeTributario, Integer regimeIbsCbs,
-                             boolean documentoEditavel, CertificadoResumo certificado) {
+                             boolean documentoEditavel, CertificadoResumo certificado,
+                             @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY) List<String> avisos) {
+        EmpresaDto comAvisos(List<String> novos) {
+            return new EmpresaDto(razaoSocial, nomeFantasia, documento, inscricaoMunicipal, rgInscricaoEstadual, email,
+                    whatsapp, telefone, cep, logradouro, numeroEndereco, complemento, bairro, municipio,
+                    regimeTributario, regimeIbsCbs, documentoEditavel, certificado, novos);
+        }
     }
 
     public record MunicipioRef(String id) {
@@ -57,6 +64,15 @@ public class EmpresaDadosService {
     @Inject
     EscopoTenant escopo;
 
+    @Inject
+    br.com.emitesimples.plataforma.SegredoService segredos;
+
+    @Inject
+    br.com.emitesimples.plataforma.IntegraNotasConfigService config;
+
+    @Inject
+    br.com.emitesimples.gateway.IntegraNotasCliente cliente;
+
     public EmpresaDto obter() {
         String id = empresaDaSessao();
         return QuarkusTransaction.requiringNew().call(() -> dto(carregar(id, false)));
@@ -68,7 +84,9 @@ public class EmpresaDadosService {
             throw invalido(List.of(erro("corpo", "Informe os dados da empresa.")));
         }
         try {
-            return QuarkusTransaction.requiringNew().call(() -> gravar(id, in));
+            EmpresaDto salvo = QuarkusTransaction.requiringNew().call(() -> gravar(id, in));
+            List<String> avisos = sincronizarEmitente(id);
+            return avisos.isEmpty() ? salvo : salvo.comAvisos(avisos);
         } catch (ApiException e) {
             throw e;
         } catch (RuntimeException e) {
@@ -77,6 +95,40 @@ public class EmpresaDadosService {
             }
             LOG.warnf("Empresa: gravacao falhou (empresa=%s, %s)", id, e.getClass().getSimpleName());
             throw e;
+        }
+    }
+
+    /**
+     * Best-effort DEPOIS de salvar: se o emitente ja esta cadastrado e ha token no cofre, sincroniza os dados no gateway
+     * ({@code PUT /v1/emitente}). Nunca falha o salvamento: qualquer problema vira o aviso {@code emitente_nao_atualizado}.
+     * Token e dados nunca vao para log.
+     */
+    private List<String> sincronizarEmitente(String id) {
+        try {
+            Object[] ctx = QuarkusTransaction.requiringNew().call(() -> {
+                EmpresaEntity e = carregar(id, false);
+                if (!"cadastrado".equals(e.getStatusCadastro()) || e.getReferenciaTokenEmpresa() == null
+                        || e.getAmbiente() == null) {
+                    return null;
+                }
+                if (!NfseEmpresaService.camposFaltantes(e).isEmpty()) {
+                    return new Object[] {null, null, null};
+                }
+                return new Object[] {NfseEmpresaService.montarEmitente(e, null), e.getReferenciaTokenEmpresa(), e.getAmbiente()};
+            });
+            if (ctx == null) {
+                return List.of();
+            }
+            if (ctx[0] == null) {
+                return List.of("emitente_nao_atualizado");
+            }
+            String token = segredos.ler((String) ctx[1]);
+            cliente.atualizarEmitente(config.urlBase((String) ctx[2]), token, (IntegraNotasCliente.EmitenteNovo) ctx[0]);
+            return List.of();
+        } catch (RuntimeException ex) {
+            LOG.infof("Empresa: emitente nao atualizado no gateway (empresa=%s, %s)", id,
+                    ex instanceof ApiException a ? a.getCodigo() : ex.getClass().getSimpleName());
+            return List.of("emitente_nao_atualizado");
         }
     }
 
@@ -185,7 +237,7 @@ public class EmpresaDadosService {
         return new EmpresaDto(e.getRazaoSocial(), e.getNomeFantasia(), e.getDocumento(), e.getInscricaoMunicipal(),
                 e.getRgInscricaoEstadual(), e.getEmail(), e.getWhatsapp(), e.getTelefone(), e.getCep(), e.getLogradouro(),
                 e.getNumeroEndereco(), e.getComplemento(), e.getBairro(), md, e.getRegimeTributario(),
-                e.getRegimeIbsCbs(), documentoEditavel(e), c);
+                e.getRegimeIbsCbs(), documentoEditavel(e), c, List.of());
     }
 
     private String empresaDaSessao() {
