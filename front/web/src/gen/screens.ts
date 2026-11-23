@@ -15,6 +15,8 @@ export interface ScreenEntry {
 }
 
 export const screens: ScreenEntry[] = [
+  { name: 'GestaoPessoas', title: 'Pessoas', stereo: 'list', route: '/pessoas', icon: 'users', group: 'Cadastros', order: 9, role: 'operador' },
+  { name: 'FormularioPessoa', title: 'Cadastro de pessoa', stereo: 'editor', route: '/pessoas/$id', icon: 'user-pen', role: 'operador' },
   { name: 'GestaoClientes', title: 'Clientes', stereo: 'list', route: '/clientes', icon: 'users', group: 'Cadastros', order: 10, role: 'operador' },
   { name: 'FormularioCliente', title: 'Cadastro de cliente', stereo: 'editor', route: '/clientes/$id', icon: 'user-pen', role: 'operador' },
   { name: 'GestaoFornecedores', title: 'Fornecedores', stereo: 'list', route: '/fornecedores', icon: 'package', group: 'Cadastros', order: 11, role: 'operador' },

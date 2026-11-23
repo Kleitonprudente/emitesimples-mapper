@@ -234,13 +234,13 @@ class RlsTest extends BaseApiTest {
         try (Connection c = appComEscopo(empA, false)) {
             // INSERT na B estando como A: WITH CHECK barra (42501)
             SQLException e = assertThrows(SQLException.class, () -> executar(c,
-                    "insert into pessoa (id, empresa_id, tipo_pessoa, nome) values ('" + novo + "', '" + empB + "', 'fisica', 'x')"));
+                    "insert into pessoa (id, empresa_id, tipo_pessoa, nome, cliente) values ('" + novo + "', '" + empB + "', 'fisica', 'x', true)"));
             assertEquals("42501", e.getSQLState());
         }
         try (Connection c = appComEscopo(empA, false)) {
             // INSERT na A passa
-            assertEquals(1, executar(c, "insert into pessoa (id, empresa_id, tipo_pessoa, nome) values ('"
-                    + UUID.randomUUID() + "', '" + empA + "', 'fisica', 'ok')"));
+            assertEquals(1, executar(c, "insert into pessoa (id, empresa_id, tipo_pessoa, nome, cliente) values ('"
+                    + UUID.randomUUID() + "', '" + empA + "', 'fisica', 'ok', true)"));
             c.rollback();
         }
         try (Connection c = appComEscopo(empA, false)) {
@@ -290,7 +290,7 @@ class RlsTest extends BaseApiTest {
     }
 
     private Map<String, Object> corpoPessoa(String nome, String empresaId) {
-        return Map.of("tipoPessoa", "fisica", "nome", nome, "empresa", ref("empresa", empresaId));
+        return Map.of("tipoPessoa", "fisica", "nome", nome, "cliente", true, "fornecedor", false, "empresa", ref("empresa", empresaId));
     }
 
     private Map<String, Object> corpoContato(String nome, String pessoaId, String empresaId) {

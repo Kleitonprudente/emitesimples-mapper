@@ -67,15 +67,13 @@ entidade() {
 # substituiram as janelas de Pessoa). O teste escrito a mao (pessoa.gerado.test.tsx) NAO e apagado aqui.
 F="$WEB/features/cadastros/pessoa"
 rm -f "$F/CriarPessoa.tsx" "$F/EditarPessoa.tsx" "$F/EditarPessoaScreen.tsx"
-rm -f "$F/columns.tsx" "$F/GestaoPessoasScreen.tsx" "$F/FormularioPessoa.tsx" "$F/FormularioPessoaScreen.tsx"
-rm -f "$WEB/routes/_authenticated/pessoas/index.tsx" "$WEB/routes/_authenticated/pessoas/\$id.tsx"
-rmdir "$WEB/routes/_authenticated/pessoas" 2>/dev/null || true
 
-# Pessoa: um dominio, duas visoes (Clientes e Fornecedores) com filtro e valor fixos no mapa
+# Pessoa: um dominio, tres visoes (Pessoas, sem filtro; Clientes e Fornecedores, com filtro e valor fixos no mapa)
 dominio Pessoa cadastros
 # Contato: detalhe (1-N) da Pessoa. So o schema zod (item e enum tipoContato); NAO ha gen/api/contato.ts: os contatos
 # trafegam por GET|PUT /Pessoa/{id}/contatos (hooks em gen/api/pessoa.ts), dentro dos formularios de Cliente e Fornecedor
 gerar "$WEB/gen/schemas/contato.ts" zodSchema modelName=Contato package="$RAIZ.domain.cadastros"
+telas cadastros pessoa    pessoas     GestaoPessoas     FormularioPessoa
 telas cadastros cliente   clientes    GestaoClientes    FormularioCliente
 telas cadastros fornecedor fornecedores GestaoFornecedores FormularioFornecedor
 entidade Municipio cadastros municipio municipios GestaoMunicipios FormularioMunicipio

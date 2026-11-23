@@ -6,6 +6,7 @@ Home do projeto Mapper Idea do front (`emitesimples-front` no CLI). Projeto sepa
 main.mi                         registra config de tipos, dominio (copia), struct e as telas
 dominio/<Contexto>/*.mi         COPIA SOMENTE-LEITURA de back/mapas/<Contexto>/ (nao edite aqui)
 generators/struct.mi            copia do struct do back (necessario para validar com `struct`)
+window/cadastros/pessoa/        GestaoPessoas (list, sem filtro fixo; filtros por papel) e FormularioPessoa (editor, com os campos cliente e fornecedor)
 window/cadastros/cliente/       GestaoClientes (list, fixedFilter .cliente) e FormularioCliente (editor, fixedValues .cliente)
 window/cadastros/fornecedor/    GestaoFornecedores (list, fixedFilter .fornecedor) e FormularioFornecedor (editor, fixedValues .fornecedor)
 window/cadastros/municipio/     GestaoMunicipios (list, platformOnly, sem exclusao) e FormularioMunicipio (editor)
@@ -72,6 +73,12 @@ Propriedades do campo no layout do form (`form/rows//field/@`):
   `{ section: 'Titulo' }` no FIELDS, antes das linhas da secao. Propriedades da secao (bloco `@` filho da secao):
   `description/pt` -> `description: '...'`; `collapsible` = `true` -> `collapsible: true`; `defaultOpen` = `true` ->
   `defaultOpen: true` (so faz sentido com `collapsible`). Sem propriedades, so `{ section: 'Titulo' }`.
+- `defaultValue` no `@` do `field` (ex.: `@ [e] defaultValue [v] true`): entra em `DEFAULTS` e VENCE o `defaultValue` do atributo do
+  dominio. Literal: String/BigString entre aspas simples; booleano/numero cru. Ausente, a saida e identica a anterior.
+- `requireOneOf` (propriedade do `form`, irma de `rows`): `[e] requireOneOf` com varios `[e] field [v] .cliente` e, opcional,
+  `[e] message [e] pt [v] texto`. Emite `.refine((v) => Boolean(v.cliente || v.fornecedor), { message, path: ['<ultimo campo>'] })`
+  no schema, depois do `.pick({...})` (e de eventual `.extend` de list). Mensagem padrao: `Marque ao menos uma opção: <titulos> ou <titulos>.`
+  Se algum campo listado nao estiver no `pick` (campo fixo/ausente), o refine NAO e emitido (silencioso).
 
 ### Grade de 12 colunas (regra "a linha soma 12")
 
@@ -286,7 +293,7 @@ Dialeto (plano secao 5):
 7. **Consulta CNPJ.ws** (botao que preenche o form): sem construto no dialeto. A consulta de CEP foi coberta por convencao:
    propriedade de campo `lookup cep` + `hint` (nao constam do plano; o preenchimento dos irmaos por NOME e regra do runtime, o mapa
    nao declara quais campos sao preenchidos).
-8. **`filters` faceted**: `.tipoPessoa` tem `values`; o dado e `fisica`/`juridica`. Assumido que o gerador pega as opcoes do enum do dominio.
+8. **`filters` faceted**: `.tipoPessoa` tem `values`; o dado e `fisica`/`juridica`. Assumido que o gerador pega as opcoes do enum do dominio. Tambem suportado `faceted` sobre atributo **Boolean** (`directToField`, sem `values`): emite as opcoes `Sim`(`true`)/`Nao`(`false`) literais, sem import novo; o valor vira `?campo=true|false`. Demais tipos continuam com `// @TODO ... filtro nao tratado`.
 9. **Atributos de sistema** (`id`, `dataCriacao`, `dataAtualizacao`, `empresa`): excluidos por simples nao listagem no form (o subconjunto e decisao da tela). A `empresa` (tenant) e imposta pelo back.
 10. `consumidorFinal`/regra "PJ com IE vira nao" e regra de aplicacao, nao de tela.
 11. `window.dialog` com `role` e `window.editor` com `icon` sao usos nao exemplificados no plano (aceitos por analogia); o plano nao define `icon`/`label` para action de linha como usado aqui (`pencil`).

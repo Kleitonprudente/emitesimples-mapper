@@ -73,8 +73,10 @@
             [v] ]
         [e] facet-line
             [v]   { id: '{{ $fname }}', title: '{{ $ftitle }}', options: {{ $fname }}Values.map((value) => ({ value, label: {{ $fname }}Labels[value] })) },
+        [e] facet-bool-line
+            [v]   { id: '{{ $fname }}', title: '{{ $ftitle }}', options: [{ value: 'true', label: 'Sim' }, { value: 'false', label: 'Não' }] },
         [e] facet-todo
-            [v]   // @TODO {{ $bean }}{{ normalize-space(value) }}: filtro nao tratado (so faceted sobre enum Texto)
+            [v]   // @TODO {{ $bean }}{{ normalize-space(value) }}: filtro nao tratado (so faceted sobre enum Texto ou Boolean)
         [e] columns-const
             [v] {{ '' }}
             [v] const columns = {{ mi:first-lower(@name) }}Columns()
@@ -578,7 +580,7 @@
                         [e] var
                             [v] attr
                             [e] expr
-                                [v] $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = $fname and @mode = 'directToField' and exists(properties/values) and @type = $mapNativeTypes/String/value]
+                                [v] $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = $fname and @mode = 'directToField' and ((exists(properties/values) and @type = $mapNativeTypes/String/value) or (not(exists(properties/values)) and @type = $mapNativeTypes/Boolean/value))]
                         [e] var
                             [v] ftitle
                             [e] expr
@@ -586,8 +588,14 @@
                     [e] if
                         [v] normalize-space(properties/type/value) = 'faceted' and exists($attr)
                         [e] then
-                            [e] write-pattern
-                                [v] facet-line
+                            [e] if
+                                [v] exists($attr/properties/values)
+                                [e] then
+                                    [e] write-pattern
+                                        [v] facet-line
+                                [e] else
+                                    [e] write-pattern
+                                        [v] facet-bool-line
                         [e] else
                             [e] write-pattern
                                 [v] facet-todo

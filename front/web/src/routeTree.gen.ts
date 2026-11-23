@@ -24,7 +24,6 @@ import { Route as AuthenticatedConfiguracaoEmpresaRouteImport } from './routes/_
 import { Route as AuthenticatedConfiguracaoNfseRouteImport } from './routes/_authenticated/configuracao/nfse'
 import { Route as AuthenticatedEmpresasIndexRouteImport } from './routes/_authenticated/empresas/index'
 import { Route as AuthenticatedEmpresasIdRouteImport } from './routes/_authenticated/empresas/$id'
-import { Route as AuthenticatedExemplosPessoasRouteImport } from './routes/_authenticated/exemplos/pessoas'
 import { Route as AuthenticatedFornecedoresIndexRouteImport } from './routes/_authenticated/fornecedores/index'
 import { Route as AuthenticatedFornecedoresIdRouteImport } from './routes/_authenticated/fornecedores/$id'
 import { Route as AuthenticatedMunicipiosIndexRouteImport } from './routes/_authenticated/municipios/index'
@@ -32,6 +31,8 @@ import { Route as AuthenticatedMunicipiosIdRouteImport } from './routes/_authent
 import { Route as AuthenticatedNotasIndexRouteImport } from './routes/_authenticated/notas/index'
 import { Route as AuthenticatedNotasIdRouteImport } from './routes/_authenticated/notas/$id'
 import { Route as AuthenticatedNotasNovoRouteImport } from './routes/_authenticated/notas/novo'
+import { Route as AuthenticatedPessoasIndexRouteImport } from './routes/_authenticated/pessoas/index'
+import { Route as AuthenticatedPessoasIdRouteImport } from './routes/_authenticated/pessoas/$id'
 import { Route as AuthenticatedServicosIndexRouteImport } from './routes/_authenticated/servicos/index'
 import { Route as AuthenticatedServicosIdRouteImport } from './routes/_authenticated/servicos/$id'
 
@@ -117,12 +118,6 @@ const AuthenticatedEmpresasIdRoute = AuthenticatedEmpresasIdRouteImport.update({
   path: '/empresas/$id',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedExemplosPessoasRoute =
-  AuthenticatedExemplosPessoasRouteImport.update({
-    id: '/exemplos/pessoas',
-    path: '/exemplos/pessoas',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
 const AuthenticatedFornecedoresIndexRoute =
   AuthenticatedFornecedoresIndexRouteImport.update({
     id: '/fornecedores/',
@@ -162,6 +157,17 @@ const AuthenticatedNotasNovoRoute = AuthenticatedNotasNovoRouteImport.update({
   path: '/notas/novo',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedPessoasIndexRoute =
+  AuthenticatedPessoasIndexRouteImport.update({
+    id: '/pessoas/',
+    path: '/pessoas/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedPessoasIdRoute = AuthenticatedPessoasIdRouteImport.update({
+  id: '/pessoas/$id',
+  path: '/pessoas/$id',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedServicosIndexRoute =
   AuthenticatedServicosIndexRouteImport.update({
     id: '/servicos/',
@@ -187,17 +193,18 @@ export interface FileRoutesByFullPath {
   '/configuracao/empresa': typeof AuthenticatedConfiguracaoEmpresaRoute
   '/configuracao/nfse': typeof AuthenticatedConfiguracaoNfseRoute
   '/empresas/$id': typeof AuthenticatedEmpresasIdRoute
-  '/exemplos/pessoas': typeof AuthenticatedExemplosPessoasRoute
   '/fornecedores/$id': typeof AuthenticatedFornecedoresIdRoute
   '/municipios/$id': typeof AuthenticatedMunicipiosIdRoute
   '/notas/$id': typeof AuthenticatedNotasIdRoute
   '/notas/novo': typeof AuthenticatedNotasNovoRoute
+  '/pessoas/$id': typeof AuthenticatedPessoasIdRoute
   '/servicos/$id': typeof AuthenticatedServicosIdRoute
   '/clientes/': typeof AuthenticatedClientesIndexRoute
   '/empresas/': typeof AuthenticatedEmpresasIndexRoute
   '/fornecedores/': typeof AuthenticatedFornecedoresIndexRoute
   '/municipios/': typeof AuthenticatedMunicipiosIndexRoute
   '/notas/': typeof AuthenticatedNotasIndexRoute
+  '/pessoas/': typeof AuthenticatedPessoasIndexRoute
   '/servicos/': typeof AuthenticatedServicosIndexRoute
 }
 export interface FileRoutesByTo {
@@ -213,17 +220,18 @@ export interface FileRoutesByTo {
   '/configuracao/empresa': typeof AuthenticatedConfiguracaoEmpresaRoute
   '/configuracao/nfse': typeof AuthenticatedConfiguracaoNfseRoute
   '/empresas/$id': typeof AuthenticatedEmpresasIdRoute
-  '/exemplos/pessoas': typeof AuthenticatedExemplosPessoasRoute
   '/fornecedores/$id': typeof AuthenticatedFornecedoresIdRoute
   '/municipios/$id': typeof AuthenticatedMunicipiosIdRoute
   '/notas/$id': typeof AuthenticatedNotasIdRoute
   '/notas/novo': typeof AuthenticatedNotasNovoRoute
+  '/pessoas/$id': typeof AuthenticatedPessoasIdRoute
   '/servicos/$id': typeof AuthenticatedServicosIdRoute
   '/clientes': typeof AuthenticatedClientesIndexRoute
   '/empresas': typeof AuthenticatedEmpresasIndexRoute
   '/fornecedores': typeof AuthenticatedFornecedoresIndexRoute
   '/municipios': typeof AuthenticatedMunicipiosIndexRoute
   '/notas': typeof AuthenticatedNotasIndexRoute
+  '/pessoas': typeof AuthenticatedPessoasIndexRoute
   '/servicos': typeof AuthenticatedServicosIndexRoute
 }
 export interface FileRoutesById {
@@ -241,17 +249,18 @@ export interface FileRoutesById {
   '/_authenticated/configuracao/empresa': typeof AuthenticatedConfiguracaoEmpresaRoute
   '/_authenticated/configuracao/nfse': typeof AuthenticatedConfiguracaoNfseRoute
   '/_authenticated/empresas/$id': typeof AuthenticatedEmpresasIdRoute
-  '/_authenticated/exemplos/pessoas': typeof AuthenticatedExemplosPessoasRoute
   '/_authenticated/fornecedores/$id': typeof AuthenticatedFornecedoresIdRoute
   '/_authenticated/municipios/$id': typeof AuthenticatedMunicipiosIdRoute
   '/_authenticated/notas/$id': typeof AuthenticatedNotasIdRoute
   '/_authenticated/notas/novo': typeof AuthenticatedNotasNovoRoute
+  '/_authenticated/pessoas/$id': typeof AuthenticatedPessoasIdRoute
   '/_authenticated/servicos/$id': typeof AuthenticatedServicosIdRoute
   '/_authenticated/clientes/': typeof AuthenticatedClientesIndexRoute
   '/_authenticated/empresas/': typeof AuthenticatedEmpresasIndexRoute
   '/_authenticated/fornecedores/': typeof AuthenticatedFornecedoresIndexRoute
   '/_authenticated/municipios/': typeof AuthenticatedMunicipiosIndexRoute
   '/_authenticated/notas/': typeof AuthenticatedNotasIndexRoute
+  '/_authenticated/pessoas/': typeof AuthenticatedPessoasIndexRoute
   '/_authenticated/servicos/': typeof AuthenticatedServicosIndexRoute
 }
 export interface FileRouteTypes {
@@ -269,17 +278,18 @@ export interface FileRouteTypes {
     | '/configuracao/empresa'
     | '/configuracao/nfse'
     | '/empresas/$id'
-    | '/exemplos/pessoas'
     | '/fornecedores/$id'
     | '/municipios/$id'
     | '/notas/$id'
     | '/notas/novo'
+    | '/pessoas/$id'
     | '/servicos/$id'
     | '/clientes/'
     | '/empresas/'
     | '/fornecedores/'
     | '/municipios/'
     | '/notas/'
+    | '/pessoas/'
     | '/servicos/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -295,17 +305,18 @@ export interface FileRouteTypes {
     | '/configuracao/empresa'
     | '/configuracao/nfse'
     | '/empresas/$id'
-    | '/exemplos/pessoas'
     | '/fornecedores/$id'
     | '/municipios/$id'
     | '/notas/$id'
     | '/notas/novo'
+    | '/pessoas/$id'
     | '/servicos/$id'
     | '/clientes'
     | '/empresas'
     | '/fornecedores'
     | '/municipios'
     | '/notas'
+    | '/pessoas'
     | '/servicos'
   id:
     | '__root__'
@@ -322,17 +333,18 @@ export interface FileRouteTypes {
     | '/_authenticated/configuracao/empresa'
     | '/_authenticated/configuracao/nfse'
     | '/_authenticated/empresas/$id'
-    | '/_authenticated/exemplos/pessoas'
     | '/_authenticated/fornecedores/$id'
     | '/_authenticated/municipios/$id'
     | '/_authenticated/notas/$id'
     | '/_authenticated/notas/novo'
+    | '/_authenticated/pessoas/$id'
     | '/_authenticated/servicos/$id'
     | '/_authenticated/clientes/'
     | '/_authenticated/empresas/'
     | '/_authenticated/fornecedores/'
     | '/_authenticated/municipios/'
     | '/_authenticated/notas/'
+    | '/_authenticated/pessoas/'
     | '/_authenticated/servicos/'
   fileRoutesById: FileRoutesById
 }
@@ -448,13 +460,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEmpresasIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/exemplos/pessoas': {
-      id: '/_authenticated/exemplos/pessoas'
-      path: '/exemplos/pessoas'
-      fullPath: '/exemplos/pessoas'
-      preLoaderRoute: typeof AuthenticatedExemplosPessoasRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/fornecedores/': {
       id: '/_authenticated/fornecedores/'
       path: '/fornecedores'
@@ -504,6 +509,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedNotasNovoRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/pessoas/': {
+      id: '/_authenticated/pessoas/'
+      path: '/pessoas'
+      fullPath: '/pessoas/'
+      preLoaderRoute: typeof AuthenticatedPessoasIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/pessoas/$id': {
+      id: '/_authenticated/pessoas/$id'
+      path: '/pessoas/$id'
+      fullPath: '/pessoas/$id'
+      preLoaderRoute: typeof AuthenticatedPessoasIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/servicos/': {
       id: '/_authenticated/servicos/'
       path: '/servicos'
@@ -533,17 +552,18 @@ interface AuthenticatedRouteChildren {
   AuthenticatedConfiguracaoEmpresaRoute: typeof AuthenticatedConfiguracaoEmpresaRoute
   AuthenticatedConfiguracaoNfseRoute: typeof AuthenticatedConfiguracaoNfseRoute
   AuthenticatedEmpresasIdRoute: typeof AuthenticatedEmpresasIdRoute
-  AuthenticatedExemplosPessoasRoute: typeof AuthenticatedExemplosPessoasRoute
   AuthenticatedFornecedoresIdRoute: typeof AuthenticatedFornecedoresIdRoute
   AuthenticatedMunicipiosIdRoute: typeof AuthenticatedMunicipiosIdRoute
   AuthenticatedNotasIdRoute: typeof AuthenticatedNotasIdRoute
   AuthenticatedNotasNovoRoute: typeof AuthenticatedNotasNovoRoute
+  AuthenticatedPessoasIdRoute: typeof AuthenticatedPessoasIdRoute
   AuthenticatedServicosIdRoute: typeof AuthenticatedServicosIdRoute
   AuthenticatedClientesIndexRoute: typeof AuthenticatedClientesIndexRoute
   AuthenticatedEmpresasIndexRoute: typeof AuthenticatedEmpresasIndexRoute
   AuthenticatedFornecedoresIndexRoute: typeof AuthenticatedFornecedoresIndexRoute
   AuthenticatedMunicipiosIndexRoute: typeof AuthenticatedMunicipiosIndexRoute
   AuthenticatedNotasIndexRoute: typeof AuthenticatedNotasIndexRoute
+  AuthenticatedPessoasIndexRoute: typeof AuthenticatedPessoasIndexRoute
   AuthenticatedServicosIndexRoute: typeof AuthenticatedServicosIndexRoute
 }
 
@@ -559,17 +579,18 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedConfiguracaoEmpresaRoute: AuthenticatedConfiguracaoEmpresaRoute,
   AuthenticatedConfiguracaoNfseRoute: AuthenticatedConfiguracaoNfseRoute,
   AuthenticatedEmpresasIdRoute: AuthenticatedEmpresasIdRoute,
-  AuthenticatedExemplosPessoasRoute: AuthenticatedExemplosPessoasRoute,
   AuthenticatedFornecedoresIdRoute: AuthenticatedFornecedoresIdRoute,
   AuthenticatedMunicipiosIdRoute: AuthenticatedMunicipiosIdRoute,
   AuthenticatedNotasIdRoute: AuthenticatedNotasIdRoute,
   AuthenticatedNotasNovoRoute: AuthenticatedNotasNovoRoute,
+  AuthenticatedPessoasIdRoute: AuthenticatedPessoasIdRoute,
   AuthenticatedServicosIdRoute: AuthenticatedServicosIdRoute,
   AuthenticatedClientesIndexRoute: AuthenticatedClientesIndexRoute,
   AuthenticatedEmpresasIndexRoute: AuthenticatedEmpresasIndexRoute,
   AuthenticatedFornecedoresIndexRoute: AuthenticatedFornecedoresIndexRoute,
   AuthenticatedMunicipiosIndexRoute: AuthenticatedMunicipiosIndexRoute,
   AuthenticatedNotasIndexRoute: AuthenticatedNotasIndexRoute,
+  AuthenticatedPessoasIndexRoute: AuthenticatedPessoasIndexRoute,
   AuthenticatedServicosIndexRoute: AuthenticatedServicosIndexRoute,
 }
 

@@ -68,6 +68,8 @@
             [v] const schema = {{ $entity }}Schema.pick({ {{ $picks }} })
         [e] list-extend
             [v]   .extend({ {{ $lname }}: z.array({{ $ientity }}ItemSchema){{ mi:if-else($maxItems != '', concat('.max(', $maxItems, ')'), '') }} })
+        [e] schema-refine
+            [v]   .refine((v) => Boolean({{ $roExpr }}), { message: '{{ $roMsg }}', path: ['{{ $roLast }}'] })
         [e] list-default
             [v]   {{ $lname }}: [],
         [e] list-open
@@ -92,7 +94,7 @@
         [e] defaults-end
             [v] }
         [e] default-line
-            [v]   {{ $fname }}: {{ mi:if-else($attr/@type = $mapNativeTypes/String/value or $attr/@type = $mapNativeTypes/BigString/value, concat("'", normalize-space($attr/properties/defaultValue/value), "'"), normalize-space($attr/properties/defaultValue/value)) }},
+            [v]   {{ $fname }}: {{ mi:if-else($attr/@type = $mapNativeTypes/String/value or $attr/@type = $mapNativeTypes/BigString/value, concat("'", normalize-space($dv), "'"), normalize-space($dv)) }},
         [e] fields-start
             [v] {{ '' }}
             [v] const FIELDS: FieldLayout = [
@@ -187,6 +189,38 @@
                     [v] listCount
                     [e] expr
                         [v] count(form/rows/list)
+                [e] var
+                    [v] roNode
+                    [e] expr
+                        [v] (form/requireOneOf, form/properties/requireOneOf)[1]
+                [e] var
+                    [v] roNames
+                    [e] expr
+                        [v] for $r in $roNode/field return substring(normalize-space($r/value), 2)
+                [e] var
+                    [v] pickNames
+                    [e] expr
+                        [v] for $f in form/rows//field[not(ancestor::list)] return (for $a in $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = substring(normalize-space($f/value), 2) and (@mode = 'directToField' or @mode = 'oneToOne' or @mode = 'manyToOne')] return string($a/@name))
+                [e] var
+                    [v] roOk
+                    [e] expr
+                        [v] exists($roNames) and (every $n in $roNames satisfies $n = $pickNames)
+                [e] var
+                    [v] roExpr
+                    [e] expr
+                        [v] string-join(for $n in $roNames return concat('v.', $n), ' || ')
+                [e] var
+                    [v] roLast
+                    [e] expr
+                        [v] string($roNames[last()])
+                [e] var
+                    [v] roLabels
+                    [e] expr
+                        [v] string-join(for $n in $roNames return normalize-space(($classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = $n]/properties/title/pt/value)[1]), ' ou ')
+                [e] var
+                    [v] roMsg
+                    [e] expr
+                        [v] replace(normalize-space(($roNode/message/pt/value, concat('Marque ao menos uma opção: ', $roLabels, '.'))[1]), "'", "\\'")
             [e] write-pattern
                 [v] header
             [e] apply-templates
@@ -291,6 +325,11 @@
                             [v] $bean
                 [e] mode
                     [v] listExtend
+            [e] if
+                [v] $roOk
+                [e] then
+                    [e] write-pattern
+                        [v] schema-refine
             [e] write-pattern
                 [v] schema-const-c
             [e] write-pattern
@@ -431,8 +470,12 @@
                             [v] attr
                             [e] expr
                                 [v] $classes/class[@name = $bean and @mode = 'bean']/attributes/attribute[@name = $fname and @mode = 'directToField']
+                        [e] var
+                            [v] dv
+                            [e] expr
+                                [v] (properties/defaultValue/value, $attr/properties/defaultValue/value)[1]
                     [e] if
-                        [v] exists($attr/properties/defaultValue)
+                        [v] exists(properties/defaultValue/value) or exists($attr/properties/defaultValue)
                         [e] then
                             [e] write-pattern
                                 [v] default-line

@@ -72,6 +72,17 @@
                         [e] size
                             [v] m
             [e] section
+                [v] Papel
+            [e] row
+                [e] field
+                    [v] .fornecedor
+                    @
+                        [e] label
+                            [e] pt
+                                [v] Também é fornecedor
+                        [e] size
+                            [v] full
+            [e] section
                 [v] Contato principal
             [e] row
                 [e] field

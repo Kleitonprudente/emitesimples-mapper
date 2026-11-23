@@ -83,6 +83,9 @@ public class ErrosHandler {
         if (violacaoRls(e)) {
             return negadoPeloBanco(e);
         }
+        if (violacaoPapelDaPessoa(e)) {
+            return papelDaPessoaObrigatorio();
+        }
         if (status >= 500) {
             LOG.error("Erro 5xx em operação da API", e);
             return resposta(500, "erro_interno", "Erro interno. Tente novamente mais tarde.", null);
@@ -104,8 +107,26 @@ public class ErrosHandler {
         if (violacaoRls(e)) {
             return negadoPeloBanco(e);
         }
+        if (violacaoPapelDaPessoa(e)) {
+            return papelDaPessoaObrigatorio();
+        }
         LOG.error("Erro inesperado", e);
         return resposta(500, "erro_interno", "Erro interno. Tente novamente mais tarde.", null);
+    }
+
+    /** CHECK ck_pessoa_papel (V7, SQLSTATE 23514): a pessoa precisa ser cliente, fornecedor ou as duas coisas. */
+    static boolean violacaoPapelDaPessoa(Throwable e) {
+        for (Throwable t = e; t != null; t = t.getCause() == t ? null : t.getCause()) {
+            if (t instanceof java.sql.SQLException sql && "23514".equals(sql.getSQLState())
+                    && sql.getMessage() != null && sql.getMessage().contains("ck_pessoa_papel")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Response papelDaPessoaObrigatorio() {
+        return resposta(400, "pessoa_sem_papel", "A pessoa precisa ser cliente, fornecedor ou as duas coisas.", null);
     }
 
     /** SQLSTATE 42501 (insufficient_privilege): a RLS do banco barrou a gravação (linha de outra empresa). */

@@ -49,16 +49,24 @@ class MigracaoV5PessoaTest extends BaseApiTest {
     }
 
     @Test
-    void linhaInseridaSemOsValoresRecebeFalse() throws SQLException {
+    void linhaInseridaSemOsValoresRecebeFalseEExigePapelPelaV7() throws SQLException {
         String empresa = dados.empresaAtiva();
         String id = UUID.randomUUID().toString();
         try (Connection c = dono()) {
+            // V7: sem nenhum papel a linha e barrada (CHECK ck_pessoa_papel)
             try (PreparedStatement ps = c.prepareStatement("insert into pessoa (id, empresa_id, nome) values (?, ?, 'V5')")) {
+                ps.setString(1, id);
+                ps.setString(2, empresa);
+                SQLException e = org.junit.jupiter.api.Assertions.assertThrows(SQLException.class, ps::executeUpdate);
+                assertEquals("23514", e.getSQLState());
+            }
+            // informando so um papel, o outro assume o default false
+            try (PreparedStatement ps = c.prepareStatement("insert into pessoa (id, empresa_id, nome, cliente) values (?, ?, 'V5', true)")) {
                 ps.setString(1, id);
                 ps.setString(2, empresa);
                 ps.executeUpdate();
             }
-            assertEquals("false/false", escalar(c, "select cliente || '/' || fornecedor from pessoa where id = ?", id));
+            assertEquals("true/false", escalar(c, "select cliente || '/' || fornecedor from pessoa where id = ?", id));
         }
         // pessoa criada pelo codigo de teste (entity regenerada, com cliente/fornecedor): o ajudante a cria como cliente
         String viaEntity = dados.pessoa(empresa, "V5 entity");

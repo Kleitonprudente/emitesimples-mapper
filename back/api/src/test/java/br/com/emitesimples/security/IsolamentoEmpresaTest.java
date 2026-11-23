@@ -168,7 +168,7 @@ class IsolamentoEmpresaTest extends BaseApiTest {
     }
 
     private Map<String, Object> corpoPessoa(String nome, String empresaId) {
-        return Map.of("tipoPessoa", "fisica", "nome", nome,
+        return Map.of("tipoPessoa", "fisica", "nome", nome, "cliente", true, "fornecedor", false,
                 "empresa", Map.of("id", empresaId, "version", versaoDaEmpresa(empresaId)));
     }
 
@@ -183,7 +183,7 @@ class IsolamentoEmpresaTest extends BaseApiTest {
     @Test
     void postComEmpresaSoComIdFuncionaComOGeradorCorrigido() {
         Response r = chamar("POST", "/api/Pessoa", tokenA,
-                Map.of("tipoPessoa", "fisica", "nome", "x", "empresa", Map.of("id", empA)));
+                Map.of("tipoPessoa", "fisica", "nome", "x", "cliente", true, "fornecedor", false, "empresa", Map.of("id", empA)));
         assertEquals(200, r.statusCode(), r.asString());
         assertEquals(empA, r.jsonPath().getString("empresa.id"));
     }

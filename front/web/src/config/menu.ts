@@ -26,7 +26,6 @@ const doMapa: MenuItem[] = screens
 
 export const menu: MenuItem[] = [
   { name: 'Inicio', route: '/', title: 'Início', icon: 'home', order: 0 },
-  { name: 'PessoasExemplo', route: '/exemplos/pessoas', title: 'Pessoas (exemplo)', icon: 'users', group: 'Exemplos', order: 10, role: 'consulta' },
   ...doMapa,
   { name: 'NotasNfse', route: '/notas', title: 'NFS-e', icon: 'file-text', group: 'Notas Fiscais', order: 30, role: 'consulta' },
   { name: 'ImportarMunicipios', route: '/admin/municipios', title: 'Importar municípios', icon: 'upload', group: 'Administração', order: 80, platformOnly: true },

@@ -1,0 +1,96 @@
+[Descriptor.window.list] GestaoPessoas
+    @
+        [e] title
+            [e] pt
+                [v] Pessoas
+        [e] route
+            [v] /pessoas
+        [e] role
+            [v] operador
+        [e] icon
+            [v] users
+        [e] group
+            [v] Cadastros
+        [e] order
+            [v] 9
+    [g] source
+        [r] object: Pessoa()
+    [e] columns
+        [e] field
+            [v] .documento
+            @
+                [e] mask
+                    [v] documento
+        [e] field
+            [v] .nome
+        [e] field
+            [v] .tipoPessoa
+            @
+                [e] display
+                    [v] badge
+        [e] field
+            [v] .cliente
+        [e] field
+            [v] .fornecedor
+        [e] field
+            [v] .email
+        [e] field
+            [v] .telefone
+            @
+                [e] mask
+                    [v] phone
+    [e] search
+        @
+            [e] placeholder
+                [e] pt
+                    [v] Buscar por nome…
+        [e] field
+            [v] .nome
+    [e] filters
+        [e] filter
+            [v] .tipoPessoa
+            @
+                [e] type
+                    [v] faceted
+        [e] filter
+            [v] .cliente
+            @
+                [e] type
+                    [v] faceted
+        [e] filter
+            [v] .fornecedor
+            @
+                [e] type
+                    [v] faceted
+    [e] actions
+        [e] action
+            [v] criarPessoa
+            @
+                [e] type
+                    [v] primary
+                [e] label
+                    [e] pt
+                        [v] Nova pessoa
+                [e] icon
+                    [v] plus
+                [e] opens
+                    [v] FormularioPessoa
+        [e] action
+            [v] editarPessoa
+            @
+                [e] type
+                    [v] row
+                [e] label
+                    [e] pt
+                        [v] Editar
+                [e] icon
+                    [v] pencil
+                [e] opens
+                    [v] FormularioPessoa
+    [e] emptyState
+        @
+            [e] message
+                [e] pt
+                    [v] Nenhuma pessoa cadastrada ainda.
+            [e] action
+                [v] criarPessoa
