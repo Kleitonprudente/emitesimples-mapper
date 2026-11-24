@@ -29,6 +29,16 @@
                         [v] Account situation before the change. Same values as Empresa.situacao (pendente_confirmacao, ativa, desativada).
                 [e] required
                     [v] true
+                [e] values
+                    [e] pendenteConfirmacao
+                        [v] pendente_confirmacao
+                        [v] Pendente de confirmação, padrão: nasce assim no signup
+                    [e] ativa
+                        [v] ativa
+                        [v] Ativa, depois do clique no link do e-mail ou ativada pelo suporte
+                    [e] desativada
+                        [v] desativada
+                        [v] Desativada à mão pelo suporte; nunca apagada
         [d] situacaoNova: Texto(20)
             @
                 [e] cn
@@ -47,6 +57,16 @@
                     [v] true
                 [e] searchable
                     [v] true
+                [e] values
+                    [e] pendenteConfirmacao
+                        [v] pendente_confirmacao
+                        [v] Pendente de confirmação, padrão: nasce assim no signup
+                    [e] ativa
+                        [v] ativa
+                        [v] Ativa, depois do clique no link do e-mail ou ativada pelo suporte
+                    [e] desativada
+                        [v] desativada
+                        [v] Desativada à mão pelo suporte; nunca apagada
         [d] motivo: Texto(500)
             @
                 [e] cn

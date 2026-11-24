@@ -103,6 +103,11 @@
                 [e] validationParameterDouble
                     [v]         minimum: 0
                     [v]         maximum: {{ mi:if-else(exists(@typeParameter),mi:replicate('9',@typeParameter),'255') }}
+                [e] validationParameterDecimalMin
+                    [v]         minimum: 0
+                [e] validationParameterDecimal
+                    [v]         minimum: 0
+                    [v]         maximum: {{ mi:if-else($decimals = 0, mi:replicate('9',$size), concat(mi:replicate('9',$size), '.', mi:replicate('9',$decimals))) }}
             [g] listAll
                 [e] listAllStart
                     [v]   /{{ @name }}:
@@ -979,15 +984,39 @@
                             [e] write-pattern
                                 [v] queryParameterNativeTypes
                             [e] if
-                                [v] @type = 'Inteiro'
+                                [v] @type = $mapNativeTypes/Integer/value
                                 [e] then
                                     [e] write-pattern
                                         [v] validationParameterInteger
                             [e] if
-                                [v] @type = 'Numero'
+                                [v] @type = $mapNativeTypes/Long/value
+                                [e] then
+                                    [e] write-pattern
+                                        [v] validationParameterLong
+                            [e] if
+                                [v] @type = $mapNativeTypes/Double/value
                                 [e] then
                                     [e] write-pattern
                                         [v] validationParameterDouble
+                            [e] if
+                                [v] @type = $mapNativeTypes/BigDecimal/value and matches(normalize-space(@typeParameter), '^[0-9]+\s*,\s*[0-9]+$')
+                                [e] then
+                                    [e] vars
+                                        [e] var
+                                            [v] size
+                                            [e] expr
+                                                [v] xs:integer(number(normalize-space(substring-before(@typeParameter,',')))) - xs:integer(number(normalize-space(substring-after(@typeParameter,','))))
+                                        [e] var
+                                            [v] decimals
+                                            [e] expr
+                                                [v] xs:integer(number(normalize-space(substring-after(@typeParameter,','))))
+                                    [e] write-pattern
+                                        [v] validationParameterDecimal
+                            [e] if
+                                [v] @type = $mapNativeTypes/BigDecimal/value and not(matches(normalize-space(@typeParameter), '^[0-9]+\s*,\s*[0-9]+$'))
+                                [e] then
+                                    [e] write-pattern
+                                        [v] validationParameterDecimalMin
                     [e] if
                         [v] @mode = 'oneToOne'
                         [e] then
