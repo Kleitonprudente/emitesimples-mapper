@@ -32,12 +32,28 @@
                 [e] required
                     [v] true
                 [e] values
-                    [e] principal
-                        [v] principal
-                        [v] Atividade principal da empresa
-                    [e] secundaria
-                        [v] secundaria
-                        [v] Atividade secundária da empresa
+                    [e] PRINCIPAL
+                        [e] title
+                            [e] pt
+                                [v] Principal
+                            [e] en
+                                [v] Main
+                        [e] description
+                            [e] pt
+                                [v] Atividade econômica principal da empresa. No máximo uma por empresa (regra da aplicação).
+                            [e] en
+                                [v] Main economic activity of the company. At most one per company (application rule).
+                    [e] SECUNDARIA
+                        [e] title
+                            [e] pt
+                                [v] Secundária
+                            [e] en
+                                [v] Secondary
+                        [e] description
+                            [e] pt
+                                [v] Atividade econômica secundária da empresa. Uma empresa pode ter várias.
+                            [e] en
+                                [v] Secondary economic activity of the company. A company may have several.
         [d] codigoCnae: Texto(7)
             @
                 [e] cn

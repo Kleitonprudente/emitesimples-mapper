@@ -8,14 +8,14 @@
         [e] description
             [e] pt
                 [v] Serviço de domínio (classe auxiliar, não persistível, sem atributos) com as transições de estado da Nota: pré-condições, mutações e efeitos de cada uma. A estrutura (atributos, valores de estado) fica em Nota; aqui fica o comportamento. Cada método recebe a Nota como parâmetro. Os códigos das regras são NFSE-T01 a NFSE-T11.
-                  | Dois caminhos de entrada. (A) Emissão DIRETA por uma pessoa: não há rascunho, a nota nasce processando (enviar). (B) Assistente de IA: só prepara o rascunho (preparar); uma pessoa aprova (aprovar) ou descarta (descartar). Aprovar, descartar e preparar são requisito AINDA NÃO IMPLEMENTADO no código desta API.
-                  | Estados: rascunho (só assistente), processando, emitida_offline (só pela consulta), autorizada, rejeitada, falha_envio, em_conflito, cancelada, descartada. Estados finais não regridem: autorizada só vai para cancelada; cancelada e descartada não mudam.
+                  | Dois caminhos de entrada. (A) Emissão DIRETA por uma pessoa: não há rascunho, a nota nasce PROCESSANDO (enviar). (B) Assistente de IA: só prepara o rascunho (preparar); uma pessoa aprova (aprovar) ou descarta (descartar). Aprovar, descartar e preparar são requisito AINDA NÃO IMPLEMENTADO no código desta API.
+                  | Estados: RASCUNHO (só assistente), PROCESSANDO, EMITIDA_OFFLINE (só pela consulta), AUTORIZADA, REJEITADA, FALHA_ENVIO, EM_CONFLITO, CANCELADA, DESCARTADA. Estados finais não regridem: AUTORIZADA só vai para CANCELADA; CANCELADA e DESCARTADA não mudam.
                   | O retorno do gateway entra nos métodos por parâmetros avulsos (código, mensagem, chave, erros, arquivos). Não há classe auxiliar para o retorno: o formato do gateway é técnico e o mapa guarda os atributos já na Nota; assim o DOM não ganha outra classe.
                   | Decide-se sempre pelo código de retorno, nunca pelo texto da mensagem.
             [e] en
                 [v] Domain service (auxiliary, non-persistent class, with no attributes) with the Nota state transitions: preconditions, mutations and effects of each. The structure (attributes, state values) lives in Nota; the behavior lives here. Each method receives the Nota as a parameter. The rule codes are NFSE-T01 to NFSE-T11.
-                  | Two entry paths. (A) DIRECT issue by a person: there is no draft, the note is born processando (enviar). (B) AI assistant: only prepares the draft (preparar); a person approves (aprovar) or discards (descartar). Approve, discard and prepare are a requirement NOT YET IMPLEMENTED in the code of this API.
-                  | States: rascunho (assistant only), processando, emitida_offline (only from the query), autorizada, rejeitada, falha_envio, em_conflito, cancelada, descartada. Final states do not regress: autorizada only goes to cancelada; cancelada and descartada do not change.
+                  | Two entry paths. (A) DIRECT issue by a person: there is no draft, the note is born PROCESSANDO (enviar). (B) AI assistant: only prepares the draft (preparar); a person approves (aprovar) or discards (descartar). Approve, discard and prepare are a requirement NOT YET IMPLEMENTED in the code of this API.
+                  | States: RASCUNHO (assistant only), PROCESSANDO, EMITIDA_OFFLINE (only from the query), AUTORIZADA, REJEITADA, FALHA_ENVIO, EM_CONFLITO, CANCELADA, DESCARTADA. Final states do not regress: AUTORIZADA only goes to CANCELADA; CANCELADA and DESCARTADA do not change.
                   | The gateway return enters the methods as loose parameters (code, message, key, errors, files). There is no auxiliary class for the return: the gateway format is technical and the map already keeps the attributes on Nota; this way the DOM gets no extra class.
                   | Always decide by the return code, never by the message text.
     [g] transicoes
@@ -36,11 +36,11 @@
                         [v] NFSE-T01 — Send Invoice
                 [e] description
                     [e] pt
-                        [v] Emissão DIRETA pela pessoa. Cria a nota já processando e envia ao gateway numa só ação (nota nova), ou reenvia uma nota em falha_envio ou rejeitada, editável, com o MESMO número e série. Transição (nova) → PROCESSANDO e FALHA_ENVIO ou REJEITADA → PROCESSANDO.
+                        [v] Emissão DIRETA pela pessoa. Cria a nota já PROCESSANDO e envia ao gateway numa só ação (nota nova), ou reenvia uma nota em FALHA_ENVIO ou REJEITADA, editável, com o MESMO número e série. Transição (nova) → PROCESSANDO e FALHA_ENVIO ou REJEITADA → PROCESSANDO.
                           | Não passa por rascunho. O rascunho é só do assistente (aprovar). O reenvio regrava dataEmissao, dataHoraAprovacao e aprovadoPor e limpa o retorno anterior.
                           | O envio ao gateway (POST /v2/nfse) acontece FORA da transação de banco; o retorno é aplicado por receberAceiteDoGateway, rejeitar, marcarEmConflito ou registrarFalhaDeEnvio.
                     [e] en
-                        [v] DIRECT issue by the person. Creates the note already processing and sends it to the gateway in a single action (new note), or resends a note in falha_envio or rejeitada, editable, with the SAME number and series. Transition (new) → PROCESSANDO and FALHA_ENVIO or REJEITADA → PROCESSANDO.
+                        [v] DIRECT issue by the person. Creates the note already PROCESSANDO and sends it to the gateway in a single action (new note), or resends a note in FALHA_ENVIO or REJEITADA, editable, with the SAME number and series. Transition (new) → PROCESSANDO and FALHA_ENVIO or REJEITADA → PROCESSANDO.
                           | It does not go through draft. Draft belongs to the assistant only (aprovar). A resend rewrites dataEmissao, dataHoraAprovacao and aprovadoPor and clears the previous return.
                           | The submission to the gateway (POST /v2/nfse) happens OUTSIDE the database transaction; the return is applied by receberAceiteDoGateway, rejeitar, marcarEmConflito or registrarFalhaDeEnvio.
             parameter
@@ -52,11 +52,11 @@
                         nota nova, ainda não gravada (emissão direta)
                         =
                             nota.estado
-                            falha_envio
+                            FALHA_ENVIO
                         =
                             nota.estado
-                            rejeitada
-                    ator é uma PESSOA (Usuario), nunca um ClienteAcesso, com vínculo ativo na empresa da nota e papel administrador ou operador
+                            REJEITADA
+                    ator é uma PESSOA (Usuario), nunca um ClienteAcesso, com vínculo ativo na empresa da nota e papel ADMINISTRADOR ou OPERADOR
                     limite de envios por usuário respeitado
                     a Empresa tem a NFS-e habilitada e série definida
                     a Empresa está cadastrada como emitente no gateway, no mesmo ambiente do ambiente ativo
@@ -74,12 +74,12 @@
                             lancar ValorServicosInvalido()
                                 "O valor do serviço deve ser de 0,01 a 9999999999999,99, com até 2 casas decimais"
                     //
-                        Nota em processando, emitida_offline ou em_conflito não é reenviada (409). Nota autorizada, cancelada ou descartada não é editável nem reenviável.
-                        falha_envio ainda NÃO é aceito como origem de reenvio no código atual (só rascunho e rejeitada): divergência a corrigir.
+                        Nota em PROCESSANDO, EMITIDA_OFFLINE ou EM_CONFLITO não é reenviada (409). Nota AUTORIZADA, CANCELADA ou DESCARTADA não é editável nem reenviável.
+                        FALHA_ENVIO ainda NÃO é aceito como origem de reenvio no código atual (só RASCUNHO e REJEITADA): divergência a corrigir.
                 do
                     nota.estado
                         =
-                            processando
+                            PROCESSANDO
                     nota.dataEmissao
                         =
                             agora, no fuso America/Sao_Paulo
@@ -98,7 +98,7 @@
                     nota.errosRetorno
                         =
                             null
-                    nota nova, numeração atômica com a Empresa travada, numero recebe o próximo número da Empresa (máximo de 9 dígitos) e serie recebe a série da Empresa, junto com dataEmissao (alocados aqui, ao virar processando, nunca antes)
+                    nota nova, numeração atômica com a Empresa travada, numero recebe o próximo número da Empresa (máximo de 9 dígitos) e serie recebe a série da Empresa, junto com dataEmissao (alocados aqui, ao virar PROCESSANDO, nunca antes)
                     nota nova, ambiente é o ambiente da Empresa, dataCompetencia é a data de hoje, preparadoPorUsuario recebe ator
                     nota nova, os dados do Servico são copiados para a nota (código, discriminação, valores, tributos)
                     reenvio, numero e serie são mantidos e os campos da nota podem ser corrigidos
@@ -107,7 +107,7 @@
                     envia a nota ao gateway, com o id da Nota (UUID de 36) no campo identificacao do envio
                 emit
                     ChamadaGatewayRegistrada()
-                        operacao: enviar_nfse
+                        operacao: EMITIR
                         idNota
                         codigoRetorno
                 //
@@ -141,8 +141,8 @@
                 pre
                     =
                         nota.estado
-                        rascunho
-                    ator é uma PESSOA (Usuario), nunca um ClienteAcesso, com vínculo ativo na empresa da nota e papel administrador ou operador
+                        RASCUNHO
+                    ator é uma PESSOA (Usuario), nunca um ClienteAcesso, com vínculo ativo na empresa da nota e papel ADMINISTRADOR ou OPERADOR
                     as mesmas verificações de empresa, certificado, ambiente, Pessoa completa e Servico ativo do envio direto (NFSE-T01)
                     nota.numero, nota.serie e nota.dataEmissao estão vazios (o rascunho não reserva numeração)
                     //
@@ -152,7 +152,7 @@
                     numeração atômica com a Empresa travada, nota.numero recebe o próximo número da Empresa (máximo de 9 dígitos) e nota.serie recebe a série da Empresa
                     nota.estado
                         =
-                            processando
+                            PROCESSANDO
                     nota.aprovadoPor
                         =
                             ator
@@ -195,14 +195,14 @@
                 pre
                     =
                         nota.estado
-                        rascunho
-                    ator é uma PESSOA (Usuario), nunca um ClienteAcesso, com vínculo ativo na empresa da nota e papel administrador ou operador
+                        RASCUNHO
+                    ator é uma PESSOA (Usuario), nunca um ClienteAcesso, com vínculo ativo na empresa da nota e papel ADMINISTRADOR ou OPERADOR
                     //
                         ainda não implementado no código.
                 do
                     nota.estado
                         =
-                            descartada
+                            DESCARTADA
                     nota.descartadoPor
                         =
                             ator
@@ -231,12 +231,12 @@
                         [v] NFSE-T04 — Receive Gateway Acceptance
                 [e] description
                     [e] pt
-                        [v] O gateway aceitou a nota e ela segue em PROCESSANDO. Grava a chave desde o primeiro retorno. Vale para o envio (código 5023, ou 100 sem status Autorizado, ou 2) e para o retorno em andamento da consulta (5023, 5030, 5034), que também traz de volta para processando a nota emitida_offline ou em_conflito.
-                          | Também mantém processando, com a chave, os códigos de indisponibilidade do provedor (5030, 5034, 8429, 7000 a 7999, 9000 a 9999) devolvidos no envio. Sem chave, esses casos são falha de envio (registrarFalhaDeEnvio).
+                        [v] O gateway aceitou a nota e ela segue em PROCESSANDO. Grava a chave desde o primeiro retorno. Vale para o envio (código 5023, ou 100 sem status Autorizado, ou 2) e para o retorno em andamento da consulta (5023, 5030, 5034), que também traz de volta para PROCESSANDO a nota EMITIDA_OFFLINE ou EM_CONFLITO.
+                          | Também mantém PROCESSANDO, com a chave, os códigos de indisponibilidade do provedor (5030, 5034, 8429, 7000 a 7999, 9000 a 9999) devolvidos no envio. Sem chave, esses casos são falha de envio (registrarFalhaDeEnvio).
                           | O envio com código 100 sem status Autorizado pede UMA consulta imediata ao gateway.
                     [e] en
-                        [v] The gateway accepted the note and it stays PROCESSANDO. Stores the key from the first return. Applies to the submission (code 5023, or 100 without Authorized status, or 2) and to the in-progress return of the query (5023, 5030, 5034), which also brings an emitida_offline or em_conflito note back to processando.
-                          | It also keeps processando, with the key, the provider unavailability codes (5030, 5034, 8429, 7000 to 7999, 9000 to 9999) returned on submission. Without a key, those cases are a submission failure (registrarFalhaDeEnvio).
+                        [v] The gateway accepted the note and it stays PROCESSANDO. Stores the key from the first return. Applies to the submission (code 5023, or 100 without Authorized status, or 2) and to the in-progress return of the query (5023, 5030, 5034), which also brings an EMITIDA_OFFLINE or EM_CONFLITO note back to PROCESSANDO.
+                          | It also keeps PROCESSANDO, with the key, the provider unavailability codes (5030, 5034, 8429, 7000 to 7999, 9000 to 9999) returned on submission. Without a key, those cases are a submission failure (registrarFalhaDeEnvio).
                           | A submission with code 100 without Authorized status asks for ONE immediate query to the gateway.
             parameter
                 nota: Nota()
@@ -248,18 +248,18 @@
                     OR
                         =
                             nota.estado
-                            processando
+                            PROCESSANDO
                         =
                             nota.estado
-                            emitida_offline
+                            EMITIDA_OFFLINE
                         =
                             nota.estado
-                            em_conflito
+                            EM_CONFLITO
                     chave informada pelo gateway (necessária para aceitar o envio)
                 do
                     nota.estado
                         =
-                            processando
+                            PROCESSANDO
                     nota.chave
                         =
                             chave
@@ -312,18 +312,18 @@
                     OR
                         =
                             nota.estado
-                            processando
+                            PROCESSANDO
                         =
                             nota.estado
-                            emitida_offline
+                            EMITIDA_OFFLINE
                         =
                             nota.estado
-                            em_conflito
+                            EM_CONFLITO
                     o retorno traz o código 100 (no envio, só com o status Autorizado)
                 do
                     nota.estado
                         =
-                            autorizada
+                            AUTORIZADA
                     nota.codigoRetorno
                         =
                             100
@@ -380,10 +380,10 @@
                         [v] NFSE-T06 — Mark Issued Offline
                 [e] description
                     [e] pt
-                        [v] A consulta devolveu o código 2: a nota foi aceita e aguarda a prefeitura, sem XML nem protocolo. Transição PROCESSANDO ou EM_CONFLITO → EMITIDA_OFFLINE. Vem SÓ da consulta: no envio o código 2 mantém a nota processando (NFSE-T04).
+                        [v] A consulta devolveu o código 2: a nota foi aceita e aguarda a prefeitura, sem XML nem protocolo. Transição PROCESSANDO ou EM_CONFLITO → EMITIDA_OFFLINE. Vem SÓ da consulta: no envio o código 2 mantém a nota PROCESSANDO (NFSE-T04).
                           | Guarda a chave, se ainda faltava, e o PDF e o link, que vêm também na emissão offline.
                     [e] en
-                        [v] The query returned code 2: the note was accepted and awaits the city hall, with no XML or protocol. Transition PROCESSANDO or EM_CONFLITO → EMITIDA_OFFLINE. Comes ONLY from the query: on submission code 2 keeps the note processing (NFSE-T04).
+                        [v] The query returned code 2: the note was accepted and awaits the city hall, with no XML or protocol. Transition PROCESSANDO or EM_CONFLITO → EMITIDA_OFFLINE. Comes ONLY from the query: on submission code 2 keeps the note PROCESSANDO (NFSE-T04).
                           | Stores the key, if it was missing, and the PDF and the link, which also come with offline issue.
             parameter
                 nota: Nota()
@@ -396,18 +396,18 @@
                     OR
                         =
                             nota.estado
-                            processando
+                            PROCESSANDO
                         =
                             nota.estado
-                            em_conflito
+                            EM_CONFLITO
                         =
                             nota.estado
-                            emitida_offline
+                            EMITIDA_OFFLINE
                     o retorno é de uma consulta, com o código 2 e sucesso diferente de falso
                 do
                     nota.estado
                         =
-                            emitida_offline
+                            EMITIDA_OFFLINE
                     nota.codigoRetorno
                         =
                             2
@@ -458,18 +458,18 @@
                     OR
                         =
                             nota.estado
-                            processando
+                            PROCESSANDO
                         =
                             nota.estado
-                            emitida_offline
+                            EMITIDA_OFFLINE
                         =
                             nota.estado
-                            em_conflito
+                            EM_CONFLITO
                     o retorno traz o código 5027
                 do
                     nota.estado
                         =
-                            em_conflito
+                            EM_CONFLITO
                     nota.codigoRetorno
                         =
                             5027
@@ -515,18 +515,18 @@
                     OR
                         =
                             nota.estado
-                            processando
+                            PROCESSANDO
                         =
                             nota.estado
-                            emitida_offline
+                            EMITIDA_OFFLINE
                         =
                             nota.estado
-                            em_conflito
+                            EM_CONFLITO
                     o código de retorno é de recusa definitiva, nunca de indisponibilidade
                 do
                     nota.estado
                         =
-                            rejeitada
+                            REJEITADA
                     nota.codigoRetorno
                         =
                             codigoRetorno
@@ -556,9 +556,9 @@
                         [v] NFSE-T09 — Register Submission Failure
                 [e] description
                     [e] pt
-                        [v] Falha de INFRAESTRUTURA no envio direto: gateway indisponível, token do emitente recusado, aceite sem chave, código 0, sucesso com código desconhecido ou indisponibilidade do provedor sem chave. Transição PROCESSANDO → FALHA_ENVIO. A nota NÃO foi rejeitada pelo governo e pode ser reenviada com o mesmo número (NFSE-T01), como a rejeitada. Substitui o uso de rascunho como estado de nova tentativa.
+                        [v] Falha de INFRAESTRUTURA no envio direto: gateway indisponível, token do emitente recusado, aceite sem chave, código 0, sucesso com código desconhecido ou indisponibilidade do provedor sem chave. Transição PROCESSANDO → FALHA_ENVIO. A nota NÃO foi rejeitada pelo governo e pode ser reenviada com o mesmo número (NFSE-T01), como a REJEITADA. Substitui o uso de RASCUNHO como estado de nova tentativa.
                     [e] en
-                        [v] INFRASTRUCTURE failure on direct sending: gateway unavailable, emitter token refused, accepted without a key, code 0, success with an unknown code or provider unavailability without a key. Transition PROCESSANDO → FALHA_ENVIO. The note was NOT rejected by the government and can be resent with the same number (NFSE-T01), like rejeitada. It replaces the use of draft as a retry state.
+                        [v] INFRASTRUCTURE failure on direct sending: gateway unavailable, emitter token refused, accepted without a key, code 0, success with an unknown code or provider unavailability without a key. Transition PROCESSANDO → FALHA_ENVIO. The note was NOT rejected by the government and can be resent with the same number (NFSE-T01), like REJEITADA. It replaces the use of RASCUNHO as a retry state.
             parameter
                 nota: Nota()
                 codigoRetorno: Inteiro(4)
@@ -567,14 +567,14 @@
                 pre
                     =
                         nota.estado
-                        processando
+                        PROCESSANDO
                     o envio não obteve resposta conclusiva do gateway
                     //
-                        O código atual devolve a nota para RASCUNHO nesses casos (NfseRetorno.voltarParaRascunho e Efeito.VOLTOU_RASCUNHO): divergência a corrigir para falha_envio.
+                        O código atual devolve a nota para RASCUNHO nesses casos (NfseRetorno.voltarParaRascunho e Efeito.VOLTOU_RASCUNHO): divergência a corrigir para FALHA_ENVIO.
                 do
                     nota.estado
                         =
-                            falha_envio
+                            FALHA_ENVIO
                     nota.codigoRetorno
                         =
                             codigoRetorno, nulo quando não houve resposta do gateway
@@ -618,21 +618,21 @@
                     OR
                         =
                             nota.estado
-                            autorizada
+                            AUTORIZADA
                         =
                             nota.estado
-                            processando
+                            PROCESSANDO
                         =
                             nota.estado
-                            emitida_offline
+                            EMITIDA_OFFLINE
                         =
                             nota.estado
-                            em_conflito
+                            EM_CONFLITO
                     o retorno traz o código 101 ou 5015
                 do
                     nota.estado
                         =
-                            cancelada
+                            CANCELADA
                     nota.codigoRetorno
                         =
                             101
@@ -668,9 +668,9 @@
                         [v] NFSE-T11 — Prepare Draft
                 [e] description
                     [e] pt
-                        [v] O assistente de IA (ClienteAcesso) prepara a nota como rascunho; nada vai ao gateway. Transição (nova) → RASCUNHO. É a única entrada do estado rascunho. Não grava numero, serie nem dataEmissao. O preparo pelo assistente não foi localizado no código desta API (verificar onde vive, por exemplo no MCP).
+                        [v] O assistente de IA (ClienteAcesso) prepara a nota como rascunho; nada vai ao gateway. Transição (nova) → RASCUNHO. É a única entrada do estado RASCUNHO. Não grava numero, serie nem dataEmissao. O preparo pelo assistente não foi localizado no código desta API (verificar onde vive, por exemplo no MCP).
                     [e] en
-                        [v] The AI assistant (ClienteAcesso) prepares the note as a draft; nothing goes to the gateway. Transition (new) → RASCUNHO. It is the only entry to the rascunho state. It does not store numero, serie or dataEmissao. The preparation by the assistant was not found in the code of this API (check where it lives, for example in the MCP).
+                        [v] The AI assistant (ClienteAcesso) prepares the note as a draft; nothing goes to the gateway. Transition (new) → RASCUNHO. It is the only entry to the RASCUNHO state. It does not store numero, serie or dataEmissao. The preparation by the assistant was not found in the code of this API (check where it lives, for example in the MCP).
             parameter
                 nota: Nota()
                 ator: ClienteAcesso()
@@ -693,7 +693,7 @@
                             null
                     nota.estado
                         =
-                            rascunho
+                            RASCUNHO
                     nota.preparadoPorCliente
                         =
                             ator

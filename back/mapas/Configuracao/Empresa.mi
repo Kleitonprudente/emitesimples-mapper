@@ -8,14 +8,14 @@
         [e] description
             [e] pt
                 [v] Empresa usuária do sistema e tenant do modelo. Cada empresa só emite e só enxerga as próprias notas.
-                  | NUNCA é apagada, só DESATIVADA (situacao = desativada): a aplicação não deve expor a remoção. Nasce no signup com o documento, o e-mail e o WhatsApp informados, em situacao pendente_confirmacao, e fica ativa quando o usuário clica no link do e-mail (ConfirmacaoCadastro).
+                  | NUNCA é apagada, só DESATIVADA (situacao = DESATIVADA): a aplicação não deve expor a remoção. Nasce no signup com o documento, o e-mail e o WhatsApp informados, em situacao PENDENTE_CONFIRMACAO, e fica ATIVA quando o usuário clica no link do e-mail (ConfirmacaoCadastro).
                   | É identificada por um documento único (CNPJ ou CPF). Tem atividades (AtividadeEmpresa) e quadro de sócios (QsaEmpresa) como detalhes ([m]/[o]).
                   | Regra de edição, da aplicação: o usuário da empresa só altera razaoSocial, nomeFantasia e o endereço; o resto é alterável só pelo administrador da plataforma ou suporte. É cadastrada no gateway IntegraNotas, onde se chama "emitente", e o gateway devolve o token do emitente,
                   | separado por ambiente. Token, credenciais da prefeitura e certificado ficam no cofre, aqui só há referência.
                   | Vive no contexto configuracao (domain.configuracao), sozinha. Há dependência mútua com o contexto cadastros: a Empresa referencia o Municipio (cadastros), e Pessoa e Servico (cadastros) referenciam a Empresa. Empresa e Municipio devem ser modelados juntos.
             [e] en
                 [v] Company that uses the system and tenant of the model. Each company only issues and sees its own notes.
-                  | It is NEVER deleted, only DEACTIVATED (situacao = desativada): the application must not expose removal. It is born at signup with the document, e-mail and WhatsApp informed, in situacao pendente_confirmacao, and becomes active when the user clicks the e-mail link (ConfirmacaoCadastro).
+                  | It is NEVER deleted, only DEACTIVATED (situacao = DESATIVADA): the application must not expose removal. It is born at signup with the document, e-mail and WhatsApp informed, in situacao PENDENTE_CONFIRMACAO, and becomes ATIVA when the user clicks the e-mail link (ConfirmacaoCadastro).
                   | It is identified by a single document (CNPJ or CPF). It has activities (AtividadeEmpresa) and a partner board (QsaEmpresa) as details ([m]/[o]).
                   | Edit rule, an application rule: the company user only changes razaoSocial, nomeFantasia and the address; everything else is changeable only by the platform administrator or support. It is registered at the IntegraNotas gateway, where it is called "emitente", and the gateway returns the emitente token,
                   | separate per environment. Token, city hall credentials and certificate stay in the vault, only a reference is kept here.
@@ -255,18 +255,58 @@
                 [e] required
                     [v] true
                 [e] values
-                    [e] simplesNacional
-                        [v] 1
-                        [v] Simples Nacional
-                    [e] simplesExcessoSublimite
-                        [v] 2
-                        [v] Simples Nacional com excesso de sublimite
-                    [e] regimeNormal
-                        [v] 3
-                        [v] Regime Normal
-                    [e] mei
-                        [v] 4
-                        [v] MEI
+                    [e] SIMPLES_NACIONAL
+                        [e] codigo
+                            [v] 1
+                        [e] title
+                            [e] pt
+                                [v] Simples Nacional
+                            [e] en
+                                [v] Simples Nacional
+                        [e] description
+                            [e] pt
+                                [v] Empresa optante pelo Simples Nacional. Código gravado e enviado ao gateway (crt): 1.
+                            [e] en
+                                [v] Company opted into Simples Nacional. Stored code, sent to the gateway (crt): 1.
+                    [e] SIMPLES_EXCESSO_SUBLIMITE
+                        [e] codigo
+                            [v] 2
+                        [e] title
+                            [e] pt
+                                [v] Simples Nacional com excesso de sublimite
+                            [e] en
+                                [v] Simples Nacional with sublimit excess
+                        [e] description
+                            [e] pt
+                                [v] Simples Nacional com excesso de sublimite de receita. Código gravado e enviado ao gateway (crt): 2.
+                            [e] en
+                                [v] Simples Nacional with revenue sublimit excess. Stored code, sent to the gateway (crt): 2.
+                    [e] REGIME_NORMAL
+                        [e] codigo
+                            [v] 3
+                        [e] title
+                            [e] pt
+                                [v] Regime Normal
+                            [e] en
+                                [v] Normal Regime
+                        [e] description
+                            [e] pt
+                                [v] Empresa no regime normal (lucro presumido ou real). Código gravado e enviado ao gateway (crt): 3.
+                            [e] en
+                                [v] Company under the normal regime (presumed or actual profit). Stored code, sent to the gateway (crt): 3.
+                    [e] MEI
+                        [e] codigo
+                            [v] 4
+                        [e] title
+                            [e] pt
+                                [v] MEI
+                            [e] en
+                                [v] MEI
+                        [e] description
+                            [e] pt
+                                [v] Microempreendedor Individual. Código gravado e enviado ao gateway (crt): 4.
+                            [e] en
+                                [v] Individual Microentrepreneur. Stored code, sent to the gateway (crt): 4.
         [d] regimeIbsCbs: Inteiro(1)
             @
                 [e] cn
@@ -284,21 +324,71 @@
                         [v] IBS and CBS assessment regime of the company (the regime_cibs field of the gateway), from 0 to 4. Optional by user decision.
                           | Value 0 means not informed and the tag is not sent. Changeable only by the platform administrator or support.
                 [e] values
-                    [e] naoInformado
-                        [v] 0
-                        [v] Não informado, padrão, a tag não é enviada
-                    [e] simplesOpcaoRegimeRegular
-                        [v] 1
-                        [v] Simples Nacional com opção pelo regime regular do IBS e da CBS (crt 1 ou 2)
-                    [e] normalOpcaoSimplesPendenteSemRegular
-                        [v] 2
-                        [v] Regime Normal com opção pendente pelo Simples Nacional, sem regime regular do IBS e da CBS (crt 3)
-                    [e] normalSublimitePendenteSemRegular
-                        [v] 3
-                        [v] Regime Normal com opção pendente pelo Simples Nacional com excesso de sublimite, sem regime regular do IBS e da CBS (crt 3)
-                    [e] normalOpcaoSimplesPendenteComRegular
-                        [v] 4
-                        [v] Regime Normal com opção pendente pelo Simples Nacional, com regime regular do IBS e da CBS (crt 3)
+                    [e] NAO_INFORMADO
+                        [e] codigo
+                            [v] 0
+                        [e] title
+                            [e] pt
+                                [v] Não informado
+                            [e] en
+                                [v] Not informed
+                        [e] description
+                            [e] pt
+                                [v] Não informado, padrão: a tag regime_cibs não é enviada. Código gravado: 0.
+                            [e] en
+                                [v] Not informed, default: the regime_cibs tag is not sent. Stored code: 0.
+                    [e] SIMPLES_OPCAO_REGIME_REGULAR
+                        [e] codigo
+                            [v] 1
+                        [e] title
+                            [e] pt
+                                [v] Simples Nacional com opção pelo regime regular
+                            [e] en
+                                [v] Simples Nacional opting for the regular regime
+                        [e] description
+                            [e] pt
+                                [v] Simples Nacional com opção pelo regime regular do IBS e da CBS (crt 1 ou 2). Código gravado e enviado ao gateway: 1.
+                            [e] en
+                                [v] Simples Nacional opting for the regular IBS and CBS regime (crt 1 or 2). Stored code, sent to the gateway: 1.
+                    [e] NORMAL_OPCAO_SIMPLES_PENDENTE_SEM_REGULAR
+                        [e] codigo
+                            [v] 2
+                        [e] title
+                            [e] pt
+                                [v] Regime Normal, opção pelo Simples pendente, sem regime regular
+                            [e] en
+                                [v] Normal Regime, Simples option pending, no regular regime
+                        [e] description
+                            [e] pt
+                                [v] Regime Normal com opção pendente pelo Simples Nacional, sem regime regular do IBS e da CBS (crt 3). Código gravado e enviado ao gateway: 2.
+                            [e] en
+                                [v] Normal Regime with pending Simples Nacional option, without the regular IBS and CBS regime (crt 3). Stored code, sent to the gateway: 2.
+                    [e] NORMAL_SUBLIMITE_PENDENTE_SEM_REGULAR
+                        [e] codigo
+                            [v] 3
+                        [e] title
+                            [e] pt
+                                [v] Regime Normal, excesso de sublimite pendente, sem regime regular
+                            [e] en
+                                [v] Normal Regime, sublimit excess pending, no regular regime
+                        [e] description
+                            [e] pt
+                                [v] Regime Normal com opção pendente pelo Simples Nacional com excesso de sublimite, sem regime regular do IBS e da CBS (crt 3). Código gravado e enviado ao gateway: 3.
+                            [e] en
+                                [v] Normal Regime with pending Simples Nacional option with sublimit excess, without the regular IBS and CBS regime (crt 3). Stored code, sent to the gateway: 3.
+                    [e] NORMAL_OPCAO_SIMPLES_PENDENTE_COM_REGULAR
+                        [e] codigo
+                            [v] 4
+                        [e] title
+                            [e] pt
+                                [v] Regime Normal, opção pelo Simples pendente, com regime regular
+                            [e] en
+                                [v] Normal Regime, Simples option pending, with regular regime
+                        [e] description
+                            [e] pt
+                                [v] Regime Normal com opção pendente pelo Simples Nacional, com regime regular do IBS e da CBS (crt 3). Código gravado e enviado ao gateway: 4.
+                            [e] en
+                                [v] Normal Regime with pending Simples Nacional option, with the regular IBS and CBS regime (crt 3). Stored code, sent to the gateway: 4.
     [g] marca
         [d] logo: Binario()
             @
@@ -343,25 +433,49 @@
                         [v] Account Status
                 [e] description
                     [e] pt
-                        [v] Situação da conta da empresa NO SISTEMA (não confundir com statusCadastro, que é o cadastro no gateway IntegraNotas). A empresa nasce pendente_confirmacao no signup,
-                          | vira ativa quando o usuário clica no link do e-mail (ou quando o suporte ativa) e desativada quando o suporte a desativa à mão. Nunca é apagada. Alterável só pelo administrador da plataforma ou suporte.
+                        [v] Situação da conta da empresa NO SISTEMA (não confundir com statusCadastro, que é o cadastro no gateway IntegraNotas). A empresa nasce PENDENTE_CONFIRMACAO no signup,
+                          | vira ATIVA quando o usuário clica no link do e-mail (ou quando o suporte ativa) e DESATIVADA quando o suporte a desativa à mão. Nunca é apagada. Alterável só pelo administrador da plataforma ou suporte.
                     [e] en
-                        [v] Status of the company account IN THE SYSTEM (not to be confused with statusCadastro, which is the registration at the IntegraNotas gateway). The company starts as pendente_confirmacao at signup,
-                          | becomes ativa when the user clicks the e-mail link (or when support activates it) and desativada when support deactivates it by hand. It is never deleted. Changeable only by the platform administrator or support.
+                        [v] Status of the company account IN THE SYSTEM (not to be confused with statusCadastro, which is the registration at the IntegraNotas gateway). The company starts as PENDENTE_CONFIRMACAO at signup,
+                          | becomes ATIVA when the user clicks the e-mail link (or when support activates it) and DESATIVADA when support deactivates it by hand. It is never deleted. Changeable only by the platform administrator or support.
                 [e] required
                     [v] true
                 [e] defaultValue
-                    [v] pendente_confirmacao
+                    [v] PENDENTE_CONFIRMACAO
                 [e] values
-                    [e] pendenteConfirmacao
-                        [v] pendente_confirmacao
-                        [v] Pendente de confirmação, padrão: nasce assim no signup
-                    [e] ativa
-                        [v] ativa
-                        [v] Ativa, depois do clique no link do e-mail ou ativada pelo suporte
-                    [e] desativada
-                        [v] desativada
-                        [v] Desativada à mão pelo suporte; nunca apagada
+                    [e] PENDENTE_CONFIRMACAO
+                        [e] title
+                            [e] pt
+                                [v] Pendente de confirmação
+                            [e] en
+                                [v] Pending confirmation
+                        [e] description
+                            [e] pt
+                                [v] Estado inicial e padrão: a empresa nasce assim no signup, aguardando o clique no link de confirmação enviado por e-mail.
+                            [e] en
+                                [v] Initial and default state: the company starts this way at signup, awaiting the click on the confirmation link sent by e-mail.
+                    [e] ATIVA
+                        [e] title
+                            [e] pt
+                                [v] Ativa
+                            [e] en
+                                [v] Active
+                        [e] description
+                            [e] pt
+                                [v] Conta ativa, depois do clique no link do e-mail ou quando o suporte a ativa.
+                            [e] en
+                                [v] Active account, after the click on the e-mail link or when support activates it.
+                    [e] DESATIVADA
+                        [e] title
+                            [e] pt
+                                [v] Desativada
+                            [e] en
+                                [v] Deactivated
+                        [e] description
+                            [e] pt
+                                [v] Conta desativada à mão pelo suporte, com motivo obrigatório. A empresa nunca é apagada.
+                            [e] en
+                                [v] Account deactivated by hand by support, with a mandatory reason. The company is never deleted.
         [d] dataConfirmacao: DataHora()
             @
                 [e] cn
@@ -453,25 +567,49 @@
                         [v] Gateway Registration Status
                 [e] description
                     [e] pt
-                        [v] Situação do cadastro da empresa NO GATEWAY (emitente no IntegraNotas), no ambiente do registro. Não é a situação da conta no sistema (ver situacao). A empresa nasce nao_cadastrado,
-                          | vira cadastrado quando o gateway devolve o token, e erro quando o cadastro é recusado. Alterável só pelo administrador da plataforma ou suporte.
+                        [v] Situação do cadastro da empresa NO GATEWAY (emitente no IntegraNotas), no ambiente do registro. Não é a situação da conta no sistema (ver situacao). A empresa nasce NAO_CADASTRADO,
+                          | vira CADASTRADO quando o gateway devolve o token, e ERRO quando o cadastro é recusado. Alterável só pelo administrador da plataforma ou suporte.
                     [e] en
-                        [v] Status of the company registration AT THE GATEWAY (emitente at IntegraNotas), in the record environment. It is not the account status in the system (see situacao). The company starts as nao_cadastrado,
-                          | becomes cadastrado when the gateway returns the token, and erro when the registration is refused. Changeable only by the platform administrator or support.
+                        [v] Status of the company registration AT THE GATEWAY (emitente at IntegraNotas), in the record environment. It is not the account status in the system (see situacao). The company starts as NAO_CADASTRADO,
+                          | becomes CADASTRADO when the gateway returns the token, and ERRO when the registration is refused. Changeable only by the platform administrator or support.
                 [e] required
                     [v] true
                 [e] defaultValue
-                    [v] nao_cadastrado
+                    [v] NAO_CADASTRADO
                 [e] values
-                    [e] naoCadastrado
-                        [v] nao_cadastrado
-                        [v] Ainda não cadastrado no gateway
-                    [e] cadastrado
-                        [v] cadastrado
-                        [v] Cadastrado no gateway, token do emitente (nome no IntegraNotas) guardado no cofre
-                    [e] erro
-                        [v] erro
-                        [v] Cadastro recusado pelo gateway
+                    [e] NAO_CADASTRADO
+                        [e] title
+                            [e] pt
+                                [v] Não cadastrado
+                            [e] en
+                                [v] Not registered
+                        [e] description
+                            [e] pt
+                                [v] A empresa ainda não foi cadastrada no gateway. É o estado inicial e o padrão.
+                            [e] en
+                                [v] The company has not been registered at the gateway yet. It is the initial state and the default.
+                    [e] CADASTRADO
+                        [e] title
+                            [e] pt
+                                [v] Cadastrado
+                            [e] en
+                                [v] Registered
+                        [e] description
+                            [e] pt
+                                [v] Cadastro aceito pelo gateway, que devolveu o token do emitente (nome no IntegraNotas), guardado no cofre.
+                            [e] en
+                                [v] Registration accepted by the gateway, which returned the emitente token (name at IntegraNotas), kept in the vault.
+                    [e] ERRO
+                        [e] title
+                            [e] pt
+                                [v] Erro no cadastro
+                            [e] en
+                                [v] Registration error
+                        [e] description
+                            [e] pt
+                                [v] Cadastro recusado pelo gateway.
+                            [e] en
+                                [v] Registration refused by the gateway.
         [d] dataCadastroGateway: DataHora()
             @
                 [e] cn
@@ -568,23 +706,63 @@
                 [e] required
                     [v] true
                 [e] defaultValue
-                    [v] nao_enviado
+                    [v] NAO_ENVIADO
                 [e] values
-                    [e] naoEnviado
-                        [v] nao_enviado
-                        [v] Nenhum certificado enviado
-                    [e] valido
-                        [v] valido
-                        [v] Certificado aceito e dentro da validade
-                    [e] vencido
-                        [v] vencido
-                        [v] Certificado vencido, erro 5011 do gateway
-                    [e] invalido
-                        [v] invalido
-                        [v] Corrompido ou senha errada, erro 5003 do gateway
-                    [e] naoPertence
-                        [v] nao_pertence
-                        [v] Não pertence ao documento da empresa, erro 5029 do gateway
+                    [e] NAO_ENVIADO
+                        [e] title
+                            [e] pt
+                                [v] Não enviado
+                            [e] en
+                                [v] Not sent
+                        [e] description
+                            [e] pt
+                                [v] Nenhum certificado foi enviado ao gateway. É o estado inicial e o padrão.
+                            [e] en
+                                [v] No certificate has been sent to the gateway. It is the initial state and the default.
+                    [e] VALIDO
+                        [e] title
+                            [e] pt
+                                [v] Válido
+                            [e] en
+                                [v] Valid
+                        [e] description
+                            [e] pt
+                                [v] Certificado aceito pelo gateway e dentro da validade.
+                            [e] en
+                                [v] Certificate accepted by the gateway and within its validity.
+                    [e] VENCIDO
+                        [e] title
+                            [e] pt
+                                [v] Vencido
+                            [e] en
+                                [v] Expired
+                        [e] description
+                            [e] pt
+                                [v] Certificado com a validade vencida (erro 5011 do gateway).
+                            [e] en
+                                [v] Certificate whose validity has expired (gateway error 5011).
+                    [e] INVALIDO
+                        [e] title
+                            [e] pt
+                                [v] Inválido
+                            [e] en
+                                [v] Invalid
+                        [e] description
+                            [e] pt
+                                [v] Certificado corrompido ou enviado com senha errada (erro 5003 do gateway).
+                            [e] en
+                                [v] Certificate corrupted or sent with a wrong password (gateway error 5003).
+                    [e] NAO_PERTENCE
+                        [e] title
+                            [e] pt
+                                [v] Não pertence à empresa
+                            [e] en
+                                [v] Does not belong to the company
+                        [e] description
+                            [e] pt
+                                [v] Certificado que não pertence ao documento (CNPJ ou CPF) da empresa (erro 5029 do gateway).
+                            [e] en
+                                [v] Certificate that does not belong to the company document (CNPJ or CPF) (gateway error 5029).
     [g] controle
         [d] id: Texto(36)
             @
@@ -625,14 +803,30 @@
                 [e] required
                     [v] true
                 [e] defaultValue
-                    [v] homologacao
+                    [v] HOMOLOGACAO
                 [e] values
-                    [e] homologacao
-                        [v] homologacao
-                        [v] Homologação, ambiente de testes
-                    [e] producao
-                        [v] producao
-                        [v] Produção, ambiente real
+                    [e] HOMOLOGACAO
+                        [e] title
+                            [e] pt
+                                [v] Homologação
+                            [e] en
+                                [v] Sandbox
+                        [e] description
+                            [e] pt
+                                [v] Ambiente de testes do gateway. É o padrão. Nada emitido aqui tem validade fiscal e uma nota de teste nunca se mistura com uma real.
+                            [e] en
+                                [v] Gateway test environment. It is the default. Nothing issued here has tax validity and a test note never mixes with a real one.
+                    [e] PRODUCAO
+                        [e] title
+                            [e] pt
+                                [v] Produção
+                            [e] en
+                                [v] Production
+                        [e] description
+                            [e] pt
+                                [v] Ambiente real do gateway. As notas emitidas aqui têm validade fiscal.
+                            [e] en
+                                [v] Real gateway environment. Notes issued here have tax validity.
         [d] dataCriacao: DataHora()
             @
                 [e] cn

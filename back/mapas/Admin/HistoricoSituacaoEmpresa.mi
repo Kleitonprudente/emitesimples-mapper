@@ -24,21 +24,45 @@
                         [v] Previous Situation
                 [e] description
                     [e] pt
-                        [v] Situação da conta antes da mudança. Mesmos valores de Empresa.situacao (pendente_confirmacao, ativa, desativada).
+                        [v] Situação da conta antes da mudança. Mesmos valores de Empresa.situacao (PENDENTE_CONFIRMACAO, ATIVA, DESATIVADA).
                     [e] en
-                        [v] Account situation before the change. Same values as Empresa.situacao (pendente_confirmacao, ativa, desativada).
+                        [v] Account situation before the change. Same values as Empresa.situacao (PENDENTE_CONFIRMACAO, ATIVA, DESATIVADA).
                 [e] required
                     [v] true
                 [e] values
-                    [e] pendenteConfirmacao
-                        [v] pendente_confirmacao
-                        [v] Pendente de confirmação, padrão: nasce assim no signup
-                    [e] ativa
-                        [v] ativa
-                        [v] Ativa, depois do clique no link do e-mail ou ativada pelo suporte
-                    [e] desativada
-                        [v] desativada
-                        [v] Desativada à mão pelo suporte; nunca apagada
+                    [e] PENDENTE_CONFIRMACAO
+                        [e] title
+                            [e] pt
+                                [v] Pendente de confirmação
+                            [e] en
+                                [v] Pending confirmation
+                        [e] description
+                            [e] pt
+                                [v] A conta estava aguardando a confirmação pelo link do e-mail (estado em que a empresa nasce no signup).
+                            [e] en
+                                [v] The account was awaiting confirmation by the e-mail link (the state the company starts in at signup).
+                    [e] ATIVA
+                        [e] title
+                            [e] pt
+                                [v] Ativa
+                            [e] en
+                                [v] Active
+                        [e] description
+                            [e] pt
+                                [v] A conta estava ativa, depois do clique no link do e-mail ou da ativação pelo suporte.
+                            [e] en
+                                [v] The account was active, after the click on the e-mail link or activation by support.
+                    [e] DESATIVADA
+                        [e] title
+                            [e] pt
+                                [v] Desativada
+                            [e] en
+                                [v] Deactivated
+                        [e] description
+                            [e] pt
+                                [v] A conta estava desativada à mão pelo suporte. A empresa nunca é apagada.
+                            [e] en
+                                [v] The account was deactivated by hand by support. The company is never deleted.
         [d] situacaoNova: Texto(20)
             @
                 [e] cn
@@ -50,23 +74,47 @@
                         [v] New Situation
                 [e] description
                     [e] pt
-                        [v] Situação da conta depois da mudança. Mesmos valores de Empresa.situacao (pendente_confirmacao, ativa, desativada).
+                        [v] Situação da conta depois da mudança. Mesmos valores de Empresa.situacao (PENDENTE_CONFIRMACAO, ATIVA, DESATIVADA).
                     [e] en
-                        [v] Account situation after the change. Same values as Empresa.situacao (pendente_confirmacao, ativa, desativada).
+                        [v] Account situation after the change. Same values as Empresa.situacao (PENDENTE_CONFIRMACAO, ATIVA, DESATIVADA).
                 [e] required
                     [v] true
                 [e] searchable
                     [v] true
                 [e] values
-                    [e] pendenteConfirmacao
-                        [v] pendente_confirmacao
-                        [v] Pendente de confirmação, padrão: nasce assim no signup
-                    [e] ativa
-                        [v] ativa
-                        [v] Ativa, depois do clique no link do e-mail ou ativada pelo suporte
-                    [e] desativada
-                        [v] desativada
-                        [v] Desativada à mão pelo suporte; nunca apagada
+                    [e] PENDENTE_CONFIRMACAO
+                        [e] title
+                            [e] pt
+                                [v] Pendente de confirmação
+                            [e] en
+                                [v] Pending confirmation
+                        [e] description
+                            [e] pt
+                                [v] A conta passou a aguardar a confirmação pelo link do e-mail (estado em que a empresa nasce no signup).
+                            [e] en
+                                [v] The account started awaiting confirmation by the e-mail link (the state the company starts in at signup).
+                    [e] ATIVA
+                        [e] title
+                            [e] pt
+                                [v] Ativa
+                            [e] en
+                                [v] Active
+                        [e] description
+                            [e] pt
+                                [v] A conta passou a ativa, pelo clique no link do e-mail ou pela ativação do suporte.
+                            [e] en
+                                [v] The account became active, by the click on the e-mail link or by support activation.
+                    [e] DESATIVADA
+                        [e] title
+                            [e] pt
+                                [v] Desativada
+                            [e] en
+                                [v] Deactivated
+                        [e] description
+                            [e] pt
+                                [v] A conta passou a desativada, à mão pelo suporte, com motivo obrigatório. A empresa nunca é apagada.
+                            [e] en
+                                [v] The account became deactivated, by hand by support, with a mandatory reason. The company is never deleted.
         [d] motivo: Texto(500)
             @
                 [e] cn
@@ -100,15 +148,39 @@
                 [e] searchable
                     [v] true
                 [e] values
-                    [e] confirmacaoEmail
-                        [v] confirmacao_email
-                        [v] Clique no link de confirmação do e-mail
-                    [e] suporte
-                        [v] suporte
-                        [v] Ação manual do suporte
-                    [e] sistema
-                        [v] sistema
-                        [v] Ação automática do sistema
+                    [e] CONFIRMACAO_EMAIL
+                        [e] title
+                            [e] pt
+                                [v] Confirmação por e-mail
+                            [e] en
+                                [v] E-mail confirmation
+                        [e] description
+                            [e] pt
+                                [v] A mudança veio do clique do usuário no link de confirmação enviado por e-mail (automática, sem responsável).
+                            [e] en
+                                [v] The change came from the user clicking the confirmation link sent by e-mail (automatic, no responsible user).
+                    [e] SUPORTE
+                        [e] title
+                            [e] pt
+                                [v] Suporte
+                            [e] en
+                                [v] Support
+                        [e] description
+                            [e] pt
+                                [v] A mudança foi feita à mão pelo suporte da plataforma, que fica como responsável.
+                            [e] en
+                                [v] The change was made by hand by platform support, who is recorded as the responsible user.
+                    [e] SISTEMA
+                        [e] title
+                            [e] pt
+                                [v] Sistema
+                            [e] en
+                                [v] System
+                        [e] description
+                            [e] pt
+                                [v] A mudança foi uma ação automática do sistema.
+                            [e] en
+                                [v] The change was an automatic action of the system.
         [d] dataHora: DataHora()
             @
                 [e] cn

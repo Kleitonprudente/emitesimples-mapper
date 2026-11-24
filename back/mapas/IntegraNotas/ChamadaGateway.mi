@@ -34,24 +34,72 @@
                 [e] searchable
                     [v] true
                 [e] values
-                    [e] emitir
-                        [v] emitir
-                        [v] Emitir nota
-                    [e] consultar
-                        [v] consultar
-                        [v] Consultar nota
-                    [e] cancelar
-                        [v] cancelar
-                        [v] Cancelar nota
-                    [e] cadastrarEmitente
-                        [v] cadastrar_emitente
-                        [v] Cadastrar emitente
-                    [e] enviarCertificado
-                        [v] enviar_certificado
-                        [v] Enviar certificado digital
-                    [e] outra
-                        [v] outra
-                        [v] Outra operação
+                    [e] EMITIR
+                        [e] title
+                            [e] pt
+                                [v] Emitir nota
+                            [e] en
+                                [v] Issue note
+                        [e] description
+                            [e] pt
+                                [v] Envio da nota ao gateway para emissão (API v2). Só ocorre depois da aprovação de uma pessoa.
+                            [e] en
+                                [v] Submission of the note to the gateway for issuing (API v2). Only happens after a person approves it.
+                    [e] CONSULTAR
+                        [e] title
+                            [e] pt
+                                [v] Consultar nota
+                            [e] en
+                                [v] Query note
+                        [e] description
+                            [e] pt
+                                [v] Consulta da situação e do retorno de uma nota no gateway, pela chave (API v1).
+                            [e] en
+                                [v] Query of the status and return of a note at the gateway, by key (API v1).
+                    [e] CANCELAR
+                        [e] title
+                            [e] pt
+                                [v] Cancelar nota
+                            [e] en
+                                [v] Cancel note
+                        [e] description
+                            [e] pt
+                                [v] Pedido de cancelamento de uma nota autorizada ao gateway (API v1). Só ocorre depois da aprovação de uma pessoa.
+                            [e] en
+                                [v] Request to the gateway to cancel an authorized note (API v1). Only happens after a person approves it.
+                    [e] CADASTRAR_EMITENTE
+                        [e] title
+                            [e] pt
+                                [v] Cadastrar emitente
+                            [e] en
+                                [v] Register emitente
+                        [e] description
+                            [e] pt
+                                [v] Cadastro da empresa como emitente no gateway, que devolve o token do emitente (guardado no cofre).
+                            [e] en
+                                [v] Registration of the company as emitente at the gateway, which returns the emitente token (kept in the vault).
+                    [e] ENVIAR_CERTIFICADO
+                        [e] title
+                            [e] pt
+                                [v] Enviar certificado digital
+                            [e] en
+                                [v] Send digital certificate
+                        [e] description
+                            [e] pt
+                                [v] Envio do certificado digital da empresa ao gateway. Arquivo e senha nunca são gravados no registro da chamada.
+                            [e] en
+                                [v] Sending of the company digital certificate to the gateway. File and password are never stored in the call record.
+                    [e] OUTRA
+                        [e] title
+                            [e] pt
+                                [v] Outra operação
+                            [e] en
+                                [v] Other operation
+                        [e] description
+                            [e] pt
+                                [v] Qualquer chamada ao gateway que não seja uma das operações acima.
+                            [e] en
+                                [v] Any gateway call that is not one of the operations above.
         [d] metodoHttp: Texto(7)
             @
                 [e] cn
@@ -69,18 +117,50 @@
                 [e] required
                     [v] true
                 [e] values
-                    [e] get
-                        [v] GET
-                        [v] GET
-                    [e] post
-                        [v] POST
-                        [v] POST
-                    [e] put
-                        [v] PUT
-                        [v] PUT
-                    [e] delete
-                        [v] DELETE
-                        [v] DELETE
+                    [e] GET
+                        [e] title
+                            [e] pt
+                                [v] GET
+                            [e] en
+                                [v] GET
+                        [e] description
+                            [e] pt
+                                [v] Método HTTP GET, de leitura. Usado nas consultas ao gateway.
+                            [e] en
+                                [v] HTTP GET method, for reading. Used in gateway queries.
+                    [e] POST
+                        [e] title
+                            [e] pt
+                                [v] POST
+                            [e] en
+                                [v] POST
+                        [e] description
+                            [e] pt
+                                [v] Método HTTP POST, de criação ou envio. Usado, por exemplo, no envio da nota e no cadastro do emitente.
+                            [e] en
+                                [v] HTTP POST method, for creation or submission. Used, for example, to submit the note and to register the emitente.
+                    [e] PUT
+                        [e] title
+                            [e] pt
+                                [v] PUT
+                            [e] en
+                                [v] PUT
+                        [e] description
+                            [e] pt
+                                [v] Método HTTP PUT, de substituição ou atualização.
+                            [e] en
+                                [v] HTTP PUT method, for replacement or update.
+                    [e] DELETE
+                        [e] title
+                            [e] pt
+                                [v] DELETE
+                            [e] en
+                                [v] DELETE
+                        [e] description
+                            [e] pt
+                                [v] Método HTTP DELETE, de remoção.
+                            [e] en
+                                [v] HTTP DELETE method, for removal.
         [d] rota: Texto(200)
             @
                 [e] cn
@@ -108,18 +188,34 @@
                         [v] API Version
                 [e] description
                     [e] pt
-                        [v] Versão da API da operação. É por operação, não global: envio v2, consulta e cancelamento v1.
+                        [v] Versão da API da operação. É por operação, não global: envio V2, consulta e cancelamento V1.
                     [e] en
-                        [v] API version of the operation. It is per operation, not global: submission v2, query and cancellation v1.
+                        [v] API version of the operation. It is per operation, not global: submission V2, query and cancellation V1.
                 [e] required
                     [v] true
                 [e] values
-                    [e] v1
-                        [v] v1
-                        [v] Versão 1
-                    [e] v2
-                        [v] v2
-                        [v] Versão 2
+                    [e] V1
+                        [e] title
+                            [e] pt
+                                [v] Versão 1
+                            [e] en
+                                [v] Version 1
+                        [e] description
+                            [e] pt
+                                [v] API v1 do IntegraNotas, usada na consulta e no cancelamento da nota.
+                            [e] en
+                                [v] IntegraNotas API v1, used to query and cancel the note.
+                    [e] V2
+                        [e] title
+                            [e] pt
+                                [v] Versão 2
+                            [e] en
+                                [v] Version 2
+                        [e] description
+                            [e] pt
+                                [v] API v2 do IntegraNotas, usada no envio da nota.
+                            [e] en
+                                [v] IntegraNotas API v2, used to submit the note.
     [g] resultado
         [d] codigoHttp: Inteiro(3)
             @
@@ -278,14 +374,30 @@
                 [e] searchable
                     [v] true
                 [e] defaultValue
-                    [v] homologacao
+                    [v] HOMOLOGACAO
                 [e] values
-                    [e] homologacao
-                        [v] homologacao
-                        [v] Homologação, ambiente de testes
-                    [e] producao
-                        [v] producao
-                        [v] Produção, ambiente real
+                    [e] HOMOLOGACAO
+                        [e] title
+                            [e] pt
+                                [v] Homologação
+                            [e] en
+                                [v] Sandbox
+                        [e] description
+                            [e] pt
+                                [v] Chamada feita ao ambiente de testes do gateway. É o padrão. Uma chamada de teste nunca se mistura com uma real.
+                            [e] en
+                                [v] Call made to the gateway test environment. It is the default. A test call never mixes with a real one.
+                    [e] PRODUCAO
+                        [e] title
+                            [e] pt
+                                [v] Produção
+                            [e] en
+                                [v] Production
+                        [e] description
+                            [e] pt
+                                [v] Chamada feita ao ambiente real do gateway.
+                            [e] en
+                                [v] Call made to the real gateway environment.
         [d] dataCriacao: DataHora()
             @
                 [e] cn

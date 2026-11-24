@@ -26,27 +26,67 @@
                         [v] Contact Type
                 [e] description
                     [e] pt
-                        [v] Papel do contato perante a pessoa. Valores propostos pelo modelador (o usuário não os definiu, a confirmar): socio, financeiro, comercial, fiscal e outro. Obrigatório.
+                        [v] Papel do contato perante a pessoa. Os valores são os de [e] values: SOCIO, FINANCEIRO, COMERCIAL, FISCAL e OUTRO. Só SOCIO decorre da história do usuário (sócios do QSA entram como contatos); os demais foram propostos pelo modelador (a confirmar). Obrigatório.
                     [e] en
-                        [v] Role of the contact toward the person. Values proposed by the modeler (the user did not define them, to be confirmed): socio, financeiro, comercial, fiscal and outro. Required.
-                [e] values
-                    [e] socio
-                        [v] socio
-                        [v] Sócio ou administrador (vindo do QSA do CNPJ)
-                    [e] financeiro
-                        [v] financeiro
-                        [v] Contato do financeiro
-                    [e] comercial
-                        [v] comercial
-                        [v] Contato comercial
-                    [e] fiscal
-                        [v] fiscal
-                        [v] Contato fiscal ou contábil
-                    [e] outro
-                        [v] outro
-                        [v] Outro tipo de contato
+                        [v] Role of the contact toward the person. The values are those of [e] values: SOCIO, FINANCEIRO, COMERCIAL, FISCAL and OUTRO. Only SOCIO comes from the user story (QSA partners enter as contacts); the others were proposed by the modeler (to be confirmed). Required.
                 [e] required
                     [v] true
+                [e] values
+                    [e] SOCIO
+                        [e] title
+                            [e] pt
+                                [v] Sócio
+                            [e] en
+                                [v] Partner
+                        [e] description
+                            [e] pt
+                                [v] Sócio ou administrador da pessoa jurídica, vindo do quadro de sócios e administradores (QSA) da consulta de CNPJ. É o tipo com que os sócios do QSA entram como contatos; o usuário pode ajustá-los antes de salvar.
+                            [e] en
+                                [v] Partner or administrator of the legal entity, coming from the partners and administrators table (QSA) of the CNPJ lookup. It is the type under which QSA partners enter as contacts; the user may adjust them before saving.
+                    [e] FINANCEIRO
+                        [e] title
+                            [e] pt
+                                [v] Financeiro
+                            [e] en
+                                [v] Finance
+                        [e] description
+                            [e] pt
+                                [v] Pessoa de contato da área financeira da pessoa cadastrada (cobrança, pagamento, boletos).
+                            [e] en
+                                [v] Contact person from the finance department of the registered person (billing, payment, invoices).
+                    [e] COMERCIAL
+                        [e] title
+                            [e] pt
+                                [v] Comercial
+                            [e] en
+                                [v] Sales
+                        [e] description
+                            [e] pt
+                                [v] Pessoa de contato da área comercial da pessoa cadastrada (negociação, propostas, relacionamento).
+                            [e] en
+                                [v] Contact person from the sales department of the registered person (negotiation, proposals, relationship).
+                    [e] FISCAL
+                        [e] title
+                            [e] pt
+                                [v] Fiscal ou contábil
+                            [e] en
+                                [v] Tax or accounting
+                        [e] description
+                            [e] pt
+                                [v] Pessoa de contato fiscal ou contábil (contador ou responsável por impostos e notas) da pessoa cadastrada.
+                            [e] en
+                                [v] Tax or accounting contact (accountant or person in charge of taxes and invoices) of the registered person.
+                    [e] OUTRO
+                        [e] title
+                            [e] pt
+                                [v] Outro
+                            [e] en
+                                [v] Other
+                        [e] description
+                            [e] pt
+                                [v] Qualquer contato que não se enquadre nos demais tipos.
+                            [e] en
+                                [v] Any contact that does not fit the other types.
         [d] nome: Texto(300)
             @
                 [e] cn

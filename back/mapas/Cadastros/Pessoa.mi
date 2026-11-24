@@ -35,15 +35,31 @@
                         [v] Física ou jurídica. Define como se lê o documento: jurídica tem CNPJ de 14 dígitos, física tem CPF de 11 dígitos. Obrigatório.
                     [e] en
                         [v] Individual or legal entity. It defines how the document is read: legal entity has a 14-digit CNPJ, individual has an 11-digit CPF. Required.
-                [e] values
-                    [e] fisica
-                        [v] fisica
-                        [v] Pessoa física (documento CPF, 11 dígitos)
-                    [e] juridica
-                        [v] juridica
-                        [v] Pessoa jurídica (documento CNPJ, 14 dígitos)
                 [e] required
                     [v] true
+                [e] values
+                    [e] FISICA
+                        [e] title
+                            [e] pt
+                                [v] Pessoa física
+                            [e] en
+                                [v] Individual
+                        [e] description
+                            [e] pt
+                                [v] Pessoa física, identificada pelo CPF de 11 dígitos.
+                            [e] en
+                                [v] Individual, identified by the 11-digit CPF.
+                    [e] JURIDICA
+                        [e] title
+                            [e] pt
+                                [v] Pessoa jurídica
+                            [e] en
+                                [v] Legal entity
+                        [e] description
+                            [e] pt
+                                [v] Pessoa jurídica, identificada pelo CNPJ de 14 dígitos.
+                            [e] en
+                                [v] Legal entity, identified by the 14-digit CNPJ.
         [d] documento: Texto(14)
             @
                 [e] cn
@@ -141,12 +157,32 @@
                     [e] en
                         [v] Tells who the recipient is (the tipo_destinatario field of the submission, indDest), values 0 or 1. Optional, default 0.
                 [e] values
-                    [e] proprioTomador
-                        [v] 0
-                        [v] O destinatário é o próprio tomador/adquirente (padrão)
-                    [e] outroDestinatario
-                        [v] 1
-                        [v] O destinatário não é o próprio adquirente (outra pessoa ou outro estabelecimento)
+                    [e] PROPRIO_TOMADOR
+                        [e] codigo
+                            [v] 0
+                        [e] title
+                            [e] pt
+                                [v] Próprio tomador
+                            [e] en
+                                [v] Taker itself
+                        [e] description
+                            [e] pt
+                                [v] O destinatário é o próprio tomador/adquirente (padrão). Código gravado: 0.
+                            [e] en
+                                [v] The recipient is the taker/acquirer itself (default). Stored code: 0.
+                    [e] OUTRO_DESTINATARIO
+                        [e] codigo
+                            [v] 1
+                        [e] title
+                            [e] pt
+                                [v] Outro destinatário
+                            [e] en
+                                [v] Other recipient
+                        [e] description
+                            [e] pt
+                                [v] O destinatário não é o próprio adquirente (outra pessoa ou outro estabelecimento). Código gravado: 1.
+                            [e] en
+                                [v] The recipient is not the acquirer itself (another person or another establishment). Stored code: 1.
         [d] consumidorFinal: Boolean()
             @
                 [e] cn

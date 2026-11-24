@@ -563,7 +563,7 @@ Todo atributo com tipo enum deve declarar um bloco `[e] values` dentro do seu `@
 ```
 
 **Regras:**
-- O nome do `[e]` filho de `values` é o valor técnico exato do enum (ex: `RASCUNHO`, `CONFIRMADO`) — em `SNAKE_CASE_MAIUSCULO`.
+- Em enum de tipo **Texto**, o nome do `[e]` filho de `values` é o valor técnico exato do enum (ex: `RASCUNHO`, `CONFIRMADO`) — em `SNAKE_CASE_MAIUSCULO`. Em enum de tipo **Inteiro** o nome é um rótulo técnico e o valor gravado vai no filho `[e] codigo` (ver "Enums de tipo Inteiro" abaixo).
 - `title` contém o rótulo exibido ao usuário em tela — em linguagem de negócio, sem underscores.
 - `description` explica a semântica completa do valor: quando ocorre, o que habilita/bloqueia, se é reversível.
 - O bloco `[e] values` deve ser o último elemento dentro do `@`, após `required` (quando presente).
@@ -615,6 +615,48 @@ Todo atributo com tipo enum deve declarar um bloco `[e] values` dentro do seu `@
 - Geradores de validação podem iterar sobre `properties/values/*` para criar enums de linguagem de programação e mensagens de erro sem conhecer os valores no template.
 - Documentação de API (Swagger/OpenAPI) pode ser gerada automaticamente com descrições por valor.
 - A `description` do atributo continua descrevendo o campo como um todo (incluindo a lista resumida de valores para leitura humana rápida); o `[e] values` adiciona a estrutura consumível por máquina.
+
+#### Enums de tipo Inteiro
+
+Quando o atributo é `Inteiro(n)` e o gateway ou o contrato exige um **código numérico** (1, 2, 9...), o valor gravado é o número e **não muda**. Como o nome de um elemento `[e]` não pode ser numérico, o padrão é:
+
+- o **nome** do `[e]` filho de `values` é um **rótulo técnico** em `SNAKE_CASE_MAIUSCULO`, que descreve o conceito (`SIMPLES_NACIONAL`) e **não repete o número** (nunca `VALOR_1`);
+- um filho `[e] codigo` com um `[v]` guarda o **código gravado**;
+- a ordem dos filhos é sempre `codigo`, `title`, `description`; `title` e `description` seguem bilíngues (`pt` e `en`), como nos demais enums.
+
+```
+[d] regimeTributario: Inteiro(1)
+    @
+        [e] required
+            [v] true
+        [e] values
+            [e] SIMPLES_NACIONAL
+                [e] codigo
+                    [v] 1
+                [e] title
+                    [e] pt
+                        [v] Simples Nacional
+                    [e] en
+                        [v] Simples Nacional
+                [e] description
+                    [e] pt
+                        [v] Empresa optante pelo Simples Nacional (código 1 do gateway).
+                    [e] en
+                        [v] Company opted into Simples Nacional (gateway code 1).
+            [e] MEI
+                [e] codigo
+                    [v] 4
+                ...
+```
+
+Regras:
+- `codigo` é **obrigatório em todo valor de enum Inteiro** e **não existe em enum Texto** (lá o nome já é o valor).
+- Os códigos de um mesmo enum são inteiros e **únicos**. Não precisam ser contíguos (ex: 1, 2, 9).
+- `defaultValue` de um enum Inteiro continua sendo o **número** (o valor gravado), nunca o rótulo.
+- Nas condições (`pre`/`do`) pode-se comparar com o rótulo (`regimeTributario = MEI`); a `description` do atributo ou do valor deve dizer que o código gravado é o número.
+- Geradores leem o código em `properties/values/*/codigo/value` e o rótulo no nome do elemento.
+
+**Por que o nome não pode ser o número:** em Mapper Idea o nome de um elemento é um identificador (vira nó do DOM, nome de constante e chave de XPath), e identificador não começa com dígito nem é um número. Por isso o número vive em `codigo`, como dado, e o nome carrega o significado. Os dados e o contrato com o gateway não mudam: continua-se gravando e enviando 1, 2, 9.
 
 ### 9.8 Campos de data associados a transições de status
 
@@ -1071,6 +1113,7 @@ Use este checklist ao criar ou revisar qualquer entidade:
 [ ] Todos os atributos têm title e description em pt e en
 [ ] Campo status tem enum documentado na description (se aplicável)
 [ ] Atributos com enum têm [e] values no @ com title e description em pt e en por valor (seção 9.7)
+[ ] Enum Texto: nome do [e] é o valor gravado. Enum Inteiro: nome é rótulo SNAKE_CASE_MAIUSCULO, com [e] codigo (inteiro único, obrigatório) antes de title e description; defaultValue é o número (seção 9.7)
 [ ] Campos id, dataCriacao e dataAtualizacao presentes (DataHora)
 [ ] Campo ativo (Boolean) só se a entidade admite desativação; NÃO é obrigatório
 [ ] Campo ambiente só se a entidade depende do gateway (hoje Empresa, Nota, Cancelamento, ChamadaGateway, EventoWebhook)

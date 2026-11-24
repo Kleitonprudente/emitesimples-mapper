@@ -6,7 +6,7 @@
         [e] route
             [v] /servicos
         [e] role
-            [v] operador
+            [v] OPERADOR
         [e] icon
             [v] package
         [e] group

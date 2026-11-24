@@ -6,7 +6,7 @@
         [e] route
             [v] /servicos/$id
         [e] role
-            [v] operador
+            [v] OPERADOR
         [e] icon
             [v] package
     [g] source

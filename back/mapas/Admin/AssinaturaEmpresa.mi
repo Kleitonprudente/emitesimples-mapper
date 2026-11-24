@@ -34,17 +34,41 @@
                 [e] searchable
                     [v] true
                 [e] defaultValue
-                    [v] ativa
+                    [v] ATIVA
                 [e] values
-                    [e] ativa
-                        [v] ativa
-                        [v] Em vigor, padrão
-                    [e] suspensa
-                        [v] suspensa
-                        [v] Suspensa temporariamente
-                    [e] cancelada
-                        [v] cancelada
-                        [v] Encerrada
+                    [e] ATIVA
+                        [e] title
+                            [e] pt
+                                [v] Ativa
+                            [e] en
+                                [v] Active
+                        [e] description
+                            [e] pt
+                                [v] Assinatura em vigor. É o estado padrão de uma assinatura nova. Só uma assinatura pode estar ativa por empresa.
+                            [e] en
+                                [v] Subscription in force. It is the default state of a new subscription. Only one subscription may be active per company.
+                    [e] SUSPENSA
+                        [e] title
+                            [e] pt
+                                [v] Suspensa
+                            [e] en
+                                [v] Suspended
+                        [e] description
+                            [e] pt
+                                [v] Assinatura suspensa temporariamente.
+                            [e] en
+                                [v] Subscription temporarily suspended.
+                    [e] CANCELADA
+                        [e] title
+                            [e] pt
+                                [v] Cancelada
+                            [e] en
+                                [v] Cancelled
+                        [e] description
+                            [e] pt
+                                [v] Assinatura encerrada, por exemplo na troca de plano (preenche dataFim). Nada é apagado.
+                            [e] en
+                                [v] Subscription ended, for example on a plan change (fills dataFim). Nothing is deleted.
         [d] dataInicio: Data()
             @
                 [e] cn

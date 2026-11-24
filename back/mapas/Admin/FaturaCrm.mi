@@ -126,20 +126,52 @@
                 [e] searchable
                     [v] true
                 [e] defaultValue
-                    [v] aberta
+                    [v] ABERTA
                 [e] values
-                    [e] aberta
-                        [v] aberta
-                        [v] Aguardando pagamento, padrão
-                    [e] paga
-                        [v] paga
-                        [v] Paga
-                    [e] vencida
-                        [v] vencida
-                        [v] Vencida sem pagamento
-                    [e] cancelada
-                        [v] cancelada
-                        [v] Cancelada no CRM
+                    [e] ABERTA
+                        [e] title
+                            [e] pt
+                                [v] Aberta
+                            [e] en
+                                [v] Open
+                        [e] description
+                            [e] pt
+                                [v] Fatura aguardando pagamento. É o estado padrão de uma fatura recebida do CRM.
+                            [e] en
+                                [v] Invoice awaiting payment. It is the default state of an invoice received from the CRM.
+                    [e] PAGA
+                        [e] title
+                            [e] pt
+                                [v] Paga
+                            [e] en
+                                [v] Paid
+                        [e] description
+                            [e] pt
+                                [v] Fatura paga, com o pagamento registrado pelo CRM (dataPagamento preenchida).
+                            [e] en
+                                [v] Paid invoice, with the payment recorded by the CRM (dataPagamento filled).
+                    [e] VENCIDA
+                        [e] title
+                            [e] pt
+                                [v] Vencida
+                            [e] en
+                                [v] Overdue
+                        [e] description
+                            [e] pt
+                                [v] Fatura cujo vencimento passou sem pagamento.
+                            [e] en
+                                [v] Invoice whose due date has passed without payment.
+                    [e] CANCELADA
+                        [e] title
+                            [e] pt
+                                [v] Cancelada
+                            [e] en
+                                [v] Cancelled
+                        [e] description
+                            [e] pt
+                                [v] Fatura cancelada no CRM.
+                            [e] en
+                                [v] Invoice cancelled in the CRM.
         [d] linkFatura: Texto(500)
             @
                 [e] cn

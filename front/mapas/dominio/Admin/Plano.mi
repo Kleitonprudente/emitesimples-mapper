@@ -78,11 +78,19 @@
                 [e] required
                     [v] true
                 [e] defaultValue
-                    [v] mensal
+                    [v] MENSAL
                 [e] values
-                    [e] mensal
-                        [v] mensal
-                        [v] Cobrança mensal, padrão
+                    [e] MENSAL
+                        [e] title
+                            [e] pt
+                                [v] Mensal
+                            [e] en
+                                [v] Monthly
+                        [e] description
+                            [e] pt
+                                [v] Cobrança mensal. É o único valor por enquanto e o padrão (provisório, o usuário ainda não definiu outras periodicidades).
+                            [e] en
+                                [v] Monthly billing. It is the only value for now and the default (provisional, the user has not defined other periodicities yet).
         [d] ativo: Boolean()
             @
                 [e] cn

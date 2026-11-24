@@ -73,28 +73,60 @@
                         [v] State
                 [e] description
                     [e] pt
-                        [v] Estado da importação. Ciclo: nasce em em_andamento; termina em concluida (nenhuma linha rejeitada), concluida_com_rejeicoes (terminou, mas ao menos uma linha foi rejeitada) ou falhou (não conseguiu processar o arquivo). Os três últimos são finais e preenchem dataHoraFim.
+                        [v] Estado da importação. Ciclo: nasce em EM_ANDAMENTO; termina em CONCLUIDA (nenhuma linha rejeitada), CONCLUIDA_COM_REJEICOES (terminou, mas ao menos uma linha foi rejeitada) ou FALHOU (não conseguiu processar o arquivo). Os três últimos são finais e preenchem dataHoraFim.
                     [e] en
-                        [v] Import state. Cycle: starts at em_andamento; ends at concluida (no rejected line), concluida_com_rejeicoes (finished, but at least one line was rejected) or falhou (could not process the file). The last three are final and fill dataHoraFim.
-                [e] values
-                    [e] em_andamento
-                        [v] em_andamento
-                        [v] Em andamento (estado inicial)
-                    [e] concluida
-                        [v] concluida
-                        [v] Concluída, sem linhas rejeitadas
-                    [e] concluida_com_rejeicoes
-                        [v] concluida_com_rejeicoes
-                        [v] Concluída com linhas rejeitadas
-                    [e] falhou
-                        [v] falhou
-                        [v] Falhou, o arquivo não pôde ser processado
+                        [v] Import state. Cycle: starts at EM_ANDAMENTO; ends at CONCLUIDA (no rejected line), CONCLUIDA_COM_REJEICOES (finished, but at least one line was rejected) or FALHOU (could not process the file). The last three are final and fill dataHoraFim.
                 [e] defaultValue
-                    [v] em_andamento
+                    [v] EM_ANDAMENTO
                 [e] required
                     [v] true
                 [e] searchable
                     [v] true
+                [e] values
+                    [e] EM_ANDAMENTO
+                        [e] title
+                            [e] pt
+                                [v] Em andamento
+                            [e] en
+                                [v] In progress
+                        [e] description
+                            [e] pt
+                                [v] Estado inicial e padrão: a importação foi iniciada e ainda não terminou. Enquanto estiver neste estado, dataHoraFim fica vazia.
+                            [e] en
+                                [v] Initial and default state: the import has started and has not finished yet. While in this state, dataHoraFim stays empty.
+                    [e] CONCLUIDA
+                        [e] title
+                            [e] pt
+                                [v] Concluída
+                            [e] en
+                                [v] Completed
+                        [e] description
+                            [e] pt
+                                [v] Estado final: a importação terminou e nenhuma linha foi rejeitada. Preenche dataHoraFim.
+                            [e] en
+                                [v] Final state: the import finished and no line was rejected. Fills dataHoraFim.
+                    [e] CONCLUIDA_COM_REJEICOES
+                        [e] title
+                            [e] pt
+                                [v] Concluída com rejeições
+                            [e] en
+                                [v] Completed with rejections
+                        [e] description
+                            [e] pt
+                                [v] Estado final: a importação terminou, mas ao menos uma linha foi rejeitada (relatadas em resumoRejeicoes). Preenche dataHoraFim.
+                            [e] en
+                                [v] Final state: the import finished, but at least one line was rejected (reported in resumoRejeicoes). Fills dataHoraFim.
+                    [e] FALHOU
+                        [e] title
+                            [e] pt
+                                [v] Falhou
+                            [e] en
+                                [v] Failed
+                        [e] description
+                            [e] pt
+                                [v] Estado final: o arquivo não pôde ser processado. Preenche dataHoraFim.
+                            [e] en
+                                [v] Final state: the file could not be processed. Fills dataHoraFim.
         [d] dataHoraInicio: DataHora()
             @
                 [e] cn
@@ -122,9 +154,9 @@
                         [v] End
                 [e] description
                     [e] pt
-                        [v] Data e hora em que a importação terminou, com sucesso ou falha. Vazia enquanto em_andamento.
+                        [v] Data e hora em que a importação terminou, com sucesso ou falha. Vazia enquanto EM_ANDAMENTO.
                     [e] en
-                        [v] Date and time the import ended, in success or failure. Empty while em_andamento.
+                        [v] Date and time the import ended, in success or failure. Empty while EM_ANDAMENTO.
     [g] relatorio
         [d] linhasLidas: Inteiro(9)
             @

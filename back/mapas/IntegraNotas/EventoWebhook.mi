@@ -171,15 +171,39 @@
                 [e] required
                     [v] true
                 [e] values
-                    [e] valida
-                        [v] valida
-                        [v] Assinatura válida
-                    [e] invalida
-                        [v] invalida
-                        [v] Assinatura inválida
-                    [e] expirada
-                        [v] expirada
-                        [v] Assinatura expirada
+                    [e] VALIDA
+                        [e] title
+                            [e] pt
+                                [v] Válida
+                            [e] en
+                                [v] Valid
+                        [e] description
+                            [e] pt
+                                [v] A assinatura da notificação foi validada com sucesso.
+                            [e] en
+                                [v] The notification signature was successfully validated.
+                    [e] INVALIDA
+                        [e] title
+                            [e] pt
+                                [v] Inválida
+                            [e] en
+                                [v] Invalid
+                        [e] description
+                            [e] pt
+                                [v] A assinatura da notificação não confere.
+                            [e] en
+                                [v] The notification signature does not match.
+                    [e] EXPIRADA
+                        [e] title
+                            [e] pt
+                                [v] Expirada
+                            [e] en
+                                [v] Expired
+                        [e] description
+                            [e] pt
+                                [v] A assinatura da notificação está fora do prazo de validade.
+                            [e] en
+                                [v] The notification signature is past its validity period.
         [d] estadoProcessamento: Texto(15)
             @
                 [e] cn
@@ -191,28 +215,60 @@
                         [v] Processing State
                 [e] description
                     [e] pt
-                        [v] Estado do tratamento da notificação. Nasce recebido, vira processado quando atualiza a nota, ignorado quando é repetição ou descartada, e com_erro quando o tratamento falha.
+                        [v] Estado do tratamento da notificação. Nasce RECEBIDO, vira PROCESSADO quando atualiza a nota, IGNORADO quando é repetição ou descartada, e COM_ERRO quando o tratamento falha.
                     [e] en
-                        [v] State of the notification handling. Starts as recebido, becomes processado when it updates the note, ignorado when it is a repeat or discarded, and com_erro when handling fails.
+                        [v] State of the notification handling. Starts as RECEBIDO, becomes PROCESSADO when it updates the note, IGNORADO when it is a repeat or discarded, and COM_ERRO when handling fails.
                 [e] required
                     [v] true
                 [e] searchable
                     [v] true
                 [e] defaultValue
-                    [v] recebido
+                    [v] RECEBIDO
                 [e] values
-                    [e] recebido
-                        [v] recebido
-                        [v] Recebido, aguardando tratamento
-                    [e] processado
-                        [v] processado
-                        [v] Processado
-                    [e] ignorado
-                        [v] ignorado
-                        [v] Ignorado
-                    [e] comErro
-                        [v] com_erro
-                        [v] Com erro no tratamento
+                    [e] RECEBIDO
+                        [e] title
+                            [e] pt
+                                [v] Recebido
+                            [e] en
+                                [v] Received
+                        [e] description
+                            [e] pt
+                                [v] Estado inicial e padrão: a notificação foi recebida e aguarda tratamento. dataProcessamento fica vazia.
+                            [e] en
+                                [v] Initial and default state: the notification was received and awaits handling. dataProcessamento stays empty.
+                    [e] PROCESSADO
+                        [e] title
+                            [e] pt
+                                [v] Processado
+                            [e] en
+                                [v] Processed
+                        [e] description
+                            [e] pt
+                                [v] A notificação foi tratada e atualizou a nota.
+                            [e] en
+                                [v] The notification was handled and updated the note.
+                    [e] IGNORADO
+                        [e] title
+                            [e] pt
+                                [v] Ignorado
+                            [e] en
+                                [v] Ignored
+                        [e] description
+                            [e] pt
+                                [v] A notificação foi ignorada porque é repetição ou foi descartada.
+                            [e] en
+                                [v] The notification was ignored because it is a repeat or was discarded.
+                    [e] COM_ERRO
+                        [e] title
+                            [e] pt
+                                [v] Com erro
+                            [e] en
+                                [v] With error
+                        [e] description
+                            [e] pt
+                                [v] O tratamento da notificação falhou.
+                            [e] en
+                                [v] Handling of the notification failed.
         [d] dataProcessamento: DataHora()
             @
                 [e] cn
@@ -224,9 +280,9 @@
                         [v] Processing Date and Time
                 [e] description
                     [e] pt
-                        [v] Data e hora em que o tratamento terminou. Vazia enquanto estiver recebido.
+                        [v] Data e hora em que o tratamento terminou. Vazia enquanto estiver RECEBIDO.
                     [e] en
-                        [v] Date and time handling finished. Empty while still recebido.
+                        [v] Date and time handling finished. Empty while still RECEBIDO.
     [g] controle
         [d] id: Texto(36)
             @
@@ -263,14 +319,30 @@
                 [e] searchable
                     [v] true
                 [e] defaultValue
-                    [v] homologacao
+                    [v] HOMOLOGACAO
                 [e] values
-                    [e] homologacao
-                        [v] homologacao
-                        [v] Homologação, ambiente de testes
-                    [e] producao
-                        [v] producao
-                        [v] Produção, ambiente real
+                    [e] HOMOLOGACAO
+                        [e] title
+                            [e] pt
+                                [v] Homologação
+                            [e] en
+                                [v] Sandbox
+                        [e] description
+                            [e] pt
+                                [v] Notificação vinda do ambiente de testes do gateway. É o padrão.
+                            [e] en
+                                [v] Notification coming from the gateway test environment. It is the default.
+                    [e] PRODUCAO
+                        [e] title
+                            [e] pt
+                                [v] Produção
+                            [e] en
+                                [v] Production
+                        [e] description
+                            [e] pt
+                                [v] Notificação vinda do ambiente real do gateway.
+                            [e] en
+                                [v] Notification coming from the real gateway environment.
         [d] dataCriacao: DataHora()
             @
                 [e] cn

@@ -7,10 +7,10 @@
                 [v] Registration Confirmation
         [e] description
             [e] pt
-                [v] Confirmação do signup por link de e-mail. O link enviado ao usuário leva o token; o sistema guarda SÓ o hash do token, nunca o token. Ao confirmar, a empresa passa de pendente_confirmacao para ativa e a dataConfirmacao dela é preenchida.
+                [v] Confirmação do signup por link de e-mail. O link enviado ao usuário leva o token; o sistema guarda SÓ o hash do token, nunca o token. Ao confirmar, a empresa passa de PENDENTE_CONFIRMACAO para ATIVA e a dataConfirmacao dela é preenchida.
                   | O endpoint de confirmação é PÚBLICO (o usuário ainda não tem sessão): esta entidade NÃO deve ter recurso REST exposto, é regra da aplicação escrita à mão.
             [e] en
-                [v] Signup confirmation by e-mail link. The link sent to the user carries the token; the system keeps ONLY the token hash, never the token. On confirmation the company goes from pendente_confirmacao to ativa and its dataConfirmacao is filled.
+                [v] Signup confirmation by e-mail link. The link sent to the user carries the token; the system keeps ONLY the token hash, never the token. On confirmation the company goes from PENDENTE_CONFIRMACAO to ATIVA and its dataConfirmacao is filled.
                   | The confirmation endpoint is PUBLIC (the user has no session yet): this entity must NOT have an exposed REST resource, it is an application rule written by hand.
     [g] confirmacao
         [d] tokenHash: Texto(255)
@@ -88,23 +88,47 @@
                         [v] State
                 [e] description
                     [e] pt
-                        [v] Estado da confirmação: pendente até o clique, confirmado depois dele, expirado se a dataExpiracao passou sem clique.
+                        [v] Estado da confirmação: PENDENTE até o clique, CONFIRMADO depois dele, EXPIRADO se a dataExpiracao passou sem clique.
                     [e] en
-                        [v] Confirmation state: pendente until the click, confirmado after it, expirado if dataExpiracao passed without a click.
+                        [v] Confirmation state: PENDENTE until the click, CONFIRMADO after it, EXPIRADO if dataExpiracao passed without a click.
                 [e] required
                     [v] true
                 [e] defaultValue
-                    [v] pendente
+                    [v] PENDENTE
                 [e] values
-                    [e] pendente
-                        [v] pendente
-                        [v] Aguardando o clique no link, padrão
-                    [e] confirmado
-                        [v] confirmado
-                        [v] Link usado, empresa ativada
-                    [e] expirado
-                        [v] expirado
-                        [v] Prazo vencido sem confirmação
+                    [e] PENDENTE
+                        [e] title
+                            [e] pt
+                                [v] Pendente
+                            [e] en
+                                [v] Pending
+                        [e] description
+                            [e] pt
+                                [v] Estado inicial e padrão: aguardando o clique do usuário no link enviado por e-mail. dataConfirmacao fica vazia.
+                            [e] en
+                                [v] Initial and default state: awaiting the user click on the link sent by e-mail. dataConfirmacao stays empty.
+                    [e] CONFIRMADO
+                        [e] title
+                            [e] pt
+                                [v] Confirmado
+                            [e] en
+                                [v] Confirmed
+                        [e] description
+                            [e] pt
+                                [v] O link foi usado: a empresa foi ativada e a dataConfirmacao preenchida.
+                            [e] en
+                                [v] The link was used: the company was activated and dataConfirmacao filled.
+                    [e] EXPIRADO
+                        [e] title
+                            [e] pt
+                                [v] Expirado
+                            [e] en
+                                [v] Expired
+                        [e] description
+                            [e] pt
+                                [v] A dataExpiracao passou sem o clique no link: a confirmação não vale mais.
+                            [e] en
+                                [v] The dataExpiracao passed without a click on the link: the confirmation is no longer valid.
     [g] controle
         [d] id: Texto(36)
             @

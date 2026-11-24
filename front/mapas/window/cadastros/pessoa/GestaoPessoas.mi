@@ -6,7 +6,7 @@
         [e] route
             [v] /pessoas
         [e] role
-            [v] operador
+            [v] OPERADOR
         [e] icon
             [v] users
         [e] group

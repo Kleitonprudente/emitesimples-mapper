@@ -213,18 +213,58 @@
                 [e] defaultValue
                     [v] 1
                 [e] values
-                    [e] tributavel
-                        [v] 1
-                        [v] Tributável
-                    [e] imunidade
-                        [v] 2
-                        [v] Imunidade
-                    [e] exportacao
-                        [v] 3
-                        [v] Exportação
-                    [e] naoIncidencia
-                        [v] 4
-                        [v] Não incidência
+                    [e] TRIBUTAVEL
+                        [e] codigo
+                            [v] 1
+                        [e] title
+                            [e] pt
+                                [v] Tributável
+                            [e] en
+                                [v] Taxable
+                        [e] description
+                            [e] pt
+                                [v] Operação tributável pelo ISS (padrão). Código gravado: 1.
+                            [e] en
+                                [v] Operation taxable by ISS (default). Stored code: 1.
+                    [e] IMUNIDADE
+                        [e] codigo
+                            [v] 2
+                        [e] title
+                            [e] pt
+                                [v] Imunidade
+                            [e] en
+                                [v] Immunity
+                        [e] description
+                            [e] pt
+                                [v] Operação com imunidade do ISS. Código gravado: 2.
+                            [e] en
+                                [v] Operation with ISS immunity. Stored code: 2.
+                    [e] EXPORTACAO
+                        [e] codigo
+                            [v] 3
+                        [e] title
+                            [e] pt
+                                [v] Exportação
+                            [e] en
+                                [v] Export
+                        [e] description
+                            [e] pt
+                                [v] Exportação de serviço. Código gravado: 3.
+                            [e] en
+                                [v] Service export. Stored code: 3.
+                    [e] NAO_INCIDENCIA
+                        [e] codigo
+                            [v] 4
+                        [e] title
+                            [e] pt
+                                [v] Não incidência
+                            [e] en
+                                [v] Non-incidence
+                        [e] description
+                            [e] pt
+                                [v] Operação em que o ISS não incide. Código gravado: 4.
+                            [e] en
+                                [v] Operation on which ISS does not apply. Stored code: 4.
         [d] cstPisCofins: Texto(2)
             @
                 [e] cn

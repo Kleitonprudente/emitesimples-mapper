@@ -11,18 +11,18 @@
                   | caso contrário o gateway devolve 5013. Nota já cancelada devolve 5015, tratado como sucesso idempotente.
                   | Existe só dentro de uma nota e no mesmo contexto, por isso é detalhe da Nota ([m]/[o]).
                   | REGRA DO PRODUTO, mês vigente: só se cancela dentro do mês e ano da data de emissão da nota (fuso America/Sao_Paulo). Prazos específicos de cada município não são tratados.
-                  | Dois caminhos de entrada. (A) Cancelamento DIRETO por uma pessoa: o pedido nasce em processando, criado e enviado ao gateway numa só ação. (B) Assistente de IA: só PREPARA o pedido como rascunho (preparadoPorCliente); uma pessoa com permissão de cancelar aprova (o sistema envia e o pedido vira processando) ou descarta (vira descartado). Aprovar e descartar o rascunho são requisito AINDA NÃO IMPLEMENTADO no código. O estado rascunho só existe no caminho B.
+                  | Dois caminhos de entrada. (A) Cancelamento DIRETO por uma pessoa: o pedido nasce em PROCESSANDO, criado e enviado ao gateway numa só ação. (B) Assistente de IA: só PREPARA o pedido como RASCUNHO (preparadoPorCliente); uma pessoa com permissão de cancelar aprova (o sistema envia e o pedido vira PROCESSANDO) ou descarta (vira DESCARTADO). Aprovar e descartar o rascunho são requisito AINDA NÃO IMPLEMENTADO no código. O estado RASCUNHO só existe no caminho B.
                   | Quem cancela: o administrador sempre; o operador SÓ com permissão delegada (VinculoUsuario.podeCancelarNfse). O código atual deixa o operador cancelar sem delegação: divergência a corrigir no código.
-                  | Estados do pedido: rascunho, processando, concluido, recusado (o gateway ou o sistema recusou), expirado (pendente por mais de 24 h sem confirmação) e descartado. As transições estão em CicloCancelamento.
+                  | Estados do pedido: RASCUNHO, PROCESSANDO, CONCLUIDO, RECUSADO (o gateway ou o sistema recusou), EXPIRADO (pendente por mais de 24 h sem confirmação) e DESCARTADO. As transições estão em CicloCancelamento.
                   | Vive no contexto nfse (domain.nfse). Depende do contexto usuarios (Usuario e ClienteAcesso) para o rastro; usuarios depende só de cadastros e configuracao, não há ciclo.
             [e] en
                 [v] Cancellation request of a Nota, with the event and the gateway return (XML and PDF). Only an authorized note can be canceled,
                   | otherwise the gateway returns 5013. An already canceled note returns 5015, treated as idempotent success.
                   | It exists only within a note and in the same context, so it is a detail of Nota ([m]/[o]).
                   | PRODUCT RULE, current month: a note can only be canceled within the month and year of its issue date (America/Sao_Paulo time zone). Municipality-specific deadlines are not handled.
-                  | Two entry paths. (A) DIRECT cancellation by a person: the request is born processando, created and sent to the gateway in a single action. (B) AI assistant: only PREPARES the request as a draft (preparadoPorCliente); a person allowed to cancel approves (the system sends it and the request becomes processando) or discards it (becomes descartado). Approving and discarding the draft are a requirement NOT YET IMPLEMENTED in the code. The draft state only exists on path B.
+                  | Two entry paths. (A) DIRECT cancellation by a person: the request is born PROCESSANDO, created and sent to the gateway in a single action. (B) AI assistant: only PREPARES the request as a draft (RASCUNHO, preparadoPorCliente); a person allowed to cancel approves (the system sends it and the request becomes PROCESSANDO) or discards it (becomes DESCARTADO). Approving and discarding the draft are a requirement NOT YET IMPLEMENTED in the code. The RASCUNHO state only exists on path B.
                   | Who cancels: the administrator always; the operator ONLY with delegated permission (VinculoUsuario.podeCancelarNfse). The current code lets the operator cancel without delegation: divergence to fix in the code.
-                  | Request states: rascunho, processando, concluido, recusado (the gateway or the system refused), expirado (pending for more than 24 h without confirmation) and descartado. The transitions are in CicloCancelamento.
+                  | Request states: RASCUNHO, PROCESSANDO, CONCLUIDO, RECUSADO (the gateway or the system refused), EXPIRADO (pending for more than 24 h without confirmation) and DESCARTADO. The transitions are in CicloCancelamento.
                   | Lives in the nfse context (domain.nfse). Depends on the usuarios context (Usuario and ClienteAcesso) for the trail; usuarios depends only on cadastros and configuracao, so there is no cycle.
     [g] pedido
         [d] codigoMotivo: Inteiro(1)
@@ -42,15 +42,45 @@
                 [e] required
                     [v] true
                 [e] values
-                    [e] erroEmissao
-                        [v] 1
-                        [v] Erro de Emissão
-                    [e] servicoNaoConcluido
-                        [v] 2
-                        [v] Serviço não concluído
-                    [e] outros
-                        [v] 9
-                        [v] Outros
+                    [e] ERRO_EMISSAO
+                        [e] codigo
+                            [v] 1
+                        [e] title
+                            [e] pt
+                                [v] Erro de Emissão
+                            [e] en
+                                [v] Issuing Error
+                        [e] description
+                            [e] pt
+                                [v] A nota foi emitida com erro. Código gravado e enviado ao gateway: 1.
+                            [e] en
+                                [v] The note was issued with an error. Stored code, sent to the gateway: 1.
+                    [e] SERVICO_NAO_CONCLUIDO
+                        [e] codigo
+                            [v] 2
+                        [e] title
+                            [e] pt
+                                [v] Serviço não concluído
+                            [e] en
+                                [v] Service Not Completed
+                        [e] description
+                            [e] pt
+                                [v] O serviço da nota não foi concluído. Código gravado e enviado ao gateway: 2.
+                            [e] en
+                                [v] The service on the note was not completed. Stored code, sent to the gateway: 2.
+                    [e] OUTROS
+                        [e] codigo
+                            [v] 9
+                        [e] title
+                            [e] pt
+                                [v] Outros
+                            [e] en
+                                [v] Other
+                        [e] description
+                            [e] pt
+                                [v] Outro motivo, explicado no texto do motivo. Código gravado e enviado ao gateway: 9.
+                            [e] en
+                                [v] Another reason, explained in the reason text. Stored code, sent to the gateway: 9.
         [d] motivo: Texto(255)
             @
                 [e] cn
@@ -79,9 +109,9 @@
                         [v] Approval Date and Time
                 [e] description
                     [e] pt
-                        [v] Momento em que o pedido foi enviado ao gateway por decisão de uma pessoa. No fluxo direto é gravada na criação; no fluxo do assistente, na aprovação do rascunho. Vazia no rascunho e no pedido descartado.
+                        [v] Momento em que o pedido foi enviado ao gateway por decisão de uma pessoa. No fluxo direto é gravada na criação; no fluxo do assistente, na aprovação do rascunho. Vazia no RASCUNHO e no pedido DESCARTADO.
                     [e] en
-                        [v] Moment the request was sent to the gateway by a person's decision. On the direct flow it is stored at creation; on the assistant flow, at draft approval. Empty on a draft and on a discarded request.
+                        [v] Moment the request was sent to the gateway by a person's decision. On the direct flow it is stored at creation; on the assistant flow, at draft approval. Empty on a RASCUNHO and on a DESCARTADO request.
         [d] dataHoraDescarte: DataHora()
             @
                 [e] cn
@@ -93,7 +123,7 @@
                         [v] Discard Date and Time
                 [e] description
                     [e] pt
-                        [v] Momento em que uma pessoa descartou o rascunho do assistente (ainda não implementado no código). Preenchida só no estado descartado.
+                        [v] Momento em que uma pessoa descartou o rascunho do assistente (ainda não implementado no código). Preenchida só no estado DESCARTADO.
                     [e] en
                         [v] Moment a person discarded the assistant draft (not yet implemented in the code). Filled only in the discarded state.
         [d] dataHoraRecusa: DataHora()
@@ -107,9 +137,9 @@
                         [v] Refusal Date and Time
                 [e] description
                     [e] pt
-                        [v] Momento em que o gateway ou o sistema recusou o pedido (a recusa não é decisão de uma pessoa). Preenchida só no estado recusado.
+                        [v] Momento em que o gateway ou o sistema recusou o pedido (a recusa não é decisão de uma pessoa). Preenchida só no estado RECUSADO.
                     [e] en
-                        [v] Moment the gateway or the system refused the request (the refusal is not a person's decision). Filled only in the refused state.
+                        [v] Moment the gateway or the system refused the request (the refusal is not a person's decision). Filled only in the RECUSADO state.
     [g] retorno
         [d] estado: Texto(25)
             @
@@ -122,42 +152,82 @@
                         [v] Request State
                 [e] description
                     [e] pt
-                        [v] Estado do pedido, na ordem: rascunho, processando, concluido, recusado, expirado, descartado. As transições estão em CicloCancelamento.
-                          | Rascunho existe SÓ no caminho do assistente de IA: o pedido preparado e ainda não enviado, aguardando uma pessoa aprovar ou descartar (ainda não implementado no código). No cancelamento direto pela pessoa o pedido nasce processando.
-                          | Processando é o pedido enviado ao gateway, aguardando a confirmação (trava a nota: só um por vez). Concluído vem do código 101 ou 5015; nesse momento a Nota passa a cancelada.
-                          | Recusado é o pedido que o gateway ou o sistema recusou (5013, 5001, token recusado e outras recusas); a nota segue autorizada. Expirado é o pedido pendente por mais de 24 h sem confirmação; a nota segue autorizada e um novo pedido é liberado. O motivo da recusa ou da expiração fica em mensagemRetorno.
-                          | Descartado é o rascunho do assistente recusado por uma pessoa; nunca foi enviado ao gateway.
+                        [v] Estado do pedido, na ordem: RASCUNHO, PROCESSANDO, CONCLUIDO, RECUSADO, EXPIRADO, DESCARTADO. As transições estão em CicloCancelamento. A semântica de cada valor está em [e] values.
                     [e] en
-                        [v] Request state, in order: rascunho, processando, concluido, recusado, expirado, descartado. The transitions are in CicloCancelamento.
-                          | Draft exists ONLY on the AI assistant path: the request prepared and not yet sent, awaiting a person to approve or discard it (not yet implemented in the code). On direct cancellation by a person the request is born processando.
-                          | Processing is the request sent to the gateway, awaiting confirmation (it locks the note: one at a time). Concluded comes from code 101 or 5015; at that moment the Nota becomes canceled.
-                          | Refused is the request the gateway or the system refused (5013, 5001, refused token and other refusals); the note stays authorized. Expired is the request pending for more than 24 h without confirmation; the note stays authorized and a new request is allowed. The reason for the refusal or expiry is kept in mensagemRetorno.
-                          | Discarded is the assistant draft refused by a person; it was never sent to the gateway.
+                        [v] Request state, in order: RASCUNHO, PROCESSANDO, CONCLUIDO, RECUSADO, EXPIRADO, DESCARTADO. The transitions are in CicloCancelamento. The meaning of each value is in [e] values.
                 [e] required
                     [v] true
                 [e] searchable
                     [v] true
                 [e] defaultValue
-                    [v] processando
+                    [v] PROCESSANDO
                 [e] values
-                    [e] rascunho
-                        [v] rascunho
-                        [v] Rascunho do assistente, aguardando aprovação
-                    [e] processando
-                        [v] processando
-                        [v] Processando
-                    [e] concluido
-                        [v] concluido
-                        [v] Concluído, nota cancelada
-                    [e] recusado
-                        [v] recusado
-                        [v] Recusado pelo gateway ou pelo sistema
-                    [e] expirado
-                        [v] expirado
-                        [v] Expirado, sem confirmação em 24 horas
-                    [e] descartado
-                        [v] descartado
-                        [v] Descartado, rascunho do assistente recusado
+                    [e] RASCUNHO
+                        [e] title
+                            [e] pt
+                                [v] Rascunho
+                            [e] en
+                                [v] Draft
+                        [e] description
+                            [e] pt
+                                [v] Existe SÓ no caminho do assistente de IA: o pedido preparado e ainda não enviado ao gateway, aguardando uma pessoa aprovar (vira PROCESSANDO) ou descartar (vira DESCARTADO). Aprovar e descartar ainda não estão implementados no código. No cancelamento direto pela pessoa o pedido nasce PROCESSANDO.
+                            [e] en
+                                [v] Exists ONLY on the AI assistant path: the request prepared and not yet sent to the gateway, awaiting a person to approve (becomes PROCESSANDO) or discard (becomes DESCARTADO). Approving and discarding are not yet implemented in the code. On direct cancellation by a person the request is born PROCESSANDO.
+                    [e] PROCESSANDO
+                        [e] title
+                            [e] pt
+                                [v] Processando
+                            [e] en
+                                [v] Processing
+                        [e] description
+                            [e] pt
+                                [v] Pedido enviado ao gateway, aguardando a confirmação. Trava a nota: só um pedido por vez. É o padrão (estado em que o cancelamento direto nasce). Termina em CONCLUIDO, RECUSADO ou EXPIRADO.
+                            [e] en
+                                [v] Request sent to the gateway, awaiting confirmation. It locks the note: one request at a time. It is the default (the state a direct cancellation is born in). It ends in CONCLUIDO, RECUSADO or EXPIRADO.
+                    [e] CONCLUIDO
+                        [e] title
+                            [e] pt
+                                [v] Concluído
+                            [e] en
+                                [v] Completed
+                        [e] description
+                            [e] pt
+                                [v] O cancelamento foi confirmado pelo gateway (código 101 ou 5015, este tratado como sucesso idempotente). Nesse momento a Nota passa a CANCELADA. Estado final.
+                            [e] en
+                                [v] The cancellation was confirmed by the gateway (code 101 or 5015, the latter treated as idempotent success). At that moment the Nota becomes CANCELADA. Final state.
+                    [e] RECUSADO
+                        [e] title
+                            [e] pt
+                                [v] Recusado
+                            [e] en
+                                [v] Refused
+                        [e] description
+                            [e] pt
+                                [v] O gateway ou o sistema recusou o pedido (5013, 5001, token recusado e outras recusas); a nota segue AUTORIZADA. O motivo fica em mensagemRetorno. Preenche dataHoraRecusa. A recusa não é decisão de uma pessoa. Estado final.
+                            [e] en
+                                [v] The gateway or the system refused the request (5013, 5001, refused token and other refusals); the note stays AUTORIZADA. The reason is kept in mensagemRetorno. Fills dataHoraRecusa. The refusal is not a person's decision. Final state.
+                    [e] EXPIRADO
+                        [e] title
+                            [e] pt
+                                [v] Expirado
+                            [e] en
+                                [v] Expired
+                        [e] description
+                            [e] pt
+                                [v] O pedido ficou pendente por mais de 24 h sem confirmação do gateway; a nota segue AUTORIZADA e um novo pedido é liberado. O motivo fica em mensagemRetorno. Estado final.
+                            [e] en
+                                [v] The request stayed pending for more than 24 h without gateway confirmation; the note stays AUTORIZADA and a new request is allowed. The reason is kept in mensagemRetorno. Final state.
+                    [e] DESCARTADO
+                        [e] title
+                            [e] pt
+                                [v] Descartado
+                            [e] en
+                                [v] Discarded
+                        [e] description
+                            [e] pt
+                                [v] Rascunho do assistente recusado por uma pessoa; nunca foi enviado ao gateway. Preenche dataHoraDescarte e descartadoPor (ainda não implementado no código). Estado final.
+                            [e] en
+                                [v] Assistant draft refused by a person; it was never sent to the gateway. Fills dataHoraDescarte and descartadoPor (not yet implemented in the code). Final state.
         [d] codigoRetorno: Inteiro(4)
             @
                 [e] cn
@@ -264,14 +334,30 @@
                 [e] searchable
                     [v] true
                 [e] defaultValue
-                    [v] homologacao
+                    [v] HOMOLOGACAO
                 [e] values
-                    [e] homologacao
-                        [v] homologacao
-                        [v] Homologação, ambiente de testes
-                    [e] producao
-                        [v] producao
-                        [v] Produção, ambiente real
+                    [e] HOMOLOGACAO
+                        [e] title
+                            [e] pt
+                                [v] Homologação
+                            [e] en
+                                [v] Sandbox
+                        [e] description
+                            [e] pt
+                                [v] Ambiente de testes do gateway, o mesmo da nota cancelada. É o padrão. Um cancelamento de teste nunca se mistura com um real.
+                            [e] en
+                                [v] Gateway test environment, the same as the canceled note. It is the default. A test cancellation never mixes with a real one.
+                    [e] PRODUCAO
+                        [e] title
+                            [e] pt
+                                [v] Produção
+                            [e] en
+                                [v] Production
+                        [e] description
+                            [e] pt
+                                [v] Ambiente real do gateway, o mesmo da nota cancelada.
+                            [e] en
+                                [v] Real gateway environment, the same as the canceled note.
         [d] dataCriacao: DataHora()
             @
                 [e] cn
@@ -362,9 +448,9 @@
                         [v] Approved by
                 [e] description
                     [e] pt
-                        [v] Pessoa que mandou enviar o cancelamento ao gateway: no cancelamento direto, quem cancelou; no caminho do assistente, quem aprovou o rascunho. Só uma PESSOA, nunca um ClienteAcesso, e só quem pode cancelar na empresa: o administrador, ou o operador com permissão delegada (VinculoUsuario.podeCancelarNfse), em vínculo ativo. Vazio no rascunho e no pedido descartado.
+                        [v] Pessoa que mandou enviar o cancelamento ao gateway: no cancelamento direto, quem cancelou; no caminho do assistente, quem aprovou o rascunho. Só uma PESSOA, nunca um ClienteAcesso, e só quem pode cancelar na empresa: o administrador, ou o operador com permissão delegada (VinculoUsuario.podeCancelarNfse), em vínculo ativo. Vazio no RASCUNHO e no pedido DESCARTADO.
                     [e] en
-                        [v] Person who had the cancellation sent to the gateway: on direct cancellation, who canceled; on the assistant path, who approved the draft. Only a PERSON, never a ClienteAcesso, and only someone who may cancel on the company: the administrator, or the operator with delegated permission (VinculoUsuario.podeCancelarNfse), on an active membership. Empty on a draft and on a discarded request.
+                        [v] Person who had the cancellation sent to the gateway: on direct cancellation, who canceled; on the assistant path, who approved the draft. Only a PERSON, never a ClienteAcesso, and only someone who may cancel on the company: the administrator, or the operator with delegated permission (VinculoUsuario.podeCancelarNfse), on an active membership. Empty on a RASCUNHO and on a DESCARTADO request.
         [r] descartadoPor: Usuario()
             @
                 [e] cn
@@ -376,9 +462,9 @@
                         [v] Discarded by
                 [e] description
                     [e] pt
-                        [v] Pessoa que descartou o rascunho do assistente (ainda não implementado no código), com a mesma permissão de cancelar exigida para aprovar. Preenchido só no estado descartado. Substitui recusadoPor: a recusa agora é do gateway ou do sistema, não de uma pessoa.
+                        [v] Pessoa que descartou o rascunho do assistente (ainda não implementado no código), com a mesma permissão de cancelar exigida para aprovar. Preenchido só no estado DESCARTADO. Substitui recusadoPor: a recusa agora é do gateway ou do sistema, não de uma pessoa.
                     [e] en
-                        [v] Person who discarded the assistant draft (not yet implemented in the code), with the same cancel permission required to approve. Filled only in the discarded state. Replaces recusadoPor: the refusal is now the gateway's or the system's, not a person's.
+                        [v] Person who discarded the assistant draft (not yet implemented in the code), with the same cancel permission required to approve. Filled only in the DESCARTADO state. Replaces recusadoPor: the refusal is now the gateway's or the system's, not a person's.
         [m] nota: Nota()
             @
                 [e] cn
