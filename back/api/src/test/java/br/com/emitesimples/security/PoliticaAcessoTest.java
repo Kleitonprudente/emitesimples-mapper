@@ -88,6 +88,43 @@ class PoliticaAcessoTest extends BaseApiTest {
         assertTrue(falhas.isEmpty(), "Violações da matriz de acesso:\n" + String.join("\n", falhas));
     }
 
+    /**
+     * Rotas do assistente de IA (preparar/aprovar/descartar) em /api/nfse/notas e /api/nfse/cancelamentos: consulta e anonimo
+     * barrados; administrador/operador passam pela politica (o servico responde 400/404 com corpo vazio); plataforma passa pela
+     * politica e o servico responde 403 empresa_nao_selecionada (sem empresa na sessao); PUT/PATCH/DELETE sempre negados.
+     */
+    @Test
+    void rotasDoAssistenteDeNotasECancelamentos() {
+        List<String> falhas = new ArrayList<>();
+        String id = "00000000-0000-0000-0000-000000000000";
+        List<String> posts = List.of("/api/nfse/notas/preparar", "/api/nfse/notas/" + id + "/aprovar",
+                "/api/nfse/notas/" + id + "/descartar", "/api/nfse/notas/" + id + "/cancelamentos/preparar",
+                "/api/nfse/cancelamentos/" + id + "/aprovar", "/api/nfse/cancelamentos/" + id + "/descartar");
+        for (String c : posts) {
+            esperar(falhas, "POST", c, "anonimo", null, false);
+            esperar(falhas, "POST", c, "consulta", consulta, false);
+            for (String[] p : new String[][] {{"operador", operador}, {"administrador", administrador}}) {
+                Response r = chamar("POST", c, p[1], CORPO);
+                if (r.statusCode() == 401 || r.statusCode() == 403) {
+                    falhas.add("POST " + c + " como " + p[0] + ": esperado liberado, veio " + r.statusCode());
+                }
+            }
+            Response r = chamar("POST", c, plataforma, CORPO);
+            if (r.statusCode() != 403 || !"empresa_nao_selecionada".equals(r.jsonPath().getString("codigo"))) {
+                falhas.add("POST " + c + " como plataforma: esperado 403 empresa_nao_selecionada, veio " + r.statusCode());
+            }
+            for (String m : List.of("PUT", "PATCH", "DELETE")) {
+                esperar(falhas, m, c, "administrador", administrador, false);
+            }
+        }
+        // cancelamentos: so POST
+        for (String m : List.of("GET", "PUT", "PATCH", "DELETE")) {
+            esperar(falhas, m, "/api/nfse/cancelamentos/" + id + "/aprovar", "administrador", administrador, false);
+            esperar(falhas, m, "/api/nfse/cancelamentos/" + id + "/aprovar", "anonimo", null, false);
+        }
+        semFalhas(falhas);
+    }
+
     @Test
     void publico() {
         // login/refresh/logout são públicos (corpo vazio chega ao recurso: 400, não 401)

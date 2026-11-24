@@ -178,6 +178,7 @@ class NfseEmpresaTest extends BaseApiTest {
         String servico = dados.servico(empresaId, "Servico " + System.nanoTime());
         QuarkusTransaction.requiringNew().run(() -> em.persist(NotaEntity.builderOf()
                 .withNumero(numero).withSerie(serie).withAmbiente("homologacao").withEstado("autorizada")
+                .withDataEmissao(java.time.LocalDateTime.now())
                 .withDescricao("Nota")
                 .withEmpresa(em.getReference(EmpresaEntity.class, empresaId))
                 .withPessoa(em.getReference(br.com.emitesimples.cadastros.entity.PessoaEntity.class, pessoa))

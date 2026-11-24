@@ -46,6 +46,7 @@ public class CancelamentoMapper {
         cancelamento.setCodigoMotivo( entity.getCodigoMotivo() );
         cancelamento.setMotivo( entity.getMotivo() );
         cancelamento.setDataHoraAprovacao( entity.getDataHoraAprovacao() );
+        cancelamento.setDataHoraDescarte( entity.getDataHoraDescarte() );
         cancelamento.setDataHoraRecusa( entity.getDataHoraRecusa() );
         cancelamento.setEstado( entity.getEstado() );
         cancelamento.setCodigoRetorno( entity.getCodigoRetorno() );
@@ -61,7 +62,7 @@ public class CancelamentoMapper {
         cancelamento.setPreparadoPorUsuario(usuarioMapper.entityToApi(entity.getPreparadoPorUsuario() ));
         cancelamento.setPreparadoPorCliente(clienteAcessoMapper.entityToApi(entity.getPreparadoPorCliente() ));
         cancelamento.setAprovadoPor(usuarioMapper.entityToApi(entity.getAprovadoPor() ));
-        cancelamento.setRecusadoPor(usuarioMapper.entityToApi(entity.getRecusadoPor() ));
+        cancelamento.setDescartadoPor(usuarioMapper.entityToApi(entity.getDescartadoPor() ));
         if ( entity.getNota() != null ) {
             Nota notaRef = new Nota();
             notaRef.setId( entity.getNota().getId() );
@@ -90,6 +91,7 @@ public class CancelamentoMapper {
             cancelamentoBuilder.codigoMotivo = api.getCodigoMotivo();
             cancelamentoBuilder.motivo = api.getMotivo();
             cancelamentoBuilder.dataHoraAprovacao = api.getDataHoraAprovacao();
+            cancelamentoBuilder.dataHoraDescarte = api.getDataHoraDescarte();
             cancelamentoBuilder.dataHoraRecusa = api.getDataHoraRecusa();
             cancelamentoBuilder.estado = api.getEstado();
             cancelamentoBuilder.codigoRetorno = api.getCodigoRetorno();
@@ -105,7 +107,7 @@ public class CancelamentoMapper {
             cancelamentoBuilder.preparadoPorUsuario = usuarioMapper.apiToEntity(api.getPreparadoPorUsuario());
             cancelamentoBuilder.preparadoPorCliente = clienteAcessoMapper.apiToEntity(api.getPreparadoPorCliente());
             cancelamentoBuilder.aprovadoPor = usuarioMapper.apiToEntity(api.getAprovadoPor());
-            cancelamentoBuilder.recusadoPor = usuarioMapper.apiToEntity(api.getRecusadoPor());
+            cancelamentoBuilder.descartadoPor = usuarioMapper.apiToEntity(api.getDescartadoPor());
             cancelamentoBuilder.nota = notaMapper.apiToEntity(api.getNota());
             entity = cancelamentoBuilder.build();
             this.setEntityDefaultValues(entity);
@@ -149,6 +151,7 @@ public class CancelamentoMapper {
         api.setCodigoMotivo( entity.getCodigoMotivo() );
         api.setMotivo( entity.getMotivo() );
         api.setDataHoraAprovacao( entity.getDataHoraAprovacao() );
+        api.setDataHoraDescarte( entity.getDataHoraDescarte() );
         api.setDataHoraRecusa( entity.getDataHoraRecusa() );
         api.setEstado( entity.getEstado() );
         api.setCodigoRetorno( entity.getCodigoRetorno() );
@@ -197,13 +200,13 @@ public class CancelamentoMapper {
             api.setAprovadoPor( null );
         }
 
-        if ( entity.getRecusadoPor() != null ) {
-            if ( api.getRecusadoPor() == null ) {
-                api.setRecusadoPor( new Usuario() );
+        if ( entity.getDescartadoPor() != null ) {
+            if ( api.getDescartadoPor() == null ) {
+                api.setDescartadoPor( new Usuario() );
             }
-            usuarioMapper.updateEntityToApi(entity.getRecusadoPor(), api.getRecusadoPor());
+            usuarioMapper.updateEntityToApi(entity.getDescartadoPor(), api.getDescartadoPor());
         } else {
-            api.setRecusadoPor( null );
+            api.setDescartadoPor( null );
         }
         if ( entity.getNota() != null ) {
             Nota notaRef = new Nota();
@@ -234,6 +237,7 @@ public class CancelamentoMapper {
             entity.setCodigoMotivo( api.getCodigoMotivo() );
             entity.setMotivo( api.getMotivo() );
             entity.setDataHoraAprovacao( api.getDataHoraAprovacao() );
+            entity.setDataHoraDescarte( api.getDataHoraDescarte() );
             entity.setDataHoraRecusa( api.getDataHoraRecusa() );
             entity.setEstado( api.getEstado() );
             entity.setCodigoRetorno( api.getCodigoRetorno() );
@@ -274,13 +278,13 @@ public class CancelamentoMapper {
                 entity.setAprovadoPor( null );
             }
 
-            if ( api.getRecusadoPor() != null ) {
-                if ( entity.getRecusadoPor() == null ) {
-                    entity.setRecusadoPor( new UsuarioEntity() );
+            if ( api.getDescartadoPor() != null ) {
+                if ( entity.getDescartadoPor() == null ) {
+                    entity.setDescartadoPor( new UsuarioEntity() );
                 }
-                entity.setRecusadoPor(usuarioMapper.updateApiToEntity( api.getRecusadoPor(), entity.getRecusadoPor()));
+                entity.setDescartadoPor(usuarioMapper.updateApiToEntity( api.getDescartadoPor(), entity.getDescartadoPor()));
             } else {
-                entity.setRecusadoPor( null );
+                entity.setDescartadoPor( null );
             }
 
             if ( api.getNota() != null ) {
@@ -306,6 +310,7 @@ public class CancelamentoMapper {
         if (api.getCodigoMotivo() != null) entity.setCodigoMotivo( api.getCodigoMotivo() ); 
         if (api.getMotivo() != null) entity.setMotivo( api.getMotivo() ); 
         if (api.getDataHoraAprovacao() != null) entity.setDataHoraAprovacao( api.getDataHoraAprovacao() ); 
+        if (api.getDataHoraDescarte() != null) entity.setDataHoraDescarte( api.getDataHoraDescarte() ); 
         if (api.getDataHoraRecusa() != null) entity.setDataHoraRecusa( api.getDataHoraRecusa() ); 
         if (api.getEstado() != null) entity.setEstado( api.getEstado() ); 
         if (api.getCodigoRetorno() != null) entity.setCodigoRetorno( api.getCodigoRetorno() ); 
@@ -336,11 +341,11 @@ public class CancelamentoMapper {
             }
             entity.setAprovadoPor(usuarioMapper.updateApiToEntity( api.getAprovadoPor(), entity.getAprovadoPor()));
         }
-        if ( api.getRecusadoPor() != null ) {
-            if ( entity.getRecusadoPor() == null ) {
-                entity.setRecusadoPor( new UsuarioEntity() );
+        if ( api.getDescartadoPor() != null ) {
+            if ( entity.getDescartadoPor() == null ) {
+                entity.setDescartadoPor( new UsuarioEntity() );
             }
-            entity.setRecusadoPor(usuarioMapper.updateApiToEntity( api.getRecusadoPor(), entity.getRecusadoPor()));
+            entity.setDescartadoPor(usuarioMapper.updateApiToEntity( api.getDescartadoPor(), entity.getDescartadoPor()));
         }
         if ( api.getNota() != null ) {
             if ( entity.getNota() == null ) {
@@ -358,7 +363,7 @@ public class CancelamentoMapper {
         }
 
         if (entity.getEstado() == null) {
-            entity.setEstado("aguardando_aprovacao");
+            entity.setEstado("processando");
         }
         if (entity.getAmbiente() == null) {
             entity.setAmbiente("homologacao");
@@ -373,7 +378,7 @@ public class CancelamentoMapper {
         }
 
         if (api.getEstado() == null) {
-            api.setEstado("aguardando_aprovacao");
+            api.setEstado("processando");
         }
         if (api.getAmbiente() == null) {
             api.setAmbiente("homologacao");

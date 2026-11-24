@@ -39,7 +39,8 @@ public final class Dtos {
             UsuarioResumo usuario,
             EmpresaResumo empresa,
             String papel,
-            boolean plataformaAdmin) {
+            boolean plataformaAdmin,
+            boolean podeCancelarNfse) {
     }
 
     /** Resultado interno do login/refresh: a sessao (corpo) e o refresh token (cookie; null para admin sem empresa). */
@@ -48,6 +49,7 @@ public final class Dtos {
 
     /** Resposta de GET /api/auth/me. */
     @JsonInclude(JsonInclude.Include.ALWAYS)
-    public record Perfil(UsuarioResumo usuario, EmpresaResumo empresa, String papel, boolean plataformaAdmin) {
+    public record Perfil(UsuarioResumo usuario, EmpresaResumo empresa, String papel, boolean plataformaAdmin,
+                  boolean podeCancelarNfse) {
     }
 }

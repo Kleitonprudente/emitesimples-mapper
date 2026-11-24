@@ -140,6 +140,7 @@ public class CancelamentoRepository implements PanacheRepositoryBase<Cancelament
         String codigoMotivo,
         String motivo,
         String dataHoraAprovacao,
+        String dataHoraDescarte,
         String dataHoraRecusa,
         String estado,
         String codigoRetorno,
@@ -163,9 +164,9 @@ public class CancelamentoRepository implements PanacheRepositoryBase<Cancelament
         String aprovadoPorNome,
         String aprovadoPorEmail,
         String aprovadoPorId,
-        String recusadoPorNome,
-        String recusadoPorEmail,
-        String recusadoPorId,
+        String descartadoPorNome,
+        String descartadoPorEmail,
+        String descartadoPorId,
         String notaNumero,
         String notaEstado,
         String notaChave,
@@ -175,7 +176,7 @@ public class CancelamentoRepository implements PanacheRepositoryBase<Cancelament
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<CancelamentoEntity> cq = cb.createQuery(CancelamentoEntity.class);
         Root<CancelamentoEntity> root = cq.from(CancelamentoEntity.class);
-        List<Predicate> predicates = buildPredicates(cb, root, codigoMotivo, motivo, dataHoraAprovacao, dataHoraRecusa, estado, codigoRetorno, mensagemRetorno, dataHoraEvento, id, ambiente, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, preparadoPorUsuarioNome, preparadoPorUsuarioEmail, preparadoPorUsuarioId, preparadoPorClienteNome, preparadoPorClienteClientId, preparadoPorClienteId, aprovadoPorNome, aprovadoPorEmail, aprovadoPorId, recusadoPorNome, recusadoPorEmail, recusadoPorId, notaNumero, notaEstado, notaChave, notaAmbiente, notaId);
+        List<Predicate> predicates = buildPredicates(cb, root, codigoMotivo, motivo, dataHoraAprovacao, dataHoraDescarte, dataHoraRecusa, estado, codigoRetorno, mensagemRetorno, dataHoraEvento, id, ambiente, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, preparadoPorUsuarioNome, preparadoPorUsuarioEmail, preparadoPorUsuarioId, preparadoPorClienteNome, preparadoPorClienteClientId, preparadoPorClienteId, aprovadoPorNome, aprovadoPorEmail, aprovadoPorId, descartadoPorNome, descartadoPorEmail, descartadoPorId, notaNumero, notaEstado, notaChave, notaAmbiente, notaId);
         cq.where(cb.and(predicates.toArray(new Predicate[0])));
 
         if (sort != null) {
@@ -197,6 +198,7 @@ public class CancelamentoRepository implements PanacheRepositoryBase<Cancelament
         String codigoMotivo,
         String motivo,
         String dataHoraAprovacao,
+        String dataHoraDescarte,
         String dataHoraRecusa,
         String estado,
         String codigoRetorno,
@@ -220,9 +222,9 @@ public class CancelamentoRepository implements PanacheRepositoryBase<Cancelament
         String aprovadoPorNome,
         String aprovadoPorEmail,
         String aprovadoPorId,
-        String recusadoPorNome,
-        String recusadoPorEmail,
-        String recusadoPorId,
+        String descartadoPorNome,
+        String descartadoPorEmail,
+        String descartadoPorId,
         String notaNumero,
         String notaEstado,
         String notaChave,
@@ -232,7 +234,7 @@ public class CancelamentoRepository implements PanacheRepositoryBase<Cancelament
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<CancelamentoEntity> root = cq.from(CancelamentoEntity.class);
-        List<Predicate> predicates = buildPredicates(cb, root, codigoMotivo, motivo, dataHoraAprovacao, dataHoraRecusa, estado, codigoRetorno, mensagemRetorno, dataHoraEvento, id, ambiente, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, preparadoPorUsuarioNome, preparadoPorUsuarioEmail, preparadoPorUsuarioId, preparadoPorClienteNome, preparadoPorClienteClientId, preparadoPorClienteId, aprovadoPorNome, aprovadoPorEmail, aprovadoPorId, recusadoPorNome, recusadoPorEmail, recusadoPorId, notaNumero, notaEstado, notaChave, notaAmbiente, notaId);
+        List<Predicate> predicates = buildPredicates(cb, root, codigoMotivo, motivo, dataHoraAprovacao, dataHoraDescarte, dataHoraRecusa, estado, codigoRetorno, mensagemRetorno, dataHoraEvento, id, ambiente, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, preparadoPorUsuarioNome, preparadoPorUsuarioEmail, preparadoPorUsuarioId, preparadoPorClienteNome, preparadoPorClienteClientId, preparadoPorClienteId, aprovadoPorNome, aprovadoPorEmail, aprovadoPorId, descartadoPorNome, descartadoPorEmail, descartadoPorId, notaNumero, notaEstado, notaChave, notaAmbiente, notaId);
         cq.select(cb.count(root)).where(cb.and(predicates.toArray(new Predicate[0])));
 
         return em.createQuery(cq).getSingleResult();
@@ -244,6 +246,7 @@ public class CancelamentoRepository implements PanacheRepositoryBase<Cancelament
         String codigoMotivo,
         String motivo,
         String dataHoraAprovacao,
+        String dataHoraDescarte,
         String dataHoraRecusa,
         String estado,
         String codigoRetorno,
@@ -267,9 +270,9 @@ public class CancelamentoRepository implements PanacheRepositoryBase<Cancelament
         String aprovadoPorNome,
         String aprovadoPorEmail,
         String aprovadoPorId,
-        String recusadoPorNome,
-        String recusadoPorEmail,
-        String recusadoPorId,
+        String descartadoPorNome,
+        String descartadoPorEmail,
+        String descartadoPorId,
         String notaNumero,
         String notaEstado,
         String notaChave,
@@ -285,6 +288,7 @@ public class CancelamentoRepository implements PanacheRepositoryBase<Cancelament
         if (codigoMotivo != null) getPredicateFromField(predicates, "codigoMotivo", codigoMotivo, root, cb, false);
         if (motivo != null) getPredicateFromField(predicates, "motivo", motivo, root, cb, false);
         if (dataHoraAprovacao != null) getPredicateFromField(predicates, "dataHoraAprovacao", dataHoraAprovacao, root, cb, false);
+        if (dataHoraDescarte != null) getPredicateFromField(predicates, "dataHoraDescarte", dataHoraDescarte, root, cb, false);
         if (dataHoraRecusa != null) getPredicateFromField(predicates, "dataHoraRecusa", dataHoraRecusa, root, cb, false);
         if (estado != null) getPredicateFromField(predicates, "estado", estado, root, cb, false);
         if (codigoRetorno != null) getPredicateFromField(predicates, "codigoRetorno", codigoRetorno, root, cb, false);
@@ -306,8 +310,8 @@ public class CancelamentoRepository implements PanacheRepositoryBase<Cancelament
         if (aprovadoPorId != null) {
             predicates.add(cb.equal(root.join("aprovadoPor", JoinType.INNER).get("id"), aprovadoPorId));
         }
-        if (recusadoPorId != null) {
-            predicates.add(cb.equal(root.join("recusadoPor", JoinType.INNER).get("id"), recusadoPorId));
+        if (descartadoPorId != null) {
+            predicates.add(cb.equal(root.join("descartadoPor", JoinType.INNER).get("id"), descartadoPorId));
         }
         return predicates;
     }

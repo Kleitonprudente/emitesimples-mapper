@@ -40,8 +40,8 @@ final class NfseRetorno {
         NENHUM,
         /** Envio aceito com 100 sem status Autorizado: fazer UMA consulta imediata. */
         CONSULTAR_AGORA,
-        /** Nao ha como acompanhar: a nota voltou para rascunho (reenviar). */
-        VOLTOU_RASCUNHO
+        /** Nao ha como acompanhar: a nota ficou em falha_envio (reenviar com o mesmo numero). */
+        FALHA_ENVIO
     }
 
     private NfseRetorno() {
@@ -58,7 +58,7 @@ final class NfseRetorno {
         boolean sucesso = !Boolean.FALSE.equals(r.sucesso());
         if (sucesso && (c == 5023 || c == 100 || c == 2)) {
             if (r.chave() == null || !gravarChave(n, r.chave())) {
-                return voltarParaRascunho(n, "A IntegraNotas aceitou o envio mas não devolveu a chave. Tente enviar novamente.", c);
+                return marcarFalhaEnvio(n, "A IntegraNotas aceitou o envio mas não devolveu a chave. Tente enviar novamente.", c);
             }
             if (c == 100 && "Autorizado".equalsIgnoreCase(texto(r.raiz(), "status"))) {
                 autorizar(n, r);
@@ -75,18 +75,18 @@ final class NfseRetorno {
             return Efeito.NENHUM;
         }
         if (c == 0) {
-            return voltarParaRascunho(n, MSG_INDISPONIVEL, c);
+            return marcarFalhaEnvio(n, MSG_INDISPONIVEL, c);
         }
         if (c == 5030 || c == 5034 || c == 8429 || c >= 7000 && c <= 7999 || c >= 9000 && c <= 9999) {
             if (r.chave() == null || !gravarChave(n, r.chave())) {
                 // nada para acompanhar: seguro tentar de novo (mesmo numero e mesma identificacao)
-                return voltarParaRascunho(n, r.mensagem() == null ? MSG_INDISPONIVEL : r.mensagem(), c);
+                return marcarFalhaEnvio(n, r.mensagem() == null ? MSG_INDISPONIVEL : r.mensagem(), c);
             }
             andamento(n, "processando", r);
             return Efeito.NENHUM;
         }
         if (sucesso && c / 100 != 50 && c != 5006) {
-            return voltarParaRascunho(n, MSG_INDISPONIVEL, c); // sucesso com codigo desconhecido: resposta inesperada
+            return marcarFalhaEnvio(n, MSG_INDISPONIVEL, c); // sucesso com codigo desconhecido: resposta inesperada
         }
         rejeitar(n, r); // 5001, 5002, 5005, 5007, 5024, 5025, 5028, 5033 e qualquer outra recusa
         return Efeito.NENHUM;
@@ -95,16 +95,16 @@ final class NfseRetorno {
     /** Falha de infraestrutura no envio (token recusado, indisponivel, resposta invalida): a nota NAO e rejeitada. */
     static void aplicarFalhaDeEnvio(NotaEntity n, String codigoErro) {
         String msg = "integranotas_token_recusado".equals(codigoErro) ? MSG_TOKEN : MSG_INDISPONIVEL;
-        voltarParaRascunho(n, msg, null);
+        marcarFalhaEnvio(n, msg, null);
     }
 
-    private static Efeito voltarParaRascunho(NotaEntity n, String mensagem, Integer codigo) {
-        n.setEstado("rascunho");
+    private static Efeito marcarFalhaEnvio(NotaEntity n, String mensagem, Integer codigo) {
+        n.setEstado("falha_envio");
         n.setCodigoRetorno(codigo);
         n.setMensagemRetorno(limitar(mensagem, 500));
         n.setErrosRetorno(null);
         n.setDataAtualizacao(AuthService.agora());
-        return Efeito.VOLTOU_RASCUNHO;
+        return Efeito.FALHA_ENVIO;
     }
 
     // ------------------------------------------------------------------------------------- consulta
@@ -122,7 +122,7 @@ final class NfseRetorno {
             return; // idempotente: uma consulta nunca regride a nota autorizada
         }
         if (!emAndamento(atual)) {
-            return; // rascunho e rejeitada nao sao acompanhadas
+            return; // rascunho, falha_envio e rejeitada nao sao acompanhadas
         }
         if (c == 100) {
             autorizar(n, r);
@@ -229,7 +229,7 @@ final class NfseRetorno {
 
     /**
      * Depois de aplicar uma CONSULTA: se a nota esta cancelada, conclui o(s) Cancelamento(s) pendente(s) com o retorno 101;
-     * se a nota segue autorizada e o pedido pendente tem mais de 24 h, marca-o {@code recusado} (sem confirmacao) para
+     * se a nota segue autorizada e o pedido pendente tem mais de 24 h, marca-o {@code expirado} (sem confirmacao) para
      * liberar um novo pedido. Nota travada pelo chamador.
      */
     static void concluirCancelamentoPendente(EntityManager em, NotaEntity n, RetornoNfse r) {
@@ -241,8 +241,11 @@ final class NfseRetorno {
                 concluir(c, r, 101);
             } else if ("autorizada".equals(n.getEstado()) && r.codigo() == 100 && c.getDataCriacao() != null
                     && c.getDataCriacao().isBefore(AuthService.agora().minus(LIMITE_CANCELAMENTO_PENDENTE))) {
-                recusar(c, null, MSG_CANCELAMENTO_SEM_CONFIRMACAO, AuthService.agora());
-                c.setDataAtualizacao(AuthService.agora());
+                // expirado (nao recusado): o gateway nunca recusou, so nao confirmou; libera novo pedido
+                var agora = AuthService.agora();
+                c.setEstado("expirado");
+                c.setMensagemRetorno(MSG_CANCELAMENTO_SEM_CONFIRMACAO);
+                c.setDataAtualizacao(agora);
             }
         }
     }

@@ -2695,10 +2695,18 @@ definitions:
           - $ref: '#/definitions/IdReference'
   nfse.Nota:
     description: |
-            NFS-e da empresa e o seu ciclo de vida. Nasce como rascunho, preparado por um 
-            agente ou por uma pessoa, e só vai ao gateway depois da aprovação de uma pessoa. 
-            Aprovada e enviada, fica em processamento: o envio devolve o código 5023 com a 
-            chave e só depois vem a autorização.
+            NFS-e da empresa e o seu ciclo de vida. Há dois caminhos de entrada.
+             (A) Emissão DIRETA por uma pessoa no sistema: NÃO há rascunho; a nota nasce em 
+            processamento, criada e enviada ao gateway numa só ação. (B) Assistente de IA: o 
+            assistente só PREPARA a nota como rascunho (preparadoPorCliente) e uma PESSOA 
+            aprova (o sistema envia e a nota vira processando) ou descarta (vira 
+            descartada). Aprovar e descartar o rascunho são requisito AINDA NÃO IMPLEMENTADO 
+            no código. O estado rascunho só existe no caminho B.
+             Depois do envio, o gateway devolve o código 5023 com a chave e só depois vem a 
+            autorização. Falha de infraestrutura no envio direto (gateway indisponível, 
+            token recusado, aceite sem chave, código 0) leva a falha_envio, que pode ser 
+            reenviada com o mesmo número, como a rejeitada. As transições estão em 
+            CicloNota.
              Vive no contexto nfse (domain.nfse). Depende de configuracao (Empresa), de 
             cadastros (Pessoa e Servico) e de usuarios (Usuario e ClienteAcesso) para o 
             rastro de quem preparou, aprovou e descartou. Usuarios depende só de cadastros e 
@@ -2721,16 +2729,14 @@ definitions:
             O prestador não vai no envio, vem do token da empresa (emitente no 
             IntegraNotas).
              Regra de unicidade para a camada de banco: a combinação (empresa, ambiente, 
-            serie, numero) deve ser única.
+            serie, numero) deve ser única. O rascunho do assistente tem numero e serie 
+            vazios e não conflita: no PostgreSQL valores nulos não colidem em índice único.
              O mapa não expressa unicidade composta, ela precisa virar constraint no banco.
              Fora do modelo por ora, a modelar sob demanda: obra, evento, locação, exterior, 
             intermediário, deduções, contingência, emissão pelo tomador e o bloco ibs_cbs.
 
     type: object
     required:
-      - numero
-      - serie
-      - dataEmissao
       - codigoServico
       - discriminacao
       - valorServicos
@@ -2769,19 +2775,30 @@ definitions:
         description: |
             Numeração da DPS enviada ao gateway, 1 a 9 dígitos (campo numero do envio). Não 
             é o número da NFS-e devolvido na autorização.
+             Vazio no rascunho do assistente: o número só é alocado quando a nota vira 
+            processando (criação direta ou aprovação), sem reservar no preparo e sem 
+            buracos. Por isso o mapa não marca required. Regra de aplicação, a validar no 
+            código: obrigatório fora do rascunho (e a coluna do banco continua exigindo isso 
+            por constraint de estado ou validação).
 
       serie:
         type: string
         maxLength: 5
         pattern: \w*\W*
         description: |
-            Série da DPS, 1 a 5 dígitos (campo serie do envio).
+            Série da DPS, 1 a 5 dígitos (campo serie do envio). Vazia no rascunho do 
+            assistente; preenchida obrigatoriamente quando a nota vira processando (criação 
+            direta ou aprovação). Regra de aplicação, a validar no código.
 
       dataEmissao:
         type: string
         format: date-time
         description: |
-            Data e hora de emissão enviadas (campo data_emissao do envio, ISO com fuso).
+            Data e hora de emissão enviadas (campo data_emissao do envio, ISO com fuso). 
+            Regravada a cada reenvio. Define o mês vigente da regra de cancelamento (mês e 
+            ano da emissão, fuso America/Sao_Paulo). Vazia no rascunho do assistente; 
+            preenchida obrigatoriamente quando a nota vira processando (criação direta ou 
+            aprovação). Regra de aplicação, a validar no código.
 
       dataCompetencia:
         type: string
@@ -3013,15 +3030,17 @@ definitions:
         type: string
         format: date-time
         description: |
-            Momento em que uma pessoa aprovou o rascunho e o sistema o enviou ao gateway. 
-            Vazia enquanto rascunho e em nota descartada.
+            Momento em que a pessoa mandou enviar a nota ao gateway. No fluxo direto é 
+            gravada na criação; no fluxo do assistente, na aprovação do rascunho; em 
+            qualquer caso é regravada a cada reenvio. Vazia só no rascunho (e na nota 
+            descartada, que nunca foi enviada).
 
       dataHoraDescarte:
         type: string
         format: date-time
         description: |
-            Momento em que uma pessoa recusou o rascunho. Preenchida só no estado 
-            descartada.
+            Momento em que uma pessoa descartou o rascunho do assistente (ainda não 
+            implementado no código). Preenchida só no estado descartada.
 
       estado:
         type: string
@@ -3029,20 +3048,29 @@ definitions:
         pattern: \w*\W*
         description: |
             Estado da nota no ciclo de vida, na ordem: rascunho, processando, 
-            emitida_offline, autorizada, rejeitada, em_conflito, cancelada, descartada.
-             Rascunho é a nota preparada e ainda não enviada ao gateway, aguardando a 
-            aprovação; é o estado inicial. Processando é a nota aprovada e enviada ao 
-            gateway, aguardando o retorno (código 5023).
-             Emitida offline é a nota aceita que aguarda a prefeitura (código 2), sem XML nem 
-            protocolo. Autorizada vem do código 100, cancelada do 101, em conflito do 5027 e 
-            rejeitada das falhas definitivas.
-             Descartada é o rascunho recusado por uma pessoa; nunca foi enviada ao gateway e 
-            não tem chave.
-             Regra: só o estado rascunho pode ser aprovado ou descartado, e só a aprovação de 
-            um usuário envia ao gateway (rascunho vira processando). Um agente apenas 
-            prepara.
-             Só uma nota autorizada pode ser cancelada. Depois do envio, a decisão é sempre 
-            pelo código de retorno, nunca pelo texto da mensagem.
+            emitida_offline, autorizada, rejeitada, falha_envio, em_conflito, cancelada, 
+            descartada. As transições estão em CicloNota.
+             Rascunho existe SÓ no caminho do assistente de IA: é a nota preparada e ainda 
+            não enviada, aguardando uma pessoa aprovar ou descartar (aprovar e descartar: 
+            ainda não implementado no código). Na emissão direta pela pessoa não há 
+            rascunho: a nota nasce processando.
+             Processando é a nota enviada ao gateway, aguardando o retorno (código 5023 com a 
+            chave). Emitida offline é a nota aceita que aguarda a prefeitura (código 2), sem 
+            XML nem protocolo; vem SÓ da consulta, nunca do envio.
+             Autorizada vem do código 100 e cancelada do 101. Em conflito vem do 5027. 
+            Rejeitada é a recusa definitiva do governo (5001, 5002, 5005, 5007, 5024, 5025, 
+            5028, 5033 e outras recusas): a nota é editável e reenviável com o mesmo número.
+             Falha de envio (falha_envio) é a falha de infraestrutura no envio direto 
+            (gateway indisponível, token recusado, aceite sem chave, código 0, resposta 
+            inesperada): a nota NÃO foi rejeitada pelo governo e pode ser reenviada com o 
+            mesmo número, como a rejeitada. Substitui o uso de rascunho como estado de nova 
+            tentativa.
+             Descartada é o rascunho do assistente recusado por uma pessoa; nunca foi enviada 
+            ao gateway e não tem chave.
+             Regra: só o estado rascunho pode ser aprovado ou descartado, e só uma pessoa o 
+            envia ao gateway. Um agente apenas prepara. Só uma nota autorizada pode ser 
+            cancelada. Depois do envio, a decisão é sempre pelo código de retorno, nunca 
+            pelo texto da mensagem.
 
       codigoRetorno:
         type: integer
@@ -3116,8 +3144,9 @@ definitions:
         type: string
         format: date-time
         description: |
-            Data e hora do evento devolvida pelo gateway (autorização), no formato 
-            AAAA-MM-DD HH:MM:SS, sem fuso. Nula enquanto não autorizada.
+            Data e hora do evento devolvida pelo gateway, no formato AAAA-MM-DD HH:MM:SS, 
+            sem fuso. Gravada na autorização e REGRAVADA ao cancelar (passa a ser a data do 
+            evento de cancelamento). Nula enquanto não autorizada.
 
       linkPdf:
         type: string
@@ -3194,33 +3223,35 @@ definitions:
           - $ref: '#/definitions/IdReference'
       preparadoPorUsuario:
         description: |
-            Pessoa que preparou o rascunho. Regra que o mapa não expressa: preencher este 
-            campo OU preparadoPorCliente, no máximo um dos dois, e exatamente um deles na 
-            criação.
+            Pessoa que preparou a nota. Na emissão direta é a própria pessoa que emitiu. 
+            Regra que o mapa não expressa: preencher este campo OU preparadoPorCliente, no 
+            máximo um dos dois, e exatamente um deles na criação.
 
         allOf:
           - $ref: '#/definitions/IdReference'
       preparadoPorCliente:
         description: |
-            Agente (credencial de máquina, por exemplo o MCP) que preparou o rascunho. Regra 
-            que o mapa não expressa: preencher este campo OU preparadoPorUsuario, no máximo 
-            um dos dois.
+            Assistente de IA (credencial de máquina, por exemplo o MCP) que preparou o 
+            rascunho. Só existe no caminho do assistente. Regra que o mapa não expressa: 
+            preencher este campo OU preparadoPorUsuario, no máximo um dos dois.
 
         allOf:
           - $ref: '#/definitions/IdReference'
       aprovadoPor:
         description: |
-            Pessoa que aprovou o envio ao gateway. Só uma PESSOA aprova, nunca um 
-            ClienteAcesso, e só quem tem o scope de emitir na empresa da nota (vínculo ativo 
-            com papel administrador ou operador). Quem preparou pode ser quem aprova. Vazio 
-            enquanto rascunho e em nota descartada.
+            Pessoa que mandou enviar a nota ao gateway: na emissão direta, quem emitiu; no 
+            caminho do assistente, quem aprovou o rascunho. Regravada a cada reenvio. Só uma 
+            PESSOA, nunca um ClienteAcesso, e só quem tem o scope de emitir na empresa da 
+            nota (vínculo ativo com papel administrador ou operador). Quem preparou pode ser 
+            quem aprova. Vazio enquanto rascunho e em nota descartada.
 
         allOf:
           - $ref: '#/definitions/IdReference'
       descartadoPor:
         description: |
-            Pessoa que recusou o rascunho. Só uma pessoa descarta, com o mesmo scope de 
-            emitir exigido para aprovar. Preenchido só no estado descartada.
+            Pessoa que descartou o rascunho do assistente (ainda não implementado no 
+            código). Só uma pessoa descarta, com o mesmo scope de emitir exigido para 
+            aprovar. Preenchido só no estado descartada.
 
         allOf:
           - $ref: '#/definitions/IdReference'
@@ -3230,7 +3261,9 @@ definitions:
           $ref: '#/definitions/nfse.Cancelamento'
         description: |
             Pedidos de cancelamento da nota. Só existem dentro da nota, no mesmo contexto. 
-            Uma nota rejeitada no cancelamento pode ter novo pedido.
+            Pode haver novo pedido depois de um recusado, expirado ou descartado, nunca 
+            enquanto houver outro em processamento. As transições estão em 
+            CicloCancelamento.
 
   configuracao.AtividadeEmpresa:
     description: |
@@ -4171,11 +4204,21 @@ definitions:
             como sucesso idempotente.
              Existe só dentro de uma nota e no mesmo contexto, por isso é detalhe da Nota 
             ([m]/[o]).
-             Prazos e regras de cancelamento por município não estão documentados e não são 
-            validados no modelo.
-             Cancelar exige confirmação humana: um agente só PEDE (aguardando_aprovacao) e 
-            uma pessoa com o scope de cancelar (papel administrador) aprova, e só então o 
-            sistema envia ao gateway.
+             REGRA DO PRODUTO, mês vigente: só se cancela dentro do mês e ano da data de 
+            emissão da nota (fuso America/Sao_Paulo). Prazos específicos de cada município 
+            não são tratados.
+             Dois caminhos de entrada. (A) Cancelamento DIRETO por uma pessoa: o pedido nasce 
+            em processando, criado e enviado ao gateway numa só ação. (B) Assistente de IA: 
+            só PREPARA o pedido como rascunho (preparadoPorCliente); uma pessoa com 
+            permissão de cancelar aprova (o sistema envia e o pedido vira processando) ou 
+            descarta (vira descartado). Aprovar e descartar o rascunho são requisito AINDA 
+            NÃO IMPLEMENTADO no código. O estado rascunho só existe no caminho B.
+             Quem cancela: o administrador sempre; o operador SÓ com permissão delegada 
+            (VinculoUsuario.podeCancelarNfse). O código atual deixa o operador cancelar sem 
+            delegação: divergência a corrigir no código.
+             Estados do pedido: rascunho, processando, concluido, recusado (o gateway ou o 
+            sistema recusou), expirado (pendente por mais de 24 h sem confirmação) e 
+            descartado. As transições estão em CicloCancelamento.
              Vive no contexto nfse (domain.nfse). Depende do contexto usuarios (Usuario e 
             ClienteAcesso) para o rastro; usuarios depende só de cadastros e configuracao, 
             não há ciclo.
@@ -4238,29 +4281,43 @@ definitions:
         type: string
         format: date-time
         description: |
-            Momento em que uma pessoa aprovou o pedido e o sistema o enviou ao gateway. 
-            Vazia enquanto aguarda aprovação e em pedido recusado.
+            Momento em que o pedido foi enviado ao gateway por decisão de uma pessoa. No 
+            fluxo direto é gravada na criação; no fluxo do assistente, na aprovação do 
+            rascunho. Vazia no rascunho e no pedido descartado.
+
+      dataHoraDescarte:
+        type: string
+        format: date-time
+        description: |
+            Momento em que uma pessoa descartou o rascunho do assistente (ainda não 
+            implementado no código). Preenchida só no estado descartado.
 
       dataHoraRecusa:
         type: string
         format: date-time
         description: |
-            Momento em que uma pessoa recusou o pedido. Preenchida só no estado recusado.
+            Momento em que o gateway ou o sistema recusou o pedido (a recusa não é decisão 
+            de uma pessoa). Preenchida só no estado recusado.
 
       estado:
         type: string
         maxLength: 25
         pattern: \w*\W*
         description: |
-            Estado do pedido, na ordem: aguardando_aprovacao, recusado, solicitado, 
-            cancelado, rejeitado.
-             Nasce aguardando_aprovacao: o pedido foi preparado e ainda não foi ao gateway. 
-            Só nesse estado pode ser aprovado ou recusado, e só a aprovação de um usuário o 
-            envia ao gateway (vira solicitado).
-             Recusado é o pedido recusado por uma pessoa; nunca foi enviado. Solicitado é o 
-            pedido aprovado e enviado, aguardando o retorno.
-             Vira cancelado com o código 101 (ou 5015) e rejeitado nas falhas. Quando 
-            cancelado, a Nota passa ao estado cancelada. Só se cancela nota autorizada.
+            Estado do pedido, na ordem: rascunho, processando, concluido, recusado, 
+            expirado, descartado. As transições estão em CicloCancelamento.
+             Rascunho existe SÓ no caminho do assistente de IA: o pedido preparado e ainda 
+            não enviado, aguardando uma pessoa aprovar ou descartar (ainda não implementado 
+            no código). No cancelamento direto pela pessoa o pedido nasce processando.
+             Processando é o pedido enviado ao gateway, aguardando a confirmação (trava a 
+            nota: só um por vez). Concluído vem do código 101 ou 5015; nesse momento a Nota 
+            passa a cancelada.
+             Recusado é o pedido que o gateway ou o sistema recusou (5013, 5001, token 
+            recusado e outras recusas); a nota segue autorizada. Expirado é o pedido 
+            pendente por mais de 24 h sem confirmação; a nota segue autorizada e um novo 
+            pedido é liberado. O motivo da recusa ou da expiração fica em mensagemRetorno.
+             Descartado é o rascunho do assistente recusado por uma pessoa; nunca foi enviado 
+            ao gateway.
 
       codigoRetorno:
         type: integer
@@ -4332,33 +4389,36 @@ definitions:
           - $ref: '#/definitions/IdReference'
       preparadoPorUsuario:
         description: |
-            Pessoa que preparou o pedido. Regra que o mapa não expressa: preencher este 
-            campo OU preparadoPorCliente, no máximo um dos dois, e exatamente um deles na 
-            criação.
+            Pessoa que preparou o pedido. No cancelamento direto é a própria pessoa que 
+            cancelou. Regra que o mapa não expressa: preencher este campo OU 
+            preparadoPorCliente, no máximo um dos dois, e exatamente um deles na criação.
 
         allOf:
           - $ref: '#/definitions/IdReference'
       preparadoPorCliente:
         description: |
-            Agente (credencial de máquina, por exemplo o MCP) que preparou o pedido. Regra 
-            que o mapa não expressa: preencher este campo OU preparadoPorUsuario, no máximo 
-            um dos dois.
+            Assistente de IA (credencial de máquina, por exemplo o MCP) que preparou o 
+            pedido como rascunho. Só existe no caminho do assistente. Regra que o mapa não 
+            expressa: preencher este campo OU preparadoPorUsuario, no máximo um dos dois.
 
         allOf:
           - $ref: '#/definitions/IdReference'
       aprovadoPor:
         description: |
-            Pessoa que aprovou o envio do cancelamento ao gateway. Só uma PESSOA aprova, 
-            nunca um ClienteAcesso, e só quem tem o scope de cancelar na empresa (vínculo 
-            ativo com papel administrador; o operador emite mas não cancela). Vazio enquanto 
-            aguarda aprovação e em pedido recusado.
+            Pessoa que mandou enviar o cancelamento ao gateway: no cancelamento direto, quem 
+            cancelou; no caminho do assistente, quem aprovou o rascunho. Só uma PESSOA, 
+            nunca um ClienteAcesso, e só quem pode cancelar na empresa: o administrador, ou 
+            o operador com permissão delegada (VinculoUsuario.podeCancelarNfse), em vínculo 
+            ativo. Vazio no rascunho e no pedido descartado.
 
         allOf:
           - $ref: '#/definitions/IdReference'
-      recusadoPor:
+      descartadoPor:
         description: |
-            Pessoa que recusou o pedido, com o mesmo scope de cancelar exigido para aprovar. 
-            Preenchido só no estado recusado.
+            Pessoa que descartou o rascunho do assistente (ainda não implementado no 
+            código), com a mesma permissão de cancelar exigida para aprovar. Preenchido só 
+            no estado descartado. Substitui recusadoPor: a recusa agora é do gateway ou do 
+            sistema, não de uma pessoa.
 
         allOf:
           - $ref: '#/definitions/IdReference'

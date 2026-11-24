@@ -18,6 +18,7 @@ public class CancelamentoEntityBuilder {
     public Integer codigoMotivo;
     public String motivo;
     public LocalDateTime dataHoraAprovacao;
+    public LocalDateTime dataHoraDescarte;
     public LocalDateTime dataHoraRecusa;
     public String estado;
     public Integer codigoRetorno;
@@ -33,7 +34,7 @@ public class CancelamentoEntityBuilder {
     public UsuarioEntity preparadoPorUsuario;
     public ClienteAcessoEntity preparadoPorCliente;
     public UsuarioEntity aprovadoPor;
-    public UsuarioEntity recusadoPor;
+    public UsuarioEntity descartadoPor;
     public NotaEntity nota;
 
     public CancelamentoEntityBuilder() {
@@ -55,6 +56,11 @@ public class CancelamentoEntityBuilder {
 
     public CancelamentoEntityBuilder withDataHoraAprovacao(LocalDateTime dataHoraAprovacao) {
         this.dataHoraAprovacao = dataHoraAprovacao;
+        return this;
+    }
+
+    public CancelamentoEntityBuilder withDataHoraDescarte(LocalDateTime dataHoraDescarte) {
+        this.dataHoraDescarte = dataHoraDescarte;
         return this;
     }
 
@@ -133,8 +139,8 @@ public class CancelamentoEntityBuilder {
         return this;
     }
 
-    public CancelamentoEntityBuilder withRecusadoPor(UsuarioEntity recusadoPor) {
-        this.recusadoPor = recusadoPor;
+    public CancelamentoEntityBuilder withDescartadoPor(UsuarioEntity descartadoPor) {
+        this.descartadoPor = descartadoPor;
         return this;
     }
 
@@ -152,6 +158,7 @@ public class CancelamentoEntityBuilder {
                 .withCodigoMotivo(cancelamento.getCodigoMotivo())
                 .withMotivo(cancelamento.getMotivo())
                 .withDataHoraAprovacao(cancelamento.getDataHoraAprovacao())
+                .withDataHoraDescarte(cancelamento.getDataHoraDescarte())
                 .withDataHoraRecusa(cancelamento.getDataHoraRecusa())
                 .withEstado(cancelamento.getEstado())
                 .withCodigoRetorno(cancelamento.getCodigoRetorno())
@@ -167,7 +174,7 @@ public class CancelamentoEntityBuilder {
                 .withPreparadoPorUsuario(UsuarioEntity.builderOf().withModel(cancelamento.getPreparadoPorUsuario()).build())
                 .withPreparadoPorCliente(ClienteAcessoEntity.builderOf().withModel(cancelamento.getPreparadoPorCliente()).build())
                 .withAprovadoPor(UsuarioEntity.builderOf().withModel(cancelamento.getAprovadoPor()).build())
-                .withRecusadoPor(UsuarioEntity.builderOf().withModel(cancelamento.getRecusadoPor()).build())
+                .withDescartadoPor(UsuarioEntity.builderOf().withModel(cancelamento.getDescartadoPor()).build())
                 .withNota(NotaEntity.builderOf().withModel(cancelamento.getNota()).build());
     }
 

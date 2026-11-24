@@ -55,7 +55,8 @@ public final class PlataformaDtos {
     public record VinculoNovo(
             @NotBlank(message = "A empresa é obrigatória.") @Size(max = 36, message = "empresaId inválido.") String empresaId,
             @NotBlank(message = "O papel é obrigatório.") @Size(max = 15, message = "Papel inválido.") String papel,
-            Boolean ativo) {
+            Boolean ativo,
+            Boolean podeCancelarNfse) {
     }
 
     public record UsuarioNovo(
@@ -81,14 +82,15 @@ public final class PlataformaDtos {
 
     public record VinculoAlteracao(
             @Size(max = 15, message = "Papel inválido.") String papel,
-            Boolean ativo) {
+            Boolean ativo,
+            Boolean podeCancelarNfse) {
     }
 
     public record EmpresaRef(String id, String razaoSocial, String nomeFantasia, String situacao) {
     }
 
     public record VinculoAdmin(String id, String usuarioId, EmpresaRef empresa, String papel, Boolean ativo,
-                               LocalDateTime dataCriacao, LocalDateTime dataAtualizacao) {
+                               LocalDateTime dataCriacao, LocalDateTime dataAtualizacao, Boolean podeCancelarNfse) {
     }
 
     /** Usuario como o admin enxerga: NUNCA com senha nem hash ({@code temSenha} diz so se ha senha definida). */

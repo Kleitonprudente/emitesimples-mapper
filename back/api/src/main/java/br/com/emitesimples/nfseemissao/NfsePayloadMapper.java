@@ -112,6 +112,10 @@ final class NfsePayloadMapper {
     }
 
     static Montado montar(NotaEntity n, PessoaEntity p, boolean enviarTributosTotais) {
+        if (n.getNumero() == null || n.getSerie() == null || n.getDataEmissao() == null) {
+            // so o rascunho do assistente nao tem numeracao; ela e alocada ao virar processando (ck_nota_numeracao)
+            throw new IllegalStateException("Nota " + n.getId() + " sem numero, serie ou data de emissao: nao pode ser enviada ao gateway.");
+        }
         ObjectNode raiz = JSON.createObjectNode();
         raiz.put("data_emissao", EMISSAO.format(n.getDataEmissao().truncatedTo(ChronoUnit.SECONDS).atZone(SAO_PAULO)
                 .toOffsetDateTime()));

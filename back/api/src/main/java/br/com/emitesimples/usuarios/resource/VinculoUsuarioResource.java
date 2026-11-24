@@ -43,6 +43,7 @@ public class VinculoUsuarioResource {
         @QueryParam("sortBy") String sortBy,
         @QueryParam("sortDirection") @DefaultValue("asc") String sortDirection,
         @QueryParam("papel") String papel,
+        @QueryParam("podeCancelarNfse") String podeCancelarNfse,
         @QueryParam("ativo") String ativo,
         @QueryParam("id") String id,
         @QueryParam("dataCriacao") String dataCriacao,
@@ -59,7 +60,7 @@ public class VinculoUsuarioResource {
         Sort sort = Sort.by(sortBy != null ? sortBy : "id")
                         .direction(sortDirection.equalsIgnoreCase("desc") ?
                                    Sort.Direction.Descending : Sort.Direction.Ascending);
-        List<VinculoUsuarioEntity> entityList = repository.findWithFilters(0, 100, sort, papel, ativo, id, dataCriacao, dataAtualizacao, usuarioNome, usuarioEmail, usuarioId, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId);
+        List<VinculoUsuarioEntity> entityList = repository.findWithFilters(0, 100, sort, papel, podeCancelarNfse, ativo, id, dataCriacao, dataAtualizacao, usuarioNome, usuarioEmail, usuarioId, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId);
 
         return mapper.entityListToApiList(entityList);
     }
@@ -88,6 +89,7 @@ public class VinculoUsuarioResource {
     @Path("/count")
     public CountResult count(
         @QueryParam("papel") String papel,
+        @QueryParam("podeCancelarNfse") String podeCancelarNfse,
         @QueryParam("ativo") String ativo,
         @QueryParam("id") String id,
         @QueryParam("dataCriacao") String dataCriacao,
@@ -103,7 +105,7 @@ public class VinculoUsuarioResource {
     ) {
 
         CountResult countResult = new CountResult();
-        countResult.setCount(repository.countWithFilters( papel, ativo, id, dataCriacao, dataAtualizacao, usuarioNome, usuarioEmail, usuarioId, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId));
+        countResult.setCount(repository.countWithFilters( papel, podeCancelarNfse, ativo, id, dataCriacao, dataAtualizacao, usuarioNome, usuarioEmail, usuarioId, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId));
         return countResult;
     }
 
@@ -118,6 +120,7 @@ public class VinculoUsuarioResource {
         @QueryParam("sortBy") @DefaultValue("id") String sortBy,
         @QueryParam("sortDirection") @DefaultValue("asc") String sortDirection,
         @QueryParam("papel") String papel,
+        @QueryParam("podeCancelarNfse") String podeCancelarNfse,
         @QueryParam("ativo") String ativo,
         @QueryParam("id") String id,
         @QueryParam("dataCriacao") String dataCriacao,
@@ -142,7 +145,7 @@ public class VinculoUsuarioResource {
         Sort sort = Sort.by(sortBy != null ? sortBy : "id")
                         .direction(sortDirection.equalsIgnoreCase("desc") ?
                                    Sort.Direction.Descending : Sort.Direction.Ascending);
-        List<VinculoUsuarioEntity> entityList = repository.findWithFilters(from, limit, sort, papel, ativo, id, dataCriacao, dataAtualizacao, usuarioNome, usuarioEmail, usuarioId, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId);
+        List<VinculoUsuarioEntity> entityList = repository.findWithFilters(from, limit, sort, papel, podeCancelarNfse, ativo, id, dataCriacao, dataAtualizacao, usuarioNome, usuarioEmail, usuarioId, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId);
 
         return mapper.entityListToApiList(entityList);
     }

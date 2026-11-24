@@ -1,0 +1,502 @@
+[c] CicloCancelamento
+    @
+        [e] title
+            [e] pt
+                [v] Ciclo do Cancelamento
+            [e] en
+                [v] Cancellation Life Cycle
+        [e] description
+            [e] pt
+                [v] Serviço de domínio (classe auxiliar, não persistível, sem atributos) com as transições de estado do Cancelamento: pré-condições, mutações e efeitos de cada uma, inclusive o efeito na Nota. A estrutura fica em Cancelamento; aqui fica o comportamento. Os códigos das regras são NFSE-C01 a NFSE-C08.
+                  | Dois caminhos de entrada. (A) Cancelamento DIRETO por uma pessoa: o pedido nasce processando e é enviado na mesma ação (solicitar). (B) Assistente de IA: só prepara o pedido como rascunho (preparar); uma pessoa com permissão de cancelar aprova (aprovar) ou descarta (descartar). Aprovar, descartar e preparar são requisito AINDA NÃO IMPLEMENTADO no código desta API.
+                  | Estados: rascunho (só assistente), processando, concluido, recusado, expirado, descartado.
+                  | REGRA DO PRODUTO, mês vigente: só se cancela dentro do mês e ano da data de emissão da nota, no fuso America/Sao_Paulo. Só se cancela nota autorizada. Quem cancela: o administrador sempre; o operador só com a permissão delegada (VinculoUsuario.podeCancelarNfse).
+            [e] en
+                [v] Domain service (auxiliary, non-persistent class, with no attributes) with the Cancelamento state transitions: preconditions, mutations and effects of each, including the effect on the Nota. The structure lives in Cancelamento; the behavior lives here. The rule codes are NFSE-C01 to NFSE-C08.
+                  | Two entry paths. (A) DIRECT cancellation by a person: the request is born processando and is sent in the same action (solicitar). (B) AI assistant: only prepares the request as a draft (preparar); a person allowed to cancel approves (aprovar) or discards (descartar). Approve, discard and prepare are a requirement NOT YET IMPLEMENTED in the code of this API.
+                  | States: rascunho (assistant only), processando, concluido, recusado, expirado, descartado.
+                  | PRODUCT RULE, current month: a note can only be canceled within the month and year of its issue date, in the America/Sao_Paulo time zone. Only an authorized note can be canceled. Who cancels: the administrator always; the operator only with the delegated permission (VinculoUsuario.podeCancelarNfse).
+    [g] transicoes
+        [x] solicitar: Cancelamento()
+            //
+                ──────────────────────────────────────────────────────────────────────────
+            //
+                NFSE-C01 — solicitar (cancelamento direto pela pessoa)
+            //
+                ──────────────────────────────────────────────────────────────────────────
+            @
+                [e] cn
+                    [v] NFSE-C01
+                [e] title
+                    [e] pt
+                        [v] NFSE-C01 — Solicitar Cancelamento
+                    [e] en
+                        [v] NFSE-C01 — Request Cancellation
+                [e] description
+                    [e] pt
+                        [v] Cancelamento DIRETO pela pessoa. Cria o pedido já PROCESSANDO e o envia ao gateway (POST /v1/nfse/cancela) numa só ação, FORA da transação de banco. Transição (novo) → PROCESSANDO. Não passa por rascunho.
+                          | O pedido processando trava a nota: só um por vez. Só se cancela nota autorizada, com chave, dentro do mês vigente da emissão (fuso America/Sao_Paulo). Nota já cancelada não cria pedido: a resposta é de sucesso idempotente.
+                          | O retorno é aplicado por concluir, recusar ou manterPendente.
+                    [e] en
+                        [v] DIRECT cancellation by the person. Creates the request already PROCESSANDO and sends it to the gateway (POST /v1/nfse/cancela) in a single action, OUTSIDE the database transaction. Transition (new) → PROCESSANDO. It does not go through draft.
+                          | A processing request locks the note: only one at a time. Only an authorized note can be canceled, with a key, within the current month of issue (America/Sao_Paulo time zone). An already canceled note creates no request: the answer is an idempotent success.
+                          | The return is applied by concluir, recusar or manterPendente.
+            parameter
+                cancelamento: Cancelamento()
+                nota: Nota()
+                codigoMotivo: Inteiro(1)
+                motivo: Texto(255)
+                ator: Usuario()
+            body
+                pre
+                    =
+                        nota.estado
+                        autorizada
+                    !=
+                        nota.chave
+                        null
+                    a data de emissão da nota está no mesmo mês e ano de hoje, no fuso America/Sao_Paulo (regra do produto)
+                    OR
+                        =
+                            codigoMotivo
+                            1
+                        =
+                            codigoMotivo
+                            2
+                        =
+                            codigoMotivo
+                            9
+                    o motivo, depois de remover os espaços das pontas, tem de 15 a 255 caracteres
+                    nenhum Cancelamento da mesma nota em processando
+                    =
+                        cancelamento.ambiente
+                        nota.ambiente
+                    o ambiente da nota e da Empresa é o ambiente ativo
+                    a Empresa está cadastrada como emitente no gateway
+                    OR
+                        =
+                            ator.vinculo.papel
+                            administrador
+                        papel operador com o vínculo ativo e podeCancelarNfse verdadeiro
+                    ator é uma PESSOA (Usuario), nunca um ClienteAcesso
+                    limite de envios por usuário respeitado
+                    cancelamento em produção só se a configuração da fase o permitir
+                    //
+                        Divergência de código: o código atual NÃO exige podeCancelarNfse para o operador (deixa o operador cancelar sem delegação). A corrigir depois.
+                        Nota já cancelada devolve sucesso idempotente sem criar pedido (comportamento atual do código).
+                do
+                    cancelamento.estado
+                        =
+                            processando
+                    cancelamento.codigoMotivo
+                        =
+                            codigoMotivo
+                    cancelamento.motivo
+                        =
+                            motivo, sem os espaços das pontas
+                    cancelamento.ambiente
+                        =
+                            nota.ambiente
+                    cancelamento.dataHoraAprovacao
+                        =
+                            agora
+                    cancelamento.aprovadoPor
+                        =
+                            ator
+                    cancelamento.preparadoPorUsuario
+                        =
+                            ator
+                    cancelamento.nota
+                        =
+                            nota
+                    cancelamento.empresa
+                        =
+                            nota.empresa
+                    envia o pedido ao gateway, com a chave da nota, o codigo_cancelamento e o motivo_cancelamento
+                emit
+                    ChamadaGatewayRegistrada()
+                        operacao: cancelar_nfse
+                        idNota
+                        codigoRetorno
+        [x] aprovar: Cancelamento()
+            //
+                ──────────────────────────────────────────────────────────────────────────
+            //
+                NFSE-C02 — aprovar (rascunho do assistente) — ainda não implementado no código
+            //
+                ──────────────────────────────────────────────────────────────────────────
+            @
+                [e] cn
+                    [v] NFSE-C02
+                [e] title
+                    [e] pt
+                        [v] NFSE-C02 — Aprovar Rascunho de Cancelamento
+                    [e] en
+                        [v] NFSE-C02 — Approve Cancellation Draft
+                [e] description
+                    [e] pt
+                        [v] Uma PESSOA com permissão de cancelar aprova o rascunho preparado pelo assistente e o sistema o envia ao gateway. Transição RASCUNHO → PROCESSANDO. As regras de nota autorizada com chave, mês vigente e um só pedido processando são validadas já no preparo e REVALIDADAS na aprovação (o mês pode virar entre os dois); papel e delegação são checados só em quem aprova. AINDA NÃO IMPLEMENTADO no código.
+                    [e] en
+                        [v] A PERSON allowed to cancel approves the draft prepared by the assistant and the system sends it to the gateway. Transition RASCUNHO → PROCESSANDO. The rules of authorized note with a key, current month and a single processing request are validated already at preparation and RE-VALIDATED at approval (the month may roll over between the two); role and delegation are checked only on who approves. NOT YET IMPLEMENTED in the code.
+            parameter
+                cancelamento: Cancelamento()
+                ator: Usuario()
+            body
+                pre
+                    =
+                        cancelamento.estado
+                        rascunho
+                    =
+                        cancelamento.nota.estado
+                        autorizada
+                    !=
+                        cancelamento.nota.chave
+                        null
+                    a data de emissão da nota está no mesmo mês e ano de hoje, no fuso America/Sao_Paulo (regra do produto, REVALIDADA na aprovação porque o mês pode ter virado desde o preparo)
+                    nenhum outro Cancelamento da mesma nota em processando (revalidado na aprovação)
+                    o ambiente da nota e da Empresa é o ambiente ativo, e a Empresa está cadastrada como emitente no gateway
+                    OR
+                        =
+                            ator.vinculo.papel
+                            administrador
+                        papel operador com o vínculo ativo e podeCancelarNfse verdadeiro
+                    ator é uma PESSOA (Usuario), nunca um ClienteAcesso
+                    //
+                        ainda não implementado no código.
+                do
+                    cancelamento.estado
+                        =
+                            processando
+                    cancelamento.aprovadoPor
+                        =
+                            ator
+                    cancelamento.dataHoraAprovacao
+                        =
+                            agora
+                    cancelamento.dataAtualizacao
+                        =
+                            agora
+                    envia o pedido ao gateway, como em NFSE-C01
+                //
+                    ainda não implementado no código.
+        [x] descartar: Cancelamento()
+            //
+                ──────────────────────────────────────────────────────────────────────────
+            //
+                NFSE-C03 — descartar (rascunho do assistente) — ainda não implementado no código
+            //
+                ──────────────────────────────────────────────────────────────────────────
+            @
+                [e] cn
+                    [v] NFSE-C03
+                [e] title
+                    [e] pt
+                        [v] NFSE-C03 — Descartar Rascunho de Cancelamento
+                    [e] en
+                        [v] NFSE-C03 — Discard Cancellation Draft
+                [e] description
+                    [e] pt
+                        [v] Uma PESSOA com permissão de cancelar descarta o rascunho do assistente. Transição RASCUNHO → DESCARTADO. O pedido nunca foi enviado ao gateway e a nota segue como estava. AINDA NÃO IMPLEMENTADO no código.
+                    [e] en
+                        [v] A PERSON allowed to cancel discards the assistant draft. Transition RASCUNHO → DESCARTADO. The request was never sent to the gateway and the note stays as it was. NOT YET IMPLEMENTED in the code.
+            parameter
+                cancelamento: Cancelamento()
+                ator: Usuario()
+            body
+                pre
+                    =
+                        cancelamento.estado
+                        rascunho
+                    OR
+                        =
+                            ator.vinculo.papel
+                            administrador
+                        papel operador com o vínculo ativo e podeCancelarNfse verdadeiro
+                    ator é uma PESSOA (Usuario), nunca um ClienteAcesso
+                    //
+                        ainda não implementado no código.
+                do
+                    cancelamento.estado
+                        =
+                            descartado
+                    cancelamento.descartadoPor
+                        =
+                            ator
+                    cancelamento.dataHoraDescarte
+                        =
+                            agora
+                    cancelamento.dataAtualizacao
+                        =
+                            agora
+                //
+                    ainda não implementado no código.
+        [x] concluir: Cancelamento()
+            //
+                ──────────────────────────────────────────────────────────────────────────
+            //
+                NFSE-C04 — concluir
+            //
+                ──────────────────────────────────────────────────────────────────────────
+            @
+                [e] cn
+                    [v] NFSE-C04
+                [e] title
+                    [e] pt
+                        [v] NFSE-C04 — Concluir Cancelamento
+                    [e] en
+                        [v] NFSE-C04 — Complete Cancellation
+                [e] description
+                    [e] pt
+                        [v] O gateway confirmou o cancelamento: código 101, ou 5015 (nota já cancelada, sucesso idempotente). Transição PROCESSANDO → CONCLUIDO. Guarda a data do evento e os arquivos XML e PDF. Efeito na nota: passa a CANCELADA (CicloNota.marcarCancelada, NFSE-T10) se ainda não estiver.
+                          | Vem do retorno do próprio envio ou, quando o envio ficou sem resposta conclusiva, do acompanhamento (job, atualização manual ou webhook), que vê o 101 na consulta da nota.
+                    [e] en
+                        [v] The gateway confirmed the cancellation: code 101, or 5015 (note already canceled, idempotent success). Transition PROCESSANDO → CONCLUIDO. Stores the event date and the XML and PDF files. Effect on the note: it becomes CANCELADA (CicloNota.marcarCancelada, NFSE-T10) if it is not yet.
+                          | It comes from the return of the submission itself or, when the submission got no conclusive answer, from the follow-up (job, manual refresh or webhook), which sees the 101 on the note query.
+            parameter
+                cancelamento: Cancelamento()
+                codigoRetorno: Inteiro(4)
+                mensagem: Texto(500)
+                dataHoraEvento: DataHora()
+                xml: Binario(2097152)
+                pdf: Binario(2097152)
+            body
+                pre
+                    =
+                        cancelamento.estado
+                        processando
+                    o código de retorno é 101 (com sucesso diferente de falso) ou 5015
+                do
+                    cancelamento.estado
+                        =
+                            concluido
+                    cancelamento.codigoRetorno
+                        =
+                            codigoRetorno
+                    cancelamento.mensagemRetorno
+                        =
+                            mensagem, limitada a 500 caracteres
+                    cancelamento.dataHoraEvento
+                        =
+                            dataHoraEvento, se vier
+                    cancelamento.xml
+                        =
+                            xml decodificado do Base64, se vier
+                    cancelamento.pdf
+                        =
+                            pdf decodificado do Base64, se vier
+                    cancelamento.dataAtualizacao
+                        =
+                            agora
+                    a Nota do pedido passa a cancelada, com dataHoraEvento regravada (CicloNota.marcarCancelada, NFSE-T10)
+        [x] recusar: Cancelamento()
+            //
+                ──────────────────────────────────────────────────────────────────────────
+            //
+                NFSE-C05 — recusar
+            //
+                ──────────────────────────────────────────────────────────────────────────
+            @
+                [e] cn
+                    [v] NFSE-C05
+                [e] title
+                    [e] pt
+                        [v] NFSE-C05 — Recusar Cancelamento
+                    [e] en
+                        [v] NFSE-C05 — Refuse Cancellation
+                [e] description
+                    [e] pt
+                        [v] O gateway ou o sistema recusou o pedido: token do emitente recusado ou qualquer recusa do gateway que não seja inconclusiva (5013 nota não autorizada, 5001 e outras). Transição PROCESSANDO → RECUSADO. A nota SEGUE autorizada e um novo pedido é liberado. O motivo fica em mensagemRetorno. A recusa é decidida pelo gateway ou pelo sistema, nunca por uma pessoa.
+                    [e] en
+                        [v] The gateway or the system refused the request: emitter token refused or any gateway refusal that is not inconclusive (5013 note not authorized, 5001 and others). Transition PROCESSANDO → RECUSADO. The note STAYS authorized and a new request is allowed. The reason is kept in mensagemRetorno. The refusal is decided by the gateway or the system, never by a person.
+            parameter
+                cancelamento: Cancelamento()
+                codigoRetorno: Inteiro(4)
+                mensagem: Texto(500)
+            body
+                pre
+                    =
+                        cancelamento.estado
+                        processando
+                    o retorno é uma recusa conclusiva, nunca uma resposta inconclusiva (ver manterPendente)
+                do
+                    cancelamento.estado
+                        =
+                            recusado
+                    cancelamento.codigoRetorno
+                        =
+                            codigoRetorno, nulo quando a recusa é do sistema, como token recusado
+                    cancelamento.mensagemRetorno
+                        =
+                            mensagem, limitada a 500 caracteres
+                    cancelamento.dataHoraRecusa
+                        =
+                            agora
+                    cancelamento.dataAtualizacao
+                        =
+                            agora
+                    a Nota não muda e segue autorizada
+        [x] manterPendente: Cancelamento()
+            //
+                ──────────────────────────────────────────────────────────────────────────
+            //
+                NFSE-C06 — manterPendente
+            //
+                ──────────────────────────────────────────────────────────────────────────
+            @
+                [e] cn
+                    [v] NFSE-C06
+                [e] title
+                    [e] pt
+                        [v] NFSE-C06 — Manter Cancelamento Pendente
+                    [e] en
+                        [v] NFSE-C06 — Keep Cancellation Pending
+                [e] description
+                    [e] pt
+                        [v] A resposta do gateway não é conclusiva: falha de rede ou indisponibilidade, códigos 0, 5023, 5030, 5034, 5027, 8429, 7000 a 7999 e 9000 a 9999, ou sucesso com código desconhecido. O pedido PERMANECE em PROCESSANDO (PROCESSANDO → PROCESSANDO), só grava o último retorno, e o acompanhamento (job, atualização manual, webhook) o conclui ao ver o 101 ou o expira depois de 24 horas.
+                    [e] en
+                        [v] The gateway answer is not conclusive: network failure or unavailability, codes 0, 5023, 5030, 5034, 5027, 8429, 7000 to 7999 and 9000 to 9999, or success with an unknown code. The request STAYS PROCESSANDO (PROCESSANDO → PROCESSANDO), only stores the last return, and the follow-up (job, manual refresh, webhook) completes it when it sees 101 or expires it after 24 hours.
+            parameter
+                cancelamento: Cancelamento()
+                codigoRetorno: Inteiro(4)
+                mensagem: Texto(500)
+            body
+                pre
+                    =
+                        cancelamento.estado
+                        processando
+                    a resposta é inconclusiva, nunca uma confirmação nem uma recusa
+                do
+                    cancelamento.codigoRetorno
+                        =
+                            codigoRetorno, nulo quando não houve resposta do gateway
+                    cancelamento.mensagemRetorno
+                        =
+                            mensagem, limitada a 500 caracteres
+                    cancelamento.dataAtualizacao
+                        =
+                            agora
+                    o estado continua processando
+        [x] expirar: Cancelamento()
+            //
+                ──────────────────────────────────────────────────────────────────────────
+            //
+                NFSE-C07 — expirar
+            //
+                ──────────────────────────────────────────────────────────────────────────
+            @
+                [e] cn
+                    [v] NFSE-C07
+                [e] title
+                    [e] pt
+                        [v] NFSE-C07 — Expirar Cancelamento
+                    [e] en
+                        [v] NFSE-C07 — Expire Cancellation
+                [e] description
+                    [e] pt
+                        [v] O pedido ficou pendente por mais de 24 horas sem confirmação e a consulta mostra a nota ainda autorizada (código 100). Transição PROCESSANDO → EXPIRADO. A nota segue autorizada e um novo pedido é liberado. Substitui a regra antiga de virar recusado. Não há campo de motivo à parte: a explicação fica em mensagemRetorno.
+                    [e] en
+                        [v] The request stayed pending for more than 24 hours without confirmation and the query shows the note still authorized (code 100). Transition PROCESSANDO → EXPIRADO. The note stays authorized and a new request is allowed. It replaces the old rule of becoming recusado. There is no separate reason field: the explanation is kept in mensagemRetorno.
+            parameter
+                cancelamento: Cancelamento()
+                nota: Nota()
+            body
+                pre
+                    =
+                        cancelamento.estado
+                        processando
+                    =
+                        nota.estado
+                        autorizada
+                    a consulta da nota devolveu o código 100
+                    a criação do pedido (dataCriacao) é anterior a agora menos 24 horas
+                    //
+                        Divergência de código: hoje o pedido pendente por mais de 24 h vira RECUSADO, com dataHoraRecusa (NfseRetorno.concluirCancelamentoPendente). Deve virar EXPIRADO.
+                do
+                    cancelamento.estado
+                        =
+                            expirado
+                    cancelamento.codigoRetorno
+                        =
+                            null
+                    cancelamento.mensagemRetorno
+                        =
+                            O IntegraNotas não confirmou o cancelamento. Verifique a nota e solicite o cancelamento novamente.
+                    cancelamento.dataAtualizacao
+                        =
+                            agora
+                    a Nota não muda e segue autorizada
+        [x] preparar: Cancelamento()
+            //
+                ──────────────────────────────────────────────────────────────────────────
+            //
+                NFSE-C08 — preparar (rascunho pelo assistente) — não localizado no código desta API
+            //
+                ──────────────────────────────────────────────────────────────────────────
+            @
+                [e] cn
+                    [v] NFSE-C08
+                [e] title
+                    [e] pt
+                        [v] NFSE-C08 — Preparar Rascunho de Cancelamento
+                    [e] en
+                        [v] NFSE-C08 — Prepare Cancellation Draft
+                [e] description
+                    [e] pt
+                        [v] O assistente de IA (ClienteAcesso) prepara o pedido de cancelamento como rascunho; nada vai ao gateway. Transição (novo) → RASCUNHO. É a única entrada do estado rascunho. Valida já no preparo a elegibilidade (nota autorizada com chave, mês vigente, nenhum pedido processando). O preparo pelo assistente não foi localizado no código desta API.
+                    [e] en
+                        [v] The AI assistant (ClienteAcesso) prepares the cancellation request as a draft; nothing goes to the gateway. Transition (new) → RASCUNHO. It is the only entry to the rascunho state. It validates eligibility already at preparation (authorized note with a key, current month, no processing request). The preparation by the assistant was not found in the code of this API.
+            parameter
+                cancelamento: Cancelamento()
+                nota: Nota()
+                codigoMotivo: Inteiro(1)
+                motivo: Texto(255)
+                ator: ClienteAcesso()
+            body
+                pre
+                    =
+                        nota.estado
+                        autorizada
+                    !=
+                        nota.chave
+                        null
+                    a data de emissão da nota está no mesmo mês e ano de hoje, no fuso America/Sao_Paulo (regra do produto, validada JÁ NO PREPARO para a pessoa saber de imediato se pode cancelar)
+                    nenhum Cancelamento da mesma nota em processando
+                    OR
+                        =
+                            codigoMotivo
+                            1
+                        =
+                            codigoMotivo
+                            2
+                        =
+                            codigoMotivo
+                            9
+                    o motivo, depois de remover os espaços das pontas, tem de 15 a 255 caracteres
+                    ator é um ClienteAcesso ativo da empresa da nota, com o scope de preparar
+                    //
+                        Decisão do usuário: as regras de elegibilidade (nota autorizada com chave, mês vigente, nenhum pedido processando) são validadas no preparo e REVALIDADAS na aprovação (NFSE-C02), pois o mês pode virar entre os dois. Papel e delegação (administrador, ou operador com podeCancelarNfse) são checados só em quem APROVA; o preparo é do assistente, via ClienteAcesso.
+                do
+                    cancelamento.estado
+                        =
+                            rascunho
+                    cancelamento.preparadoPorCliente
+                        =
+                            ator
+                    cancelamento.codigoMotivo
+                        =
+                            codigoMotivo
+                    cancelamento.motivo
+                        =
+                            motivo, sem os espaços das pontas
+                    cancelamento.nota
+                        =
+                            nota
+                    cancelamento.empresa
+                        =
+                            nota.empresa
+                    cancelamento.dataHoraAprovacao
+                        =
+                            null
+                    cancelamento.aprovadoPor
+                        =
+                            null

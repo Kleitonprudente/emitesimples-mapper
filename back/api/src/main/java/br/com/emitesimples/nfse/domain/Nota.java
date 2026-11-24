@@ -15,10 +15,18 @@ import br.com.emitesimples.usuarios.domain.Usuario;
 import br.com.emitesimples.usuarios.domain.ClienteAcesso;
 
 /*
-* NFS-e da empresa e o seu ciclo de vida. Nasce como rascunho, preparado por um 
-* agente ou por uma pessoa, e só vai ao gateway depois da aprovação de uma pessoa. 
-* Aprovada e enviada, fica em processamento: o envio devolve o código 5023 com a 
-* chave e só depois vem a autorização.
+* NFS-e da empresa e o seu ciclo de vida. Há dois caminhos de entrada.
+ * (A) Emissão DIRETA por uma pessoa no sistema: NÃO há rascunho; a nota nasce em 
+* processamento, criada e enviada ao gateway numa só ação. (B) Assistente de IA: o 
+* assistente só PREPARA a nota como rascunho (preparadoPorCliente) e uma PESSOA 
+* aprova (o sistema envia e a nota vira processando) ou descarta (vira 
+* descartada). Aprovar e descartar o rascunho são requisito AINDA NÃO IMPLEMENTADO 
+* no código. O estado rascunho só existe no caminho B.
+ * Depois do envio, o gateway devolve o código 5023 com a chave e só depois vem a 
+* autorização. Falha de infraestrutura no envio direto (gateway indisponível, 
+* token recusado, aceite sem chave, código 0) leva a falha_envio, que pode ser 
+* reenviada com o mesmo número, como a rejeitada. As transições estão em 
+* CicloNota.
  * Vive no contexto nfse (domain.nfse). Depende de configuracao (Empresa), de 
 * cadastros (Pessoa e Servico) e de usuarios (Usuario e ClienteAcesso) para o 
 * rastro de quem preparou, aprovou e descartou. Usuarios depende só de cadastros e 
@@ -41,7 +49,8 @@ import br.com.emitesimples.usuarios.domain.ClienteAcesso;
 * O prestador não vai no envio, vem do token da empresa (emitente no 
 * IntegraNotas).
  * Regra de unicidade para a camada de banco: a combinação (empresa, ambiente, 
-* serie, numero) deve ser única.
+* serie, numero) deve ser única. O rascunho do assistente tem numero e serie 
+* vazios e não conflita: no PostgreSQL valores nulos não colidem em índice único.
  * O mapa não expressa unicidade composta, ela precisa virar constraint no banco.
  * Fora do modelo por ora, a modelar sob demanda: obra, evento, locação, exterior, 
 * intermediário, deduções, contingência, emissão pelo tomador e o bloco ibs_cbs.
@@ -52,15 +61,12 @@ public class Nota {
     @JsonFormat(pattern="yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime version;
 
-    @NotEmpty(message = "The attribute numero can't be empty.")
     @Size(max = 9, message = "Attribute numero must have 9 characters maximum.")
     private String numero;
 
-    @NotEmpty(message = "The attribute serie can't be empty.")
     @Size(max = 5, message = "Attribute serie must have 5 characters maximum.")
     private String serie;
 
-    @NotNull(message = "The attribute dataEmissao can't be null.")
     @JsonFormat(pattern="yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime dataEmissao;
 

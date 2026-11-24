@@ -144,7 +144,7 @@ public class AuthService {
         u.setDataUltimoAcesso(agora());
         u.setDataAtualizacao(agora());
         return montarSessao(u, escolhido == null ? null : escolhido.getEmpresa(),
-                escolhido == null ? null : escolhido.getPapel(), admin);
+                escolhido == null ? null : escolhido.getPapel(), admin, podeCancelar(escolhido, admin));
     }
 
     // ---------------------------------------------------------------------------------------------- refresh
@@ -183,7 +183,7 @@ public class AuthService {
         t.setDataUso(agora);
         t.setDataAtualizacao(agora);
         boolean admin = Boolean.TRUE.equals(u.getAdministradorPlataforma());
-        return Tx.ok(montarSessao(u, e, v.getPapel(), admin));
+        return Tx.ok(montarSessao(u, e, v.getPapel(), admin, podeCancelar(v, admin)));
     }
 
     // ----------------------------------------------------------------------------------------------- logout
@@ -211,6 +211,7 @@ public class AuthService {
             }
             EmpresaEntity e = null;
             String papel = null;
+            boolean podeCancelar = Boolean.TRUE.equals(u.getAdministradorPlataforma());
             if (empresaId != null) {
                 VinculoUsuarioEntity v = vinculoAtivo(usuarioId, empresaId);
                 if (v == null) {
@@ -218,8 +219,9 @@ public class AuthService {
                 }
                 e = v.getEmpresa();
                 papel = v.getPapel();
+                podeCancelar = podeCancelar(v, Boolean.TRUE.equals(u.getAdministradorPlataforma()));
             }
-            return new Perfil(resumo(u), resumo(e), papel, Boolean.TRUE.equals(u.getAdministradorPlataforma()));
+            return new Perfil(resumo(u), resumo(e), papel, Boolean.TRUE.equals(u.getAdministradorPlataforma()), podeCancelar);
         });
     }
 
@@ -275,10 +277,19 @@ public class AuthService {
 
     // ------------------------------------------------------------------------------------------- internos
 
-    private Emitida montarSessao(UsuarioEntity u, EmpresaEntity e, String papel, boolean admin) {
+    /** Permissao efetiva de cancelar NFS-e: plataforma e administrador sempre; operador so com a delegacao do vinculo. */
+    public static boolean podeCancelar(VinculoUsuarioEntity v, boolean plataformaAdmin) {
+        if (plataformaAdmin) {
+            return true;
+        }
+        return v != null && ("administrador".equals(v.getPapel())
+                || "operador".equals(v.getPapel()) && Boolean.TRUE.equals(v.getPodeCancelarNfse()));
+    }
+
+    private Emitida montarSessao(UsuarioEntity u, EmpresaEntity e, String papel, boolean admin, boolean podeCancelar) {
         String access = jwt.emitir(u, e, papel, admin);
         String refresh = e == null ? null : criarRefreshToken(u, e);
-        return new Emitida(new Sessao(access, jwt.expiresInSegundos(), resumo(u), resumo(e), papel, admin), refresh);
+        return new Emitida(new Sessao(access, jwt.expiresInSegundos(), resumo(u), resumo(e), papel, admin, podeCancelar), refresh);
     }
 
     private String criarRefreshToken(UsuarioEntity u, EmpresaEntity e) {

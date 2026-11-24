@@ -93,10 +93,15 @@ public class DadosDeTeste {
     }
 
     public void vincular(String usuarioId, String empresaId, String papel, boolean ativo) {
+        vincular(usuarioId, empresaId, papel, ativo, false);
+    }
+
+    /** {@code podeCancelarNfse}: delegacao de cancelar NFS-e (so vale para o operador). */
+    public void vincular(String usuarioId, String empresaId, String papel, boolean ativo, boolean podeCancelarNfse) {
         QuarkusTransaction.requiringNew().run(() -> {
             LocalDateTime agora = AuthService.agora();
             VinculoUsuarioEntity v = VinculoUsuarioEntity.builderOf()
-                    .withPapel(papel).withAtivo(ativo)
+                    .withPapel(papel).withAtivo(ativo).withPodeCancelarNfse(podeCancelarNfse)
                     .withUsuario(em.getReference(UsuarioEntity.class, usuarioId))
                     .withEmpresa(em.getReference(EmpresaEntity.class, empresaId))
                     .withDataCriacao(agora).withDataAtualizacao(agora).build();
@@ -105,6 +110,12 @@ public class DadosDeTeste {
     }
 
     /** Usuário ativo com um vínculo ativo. */
+    public Usr usuarioComPapel(String empresaId, String papel, boolean podeCancelarNfse) {
+        Usr u = usuario(true, false);
+        vincular(u.id(), empresaId, papel, true, podeCancelarNfse);
+        return u;
+    }
+
     public Usr usuarioComPapel(String empresaId, String papel) {
         Usr u = usuario(true, false);
         vincular(u.id(), empresaId, papel, true);
@@ -147,7 +158,8 @@ public class DadosDeTeste {
     public String nota(String empresaId, String pessoaId, String servicoId) {
         return QuarkusTransaction.requiringNew().call(() -> {
             NotaEntity n = NotaEntity.builderOf()
-                    .withNumero(digitos(9)).withSerie("1").withAmbiente("homologacao").withEstado("rascunho")
+                    .withNumero(digitos(9)).withSerie("1").withAmbiente("homologacao").withEstado("falha_envio")
+                    .withDataEmissao(LocalDateTime.now())
                     .withDescricao("Nota de teste")
                     .withEmpresa(em.getReference(EmpresaEntity.class, empresaId))
                     .withPessoa(em.getReference(PessoaEntity.class, pessoaId))

@@ -17,11 +17,21 @@ import br.com.emitesimples.usuarios.domain.ClienteAcesso;
 * como sucesso idempotente.
  * Existe só dentro de uma nota e no mesmo contexto, por isso é detalhe da Nota 
 * ([m]/[o]).
- * Prazos e regras de cancelamento por município não estão documentados e não são 
-* validados no modelo.
- * Cancelar exige confirmação humana: um agente só PEDE (aguardando_aprovacao) e 
-* uma pessoa com o scope de cancelar (papel administrador) aprova, e só então o 
-* sistema envia ao gateway.
+ * REGRA DO PRODUTO, mês vigente: só se cancela dentro do mês e ano da data de 
+* emissão da nota (fuso America/Sao_Paulo). Prazos específicos de cada município 
+* não são tratados.
+ * Dois caminhos de entrada. (A) Cancelamento DIRETO por uma pessoa: o pedido nasce 
+* em processando, criado e enviado ao gateway numa só ação. (B) Assistente de IA: 
+* só PREPARA o pedido como rascunho (preparadoPorCliente); uma pessoa com 
+* permissão de cancelar aprova (o sistema envia e o pedido vira processando) ou 
+* descarta (vira descartado). Aprovar e descartar o rascunho são requisito AINDA 
+* NÃO IMPLEMENTADO no código. O estado rascunho só existe no caminho B.
+ * Quem cancela: o administrador sempre; o operador SÓ com permissão delegada 
+* (VinculoUsuario.podeCancelarNfse). O código atual deixa o operador cancelar sem 
+* delegação: divergência a corrigir no código.
+ * Estados do pedido: rascunho, processando, concluido, recusado (o gateway ou o 
+* sistema recusou), expirado (pendente por mais de 24 h sem confirmação) e 
+* descartado. As transições estão em CicloCancelamento.
  * Vive no contexto nfse (domain.nfse). Depende do contexto usuarios (Usuario e 
 * ClienteAcesso) para o rastro; usuarios depende só de cadastros e configuracao, 
 * não há ciclo.
@@ -41,6 +51,9 @@ public class Cancelamento {
 
     @JsonFormat(pattern="yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime dataHoraAprovacao;
+
+    @JsonFormat(pattern="yyyy-MM-dd'T'HH:mm:ss")
+    private LocalDateTime dataHoraDescarte;
 
     @JsonFormat(pattern="yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime dataHoraRecusa;
@@ -86,7 +99,7 @@ public class Cancelamento {
 
     private Usuario aprovadoPor;
 
-    private Usuario recusadoPor;
+    private Usuario descartadoPor;
 
     @NotNull(message = "The attribute nota can't be null.")
     private Nota nota;
@@ -96,6 +109,7 @@ public class Cancelamento {
         this.codigoMotivo = null;
         this.motivo = null;
         this.dataHoraAprovacao = null;
+        this.dataHoraDescarte = null;
         this.dataHoraRecusa = null;
         this.estado = null;
         this.codigoRetorno = null;
@@ -111,7 +125,7 @@ public class Cancelamento {
         this.preparadoPorUsuario = null;
         this.preparadoPorCliente = null;
         this.aprovadoPor = null;
-        this.recusadoPor = null;
+        this.descartadoPor = null;
         this.nota = null;
     }
     public Cancelamento(
@@ -119,6 +133,7 @@ public class Cancelamento {
         Integer codigoMotivo,
         String motivo,
         LocalDateTime dataHoraAprovacao,
+        LocalDateTime dataHoraDescarte,
         LocalDateTime dataHoraRecusa,
         String estado,
         Integer codigoRetorno,
@@ -134,13 +149,14 @@ public class Cancelamento {
         Usuario preparadoPorUsuario,
         ClienteAcesso preparadoPorCliente,
         Usuario aprovadoPor,
-        Usuario recusadoPor,
+        Usuario descartadoPor,
         Nota nota
     ) {
         this.version = version;
         this.codigoMotivo = codigoMotivo;
         this.motivo = motivo;
         this.dataHoraAprovacao = dataHoraAprovacao;
+        this.dataHoraDescarte = dataHoraDescarte;
         this.dataHoraRecusa = dataHoraRecusa;
         this.estado = estado;
         this.codigoRetorno = codigoRetorno;
@@ -156,7 +172,7 @@ public class Cancelamento {
         this.preparadoPorUsuario = preparadoPorUsuario;
         this.preparadoPorCliente = preparadoPorCliente;
         this.aprovadoPor = aprovadoPor;
-        this.recusadoPor = recusadoPor;
+        this.descartadoPor = descartadoPor;
         this.nota = nota;
     }
     public void setVersion(LocalDateTime version) {
@@ -189,6 +205,14 @@ public class Cancelamento {
 
     public LocalDateTime getDataHoraAprovacao() {
         return this.dataHoraAprovacao;
+    }
+
+    public void setDataHoraDescarte(LocalDateTime dataHoraDescarte) {
+        this.dataHoraDescarte = dataHoraDescarte;
+    }
+
+    public LocalDateTime getDataHoraDescarte() {
+        return this.dataHoraDescarte;
     }
 
     public void setDataHoraRecusa(LocalDateTime dataHoraRecusa) {
@@ -311,12 +335,12 @@ public class Cancelamento {
         return this.aprovadoPor;
     }
 
-    public void setRecusadoPor(Usuario recusadoPor) {
-        this.recusadoPor = recusadoPor;
+    public void setDescartadoPor(Usuario descartadoPor) {
+        this.descartadoPor = descartadoPor;
     }
 
-    public Usuario getRecusadoPor() {
-        return this.recusadoPor;
+    public Usuario getDescartadoPor() {
+        return this.descartadoPor;
     }
 
     public void setNota(Nota nota) {
@@ -345,6 +369,7 @@ public class Cancelamento {
             this.codigoMotivo != null || 
             this.motivo != null || 
             this.dataHoraAprovacao != null || 
+            this.dataHoraDescarte != null || 
             this.dataHoraRecusa != null || 
             this.estado != null || 
             this.codigoRetorno != null || 
@@ -359,7 +384,7 @@ public class Cancelamento {
             this.preparadoPorUsuario != null || 
             this.preparadoPorCliente != null || 
             this.aprovadoPor != null || 
-            this.recusadoPor != null || 
+            this.descartadoPor != null || 
             this.nota != null;
     }
 

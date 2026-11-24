@@ -14,6 +14,7 @@ import br.com.emitesimples.configuracao.entity.EmpresaEntity;
 public class VinculoUsuarioEntityBuilder {
     public LocalDateTime version;
     public String papel;
+    public Boolean podeCancelarNfse;
     public Boolean ativo;
     public String id;
     public LocalDateTime dataCriacao;
@@ -30,6 +31,11 @@ public class VinculoUsuarioEntityBuilder {
 
     public VinculoUsuarioEntityBuilder withPapel(String papel) {
         this.papel = papel;
+        return this;
+    }
+
+    public VinculoUsuarioEntityBuilder withPodeCancelarNfse(Boolean podeCancelarNfse) {
+        this.podeCancelarNfse = podeCancelarNfse;
         return this;
     }
 
@@ -70,6 +76,7 @@ public class VinculoUsuarioEntityBuilder {
     public VinculoUsuarioEntityBuilder withModel(VinculoUsuario vinculoUsuario) {
         return this.withVersion(vinculoUsuario.getVersion())
                 .withPapel(vinculoUsuario.getPapel())
+                .withPodeCancelarNfse(vinculoUsuario.getPodeCancelarNfse())
                 .withAtivo(vinculoUsuario.getAtivo())
                 .withId(vinculoUsuario.getId())
                 .withDataCriacao(vinculoUsuario.getDataCriacao())

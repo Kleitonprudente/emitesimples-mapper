@@ -138,6 +138,7 @@ public class VinculoUsuarioRepository implements PanacheRepositoryBase<VinculoUs
         int pageSize,
         Sort sort,
         String papel,
+        String podeCancelarNfse,
         String ativo,
         String id,
         String dataCriacao,
@@ -154,7 +155,7 @@ public class VinculoUsuarioRepository implements PanacheRepositoryBase<VinculoUs
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<VinculoUsuarioEntity> cq = cb.createQuery(VinculoUsuarioEntity.class);
         Root<VinculoUsuarioEntity> root = cq.from(VinculoUsuarioEntity.class);
-        List<Predicate> predicates = buildPredicates(cb, root, papel, ativo, id, dataCriacao, dataAtualizacao, usuarioNome, usuarioEmail, usuarioId, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId);
+        List<Predicate> predicates = buildPredicates(cb, root, papel, podeCancelarNfse, ativo, id, dataCriacao, dataAtualizacao, usuarioNome, usuarioEmail, usuarioId, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId);
         cq.where(cb.and(predicates.toArray(new Predicate[0])));
 
         if (sort != null) {
@@ -174,6 +175,7 @@ public class VinculoUsuarioRepository implements PanacheRepositoryBase<VinculoUs
 
     public long countWithFilters(
         String papel,
+        String podeCancelarNfse,
         String ativo,
         String id,
         String dataCriacao,
@@ -190,7 +192,7 @@ public class VinculoUsuarioRepository implements PanacheRepositoryBase<VinculoUs
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<VinculoUsuarioEntity> root = cq.from(VinculoUsuarioEntity.class);
-        List<Predicate> predicates = buildPredicates(cb, root, papel, ativo, id, dataCriacao, dataAtualizacao, usuarioNome, usuarioEmail, usuarioId, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId);
+        List<Predicate> predicates = buildPredicates(cb, root, papel, podeCancelarNfse, ativo, id, dataCriacao, dataAtualizacao, usuarioNome, usuarioEmail, usuarioId, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId);
         cq.select(cb.count(root)).where(cb.and(predicates.toArray(new Predicate[0])));
 
         return em.createQuery(cq).getSingleResult();
@@ -200,6 +202,7 @@ public class VinculoUsuarioRepository implements PanacheRepositoryBase<VinculoUs
         CriteriaBuilder cb,
         Root<VinculoUsuarioEntity> root,
         String papel,
+        String podeCancelarNfse,
         String ativo,
         String id,
         String dataCriacao,
@@ -220,6 +223,7 @@ public class VinculoUsuarioRepository implements PanacheRepositoryBase<VinculoUs
         }
 
         if (papel != null) getPredicateFromField(predicates, "papel", papel, root, cb, false);
+        if (podeCancelarNfse != null) getPredicateFromField(predicates, "podeCancelarNfse", podeCancelarNfse, root, cb, false);
         if (ativo != null) getPredicateFromField(predicates, "ativo", ativo, root, cb, false);
         if (id != null) getPredicateFromField(predicates, "id", id, root, cb, false);
         if (dataCriacao != null) getPredicateFromField(predicates, "dataCriacao", dataCriacao, root, cb, false);

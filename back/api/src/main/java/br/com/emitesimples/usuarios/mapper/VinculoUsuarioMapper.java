@@ -34,6 +34,7 @@ public class VinculoUsuarioMapper {
 
         vinculoUsuario.setVersion( entity.getVersion() );
         vinculoUsuario.setPapel( entity.getPapel() );
+        vinculoUsuario.setPodeCancelarNfse( entity.getPodeCancelarNfse() );
         vinculoUsuario.setAtivo( entity.getAtivo() );
         vinculoUsuario.setId( entity.getId() );
         vinculoUsuario.setDataCriacao( entity.getDataCriacao() );
@@ -61,6 +62,7 @@ public class VinculoUsuarioMapper {
 
             vinculoUsuarioBuilder.version = api.getVersion();
             vinculoUsuarioBuilder.papel = api.getPapel();
+            vinculoUsuarioBuilder.podeCancelarNfse = api.getPodeCancelarNfse();
             vinculoUsuarioBuilder.ativo = api.getAtivo();
             vinculoUsuarioBuilder.id = api.getId();
             vinculoUsuarioBuilder.dataCriacao = api.getDataCriacao();
@@ -107,6 +109,7 @@ public class VinculoUsuarioMapper {
 
         api.setVersion( entity.getVersion() );
         api.setPapel( entity.getPapel() );
+        api.setPodeCancelarNfse( entity.getPodeCancelarNfse() );
         api.setAtivo( entity.getAtivo() );
         api.setId( entity.getId() );
         api.setDataCriacao( entity.getDataCriacao() );
@@ -149,6 +152,7 @@ public class VinculoUsuarioMapper {
 
             vinculoUsuarioBuilder.version = api.getVersion();
             entity.setPapel( api.getPapel() );
+            entity.setPodeCancelarNfse( api.getPodeCancelarNfse() );
             entity.setAtivo( api.getAtivo() );
             entity.setId( api.getId() );
             entity.setDataCriacao( api.getDataCriacao() );
@@ -176,6 +180,7 @@ public class VinculoUsuarioMapper {
         }
 
         if (api.getPapel() != null) entity.setPapel( api.getPapel() ); 
+        if (api.getPodeCancelarNfse() != null) entity.setPodeCancelarNfse( api.getPodeCancelarNfse() ); 
         if (api.getAtivo() != null) entity.setAtivo( api.getAtivo() ); 
         if (api.getId() != null) entity.setId( api.getId() ); 
         if (api.getDataCriacao() != null) entity.setDataCriacao( api.getDataCriacao() ); 
@@ -199,6 +204,9 @@ public class VinculoUsuarioMapper {
         if (entity.getPapel() == null) {
             entity.setPapel("consulta");
         }
+        if (entity.getPodeCancelarNfse() == null) {
+            entity.setPodeCancelarNfse(false);
+        }
         if (entity.getAtivo() == null) {
             entity.setAtivo(true);
         }
@@ -213,6 +221,9 @@ public class VinculoUsuarioMapper {
 
         if (api.getPapel() == null) {
             api.setPapel("consulta");
+        }
+        if (api.getPodeCancelarNfse() == null) {
+            api.setPodeCancelarNfse(false);
         }
         if (api.getAtivo() == null) {
             api.setAtivo(true);

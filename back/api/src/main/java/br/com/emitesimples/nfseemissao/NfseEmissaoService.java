@@ -157,7 +157,7 @@ public class NfseEmissaoService {
             throw naoEncontrado("Nota não encontrada.");
         }
         switch (n.getEstado()) {
-            case "rascunho", "rejeitada" -> {
+            case "falha_envio", "rejeitada" -> {
             }
             case "processando", "emitida_offline" -> throw new ApiException(409, "nota_em_processamento",
                     "A nota já está em processamento. Use Atualizar para ver o resultado.");
@@ -167,6 +167,21 @@ public class NfseEmissaoService {
         }
         EmpresaEntity e = em.find(EmpresaEntity.class, emp);
         preCondicoes(e, ativo);
+        aplicarAjustes(n, e, emp, c);
+        var agora = AuthService.agora();
+        n.setEstado("processando");
+        n.setCodigoRetorno(null);
+        n.setMensagemRetorno(null);
+        n.setErrosRetorno(null);
+        n.setDataEmissao(LocalDateTime.now(NfsePayloadMapper.SAO_PAULO));
+        n.setDataHoraAprovacao(agora);
+        n.setAprovadoPor(usuario(usuarioId));
+        n.setDataAtualizacao(agora);
+        em.flush();
+    }
+
+    /** Aplica na nota (reenvio ou aprovacao) o que o corpo trouxe; valida o tomador e os tributos aproximados do servico. */
+    private void aplicarAjustes(NotaEntity n, EmpresaEntity e, String emp, Campos c) {
         PessoaEntity p = c.pessoaId() != null ? pessoa(emp, c.pessoaId()) : n.getPessoa();
         tomadorCompleto(p);
         n.setPessoa(p);
@@ -187,16 +202,123 @@ public class NfseEmissaoService {
         if (c.info() != null) {
             n.setInformacoesComplementares(c.info().isBlank() ? null : c.info().strip());
         }
+    }
+
+    // ------------------------------------------------------------------------------------------- assistente: preparar / aprovar / descartar
+
+    static final String MSG_NAO_RASCUNHO = "Só um rascunho pode ser aprovado ou descartado.";
+
+    /**
+     * Rascunho preparado pelo assistente: valida o que o preparo pode validar, copia o servico e grava a nota {@code rascunho}
+     * SEM numero, serie, data de emissao, sem consumir numeracao e sem chamar o gateway (nao consome o limite de envio).
+     * Certificado/emitente sao exigidos so na aprovacao.
+     */
+    public NotaDetalhe preparar(CriarEntrada in) {
+        String emp = empresaDaSessao();
+        if (in == null) {
+            throw invalido(List.of(erro("corpo", "Informe os dados da nota.")));
+        }
+        Campos c = validar(in.pessoaId(), in.servicoId(), in.valorServicos(), in.informacoesComplementares(),
+                in.discriminacao(), true);
+        String usuarioId = jwt.getSubject();
+        String notaId = QuarkusTransaction.requiringNew().call(() -> gravarRascunho(emp, c, usuarioId));
+        return detalhe(emp, notaId);
+    }
+
+    private String gravarRascunho(String emp, Campos c, String usuarioId) {
+        EmpresaEntity e = em.find(EmpresaEntity.class, emp);
+        if (e == null) {
+            throw naoEncontrado("Empresa não encontrada.");
+        }
+        exigirHabilitada(e);
+        PessoaEntity p = pessoa(emp, c.pessoaId());
+        ServicoEntity s = servico(emp, c.servicoId());
+        exigirTributosAproximados(e, s);
+        tomadorCompleto(p);
+        String discriminacao = discriminacaoFinal(c.discriminacao(), s);
         var agora = AuthService.agora();
-        n.setEstado("processando");
-        n.setCodigoRetorno(null);
-        n.setMensagemRetorno(null);
-        n.setErrosRetorno(null);
+        NotaEntity n = NotaEntity.builderOf()
+                .withInformacoesComplementares(c.info() == null || c.info().isBlank() ? null : c.info().strip())
+                .withEstado("rascunho").withEmpresa(e).withPessoa(p).withServico(s)
+                .withPreparadoPorUsuario(usuario(usuarioId)) // preparadoPorCliente: sem autenticacao do assistente ainda (README)
+                .withDataCriacao(agora).withDataAtualizacao(agora)
+                .build();
+        snapshot(n, s, discriminacao, c.valor());
+        em.persist(n);
+        em.flush();
+        return n.getId();
+    }
+
+    /** Aprova o rascunho (uma pessoa): aloca numero/serie, grava aprovador e envia ao gateway como o criar. */
+    public NotaDetalhe aprovar(String id, EnviarEntrada in) {
+        limite.consumir(jwt.getSubject());
+        String emp = empresaDaSessao();
+        Campos c = in == null ? new Campos(null, null, null, null, null)
+                : validar(in.pessoaId(), in.servicoId(), in.valorServicos(), in.informacoesComplementares(),
+                        in.discriminacao(), false);
+        String ativo = config.ambienteAtivo();
+        String usuarioId = jwt.getSubject();
+        QuarkusTransaction.requiringNew().run(() -> aprovarRascunho(emp, id, c, ativo, usuarioId));
+        return enviarAoGateway(emp, id);
+    }
+
+    private void aprovarRascunho(String emp, String id, Campos c, String ativo, String usuarioId) {
+        NotaEntity n = acompanhamento.carregar(emp, id, true); // trava a nota: duas aprovacoes nao duplicam
+        if (n == null) {
+            throw naoEncontrado("Nota não encontrada.");
+        }
+        if (!"rascunho".equals(n.getEstado())) {
+            throw new ApiException(409, "nota_nao_e_rascunho", MSG_NAO_RASCUNHO);
+        }
+        EmpresaEntity e = em.createQuery("select e from EmpresaEntity e where e.id = :id", EmpresaEntity.class)
+                .setParameter("id", emp).setLockMode(LockModeType.PESSIMISTIC_WRITE) // numeracao atomica: FOR UPDATE
+                .getResultStream().findFirst().orElseThrow(() -> naoEncontrado("Empresa não encontrada."));
+        preCondicoes(e, ativo);
+        aplicarAjustes(n, e, emp, c);
+        long proximo = (e.getUltimoNumeroNfse() == null ? 0 : e.getUltimoNumeroNfse()) + 1L;
+        if (proximo > MAX_NUMERO) {
+            throw new ApiException(409, "numeracao_esgotada", "A numeração da série chegou ao limite (999999999).");
+        }
+        var agora = AuthService.agora();
+        e.setUltimoNumeroNfse((int) proximo);
+        e.setDataAtualizacao(agora);
+        n.setNumero(String.valueOf(proximo));
+        n.setSerie(e.getSerieNfse());
+        n.setAmbiente(e.getAmbiente());
         n.setDataEmissao(LocalDateTime.now(NfsePayloadMapper.SAO_PAULO));
+        n.setDataCompetencia(LocalDate.now(NfsePayloadMapper.SAO_PAULO));
+        n.setEstado("processando");
         n.setDataHoraAprovacao(agora);
         n.setAprovadoPor(usuario(usuarioId));
         n.setDataAtualizacao(agora);
         em.flush();
+    }
+
+    public NotaDetalhe descartar(String id) {
+        String emp = empresaDaSessao();
+        String usuarioId = jwt.getSubject();
+        QuarkusTransaction.requiringNew().run(() -> {
+            NotaEntity n = acompanhamento.carregar(emp, id, true);
+            if (n == null) {
+                throw naoEncontrado("Nota não encontrada.");
+            }
+            if (!"rascunho".equals(n.getEstado())) {
+                throw new ApiException(409, "nota_nao_e_rascunho", MSG_NAO_RASCUNHO);
+            }
+            var agora = AuthService.agora();
+            n.setEstado("descartada");
+            n.setDescartadoPor(usuario(usuarioId));
+            n.setDataHoraDescarte(agora);
+            n.setDataAtualizacao(agora);
+            em.flush();
+        });
+        return detalhe(emp, id);
+    }
+
+    private static void exigirHabilitada(EmpresaEntity e) {
+        if (!Boolean.TRUE.equals(e.getNfseHabilitada()) || e.getSerieNfse() == null) {
+            throw new ApiException(409, "nfse_nao_habilitada", "A NFS-e não está habilitada para esta empresa.");
+        }
     }
 
     /** Copia do servico para a nota (alterar o cadastro depois nao muda a nota). */
@@ -214,9 +336,7 @@ public class NfseEmissaoService {
     }
 
     private void preCondicoes(EmpresaEntity e, String ativo) {
-        if (!Boolean.TRUE.equals(e.getNfseHabilitada()) || e.getSerieNfse() == null) {
-            throw new ApiException(409, "nfse_nao_habilitada", "A NFS-e não está habilitada para esta empresa.");
-        }
+        exigirHabilitada(e);
         if (IntegraNotasConfigService.PRODUCAO.equals(ativo) && !permitirProducao) {
             throw new ApiException(409, "emissao_producao_bloqueada",
                     "A emissão em produção está bloqueada nesta fase. Use o ambiente de homologação.");
@@ -276,7 +396,7 @@ public class NfseEmissaoService {
             }
             if (retorno == null) {
                 NfseRetorno.aplicarFalhaDeEnvio(n, falhaFinal);
-                return NfseRetorno.Efeito.VOLTOU_RASCUNHO;
+                return NfseRetorno.Efeito.FALHA_ENVIO;
             }
             return NfseRetorno.aplicarEnvio(n, retorno);
         });
@@ -302,12 +422,14 @@ public class NfseEmissaoService {
 
     // ------------------------------------------------------------------------------------------- cancelamento
 
+    static final String MSG_NAO_DELEGADO = "Seu usuário não tem permissão para cancelar notas. Peça ao administrador.";
     static final String MSG_FORA_DO_MES = "O cancelamento só é possível dentro do mês vigente da emissão da nota.";
 
     private record Motivo(int codigo, String texto) {
     }
 
-    private record PreCancel(String cancelamentoId, String chave, String tokenRef, String ambiente, String identificacao) {
+    private record PreCancel(String cancelamentoId, String notaId, String chave, String tokenRef, String ambiente,
+                             String identificacao, Motivo motivo) {
     }
 
     /** Mes/ano da emissao == mes/ano de agora em America/Sao_Paulo. */
@@ -324,6 +446,9 @@ public class NfseEmissaoService {
     public NotaDetalhe cancelar(String id, CancelarEntrada in) {
         limite.consumir(jwt.getSubject());
         String emp = empresaDaSessao();
+        if (!sessaoPodeCancelar(emp)) {
+            throw new ApiException(403, "cancelamento_nao_delegado", MSG_NAO_DELEGADO);
+        }
         Motivo motivo = validarCancelamento(in);
         String ativo = config.ambienteAtivo();
         String usuarioId = jwt.getSubject();
@@ -331,6 +456,13 @@ public class NfseEmissaoService {
         if (pre == null) {
             return detalhe(emp, id); // ja cancelada
         }
+        return enviarCancelamento(emp, pre);
+    }
+
+    /** Chama o gateway FORA de transacao para o pedido ja {@code processando} e aplica o retorno (cancelar direto e aprovar). */
+    private NotaDetalhe enviarCancelamento(String emp, PreCancel pre) {
+        String id = pre.notaId();
+        Motivo motivo = pre.motivo();
         RetornoNfse r = null;
         String falha = null;
         long ini = System.nanoTime();
@@ -371,6 +503,33 @@ public class NfseEmissaoService {
         return detalhe(emp, id);
     }
 
+    /** Administrador e plataforma sempre; operador so com a delegacao do vinculo ATIVO dele nesta empresa (lida do banco, vale na hora). */
+    private boolean sessaoPodeCancelar(String emp) {
+        return QuarkusTransaction.requiringNew().call(() -> podeCancelarSessao(emp));
+    }
+
+    /** Papeis que preparam/aprovam/descartam nota (os mesmos de criar): administrador, operador, plataforma_admin. */
+    private boolean podeEscreverSessao() {
+        var grupos = jwt.getGroups();
+        return grupos != null && (grupos.contains("administrador") || grupos.contains("operador") || grupos.contains("plataforma_admin"));
+    }
+
+    private boolean podeCancelarSessao(String emp) {
+        var grupos = jwt.getGroups();
+        if (grupos == null) {
+            return false;
+        }
+        if (grupos.contains("plataforma_admin") || grupos.contains("administrador")) {
+            return true;
+        }
+        if (!grupos.contains("operador")) {
+            return false;
+        }
+        return em.createQuery("select count(v) from VinculoUsuarioEntity v where v.usuario.id = :u and v.empresa.id = :e "
+                + "and v.ativo = true and v.papel = 'operador' and v.podeCancelarNfse = true", Long.class)
+                .setParameter("u", jwt.getSubject()).setParameter("e", emp).getSingleResult() > 0;
+    }
+
     private PreCancel prepararCancelamento(String emp, String id, Motivo m, String ativo, String usuarioId) {
         NotaEntity n = acompanhamento.carregar(emp, id, true);
         if (n == null) {
@@ -379,6 +538,31 @@ public class NfseEmissaoService {
         if ("cancelada".equals(n.getEstado())) {
             return null;
         }
+        EmpresaEntity e = validarCancelavel(n, emp, ativo, null);
+        var agora = AuthService.agora();
+        CancelamentoEntity c = CancelamentoEntity.builderOf()
+                .withCodigoMotivo(m.codigo()).withMotivo(m.texto()).withEstado("processando")
+                .withAmbiente(n.getAmbiente()).withDataHoraAprovacao(agora)
+                .withEmpresa(e).withNota(n)
+                .withPreparadoPorUsuario(usuario(usuarioId)).withAprovadoPor(usuario(usuarioId))
+                .withDataCriacao(agora).withDataAtualizacao(agora)
+                .build();
+        em.persist(c);
+        em.flush();
+        return pre(c, n, e, m);
+    }
+
+    private static PreCancel pre(CancelamentoEntity c, NotaEntity n, EmpresaEntity e, Motivo m) {
+        return new PreCancel(c.getId(), n.getId(), n.getChave(), e.getReferenciaTokenEmpresa(), n.getAmbiente(),
+                NfsePayloadMapper.identificacao(n.getId()), m);
+    }
+
+    /**
+     * Regras do cancelamento (direto, preparo e aprovacao, a nota ja travada): producao, nota autorizada com chave, mes vigente,
+     * nenhum outro pedido {@code processando}/{@code rascunho} (exceto {@code ignorarId}), emitente cadastrado e ambiente.
+     */
+    private EmpresaEntity validarCancelavel(NotaEntity n, String emp, String ativo, String ignorarId) {
+        String id = n.getId();
         boolean producao = IntegraNotasConfigService.PRODUCAO.equals(ativo)
                 || IntegraNotasConfigService.PRODUCAO.equals(n.getAmbiente());
         if (producao && !permitirProducao) {
@@ -391,11 +575,14 @@ public class NfseEmissaoService {
         if (!mesVigente(n.getDataEmissao())) {
             throw new ApiException(409, "cancelamento_fora_do_mes", MSG_FORA_DO_MES);
         }
-        long pendentes = em.createQuery("select count(c) from CancelamentoEntity c where c.nota.id = :n and c.empresa.id = :e "
-                + "and c.estado = 'processando'", Long.class).setParameter("n", id).setParameter("e", emp).getSingleResult();
-        if (pendentes > 0) {
-            throw new ApiException(409, "cancelamento_em_andamento",
-                    "Já há um cancelamento desta nota em processamento. Use Atualizar para ver o resultado.");
+        List<String> pendentes = em.createQuery("select c.estado from CancelamentoEntity c where c.nota.id = :n and c.empresa.id = :e "
+                + "and c.estado in ('processando', 'rascunho') and c.id <> :ig", String.class)
+                .setParameter("n", id).setParameter("e", emp).setParameter("ig", ignorarId == null ? "-" : ignorarId)
+                .getResultList();
+        if (!pendentes.isEmpty()) {
+            throw new ApiException(409, "cancelamento_em_andamento", pendentes.contains("processando")
+                    ? "Já há um cancelamento desta nota em processamento. Use Atualizar para ver o resultado."
+                    : "Já há um rascunho de cancelamento desta nota aguardando aprovação. Aprove ou descarte o rascunho.");
         }
         EmpresaEntity e = em.find(EmpresaEntity.class, emp);
         if (e.getReferenciaTokenEmpresa() == null || !"cadastrado".equals(e.getStatusCadastro())) {
@@ -406,18 +593,107 @@ public class NfseEmissaoService {
             throw new ApiException(409, "emitente_de_outro_ambiente",
                     "A nota ou o emitente pertence a outro ambiente do IntegraNotas. Troque para o ambiente da nota.");
         }
-        var agora = AuthService.agora();
-        CancelamentoEntity c = CancelamentoEntity.builderOf()
-                .withCodigoMotivo(m.codigo()).withMotivo(m.texto()).withEstado("processando")
-                .withAmbiente(n.getAmbiente()).withDataHoraAprovacao(agora)
-                .withEmpresa(e).withNota(n)
-                .withPreparadoPorUsuario(usuario(usuarioId)).withAprovadoPor(usuario(usuarioId))
-                .withDataCriacao(agora).withDataAtualizacao(agora)
-                .build();
-        em.persist(c);
-        em.flush();
-        return new PreCancel(c.getId(), n.getChave(), e.getReferenciaTokenEmpresa(), n.getAmbiente(),
-                NfsePayloadMapper.identificacao(id));
+        return e;
+    }
+
+    // ------------------------------------------------------------------------------------------- cancelamento: assistente
+
+    /** Rascunho de cancelamento preparado pelo assistente: valida tudo (menos a delegacao) e NAO envia ao gateway. */
+    public NotaDetalhe prepararCancelamento(String id, CancelarEntrada in) {
+        String emp = empresaDaSessao();
+        Motivo motivo = validarCancelamento(in);
+        String ativo = config.ambienteAtivo();
+        String usuarioId = jwt.getSubject();
+        QuarkusTransaction.requiringNew().run(() -> {
+            NotaEntity n = acompanhamento.carregar(emp, id, true);
+            if (n == null) {
+                throw naoEncontrado("Nota não encontrada.");
+            }
+            EmpresaEntity e = validarCancelavel(n, emp, ativo, null);
+            var agora = AuthService.agora();
+            em.persist(CancelamentoEntity.builderOf()
+                    .withCodigoMotivo(motivo.codigo()).withMotivo(motivo.texto()).withEstado("rascunho")
+                    .withAmbiente(n.getAmbiente()).withEmpresa(e).withNota(n)
+                    .withPreparadoPorUsuario(usuario(usuarioId)) // preparadoPorCliente: README (autenticacao do assistente)
+                    .withDataCriacao(agora).withDataAtualizacao(agora)
+                    .build());
+            em.flush();
+        });
+        return detalhe(emp, id);
+    }
+
+    /** Id da nota do cancelamento da empresa da sessao (404 se nao existir ou for de outra empresa). */
+    private String notaDoCancelamento(String emp, String cancelamentoId) {
+        List<String> l = QuarkusTransaction.requiringNew().call(() -> cancelamentoId == null || cancelamentoId.length() > 36
+                ? List.<String>of()
+                : em.createQuery("select c.nota.id from CancelamentoEntity c where c.id = :id and c.empresa.id = :e", String.class)
+                        .setParameter("id", cancelamentoId).setParameter("e", emp).getResultList());
+        if (l.isEmpty()) {
+            throw naoEncontrado("Cancelamento não encontrado.");
+        }
+        return l.get(0);
+    }
+
+    /** Aprova o rascunho de cancelamento: exige a permissao de cancelar, REVALIDA tudo, vira {@code processando} e envia. */
+    public NotaDetalhe aprovarCancelamento(String cancelamentoId) {
+        limite.consumir(jwt.getSubject());
+        String emp = empresaDaSessao();
+        String notaId = notaDoCancelamento(emp, cancelamentoId);
+        if (!sessaoPodeCancelar(emp)) {
+            throw new ApiException(403, "cancelamento_nao_delegado", MSG_NAO_DELEGADO);
+        }
+        String ativo = config.ambienteAtivo();
+        String usuarioId = jwt.getSubject();
+        PreCancel pre = QuarkusTransaction.requiringNew().call(() -> {
+            NotaEntity n = acompanhamento.carregar(emp, notaId, true); // trava a nota ANTES de ler o pedido: aprovacoes simultaneas nao duplicam
+            if (n == null) {
+                throw naoEncontrado("Cancelamento não encontrado.");
+            }
+            CancelamentoEntity c = em.find(CancelamentoEntity.class, cancelamentoId);
+            if (c == null) {
+                throw naoEncontrado("Cancelamento não encontrado.");
+            }
+            exigirRascunhoCancelamento(c);
+            EmpresaEntity e = validarCancelavel(n, emp, ativo, c.getId());
+            var agora = AuthService.agora();
+            c.setEstado("processando");
+            c.setAprovadoPor(usuario(usuarioId));
+            c.setDataHoraAprovacao(agora);
+            c.setDataAtualizacao(agora);
+            em.flush();
+            return pre(c, n, e, new Motivo(c.getCodigoMotivo(), c.getMotivo()));
+        });
+        return enviarCancelamento(emp, pre);
+    }
+
+    public NotaDetalhe descartarCancelamento(String cancelamentoId) {
+        String emp = empresaDaSessao();
+        String notaId = notaDoCancelamento(emp, cancelamentoId);
+        if (!sessaoPodeCancelar(emp)) {
+            throw new ApiException(403, "cancelamento_nao_delegado", MSG_NAO_DELEGADO);
+        }
+        String usuarioId = jwt.getSubject();
+        QuarkusTransaction.requiringNew().run(() -> {
+            NotaEntity n = acompanhamento.carregar(emp, notaId, true);
+            CancelamentoEntity c = n == null ? null : em.find(CancelamentoEntity.class, cancelamentoId);
+            if (c == null) {
+                throw naoEncontrado("Cancelamento não encontrado.");
+            }
+            exigirRascunhoCancelamento(c);
+            var agora = AuthService.agora();
+            c.setEstado("descartado");
+            c.setDescartadoPor(usuario(usuarioId));
+            c.setDataHoraDescarte(agora);
+            c.setDataAtualizacao(agora);
+            em.flush();
+        });
+        return detalhe(emp, notaId);
+    }
+
+    private static void exigirRascunhoCancelamento(CancelamentoEntity c) {
+        if (!"rascunho".equals(c.getEstado())) {
+            throw new ApiException(409, "cancelamento_nao_e_rascunho", "Só um rascunho de cancelamento pode ser aprovado ou descartado.");
+        }
     }
 
     private static Motivo validarCancelamento(CancelarEntrada in) {
@@ -530,7 +806,7 @@ public class NfseEmissaoService {
             List<CancelamentoEntity> cs = em.createQuery("select c from CancelamentoEntity c where c.nota.id = :n and c.empresa.id = :e "
                     + "order by c.dataCriacao desc", CancelamentoEntity.class).setParameter("n", id).setParameter("e", emp)
                     .setMaxResults(1).getResultList();
-            return detalhe(l.get(0), cs.isEmpty() ? null : cs.get(0));
+            return detalhe(l.get(0), cs.isEmpty() ? null : cs.get(0), podeCancelarSessao(emp), podeEscreverSessao());
         });
     }
 
@@ -559,19 +835,23 @@ public class NfseEmissaoService {
                 (String) l[14], Boolean.TRUE.equals(l[15]), (LocalDateTime) l[16]);
     }
 
-    private static NotaDetalhe detalhe(Object[] l, CancelamentoEntity c) {
+    private static NotaDetalhe detalhe(Object[] l, CancelamentoEntity c, boolean sessaoPode, boolean sessaoEscreve) {
         NotaItem i = item(l);
         String estado = i.estado();
-        boolean editavel = "rascunho".equals(estado) || "rejeitada".equals(estado);
+        boolean editavel = "falha_envio".equals(estado) || "rejeitada".equals(estado);
         boolean pendente = c != null && "processando".equals(c.getEstado());
         boolean atualizar = (NfseRetorno.emAndamento(estado) || "autorizada".equals(estado) && pendente) && i.chave() != null;
-        boolean podeCancelar = "autorizada".equals(estado) && !pendente && mesVigente(i.dataEmissao());
-        CancelamentoInfo info = c == null ? null : new CancelamentoInfo(c.getEstado(), c.getCodigoMotivo(), c.getMotivo(),
-                c.getCodigoRetorno(), c.getMensagemRetorno(), c.getDataHoraEvento(), c.getDataCriacao());
+        boolean rascunhoCancel = c != null && "rascunho".equals(c.getEstado());
+        boolean podeCancelar = sessaoPode && "autorizada".equals(estado) && !pendente && !rascunhoCancel
+                && mesVigente(i.dataEmissao());
+        boolean rascunho = "rascunho".equals(estado) && sessaoEscreve;
+        CancelamentoInfo info = c == null ? null : new CancelamentoInfo(c.getId(), c.getEstado(), c.getCodigoMotivo(), c.getMotivo(),
+                c.getCodigoRetorno(), c.getMensagemRetorno(), c.getDataHoraEvento(), c.getDataCriacao(), rascunhoCancel && sessaoPode,
+                rascunhoCancel && sessaoPode);
         return new NotaDetalhe(i.id(), i.numero(), i.serie(), estado, i.dataEmissao(), i.valorServicos(), i.pessoa(),
                 i.servico(), i.chave(), i.numeroNfse(), i.codigoRetorno(), i.mensagemRetorno(), i.temPdf(),
                 i.dataCriacao(), (String) l[17], (String) l[18], (String) l[19], (String) l[20], erros((String) l[21]),
-                (String) l[22], (String) l[23], (LocalDateTime) l[24], editavel, editavel, atualizar, info, podeCancelar);
+                (String) l[22], (String) l[23], (LocalDateTime) l[24], editavel, editavel, atualizar, info, podeCancelar, rascunho, rascunho);
     }
 
     /** Parse tolerante do texto salvo: array JSON de {campo, erro, descricao}; qualquer outro texto vira uma descricao. */

@@ -15,8 +15,9 @@ import br.com.emitesimples.configuracao.domain.Empresa;
  * Unicidade: um usuário tem no máximo um vínculo por empresa (par usuario, empresa 
 * único).
  * Papel para scopes: administrador = consultar, preparar, emitir, cancelar; 
-* operador = consultar, preparar, emitir; consulta = consultar. Emitir e cancelar 
-* exigem confirmação humana, regra de fluxo fora deste mapa.
+* operador = consultar, preparar, emitir e, SÓ se o administrador delegar 
+* (podeCancelarNfse), cancelar; consulta = consultar. Emitir e cancelar exigem 
+* confirmação humana, regra de fluxo fora deste mapa.
 
 */
 public class VinculoUsuario {
@@ -27,6 +28,9 @@ public class VinculoUsuario {
     @NotEmpty(message = "The attribute papel can't be empty.")
     @Size(max = 15, message = "Attribute papel must have 15 characters maximum.")
     private String papel;
+
+    @NotNull(message = "The attribute podeCancelarNfse can't be null.")
+    private Boolean podeCancelarNfse;
 
     @NotNull(message = "The attribute ativo can't be null.")
     private Boolean ativo;
@@ -52,6 +56,7 @@ public class VinculoUsuario {
     public VinculoUsuario() {
         this.version = null;
         this.papel = null;
+        this.podeCancelarNfse = null;
         this.ativo = null;
         this.id = null;
         this.dataCriacao = null;
@@ -62,6 +67,7 @@ public class VinculoUsuario {
     public VinculoUsuario(
         LocalDateTime version,
         String papel,
+        Boolean podeCancelarNfse,
         Boolean ativo,
         String id,
         LocalDateTime dataCriacao,
@@ -71,6 +77,7 @@ public class VinculoUsuario {
     ) {
         this.version = version;
         this.papel = papel;
+        this.podeCancelarNfse = podeCancelarNfse;
         this.ativo = ativo;
         this.id = id;
         this.dataCriacao = dataCriacao;
@@ -92,6 +99,14 @@ public class VinculoUsuario {
 
     public String getPapel() {
         return this.papel;
+    }
+
+    public void setPodeCancelarNfse(Boolean podeCancelarNfse) {
+        this.podeCancelarNfse = podeCancelarNfse;
+    }
+
+    public Boolean getPodeCancelarNfse() {
+        return this.podeCancelarNfse;
     }
 
     public void setAtivo(Boolean ativo) {
@@ -158,6 +173,7 @@ public class VinculoUsuario {
     public boolean isAnyNotKeyFieldsDefined() {
         return 
             this.papel != null || 
+            this.podeCancelarNfse != null || 
             this.ativo != null || 
             this.dataCriacao != null || 
             this.dataAtualizacao != null || 

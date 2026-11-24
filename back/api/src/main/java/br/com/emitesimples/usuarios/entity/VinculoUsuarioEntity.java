@@ -22,8 +22,9 @@ import br.com.emitesimples.configuracao.entity.EmpresaEntity;
  * Unicidade: um usuário tem no máximo um vínculo por empresa (par usuario, empresa 
 * único).
  * Papel para scopes: administrador = consultar, preparar, emitir, cancelar; 
-* operador = consultar, preparar, emitir; consulta = consultar. Emitir e cancelar 
-* exigem confirmação humana, regra de fluxo fora deste mapa.
+* operador = consultar, preparar, emitir e, SÓ se o administrador delegar 
+* (podeCancelarNfse), cancelar; consulta = consultar. Emitir e cancelar exigem 
+* confirmação humana, regra de fluxo fora deste mapa.
 
 */
 @Entity
@@ -35,6 +36,9 @@ public class VinculoUsuarioEntity {
 
     @Column(name="PAPEL", length=15)
     private String papel;
+
+    @Column(name="PODE_CANCELAR_NFSE")
+    private Boolean podeCancelarNfse;
 
     @Column(name="ATIVO")
     private Boolean ativo;
@@ -62,6 +66,7 @@ public class VinculoUsuarioEntity {
 
     public VinculoUsuarioEntity(
         String papel,
+        Boolean podeCancelarNfse,
         Boolean ativo,
         String id,
         LocalDateTime dataCriacao,
@@ -70,6 +75,7 @@ public class VinculoUsuarioEntity {
         EmpresaEntity empresa
     ) {
         this.papel = papel;
+        this.podeCancelarNfse = podeCancelarNfse;
         this.ativo = ativo;
         this.id = id;
         this.dataCriacao = dataCriacao;
@@ -81,6 +87,7 @@ public class VinculoUsuarioEntity {
     public VinculoUsuarioEntity(VinculoUsuarioEntityBuilder builder) {
         this.version = builder.version;
         this.papel = builder.papel;
+        this.podeCancelarNfse = builder.podeCancelarNfse;
         this.ativo = builder.ativo;
         this.id = builder.id;
         this.dataCriacao = builder.dataCriacao;
@@ -106,6 +113,14 @@ public class VinculoUsuarioEntity {
 
     public String getPapel() {
         return this.papel;
+    }
+
+    public void setPodeCancelarNfse(Boolean podeCancelarNfse) {
+        this.podeCancelarNfse = podeCancelarNfse;
+    }
+
+    public Boolean getPodeCancelarNfse() {
+        return this.podeCancelarNfse;
     }
 
     public void setAtivo(Boolean ativo) {

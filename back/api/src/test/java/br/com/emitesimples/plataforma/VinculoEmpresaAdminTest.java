@@ -120,6 +120,33 @@ class VinculoEmpresaAdminTest extends BaseApiTest {
     }
 
     @Test
+    void delegacaoDeCancelarNfseSoPelaPlataformaEComPadraoFalse() {
+        String e = dados.empresaAtiva();
+        String email = emailNovo();
+        String u = chamar("POST", "/api/admin/usuarios", admin(), Map.of("nome", "Delegada", "email", email, "senha", TEMP))
+                .jsonPath().getString("id");
+        Response c = chamar("POST", base(e), admin(), Map.of("usuarioId", u, "papel", "operador"));
+        c.then().statusCode(201).body("podeCancelarNfse", equalTo(false));
+        String vid = c.jsonPath().getString("id");
+        login(email, TEMP, e).then().statusCode(200).body("podeCancelarNfse", equalTo(false));
+        chamar("PATCH", base(e) + "/" + vid, admin(), Map.of("podeCancelarNfse", true)).then().statusCode(200)
+                .body("podeCancelarNfse", equalTo(true)).body("papel", equalTo("operador"));
+        login(email, TEMP, e).then().statusCode(200).body("podeCancelarNfse", equalTo(true));
+        chamar("GET", base(e), admin(), null).then().body("[0].podeCancelarNfse", equalTo(true));
+        // criar ja delegado
+        Response d = chamar("POST", base(e), admin(), Map.of("usuarioId", usuario("Delegado"), "papel", "operador",
+                "podeCancelarNfse", true));
+        d.then().statusCode(201).body("podeCancelarNfse", equalTo(true));
+        // nem o administrador da empresa nem o operador (mesmo delegado) alteram vinculos: so a plataforma
+        String adm = token(dados.usuarioComPapel(e, "administrador").email());
+        chamar("PATCH", base(e) + "/" + vid, adm, Map.of("podeCancelarNfse", false)).then().statusCode(403);
+        String op = token(dados.usuarioComPapel(e, "operador", true).email());
+        chamar("PATCH", base(e) + "/" + vid, op, Map.of("podeCancelarNfse", true)).then().statusCode(403);
+        chamar("PUT", "/api/VinculoUsuario/" + vid, op, Map.of("podeCancelarNfse", true)).then().statusCode(403);
+        chamar("PUT", "/api/VinculoUsuario/" + vid, adm, Map.of("podeCancelarNfse", true)).then().statusCode(403);
+    }
+
+    @Test
     void vinculoDeOutraEmpresaOuInexistenteDa404() {
         String e1 = dados.empresaAtiva();
         String e2 = dados.empresaAtiva();

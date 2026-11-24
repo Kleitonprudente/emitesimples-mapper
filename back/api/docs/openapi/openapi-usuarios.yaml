@@ -38,8 +38,9 @@ tags:
              Unicidade: um usuário tem no máximo um vínculo por empresa (par usuario, empresa 
             único).
              Papel para scopes: administrador = consultar, preparar, emitir, cancelar; 
-            operador = consultar, preparar, emitir; consulta = consultar. Emitir e cancelar 
-            exigem confirmação humana, regra de fluxo fora deste mapa.
+            operador = consultar, preparar, emitir e, SÓ se o administrador delegar 
+            (podeCancelarNfse), cancelar; consulta = consultar. Emitir e cancelar exigem 
+            confirmação humana, regra de fluxo fora deste mapa.
 
 - name: ClienteAcesso
   description: |
@@ -851,6 +852,10 @@ paths:
         in: "query"
         description: "Filtra registros por papel"
         type: string
+      - name: "podeCancelarNfse"
+        in: "query"
+        description: "Filtra registros por podeCancelarNfse"
+        type: boolean
       - name: "ativo"
         in: "query"
         description: "Filtra registros por ativo"
@@ -1016,6 +1021,10 @@ paths:
         in: "query"
         description: "Filtra registros por papel"
         type: string
+      - name: "podeCancelarNfse"
+        in: "query"
+        description: "Filtra registros por podeCancelarNfse"
+        type: boolean
       - name: "ativo"
         in: "query"
         description: "Filtra registros por ativo"
@@ -1108,6 +1117,10 @@ paths:
         in: "query"
         description: "Filtra registros por papel"
         type: string
+      - name: "podeCancelarNfse"
+        in: "query"
+        description: "Filtra registros por podeCancelarNfse"
+        type: boolean
       - name: "ativo"
         in: "query"
         description: "Filtra registros por ativo"
@@ -1228,6 +1241,10 @@ paths:
         in: "query"
         description: "Filtra registros por papel"
         type: string
+      - name: "podeCancelarNfse"
+        in: "query"
+        description: "Filtra registros por podeCancelarNfse"
+        type: boolean
       - name: "ativo"
         in: "query"
         description: "Filtra registros por ativo"
@@ -4035,12 +4052,14 @@ definitions:
              Unicidade: um usuário tem no máximo um vínculo por empresa (par usuario, empresa 
             único).
              Papel para scopes: administrador = consultar, preparar, emitir, cancelar; 
-            operador = consultar, preparar, emitir; consulta = consultar. Emitir e cancelar 
-            exigem confirmação humana, regra de fluxo fora deste mapa.
+            operador = consultar, preparar, emitir e, SÓ se o administrador delegar 
+            (podeCancelarNfse), cancelar; consulta = consultar. Emitir e cancelar exigem 
+            confirmação humana, regra de fluxo fora deste mapa.
 
     type: object
     required:
       - papel
+      - podeCancelarNfse
       - ativo
       - id
       - dataCriacao
@@ -4070,8 +4089,17 @@ definitions:
         pattern: \w*\W*
         description: |
             Papel do usuário nesta empresa. Mapeamento para scopes: administrador = 
-            consultar, preparar, emitir, cancelar; operador = consultar, preparar, emitir; 
-            consulta = consultar.
+            consultar, preparar, emitir, cancelar; operador = consultar, preparar, emitir e 
+            cancelar só com a permissão delegada (podeCancelarNfse); consulta = consultar.
+
+      podeCancelarNfse:
+        type: boolean
+        description: |
+            Permissão delegada pelo administrador para o operador cancelar NFS-e nesta 
+            empresa. O administrador sempre pode cancelar, com ou sem este campo; o operador 
+            só cancela se for verdadeiro; o papel consulta nunca cancela. Padrão não.
+             Divergência de código conhecida: o código atual deixa o operador cancelar sem 
+            esta delegação, a corrigir depois.
 
       ativo:
         type: boolean

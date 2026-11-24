@@ -45,6 +45,7 @@ public class CancelamentoResource {
         @QueryParam("codigoMotivo") String codigoMotivo,
         @QueryParam("motivo") String motivo,
         @QueryParam("dataHoraAprovacao") String dataHoraAprovacao,
+        @QueryParam("dataHoraDescarte") String dataHoraDescarte,
         @QueryParam("dataHoraRecusa") String dataHoraRecusa,
         @QueryParam("estado") String estado,
         @QueryParam("codigoRetorno") String codigoRetorno,
@@ -68,9 +69,9 @@ public class CancelamentoResource {
         @QueryParam("nome") String aprovadoPorNome,
         @QueryParam("email") String aprovadoPorEmail,
         @QueryParam("aprovadoPor.id") String aprovadoPorId,
-        @QueryParam("nome") String recusadoPorNome,
-        @QueryParam("email") String recusadoPorEmail,
-        @QueryParam("recusadoPor.id") String recusadoPorId,
+        @QueryParam("nome") String descartadoPorNome,
+        @QueryParam("email") String descartadoPorEmail,
+        @QueryParam("descartadoPor.id") String descartadoPorId,
         @QueryParam("numero") String notaNumero,
         @QueryParam("estado") String notaEstado,
         @QueryParam("chave") String notaChave,
@@ -80,7 +81,7 @@ public class CancelamentoResource {
         Sort sort = Sort.by(sortBy != null ? sortBy : "id")
                         .direction(sortDirection.equalsIgnoreCase("desc") ?
                                    Sort.Direction.Descending : Sort.Direction.Ascending);
-        List<CancelamentoEntity> entityList = repository.findWithFilters(0, 100, sort, codigoMotivo, motivo, dataHoraAprovacao, dataHoraRecusa, estado, codigoRetorno, mensagemRetorno, dataHoraEvento, id, ambiente, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, preparadoPorUsuarioNome, preparadoPorUsuarioEmail, preparadoPorUsuarioId, preparadoPorClienteNome, preparadoPorClienteClientId, preparadoPorClienteId, aprovadoPorNome, aprovadoPorEmail, aprovadoPorId, recusadoPorNome, recusadoPorEmail, recusadoPorId, notaNumero, notaEstado, notaChave, notaAmbiente, notaId);
+        List<CancelamentoEntity> entityList = repository.findWithFilters(0, 100, sort, codigoMotivo, motivo, dataHoraAprovacao, dataHoraDescarte, dataHoraRecusa, estado, codigoRetorno, mensagemRetorno, dataHoraEvento, id, ambiente, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, preparadoPorUsuarioNome, preparadoPorUsuarioEmail, preparadoPorUsuarioId, preparadoPorClienteNome, preparadoPorClienteClientId, preparadoPorClienteId, aprovadoPorNome, aprovadoPorEmail, aprovadoPorId, descartadoPorNome, descartadoPorEmail, descartadoPorId, notaNumero, notaEstado, notaChave, notaAmbiente, notaId);
 
         return mapper.entityListToApiList(entityList);
     }
@@ -111,6 +112,7 @@ public class CancelamentoResource {
         @QueryParam("codigoMotivo") String codigoMotivo,
         @QueryParam("motivo") String motivo,
         @QueryParam("dataHoraAprovacao") String dataHoraAprovacao,
+        @QueryParam("dataHoraDescarte") String dataHoraDescarte,
         @QueryParam("dataHoraRecusa") String dataHoraRecusa,
         @QueryParam("estado") String estado,
         @QueryParam("codigoRetorno") String codigoRetorno,
@@ -134,9 +136,9 @@ public class CancelamentoResource {
         @QueryParam("nome") String aprovadoPorNome,
         @QueryParam("email") String aprovadoPorEmail,
         @QueryParam("aprovadoPor.id") String aprovadoPorId,
-        @QueryParam("nome") String recusadoPorNome,
-        @QueryParam("email") String recusadoPorEmail,
-        @QueryParam("recusadoPor.id") String recusadoPorId,
+        @QueryParam("nome") String descartadoPorNome,
+        @QueryParam("email") String descartadoPorEmail,
+        @QueryParam("descartadoPor.id") String descartadoPorId,
         @QueryParam("numero") String notaNumero,
         @QueryParam("estado") String notaEstado,
         @QueryParam("chave") String notaChave,
@@ -145,7 +147,7 @@ public class CancelamentoResource {
     ) {
 
         CountResult countResult = new CountResult();
-        countResult.setCount(repository.countWithFilters( codigoMotivo, motivo, dataHoraAprovacao, dataHoraRecusa, estado, codigoRetorno, mensagemRetorno, dataHoraEvento, id, ambiente, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, preparadoPorUsuarioNome, preparadoPorUsuarioEmail, preparadoPorUsuarioId, preparadoPorClienteNome, preparadoPorClienteClientId, preparadoPorClienteId, aprovadoPorNome, aprovadoPorEmail, aprovadoPorId, recusadoPorNome, recusadoPorEmail, recusadoPorId, notaNumero, notaEstado, notaChave, notaAmbiente, notaId));
+        countResult.setCount(repository.countWithFilters( codigoMotivo, motivo, dataHoraAprovacao, dataHoraDescarte, dataHoraRecusa, estado, codigoRetorno, mensagemRetorno, dataHoraEvento, id, ambiente, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, preparadoPorUsuarioNome, preparadoPorUsuarioEmail, preparadoPorUsuarioId, preparadoPorClienteNome, preparadoPorClienteClientId, preparadoPorClienteId, aprovadoPorNome, aprovadoPorEmail, aprovadoPorId, descartadoPorNome, descartadoPorEmail, descartadoPorId, notaNumero, notaEstado, notaChave, notaAmbiente, notaId));
         return countResult;
     }
 
@@ -162,6 +164,7 @@ public class CancelamentoResource {
         @QueryParam("codigoMotivo") String codigoMotivo,
         @QueryParam("motivo") String motivo,
         @QueryParam("dataHoraAprovacao") String dataHoraAprovacao,
+        @QueryParam("dataHoraDescarte") String dataHoraDescarte,
         @QueryParam("dataHoraRecusa") String dataHoraRecusa,
         @QueryParam("estado") String estado,
         @QueryParam("codigoRetorno") String codigoRetorno,
@@ -185,9 +188,9 @@ public class CancelamentoResource {
         @QueryParam("nome") String aprovadoPorNome,
         @QueryParam("email") String aprovadoPorEmail,
         @QueryParam("aprovadoPor.id") String aprovadoPorId,
-        @QueryParam("nome") String recusadoPorNome,
-        @QueryParam("email") String recusadoPorEmail,
-        @QueryParam("recusadoPor.id") String recusadoPorId,
+        @QueryParam("nome") String descartadoPorNome,
+        @QueryParam("email") String descartadoPorEmail,
+        @QueryParam("descartadoPor.id") String descartadoPorId,
         @QueryParam("numero") String notaNumero,
         @QueryParam("estado") String notaEstado,
         @QueryParam("chave") String notaChave,
@@ -205,7 +208,7 @@ public class CancelamentoResource {
         Sort sort = Sort.by(sortBy != null ? sortBy : "id")
                         .direction(sortDirection.equalsIgnoreCase("desc") ?
                                    Sort.Direction.Descending : Sort.Direction.Ascending);
-        List<CancelamentoEntity> entityList = repository.findWithFilters(from, limit, sort, codigoMotivo, motivo, dataHoraAprovacao, dataHoraRecusa, estado, codigoRetorno, mensagemRetorno, dataHoraEvento, id, ambiente, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, preparadoPorUsuarioNome, preparadoPorUsuarioEmail, preparadoPorUsuarioId, preparadoPorClienteNome, preparadoPorClienteClientId, preparadoPorClienteId, aprovadoPorNome, aprovadoPorEmail, aprovadoPorId, recusadoPorNome, recusadoPorEmail, recusadoPorId, notaNumero, notaEstado, notaChave, notaAmbiente, notaId);
+        List<CancelamentoEntity> entityList = repository.findWithFilters(from, limit, sort, codigoMotivo, motivo, dataHoraAprovacao, dataHoraDescarte, dataHoraRecusa, estado, codigoRetorno, mensagemRetorno, dataHoraEvento, id, ambiente, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, preparadoPorUsuarioNome, preparadoPorUsuarioEmail, preparadoPorUsuarioId, preparadoPorClienteNome, preparadoPorClienteClientId, preparadoPorClienteId, aprovadoPorNome, aprovadoPorEmail, aprovadoPorId, descartadoPorNome, descartadoPorEmail, descartadoPorId, notaNumero, notaEstado, notaChave, notaAmbiente, notaId);
 
         return mapper.entityListToApiList(entityList);
     }

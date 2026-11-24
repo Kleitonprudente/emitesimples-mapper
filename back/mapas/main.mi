@@ -214,15 +214,21 @@
                         [v] NFS-e
                 [e] description
                     [e] pt
-                        [v] Contexto que depende de configuracao, cadastros e usuarios, com Nota e Cancelamento. Entre contextos a relação é sempre referência.
+                        [v] Contexto que depende de configuracao, cadastros e usuarios, com Nota e Cancelamento e os serviços de domínio CicloNota e CicloCancelamento (classes auxiliares sem persistência, com as transições de estado). Entre contextos a relação é sempre referência.
                     [e] en
-                        [v] Context that depends on configuracao, cadastros and usuarios, with Nota and Cancelamento. Between contexts the relation is always a reference.
+                        [v] Context that depends on configuracao, cadastros and usuarios, with Nota and Cancelamento and the domain services CicloNota and CicloCancelamento (auxiliary classes with no persistence, holding the state transitions). Between contexts the relation is always a reference.
             [b] Nota
                 #
                     Nfse/Nota.mi
             [b] Cancelamento
                 #
                     Nfse/Cancelamento.mi
+            [c] CicloNota
+                #
+                    Nfse/CicloNota.mi
+            [c] CicloCancelamento
+                #
+                    Nfse/CicloCancelamento.mi
         [p] integranotas
             @
                 [e] title

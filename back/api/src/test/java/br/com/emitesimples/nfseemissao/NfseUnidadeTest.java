@@ -68,11 +68,46 @@ class NfseUnidadeTest {
     }
 
     @Test
-    void rejeitadaERascunhoNaoSaoAlteradosPelaConsulta() throws Exception {
-        for (String e : new String[] {"rejeitada", "rascunho", "descartada"}) {
+    void rejeitadaFalhaEnvioERascunhoNaoSaoAlteradosPelaConsulta() throws Exception {
+        for (String e : new String[] {"rejeitada", "falha_envio", "rascunho", "descartada"}) {
             NotaEntity n = nota(e);
             NfseRetorno.aplicarConsulta(n, ret("{\"codigo\":100,\"sucesso\":true,\"mensagem\":\"ok\"}"));
             assertEquals(e, n.getEstado());
+        }
+    }
+
+    @Test
+    void falhaDeInfraestruturaEIndisponivelVaoParaFalhaEnvioComOMesmoNumero() throws Exception {
+        NotaEntity n = nota("processando");
+        NfseRetorno.aplicarFalhaDeEnvio(n, "integranotas_indisponivel");
+        assertEquals("falha_envio", n.getEstado());
+        assertEquals("5", n.getNumero());
+        n = nota("processando");
+        NfseRetorno.aplicarFalhaDeEnvio(n, "integranotas_token_recusado");
+        assertEquals("falha_envio", n.getEstado());
+        assertEquals(NfseRetorno.MSG_TOKEN, n.getMensagemRetorno());
+        n = nota("processando");
+        assertEquals(NfseRetorno.Efeito.FALHA_ENVIO, NfseRetorno.aplicarEnvio(n, ret("{\"codigo\":0,\"sucesso\":false}")));
+        assertEquals("falha_envio", n.getEstado());
+        n = nota("processando");
+        NfseRetorno.aplicarEnvio(n, ret("{\"codigo\":5023,\"sucesso\":true}")); // aceite sem chave
+        assertEquals("falha_envio", n.getEstado());
+    }
+
+    @Test
+    void payloadRecusaNotaSemNumeracao() {
+        for (int i = 0; i < 3; i++) {
+            NotaEntity n = nota("processando");
+            if (i == 0) {
+                n.setNumero(null);
+            } else if (i == 1) {
+                n.setSerie(null);
+            } else {
+                n.setDataEmissao(null);
+            }
+            var ex = org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                    () -> NfsePayloadMapper.montar(n, new PessoaEntity(), true));
+            assertTrue(ex.getMessage().contains("sem numero, serie ou data de emissao"));
         }
     }
 

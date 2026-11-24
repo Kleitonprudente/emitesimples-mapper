@@ -57,10 +57,10 @@ Tudo abaixo é escrito à mão (`auth/`, `security/` e `application.properties`)
 | `POST /api/auth/login` `{email, senha, empresaId?}` | público | e-mail + senha. 401 genérico para qualquer falha de credencial. Um vínculo ativo em empresa ativa: usa essa. Vários: exige `empresaId` (409 `empresa_obrigatoria` com `detalhes.empresas` = `[{id, razaoSocial, papel}]`). Administrador da plataforma pode entrar sem empresa. |
 | `POST /api/auth/refresh` (sem corpo; cookie `refresh_token` + cabeçalho `X-Requested-With: emitesimples`) | público | novo accessToken e **rotação do cookie**. Sem cookie, token inválido/expirado ou **reuso** (token já usado ou revogado reapresentado: revoga todos os tokens ativos do usuário naquela empresa) = 401 `sessao_invalida` e o cookie é apagado. Sem o cabeçalho: 403 `cabecalho_obrigatorio`. |
 | `POST /api/auth/logout` (sem corpo; cookie + cabeçalho `X-Requested-With: emitesimples`) | público | revoga o token do cookie e apaga o cookie (204, idempotente; sem cookie também 204). Sem o cabeçalho: 403. |
-| `GET /api/auth/me` | autenticado | perfil, empresa, papel, `plataformaAdmin`. |
+| `GET /api/auth/me` | autenticado | perfil, empresa, papel, `plataformaAdmin`, `podeCancelarNfse` (efetivo: plataforma e administrador true; operador conforme a delegação do vínculo). |
 | `POST /api/auth/senha` `{senhaAtual?, novaSenha}` | autenticado | troca de senha; exige `senhaAtual` correta (403 `senha_atual_invalida`), exceto se o usuário ainda não tem senha. Revoga todos os refresh tokens do usuário. |
 
-Resposta do login/refresh: `{accessToken, expiresIn, usuario{id,nome,email}, empresa{id,razaoSocial,nomeFantasia}|null, papel|null, plataformaAdmin}`.
+Resposta do login/refresh: `{accessToken, expiresIn, usuario{id,nome,email}, empresa{id,razaoSocial,nomeFantasia}|null, papel|null, plataformaAdmin, podeCancelarNfse}`.
 Outros códigos: 400 `requisicao_invalida` (com `detalhes.campos[{campo,mensagem}]`) ou `senha_invalida`, 401 `credenciais_invalidas` / `sessao_invalida` / `nao_autenticado`, 403 `acesso_negado`, 404 `nao_encontrado`, 429 `muitas_tentativas` (com `Retry-After`), 500 `erro_interno` (sem pilha nem SQL).
 
 - **Senha:** bcrypt (`BcryptUtil`), de **8 a 72 bytes** em UTF-8 (o bcrypt trunca em 72, então se recusa acima). Nunca vai a log.
@@ -477,10 +477,10 @@ Só `plataforma_admin` (regras `admin-empresas*`: GET/POST/PATCH; PUT e DELETE n
 distinto do `/api/Empresa` gerado, que não muda. Classes: `VinculoEmpresaAdminResource`, `VinculoEmpresaAdminService`; criar e alterar
 **delegam** ao `UsuarioAdminService` (mesmas regras e mensagens; desativar revoga os refresh tokens do usuário naquela empresa).
 
-- `GET` -> `[ { id, usuario: {id, nome, email, ativo}, papel, ativo, dataCriacao } ]`, ordenado por nome do usuário. 404 `empresa_nao_encontrada`.
-- `POST` `{ usuarioId, papel, ativo? }` (`ativo` padrão true) -> 201 com o vínculo e `Location`. 409 `vinculo_ja_existe`,
+- `GET` -> `[ { id, usuario: {id, nome, email, ativo}, papel, ativo, dataCriacao, podeCancelarNfse } ]`, ordenado por nome do usuário. 404 `empresa_nao_encontrada`.
+- `POST` `{ usuarioId, papel, ativo?, podeCancelarNfse? }` (delegação de cancelar NFS-e ao operador; padrão false) (`ativo` padrão true) -> 201 com o vínculo e `Location`. 409 `vinculo_ja_existe`,
   404 `usuario_nao_encontrado`, 404 `empresa_nao_encontrada`, 400 `papel_invalido` (administrador, operador, consulta), 400 campos obrigatórios.
-- `PATCH /{vinculoId}` `{ papel?, ativo? }` -> 200 com o vínculo. 404 `vinculo_nao_encontrado` (inclusive se pertence a outra empresa),
+- `PATCH /{vinculoId}` `{ papel?, ativo?, podeCancelarNfse? }` -> 200 com o vínculo. 404 `vinculo_nao_encontrado` (inclusive se pertence a outra empresa),
   404 `empresa_nao_encontrada`, 400 `papel_invalido`.
 
 ## Migração V5: Pessoa cliente e/ou fornecedor
@@ -708,11 +708,11 @@ bloqueados (409 `emissao_producao_bloqueada`) salvo `emitesimples.nfse.permitir-
 |---|---|
 | `GET /api/nfse/notas/{from}/{to}?estado=&busca=` | lista (até 100 por chamada), `dataCriacao` desc; busca por número, nome da pessoa (sem diferenciar caixa; diferencia acentos) e chave; **sem xml/pdf** |
 | `GET /api/nfse/notas/count?estado=&busca=` | `{count}` |
-| `GET /api/nfse/notas/{id}` | item + `informacoesComplementares, discriminacao, descricao, codigoServico, errosRetorno [{campo,erro,descricao}]\|null, linkPdf, codigoVerificacao, dataHoraEvento, editavel, podeReenviar, podeAtualizar, cancelamento, podeCancelar` |
+| `GET /api/nfse/notas/{id}` | item + `informacoesComplementares, discriminacao, descricao, codigoServico, errosRetorno [{campo,erro,descricao}]\|null, linkPdf, codigoVerificacao, dataHoraEvento, editavel, podeReenviar, podeAtualizar, cancelamento, podeCancelar, podeAprovar, podeDescartar` |
 | `POST /api/nfse/notas` | `{pessoaId, servicoId, valorServicos, informacoesComplementares?, discriminacao?}`: cria **e envia**; 200 com o detalhe |
-| `POST /api/nfse/notas/{id}/enviar` | corpo opcional com os mesmos campos (só o que vier muda); só `rascunho`/`rejeitada` |
+| `POST /api/nfse/notas/{id}/enviar` | corpo opcional com os mesmos campos (só o que vier muda); só `falha_envio`/`rejeitada` (`rascunho` agora existe só para o assistente de IA) |
 | `POST /api/nfse/notas/{id}/atualizar` | consulta o gateway agora e devolve o detalhe |
-| `POST /api/nfse/notas/{id}/cancelar` | `{codigoMotivo: 1|2|9, motivo: 15..255 caracteres após trim}` (administrador|operador): cancela a nota **autorizada** no mês vigente da emissão; 200 com o detalhe (`estado` `cancelada` quando concluído). Ver "Cancelamento" abaixo |
+| `POST /api/nfse/notas/{id}/cancelar` | `{codigoMotivo: 1|2|9, motivo: 15..255 caracteres após trim}` (administrador, plataforma; **operador só com a delegação `podeCancelarNfse` do vínculo**, senão 403 `cancelamento_nao_delegado`; consulta: 403): cancela a nota **autorizada** no mês vigente da emissão; 200 com o detalhe (`estado` `cancelada` quando concluído). Ver "Cancelamento" abaixo |
 | `GET /api/nfse/notas/{id}/cancelamento/pdf` | PDF do evento de cancelamento (`inline`); 404 `pdf_indisponivel` se não houver |
 | `GET /api/nfse/notas/{id}/pdf` | `application/pdf` (`inline`) do PDF guardado; senão 404 `pdf_indisponivel` (o front usa `linkPdf`) |
 
@@ -727,17 +727,36 @@ Erros: 409 `nfse_nao_habilitada`, `emissao_producao_bloqueada`, `emitente_nao_ca
 
 Corpo `{codigoMotivo, motivo}`: `codigoMotivo` 1 (erro de emissão), 2 (serviço não concluído) ou 9 (outros); `motivo` de 15 a 255 caracteres contados após `trim`.
 O detalhe da nota ganhou `cancelamento` (`null` ou `{estado, codigoMotivo, motivo, codigoRetorno, mensagemRetorno, dataHoraEvento, solicitadoEm}`, do pedido mais recente; `estado`
-`processando`|`concluido`|`recusado`) e `podeCancelar` (`autorizada` e mês vigente e sem cancelamento em processamento). `podeAtualizar` também vale para `autorizada` com cancelamento `processando`.
+`processando`|`concluido`|`recusado`|`expirado`) e `podeCancelar` (`autorizada`, mês vigente, sem cancelamento `processando` e usuário da sessão com permissão: operador sem delegação = false; só `processando` bloqueia novo pedido). `podeAtualizar` também vale para `autorizada` com cancelamento `processando`.
 
 - **Mês vigente**: mês/ano de `dataEmissao` == mês/ano de agora em `America/Sao_Paulo`; senão 409 `cancelamento_fora_do_mes` ("O cancelamento só é possível dentro do mês vigente da emissão da nota.") sem chamar o gateway. Regra do produto; prazos por município continuam não documentados.
 - **Fluxo**: uma transação trava a nota, valida e grava o `Cancelamento` `processando` (um por vez: 409 `cancelamento_em_andamento`); o gateway (`POST /v1/nfse/cancela`, `{chave, codigo_cancelamento, motivo_cancelamento}`, token do emitente) é chamado **fora** da transação e a chamada vai para `ChamadaGateway` (`cancelar_nfse`, sem motivo nem token).
 - **Retorno** (pelo `codigo`): 101 ou 5015 (já cancelada, idempotente) = `cancelada` + Cancelamento `concluido` (xml/pdf do evento decodificados com `ArquivoGateway`); recusa (5013, 5001, 5006..., e token recusado) = Cancelamento `recusado` com `codigoRetorno/mensagemRetorno` e **409 `cancelamento_recusado`** com a mensagem do gateway (a nota segue `autorizada`; dá para tentar de novo); resposta inconclusiva (5023, 5030, 5034, 5027, 8429, 7xxx, 9xxx, 0, sucesso com código desconhecido), timeout, rede ou resposta inválida = **200** com o Cancelamento `processando` (a nota segue `autorizada`).
-- **Acompanhamento**: o job, o `/atualizar` e o webhook consultam também notas `autorizada` com cancelamento `processando`; ao receber 101 a nota vira `cancelada` e o Cancelamento `concluido`. Pedido pendente há mais de 24 h em que o gateway ainda diz autorizada (100) vira `recusado` ("não confirmou") para liberar novo pedido.
+- **Acompanhamento**: o job, o `/atualizar` e o webhook consultam também notas `autorizada` com cancelamento `processando`; ao receber 101 a nota vira `cancelada` e o Cancelamento `concluido`. Pedido pendente há mais de 24 h em que o gateway ainda diz autorizada (100) vira `expirado` (mensagem "não confirmou", sem `dataHoraRecusa`, que fica só para `recusado`) para liberar novo pedido.
 - Outros erros: 404 nota; 409 `nota_nao_autorizada` (nota já `cancelada` = sucesso idempotente, devolve o detalhe sem chamar o gateway), `emissao_producao_bloqueada` (mesma regra da emissão), `emitente_nao_cadastrado`, `emitente_de_outro_ambiente`; 400 `requisicao_invalida` (`detalhes.campos`: `codigoMotivo`, `motivo`); 403/429 como nos demais POSTs (o limite de 30/min é o mesmo de criar/enviar).
+
+### Assistente de IA: rascunhos (preparar, aprovar, descartar)
+
+Fluxo do mapa (`CicloNota`, `CicloCancelamento`): o assistente só **prepara** um rascunho; uma **pessoa** aprova (envia) ou descarta. Papéis de todas as rotas abaixo: administrador, operador e plataforma_admin (plataforma sem empresa na sessão: 403 `empresa_nao_selecionada`); consulta: 403; anônimo: 401; outra empresa: 404.
+
+| Rota | O que faz |
+|---|---|
+| `POST /api/nfse/notas/preparar` | corpo igual ao de `POST /api/nfse/notas`; 200 `NotaDetalhe` `rascunho`. **Não** aloca número/série/`dataEmissao`, não chama o gateway, não consome o limite de envio. Valida pessoa/serviço da empresa (404), serviço ativo, valores, discriminação, tomador completo (422 `tomador_incompleto`), tributos aproximados do Simples e NFS-e habilitada; **não** exige certificado/emitente (isso é na aprovação). Copia o serviço para a nota. Grava `preparadoPorUsuario` (usuário da sessão); `preparadoPorCliente` e `dataHoraAprovacao` ficam `null` |
+| `POST /api/nfse/notas/{id}/aprovar` | corpo opcional igual ao de `/enviar` (ajusta campos). Só `rascunho` (senão 409 `nota_nao_e_rascunho`). Mesma lógica de criar+enviar: trava a nota e a Empresa, aloca número/série, `dataEmissao`/`dataCompetencia` agora, grava `aprovadoPor`/`dataHoraAprovacao`, envia ao gateway e aplica o retorno; `rascunho` -> `processando`. Exige certificado/emitente/ambiente (409 como em criar). Consome o limite de envio. Duas aprovações simultâneas: uma envia, a outra recebe 409 |
+| `POST /api/nfse/notas/{id}/descartar` | só `rascunho` (409 `nota_nao_e_rascunho`); vira `descartada` e grava `descartadoPor`/`dataHoraDescarte`. Não toca numeração nem gateway |
+| `POST /api/nfse/notas/{id}/cancelamentos/preparar` | `{codigoMotivo, motivo}`; 200 `NotaDetalhe` com `cancelamento.estado = rascunho` (a nota segue `autorizada`). Valida no preparo: nota autorizada com chave, mês vigente (409 `cancelamento_fora_do_mes`), motivo (400), nenhum cancelamento `processando` **ou** `rascunho` (409 `cancelamento_em_andamento`), ambiente/emitente. Não envia ao gateway. Não exige a delegação de cancelar (quem aprova é que precisa) |
+| `POST /api/nfse/cancelamentos/{id}/aprovar` | revalida tudo (o mês pode ter virado), exige a permissão de cancelar (administrador/plataforma; operador só com `podeCancelarNfse`, senão 403 `cancelamento_nao_delegado`), grava `aprovadoPor`/`dataHoraAprovacao`, `rascunho` -> `processando` e envia como o cancelamento direto (101/5015 concluído, recusa 409 `cancelamento_recusado`, inconclusivo `processando`). Responde o `NotaDetalhe` da nota. Só rascunho (409 `cancelamento_nao_e_rascunho`) |
+| `POST /api/nfse/cancelamentos/{id}/descartar` | mesma permissão de cancelar; `rascunho` -> `descartado` (`descartadoPor`, `dataHoraDescarte`); responde o `NotaDetalhe` |
+
+`NotaDetalhe` ganhou `podeAprovar` e `podeDescartar` (true só para `rascunho` e papel que escreve). `cancelamento` (`CancelamentoInfo`) ganhou `id`, `podeAprovar` e `podeDescartar` (true só para cancelamento `rascunho` e usuário com a permissão de cancelar); `estado` agora também `rascunho` e `descartado`. `podeCancelar` (cancelamento direto) fica `false` enquanto houver cancelamento `rascunho` ou `processando` (evita duplicidade; o `POST .../cancelar` direto também responde 409 `cancelamento_em_andamento`). O CRUD gerado `/api/Cancelamento` segue somente leitura. Política de acesso: `nfse-cancelamentos-*` em `application.properties` (só POST, administrador/operador/plataforma; o resto negado), provada em `PoliticaAcessoTest.rotasDoAssistenteDeNotasECancelamentos`; fluxo provado em `NfseEmissaoTest`.
+
+**BLOQUEIO — descartar rascunho de NOTA**: o `CHECK ck_nota_numeracao` (V9) exige `numero/serie/dataEmissao` em todo estado diferente de `rascunho`, então `rascunho -> descartada` (que não tem número) falha no banco (500 hoje). Falta uma migração V10 que troque o CHECK por `ESTADO IN ('rascunho','descartada') OR (NUMERO IS NOT NULL AND SERIE IS NOT NULL AND DATA_EMISSAO IS NOT NULL)`. O código de `descartar` está pronto; os testes dependentes estão `@Disabled` em `NfseEmissaoTest` até a V10. O descarte do rascunho de **cancelamento** não é afetado.
+
+**PENDÊNCIA DE SEGURANÇA — autenticação do assistente**: ainda não existe autenticação do assistente de IA (a entidade `ClienteAcesso` existe, sem login/token). Hoje `preparar` roda com a sessão de uma **pessoa** e grava `preparadoPorUsuario` = essa pessoa; `preparadoPorCliente` fica sempre `null`, então o rastro não distingue "preparado pelo assistente" de "preparado pela própria pessoa". Antes de expor o assistente: credencial própria (cliente de acesso), escopo restrito a `preparar`/leitura (nunca aprovar/descartar), gravar `preparadoPorCliente` e rejeitar aprovação por quem não é pessoa humana autenticada.
 
 ### Estados e transições
 
-`rascunho` (só após falha de infraestrutura no envio) · `processando` · `emitida_offline` · `autorizada` · `rejeitada` · `em_conflito` · `cancelada` · `descartada` (reservado).
+`falha_envio` (falha de infraestrutura no envio direto; reenviável com o mesmo número) · `rascunho` (só assistente de IA, sem número) · `processando` · `emitida_offline` · `autorizada` · `rejeitada` · `em_conflito` · `cancelada` · `descartada` (rascunho descartado por uma pessoa). Cancelamento: `rascunho` · `processando` · `concluido` · `recusado` · `expirado` · `descartado`.
 Decide-se **sempre pelo `codigo`** (tabela única em `NfseRetorno`):
 
 | Retorno | Envio | Consulta |
@@ -747,12 +766,12 @@ Decide-se **sempre pelo `codigo`** (tabela única em `NfseRetorno`):
 | 101 | – | `cancelada` |
 | 5001, 5002, 5005, 5007, 5024, 5025, 5028, 5033 (e outra recusa) | `rejeitada` + `codigoRetorno/mensagemRetorno/errosRetorno` (JSON campo/erro/descricao, ≤ 4000) | idem (de `processando`/`offline`/`conflito`) |
 | 5027 | `em_conflito` (não reenviar; usar Atualizar) | `em_conflito` |
-| 5030, 5034, 8429, 7xxx, 9xxx | `processando` com mensagem se vier `chave`; **sem chave volta a `rascunho`** (nada a acompanhar; seguro repetir) | mantém o estado e grava a mensagem |
+| 5030, 5034, 8429, 7xxx, 9xxx | `processando` com mensagem se vier `chave`; **sem chave vai a `falha_envio`** (nada a acompanhar; seguro repetir) | mantém o estado e grava a mensagem |
 | 5006 | – | mantém e registra "não encontrada" |
-| 6000 a 6003 / timeout / rede / JSON inválido / 5xx / 0 (manutenção) | **nunca rejeita**: `rascunho`, mensagem "A IntegraNotas está indisponível. Tente enviar novamente." (token recusado: mensagem própria), `podeReenviar=true`, **mesmo número**; HTTP 200 | mantém o estado (job ignora; `/atualizar` devolve 502/504) |
+| 6000 a 6003 / timeout / rede / JSON inválido / 5xx / 0 (manutenção) | **nunca rejeita**: `falha_envio`, mensagem "A IntegraNotas está indisponível. Tente enviar novamente." (token recusado: mensagem própria), `podeReenviar=true`, **mesmo número**; HTTP 200 | mantém o estado (job ignora; `/atualizar` devolve 502/504) |
 
-Estados finais não regridem: `autorizada` só vira `cancelada` (101); `cancelada`/`descartada` nunca mudam; `rejeitada`/`rascunho` não são consultadas.
-`editavel` = `rascunho`|`rejeitada`; `podeReenviar` = `editavel`; `podeAtualizar` = `processando`|`emitida_offline`|`em_conflito` com chave.
+Estados finais não regridem: `autorizada` só vira `cancelada` (101); `cancelada`/`descartada` nunca mudam; `rejeitada`/`falha_envio`/`rascunho` não são consultadas.
+`editavel` = `falha_envio`|`rejeitada`; `podeReenviar` = `editavel`; `podeAtualizar` = `processando`|`emitida_offline`|`em_conflito` com chave.
 Reenviar: `processando`/`emitida_offline` → 409 `nota_em_processamento`; `em_conflito` → 409 `nota_em_conflito`; `autorizada`/`cancelada`/`descartada` → 409 `nota_nao_editavel`.
 
 ### Numeração e idempotência
@@ -788,12 +807,12 @@ Opcionais ausentes são omitidos. O prestador não vai no corpo. **Não** se env
 
 Token do emitente, payload, xml, pdf e dados do tomador não vão para log (provado em `NfseEmissaoTest`). Toda consulta filtra por `empresa.id` (administrador da plataforma com empresa na sessão também). Limites: 30 criar/enviar por minuto por usuário (em memória, N× com várias instâncias);
 corpo de consulta do gateway até 6 MB; 1 MB nos demais.
-Riscos: (a) **timeout no envio**: se o gateway recebeu mas a resposta se perdeu, a nota volta a `rascunho`; o reenvio usa o mesmo número e a mesma `identificacao`, e o gateway deve responder 5027 (conflito) ou a mesma chave, sem nota duplicada; (b) o backoff é em memória (reinício consulta tudo de novo, sem dano);
+Riscos: (a) **timeout no envio**: se o gateway recebeu mas a resposta se perdeu, a nota fica em `falha_envio`; o reenvio usa o mesmo número e a mesma `identificacao`, e o gateway deve responder 5027 (conflito) ou a mesma chave, sem nota duplicada; (b) o backoff é em memória (reinício consulta tudo de novo, sem dano);
 (c) a trava de duplo clique é por linha do banco e vale entre instâncias; o limite por minuto e o pool do webhook não; (d) o job usa `dataCriacao` para a janela de 24 h; (e) busca por nome diferencia acentos; (f) os campos de `tributos_totais` são hipótese; (g) com o gateway devolvendo 7xxx/9xxx com chave e sem webhook, a nota fica `processando` até o job conseguir uma resposta final (24 h, depois "use Atualizar").
 
 ### O que falta
 
-Cancelamento (`POST /v1/nfse/cancela`), envio de e-mail da nota, substituição, reconciliação das NFS-e offline via `GET /nfse/offline`, contingência, verificação de assinatura do webhook, tomador no exterior (código de país/NIF), blocos de obra/evento/deduções/IBS-CBS, descarte de rascunho, paginação por cursor.
+Cancelamento (`POST /v1/nfse/cancela`), envio de e-mail da nota, substituição, reconciliação das NFS-e offline via `GET /nfse/offline`, contingência, verificação de assinatura do webhook, tomador no exterior (código de país/NIF), blocos de obra/evento/deduções/IBS-CBS, paginação por cursor, autenticação do assistente de IA.
 
 ## Pontos em aberto
 

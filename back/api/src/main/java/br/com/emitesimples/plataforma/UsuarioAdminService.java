@@ -120,7 +120,7 @@ public class UsuarioAdminService {
                     .build();
             gravar(() -> em.persist(u));
             for (VinculoNovo v : vinculos) {
-                persistirVinculo(u, v.empresaId().trim(), v.papel(), v.ativo() == null || v.ativo(), agora);
+                persistirVinculo(u, v.empresaId().trim(), v.papel(), v.ativo() == null || v.ativo(), podeCancelar(v), agora);
             }
             gravar(() -> em.flush());
             LOG.infof("Usuário criado pelo administrador da plataforma (id=%s).", u.getId());
@@ -184,7 +184,7 @@ public class UsuarioAdminService {
                 throw new ApiException(409, "vinculo_ja_existe",
                         "O usuário já tem vínculo com esta empresa. Altere o vínculo existente (papel ou ativo).");
             }
-            VinculoUsuarioEntity nv = persistirVinculo(u, empresaId, v.papel(), v.ativo() == null || v.ativo(), AuthService.agora());
+            VinculoUsuarioEntity nv = persistirVinculo(u, empresaId, v.papel(), v.ativo() == null || v.ativo(), podeCancelar(v), AuthService.agora());
             gravar(() -> em.flush());
             return paraAdmin(nv);
         });
@@ -205,6 +205,9 @@ public class UsuarioAdminService {
             boolean desativando = Boolean.FALSE.equals(a.ativo()) && !Boolean.FALSE.equals(v.getAtivo());
             if (a.papel() != null) {
                 v.setPapel(a.papel());
+            }
+            if (a.podeCancelarNfse() != null) {
+                v.setPodeCancelarNfse(a.podeCancelarNfse());
             }
             if (a.ativo() != null) {
                 v.setAtivo(a.ativo());
@@ -232,13 +235,14 @@ public class UsuarioAdminService {
         return u;
     }
 
-    private VinculoUsuarioEntity persistirVinculo(UsuarioEntity u, String empresaId, String papel, boolean ativo, LocalDateTime agora) {
+    private VinculoUsuarioEntity persistirVinculo(UsuarioEntity u, String empresaId, String papel, boolean ativo,
+            boolean podeCancelarNfse, LocalDateTime agora) {
         EmpresaEntity e = em.find(EmpresaEntity.class, empresaId);
         if (e == null) {
             throw new ApiException(404, "empresa_nao_encontrada", "Empresa não encontrada.");
         }
         VinculoUsuarioEntity v = VinculoUsuarioEntity.builderOf()
-                .withUsuario(u).withEmpresa(e).withPapel(papel).withAtivo(ativo)
+                .withUsuario(u).withEmpresa(e).withPapel(papel).withAtivo(ativo).withPodeCancelarNfse(podeCancelarNfse)
                 .withDataCriacao(agora).withDataAtualizacao(agora).build();
         gravar(() -> em.persist(v));
         return v;
@@ -281,6 +285,10 @@ public class UsuarioAdminService {
 
     private static ApiException emailJaCadastrado() {
         return new ApiException(409, "email_ja_cadastrado", "Já existe um usuário com este e-mail.");
+    }
+
+    private static boolean podeCancelar(VinculoNovo v) {
+        return Boolean.TRUE.equals(v.podeCancelarNfse());
     }
 
     private static void validarPapel(String papel) {
@@ -343,6 +351,7 @@ public class UsuarioAdminService {
         EmpresaEntity e = v.getEmpresa();
         return new VinculoAdmin(v.getId(), v.getUsuario().getId(),
                 new EmpresaRef(e.getId(), e.getRazaoSocial(), e.getNomeFantasia(), e.getSituacao()),
-                v.getPapel(), v.getAtivo(), v.getDataCriacao(), v.getDataAtualizacao());
+                v.getPapel(), v.getAtivo(), v.getDataCriacao(), v.getDataAtualizacao(),
+                Boolean.TRUE.equals(v.getPodeCancelarNfse()));
     }
 }

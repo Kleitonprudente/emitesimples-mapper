@@ -15,7 +15,7 @@ import jakarta.ws.rs.core.Response;
 import java.util.List;
 
 /**
- * Emissao de NFS-e (escrito a mao). Leitura: administrador, operador, consulta; escrita: administrador e operador. Sempre a
+ * Emissao de NFS-e (escrito a mao). Cancelar: administrador/plataforma sempre, operador so com delegacao (403 cancelamento_nao_delegado). Leitura: administrador, operador, consulta; escrita: administrador e operador. Sempre a
  * empresa da sessao (plataforma sem empresa: 403 empresa_nao_selecionada).
  */
 @Path("/nfse/notas")
@@ -69,6 +69,34 @@ public class NfseEmissaoResource {
     @RolesAllowed({"administrador", "operador", "plataforma_admin"})
     public NotaDetalhe enviar(@PathParam("id") String id, EnviarEntrada corpo) {
         return service.enviar(id, corpo);
+    }
+
+    @POST
+    @Path("/preparar")
+    @RolesAllowed({"administrador", "operador", "plataforma_admin"})
+    public NotaDetalhe preparar(CriarEntrada corpo) {
+        return service.preparar(corpo);
+    }
+
+    @POST
+    @Path("/{id}/aprovar")
+    @RolesAllowed({"administrador", "operador", "plataforma_admin"})
+    public NotaDetalhe aprovar(@PathParam("id") String id, EnviarEntrada corpo) {
+        return service.aprovar(id, corpo);
+    }
+
+    @POST
+    @Path("/{id}/descartar")
+    @RolesAllowed({"administrador", "operador", "plataforma_admin"})
+    public NotaDetalhe descartar(@PathParam("id") String id) {
+        return service.descartar(id);
+    }
+
+    @POST
+    @Path("/{id}/cancelamentos/preparar")
+    @RolesAllowed({"administrador", "operador", "plataforma_admin"})
+    public NotaDetalhe prepararCancelamento(@PathParam("id") String id, CancelarEntrada corpo) {
+        return service.prepararCancelamento(id, corpo);
     }
 
     @POST

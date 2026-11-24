@@ -24,11 +24,21 @@ import br.com.emitesimples.usuarios.entity.ClienteAcessoEntity;
 * como sucesso idempotente.
  * Existe só dentro de uma nota e no mesmo contexto, por isso é detalhe da Nota 
 * ([m]/[o]).
- * Prazos e regras de cancelamento por município não estão documentados e não são 
-* validados no modelo.
- * Cancelar exige confirmação humana: um agente só PEDE (aguardando_aprovacao) e 
-* uma pessoa com o scope de cancelar (papel administrador) aprova, e só então o 
-* sistema envia ao gateway.
+ * REGRA DO PRODUTO, mês vigente: só se cancela dentro do mês e ano da data de 
+* emissão da nota (fuso America/Sao_Paulo). Prazos específicos de cada município 
+* não são tratados.
+ * Dois caminhos de entrada. (A) Cancelamento DIRETO por uma pessoa: o pedido nasce 
+* em processando, criado e enviado ao gateway numa só ação. (B) Assistente de IA: 
+* só PREPARA o pedido como rascunho (preparadoPorCliente); uma pessoa com 
+* permissão de cancelar aprova (o sistema envia e o pedido vira processando) ou 
+* descarta (vira descartado). Aprovar e descartar o rascunho são requisito AINDA 
+* NÃO IMPLEMENTADO no código. O estado rascunho só existe no caminho B.
+ * Quem cancela: o administrador sempre; o operador SÓ com permissão delegada 
+* (VinculoUsuario.podeCancelarNfse). O código atual deixa o operador cancelar sem 
+* delegação: divergência a corrigir no código.
+ * Estados do pedido: rascunho, processando, concluido, recusado (o gateway ou o 
+* sistema recusou), expirado (pendente por mais de 24 h sem confirmação) e 
+* descartado. As transições estão em CicloCancelamento.
  * Vive no contexto nfse (domain.nfse). Depende do contexto usuarios (Usuario e 
 * ClienteAcesso) para o rastro; usuarios depende só de cadastros e configuracao, 
 * não há ciclo.
@@ -49,6 +59,9 @@ public class CancelamentoEntity {
 
     @Column(name="DATA_HORA_APROVACAO")
     private LocalDateTime dataHoraAprovacao;
+
+    @Column(name="DATA_HORA_DESCARTE")
+    private LocalDateTime dataHoraDescarte;
 
     @Column(name="DATA_HORA_RECUSA")
     private LocalDateTime dataHoraRecusa;
@@ -131,8 +144,8 @@ public class CancelamentoEntity {
     private UsuarioEntity aprovadoPor;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name="RECUSADO_POR_ID", nullable = true)
-    private UsuarioEntity recusadoPor;
+    @JoinColumn(name="DESCARTADO_POR_ID", nullable = true)
+    private UsuarioEntity descartadoPor;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="NOTA_ID", nullable = false)
@@ -145,6 +158,7 @@ public class CancelamentoEntity {
         Integer codigoMotivo,
         String motivo,
         LocalDateTime dataHoraAprovacao,
+        LocalDateTime dataHoraDescarte,
         LocalDateTime dataHoraRecusa,
         String estado,
         Integer codigoRetorno,
@@ -160,12 +174,13 @@ public class CancelamentoEntity {
         UsuarioEntity preparadoPorUsuario,
         ClienteAcessoEntity preparadoPorCliente,
         UsuarioEntity aprovadoPor,
-        UsuarioEntity recusadoPor,
+        UsuarioEntity descartadoPor,
         NotaEntity nota
     ) {
         this.codigoMotivo = codigoMotivo;
         this.motivo = motivo;
         this.dataHoraAprovacao = dataHoraAprovacao;
+        this.dataHoraDescarte = dataHoraDescarte;
         this.dataHoraRecusa = dataHoraRecusa;
         this.estado = estado;
         this.codigoRetorno = codigoRetorno;
@@ -181,7 +196,7 @@ public class CancelamentoEntity {
         this.preparadoPorUsuario = preparadoPorUsuario;
         this.preparadoPorCliente = preparadoPorCliente;
         this.aprovadoPor = aprovadoPor;
-        this.recusadoPor = recusadoPor;
+        this.descartadoPor = descartadoPor;
         this.nota = nota;
     }
 
@@ -190,6 +205,7 @@ public class CancelamentoEntity {
         this.codigoMotivo = builder.codigoMotivo;
         this.motivo = builder.motivo;
         this.dataHoraAprovacao = builder.dataHoraAprovacao;
+        this.dataHoraDescarte = builder.dataHoraDescarte;
         this.dataHoraRecusa = builder.dataHoraRecusa;
         this.estado = builder.estado;
         this.codigoRetorno = builder.codigoRetorno;
@@ -205,7 +221,7 @@ public class CancelamentoEntity {
         this.preparadoPorUsuario = builder.preparadoPorUsuario;
         this.preparadoPorCliente = builder.preparadoPorCliente;
         this.aprovadoPor = builder.aprovadoPor;
-        this.recusadoPor = builder.recusadoPor;
+        this.descartadoPor = builder.descartadoPor;
         this.nota = builder.nota;
     }
 
@@ -242,6 +258,14 @@ public class CancelamentoEntity {
 
     public LocalDateTime getDataHoraAprovacao() {
         return this.dataHoraAprovacao;
+    }
+
+    public void setDataHoraDescarte(LocalDateTime dataHoraDescarte) {
+        this.dataHoraDescarte = dataHoraDescarte;
+    }
+
+    public LocalDateTime getDataHoraDescarte() {
+        return this.dataHoraDescarte;
     }
 
     public void setDataHoraRecusa(LocalDateTime dataHoraRecusa) {
@@ -364,12 +388,12 @@ public class CancelamentoEntity {
         return this.aprovadoPor;
     }
 
-    public void setRecusadoPor(UsuarioEntity recusadoPor) {
-        this.recusadoPor = recusadoPor;
+    public void setDescartadoPor(UsuarioEntity descartadoPor) {
+        this.descartadoPor = descartadoPor;
     }
 
-    public UsuarioEntity getRecusadoPor() {
-        return this.recusadoPor;
+    public UsuarioEntity getDescartadoPor() {
+        return this.descartadoPor;
     }
 
     public void setNota(NotaEntity nota) {

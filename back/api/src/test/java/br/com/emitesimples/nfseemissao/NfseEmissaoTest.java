@@ -505,7 +505,7 @@ class NfseEmissaoTest extends BaseApiTest {
         Cen c = cenario();
         stub("/_nfse/modo_envio", "json");
         String id = criar(c).jsonPath().getString("id");
-        atualizar(c, id).then().statusCode(200).body("estado", equalTo("rascunho"));
+        atualizar(c, id).then().statusCode(200).body("estado", equalTo("falha_envio"));
         assertEquals(0, estadoStub().path("consultas").asInt());
     }
 
@@ -570,12 +570,12 @@ class NfseEmissaoTest extends BaseApiTest {
     }
 
     @Test
-    void gatewayIndisponivelDeixaRascunhoEReenvioFunciona() throws Exception {
+    void gatewayIndisponivelDeixaFalhaEnvioEReenvioFunciona() throws Exception {
         for (String modo : new String[] {"json", "500", "lento", "6001"}) {
             Cen c = cenario();
             stub("/_nfse/modo_envio", modo);
             Response r = criar(c);
-            r.then().statusCode(200).body("estado", equalTo("rascunho")).body("podeReenviar", equalTo(true))
+            r.then().statusCode(200).body("estado", equalTo("falha_envio")).body("podeReenviar", equalTo(true))
                     .body("numero", equalTo("1")).body("chave", nullValue()).body("mensagemRetorno", notNullValue());
             if (!modo.equals("6001")) {
                 assertEquals("A IntegraNotas está indisponível. Tente enviar novamente.", r.jsonPath().getString("mensagemRetorno"), modo);
@@ -590,14 +590,14 @@ class NfseEmissaoTest extends BaseApiTest {
     }
 
     @Test
-    void cincoMilTrintaEQuatroSemChaveVoltaParaRascunhoEComChaveFicaProcessando() {
+    void cincoMilTrintaEQuatroSemChaveVaiParaFalhaEnvioEComChaveFicaProcessando() {
         Cen c = cenario();
         stub("/_nfse/modo_envio", "semchave");
-        criar(c).then().statusCode(200).body("estado", equalTo("rascunho"));
+        criar(c).then().statusCode(200).body("estado", equalTo("falha_envio"));
         stub("/_nfse/modo_envio", "5034");
         criar(c).then().statusCode(200).body("estado", equalTo("processando")).body("codigoRetorno", equalTo(5034));
         stub("/_nfse/modo_envio", "8429");
-        criar(c).then().statusCode(200).body("estado", equalTo("rascunho")).body("codigoRetorno", equalTo(8429));
+        criar(c).then().statusCode(200).body("estado", equalTo("falha_envio")).body("codigoRetorno", equalTo(8429));
     }
 
     @Test
@@ -1054,7 +1054,7 @@ class NfseEmissaoTest extends BaseApiTest {
     @Test
     void operadorTambemCancelaECodigosDeMotivo2e9() throws Exception {
         Cen c = cenario();
-        String operador = token(dados.usuarioComPapel(c.emp(), "operador").email());
+        String operador = token(dados.usuarioComPapel(c.emp(), "operador", true).email());
         String a = autorizada(c);
         cancelar(operador, a, 2, "Servico nao foi concluido a tempo").then().statusCode(200)
                 .body("estado", equalTo("cancelada")).body("cancelamento.codigoMotivo", equalTo(2));
@@ -1197,6 +1197,44 @@ class NfseEmissaoTest extends BaseApiTest {
     }
 
     @Test
+    void operadorSemDelegacaoNaoCancelaEComDelegacaoCancela() throws Exception {
+        Cen c = cenario();
+        String id = autorizada(c);
+        var opSem = dados.usuarioComPapel(c.emp(), "operador", false);
+        String tokenSem = token(opSem.email());
+        // detalhe coerente com a permissao: false para operador sem delegacao
+        chamar("GET", URL + "/" + id, tokenSem, null).then().statusCode(200).body("podeCancelar", equalTo(false));
+        cancelar(tokenSem, id, 1, MOTIVO).then().statusCode(403).body("codigo", equalTo("cancelamento_nao_delegado"))
+                .body("mensagem", equalTo("Seu usuário não tem permissão para cancelar notas. Peça ao administrador."));
+        assertEquals(0, chamadasCancela());
+        assertEquals(0, cancelamentos(id).size());
+        assertEquals("autorizada", nota(id).getEstado());
+        // /me e o administrador
+        chamar("GET", "/api/auth/me", tokenSem, null).then().statusCode(200).body("podeCancelarNfse", equalTo(false));
+        chamar("GET", "/api/auth/me", c.adm(), null).then().statusCode(200).body("podeCancelarNfse", equalTo(true));
+        chamar("GET", URL + "/" + id, c.adm(), null).then().body("podeCancelar", equalTo(true));
+        // delegacao concedida no banco vale na hora, sem novo login
+        QuarkusTransaction.requiringNew().run(() -> em.createQuery("update VinculoUsuarioEntity v set v.podeCancelarNfse = true "
+                + "where v.usuario.id = :u").setParameter("u", opSem.id()).executeUpdate());
+        chamar("GET", URL + "/" + id, tokenSem, null).then().body("podeCancelar", equalTo(true));
+        cancelar(tokenSem, id, 1, MOTIVO).then().statusCode(200).body("estado", equalTo("cancelada"));
+        // delegacao so vale para o operador: vinculo de consulta com a flag continua barrado
+        String c2 = token(dados.usuarioComPapel(c.emp(), "consulta", true).email());
+        cancelar(c2, autorizada(c), 1, MOTIVO).then().statusCode(403);
+    }
+
+    @Test
+    void operadorDelegadoSoNaEmpresaDoVinculoAtivo() throws Exception {
+        Cen c = cenario();
+        var op = dados.usuarioComPapel(c.emp(), "operador", true);
+        String tk = token(op.email());
+        String id = autorizada(c);
+        QuarkusTransaction.requiringNew().run(() -> em.createQuery("update VinculoUsuarioEntity v set v.ativo = false "
+                + "where v.usuario.id = :u").setParameter("u", op.id()).executeUpdate());
+        cancelar(tk, id, 1, MOTIVO).then().statusCode(403).body("codigo", equalTo("cancelamento_nao_delegado"));
+    }
+
+    @Test
     void notaDeOutraEmpresaOuInexistenteDa404EIsolaOCancelamento() throws Exception {
         Cen a = cenario();
         Cen b = cenario();
@@ -1314,7 +1352,7 @@ class NfseEmissaoTest extends BaseApiTest {
     }
 
     @Test
-    void pedidoPendenteHaMaisDe24hSemConfirmacaoViraRecusadoELiberaNovoPedido() throws Exception {
+    void pedidoPendenteHaMaisDe24hSemConfirmacaoViraExpiradoELiberaNovoPedido() throws Exception {
         Cen c = cenario();
         String id = autorizada(c);
         stub("/_nfse/modo_cancela", "5023");
@@ -1324,7 +1362,11 @@ class NfseEmissaoTest extends BaseApiTest {
                 .setDataCriacao(LocalDateTime.now().minusHours(25)));
         stub("/_nfse/modo_consulta", "100");
         atualizar(c, id).then().statusCode(200).body("estado", equalTo("autorizada"))
-                .body("cancelamento.estado", equalTo("recusado")).body("podeCancelar", equalTo(true));
+                .body("cancelamento.estado", equalTo("expirado")).body("podeCancelar", equalTo(true));
+        CancelamentoEntity exp = cancelamentos(id).get(0);
+        assertEquals("expirado", exp.getEstado());
+        assertEquals(null, exp.getDataHoraRecusa());
+        assertEquals(br.com.emitesimples.nfseemissao.NfseRetorno.MSG_CANCELAMENTO_SEM_CONFIRMACAO, exp.getMensagemRetorno());
         stub("/_nfse/modo_cancela", "101");
         cancelar(c, id).then().statusCode(200).body("estado", equalTo("cancelada"));
     }
@@ -1359,6 +1401,537 @@ class NfseEmissaoTest extends BaseApiTest {
         String todos = String.join("\n", logs);
         assertFalse(todos.contains(c.tokenEmitente()));
         assertFalse(todos.contains(MOTIVO));
+    }
+
+    // ------------------------------------------------------------------------------------------ assistente: rascunho de nota
+
+    private Response preparar(String token, Cen c) {
+        return chamar("POST", URL + "/preparar", token, corpo(c, "150.50"));
+    }
+
+    private String rascunho(Cen c) {
+        Response r = preparar(c.adm(), c);
+        r.then().statusCode(200).body("estado", equalTo("rascunho"));
+        return r.jsonPath().getString("id");
+    }
+
+    private int enviosStub() throws Exception {
+        return estadoStub().path("envios").asInt();
+    }
+
+    @Test
+    void prepararGravaRascunhoSemNumeroSemGatewayESemConsumirNumeracao() throws Exception {
+        Cen c = cenario();
+        // preparar nao exige certificado/emitente (so a aprovacao)
+        empresa(c.emp(), e -> {
+            e.setSituacaoCertificado("pendente");
+            e.setStatusCadastro("pendente");
+        });
+        Response r = preparar(c.adm(), c);
+        r.then().statusCode(200).body("estado", equalTo("rascunho")).body("numero", nullValue()).body("serie", nullValue())
+                .body("dataEmissao", nullValue()).body("chave", nullValue()).body("valorServicos", equalTo(150.5f))
+                .body("discriminacao", equalTo("Servico de desenvolvimento prestado")).body("descricao", equalTo("Desenvolvimento"))
+                .body("codigoServico", equalTo("010101")).body("podeAprovar", equalTo(true))
+                .body("podeDescartar", equalTo(true)).body("podeAtualizar", equalTo(false)).body("podeCancelar", equalTo(false))
+                .body("editavel", equalTo(false)).body("podeReenviar", equalTo(false));
+        String id = r.jsonPath().getString("id");
+        NotaEntity n = nota(id);
+        assertNull(n.getNumero());
+        assertNull(n.getSerie());
+        assertNull(n.getDataEmissao());
+        assertNull(n.getDataHoraAprovacao());
+        assertNull(n.getAprovadoPor());
+        assertNull(n.getPreparadoPorCliente());
+        assertNotNull(n.getPreparadoPorUsuario());
+        assertEquals(0, ultimo(c.emp()));
+        assertEquals(0, enviosStub());
+        // preparar nao consome o limite de envio (30/min): 35 preparos seguidos passam
+        for (int i = 0; i < 35; i++) {
+            preparar(c.adm(), c).then().statusCode(200);
+        }
+        assertEquals(0, ultimo(c.emp()));
+        assertEquals(0, enviosStub());
+        // aparece na lista e no detalhe
+        chamar("GET", URL + "/" + id, c.adm(), null).then().statusCode(200).body("estado", equalTo("rascunho"))
+                .body("podeAprovar", equalTo(true));
+        chamar("GET", URL + "/0/100?estado=rascunho", c.adm(), null).then().statusCode(200).body("id", hasItem(id));
+    }
+
+    @Test
+    void prepararValidaOQueOPreparoPodeValidar() throws Exception {
+        Cen c = cenario();
+        Cen outra = cenario();
+        Map<String, Object> m = corpo(c, "10.00");
+        m.put("pessoaId", outra.pessoa());
+        chamar("POST", URL + "/preparar", c.adm(), m).then().statusCode(404);
+        m = corpo(c, "10.00");
+        m.put("servicoId", outra.servico());
+        chamar("POST", URL + "/preparar", c.adm(), m).then().statusCode(404);
+        m = corpo(c, "0");
+        chamar("POST", URL + "/preparar", c.adm(), m).then().statusCode(400).body("detalhes.campos.campo", hasItem("valorServicos"));
+        m = corpo(c, "10.001");
+        chamar("POST", URL + "/preparar", c.adm(), m).then().statusCode(400);
+        chamar("POST", URL + "/preparar", c.adm(), null).then().statusCode(400);
+        // servico inativo
+        QuarkusTransaction.requiringNew().run(() -> em.find(ServicoEntity.class, c.servico()).setAtivo(false));
+        preparar(c.adm(), c).then().statusCode(409).body("codigo", equalTo("servico_inativo"));
+        QuarkusTransaction.requiringNew().run(() -> em.find(ServicoEntity.class, c.servico()).setAtivo(true));
+        // discriminacao obrigatoria
+        QuarkusTransaction.requiringNew().run(() -> em.find(ServicoEntity.class, c.servico()).setDiscriminacaoPadrao(null));
+        preparar(c.adm(), c).then().statusCode(400).body("codigo", equalTo("discriminacao_obrigatoria"));
+        m = corpo(c, "10.00");
+        m.put("discriminacao", "Discriminacao informada");
+        chamar("POST", URL + "/preparar", c.adm(), m).then().statusCode(200).body("discriminacao", equalTo("Discriminacao informada"));
+        // tomador incompleto
+        QuarkusTransaction.requiringNew().run(() -> em.find(PessoaEntity.class, c.pessoa()).setLogradouro(null));
+        chamar("POST", URL + "/preparar", c.adm(), corpo(c, "10.00")).then().statusCode(422).body("codigo", equalTo("tomador_incompleto"));
+        // nfse desabilitada
+        Cen d = cenario();
+        empresa(d.emp(), e -> e.setNfseHabilitada(false));
+        preparar(d.adm(), d).then().statusCode(409).body("codigo", equalTo("nfse_nao_habilitada"));
+        assertEquals(0, ultimo(c.emp()));
+        assertEquals(0, enviosStub());
+    }
+
+    @Test
+    void aprovarAlocaNumeroEnviaAoGatewayEASeguirOFluxo() throws Exception {
+        Cen c = cenario();
+        String id = rascunho(c);
+        assertEquals(0, enviosStub());
+        chamar("POST", URL + "/" + id + "/aprovar", c.adm(), null).then().statusCode(200).body("estado", equalTo("processando"))
+                .body("numero", equalTo("1")).body("serie", equalTo("1")).body("dataEmissao", notNullValue())
+                .body("podeAprovar", equalTo(false)).body("podeDescartar", equalTo(false)).body("podeAtualizar", equalTo(true));
+        assertEquals(1, enviosStub());
+        assertEquals(1, ultimo(c.emp()));
+        NotaEntity n = nota(id);
+        assertNotNull(n.getAprovadoPor());
+        assertNotNull(n.getDataHoraAprovacao());
+        assertNotNull(n.getPreparadoPorUsuario());
+        assertEquals("homologacao", n.getAmbiente());
+        assertNotNull(n.getDataCompetencia());
+        // segue o fluxo normal: a consulta autoriza
+        stub("/_nfse/modo_consulta", "100");
+        atualizar(c, id).then().statusCode(200).body("estado", equalTo("autorizada"));
+        // aprovar de novo: nao e mais rascunho
+        chamar("POST", URL + "/" + id + "/aprovar", c.adm(), null).then().statusCode(409).body("codigo", equalTo("nota_nao_e_rascunho"));
+        assertEquals(1, enviosStub());
+        assertEquals(1, ultimo(c.emp()));
+    }
+
+    @Test
+    void aprovarPodeAjustarOsCamposEExigeOEmitente() throws Exception {
+        Cen c = cenario();
+        String id = rascunho(c);
+        empresa(c.emp(), e -> e.setSituacaoCertificado("pendente"));
+        chamar("POST", URL + "/" + id + "/aprovar", c.adm(), null).then().statusCode(409).body("codigo", equalTo("certificado_nao_valido"));
+        assertEquals("rascunho", nota(id).getEstado());
+        assertEquals(0, ultimo(c.emp()));
+        assertEquals(0, enviosStub());
+        empresa(c.emp(), e -> {
+            e.setSituacaoCertificado("valido");
+            e.setStatusCadastro("pendente");
+        });
+        chamar("POST", URL + "/" + id + "/aprovar", c.adm(), null).then().statusCode(409).body("codigo", equalTo("emitente_nao_cadastrado"));
+        empresa(c.emp(), e -> e.setStatusCadastro("cadastrado"));
+        Map<String, Object> ajuste = new HashMap<>();
+        ajuste.put("valorServicos", new BigDecimal("99.90"));
+        ajuste.put("informacoesComplementares", "ajustado na aprovacao");
+        chamar("POST", URL + "/" + id + "/aprovar", c.adm(), ajuste).then().statusCode(200).body("estado", equalTo("processando"))
+                .body("valorServicos", equalTo(99.9f)).body("informacoesComplementares", equalTo("ajustado na aprovacao"));
+        assertEquals(1, ultimo(c.emp()));
+    }
+
+    @Test
+    void aprovarOuDescartarNotaQueNaoERascunhoDaErro() throws Exception {
+        Cen c = cenario();
+        String id = criarProcessando(c);
+        int envios = enviosStub();
+        chamar("POST", URL + "/" + id + "/aprovar", c.adm(), null).then().statusCode(409).body("codigo", equalTo("nota_nao_e_rascunho"));
+        chamar("POST", URL + "/" + id + "/descartar", c.adm(), null).then().statusCode(409).body("codigo", equalTo("nota_nao_e_rascunho"));
+        assertEquals(envios, enviosStub());
+        assertEquals("processando", nota(id).getEstado());
+        // rascunho nao e reenviado por /enviar
+        String r = rascunho(c);
+        chamar("POST", URL + "/" + r + "/enviar", c.adm(), null).then().statusCode(409).body("codigo", equalTo("nota_nao_editavel"));
+        assertEquals(envios, enviosStub());
+    }
+
+    /** BLOQUEADO: o CHECK ck_nota_numeracao (V9) exige numero/serie/dataEmissao em todo estado que nao seja 'rascunho'; precisa de V10. */
+    @Test
+    void notaDescartadaNaoAprovaNemDescartaNemEnvia() throws Exception {
+        Cen c = cenario();
+        String r = rascunho(c);
+        chamar("POST", URL + "/" + r + "/descartar", c.adm(), null).then().statusCode(200);
+        chamar("POST", URL + "/" + r + "/aprovar", c.adm(), null).then().statusCode(409).body("codigo", equalTo("nota_nao_e_rascunho"));
+        chamar("POST", URL + "/" + r + "/descartar", c.adm(), null).then().statusCode(409).body("codigo", equalTo("nota_nao_e_rascunho"));
+        chamar("POST", URL + "/" + r + "/enviar", c.adm(), null).then().statusCode(409).body("codigo", equalTo("nota_nao_editavel"));
+        assertEquals(0, enviosStub());
+    }
+
+    @Test
+    void descartarGravaQuemQuandoENaoTocaNumeracaoNemGateway() throws Exception {
+        Cen c = cenario();
+        String id = rascunho(c);
+        chamar("POST", URL + "/" + id + "/descartar", c.adm(), null).then().statusCode(200).body("estado", equalTo("descartada"))
+                .body("podeAprovar", equalTo(false)).body("podeDescartar", equalTo(false)).body("numero", nullValue());
+        NotaEntity n = nota(id);
+        assertEquals("descartada", n.getEstado());
+        assertNotNull(n.getDescartadoPor());
+        assertNotNull(n.getDataHoraDescarte());
+        assertNull(n.getAprovadoPor());
+        assertEquals(0, ultimo(c.emp()));
+        assertEquals(0, enviosStub());
+    }
+
+    @Test
+    void papeisDoRascunhoDeNota() throws Exception {
+        Cen c = cenario();
+        String id = rascunho(c);
+        String consulta = token(dados.usuarioComPapel(c.emp(), "consulta").email());
+        String operador = token(dados.usuarioComPapel(c.emp(), "operador").email());
+        preparar(consulta, c).then().statusCode(403);
+        preparar(null, c).then().statusCode(401);
+        chamar("POST", URL + "/" + id + "/aprovar", consulta, null).then().statusCode(403);
+        chamar("POST", URL + "/" + id + "/descartar", consulta, null).then().statusCode(403);
+        chamar("POST", URL + "/" + id + "/aprovar", null, null).then().statusCode(401);
+        // consulta le o rascunho, mas sem podeAprovar/podeDescartar
+        chamar("GET", URL + "/" + id, consulta, null).then().statusCode(200).body("estado", equalTo("rascunho"))
+                .body("podeAprovar", equalTo(false)).body("podeDescartar", equalTo(false));
+        // plataforma sem empresa na sessao
+        String plat = token(dados.usuario(true, true).email());
+        preparar(plat, c).then().statusCode(403).body("codigo", equalTo("empresa_nao_selecionada"));
+        chamar("POST", URL + "/" + id + "/aprovar", plat, null).then().statusCode(403).body("codigo", equalTo("empresa_nao_selecionada"));
+        assertEquals("rascunho", nota(id).getEstado());
+        assertEquals(0, enviosStub());
+        // operador prepara e aprova
+        preparar(operador, c).then().statusCode(200).body("podeAprovar", equalTo(true));
+        chamar("POST", URL + "/" + id + "/aprovar", operador, null).then().statusCode(200).body("estado", equalTo("processando"));
+    }
+
+    @Test
+    void rascunhoDeOutraEmpresaOuInexistenteDa404() throws Exception {
+        Cen a = cenario();
+        Cen b = cenario();
+        String id = rascunho(a);
+        chamar("POST", URL + "/" + id + "/aprovar", b.adm(), null).then().statusCode(404);
+        chamar("POST", URL + "/" + id + "/descartar", b.adm(), null).then().statusCode(404);
+        chamar("POST", URL + "/" + UUID.randomUUID() + "/aprovar", a.adm(), null).then().statusCode(404);
+        chamar("POST", URL + "/" + UUID.randomUUID() + "/descartar", a.adm(), null).then().statusCode(404);
+        chamar("GET", URL + "/" + id, b.adm(), null).then().statusCode(404);
+        // tomador de outra empresa
+        Map<String, Object> m = corpo(a, "10.00");
+        m.put("pessoaId", b.pessoa());
+        chamar("POST", URL + "/preparar", a.adm(), m).then().statusCode(404);
+        assertEquals("rascunho", nota(id).getEstado());
+        assertEquals(0, enviosStub());
+        assertEquals(0, ultimo(a.emp()));
+    }
+
+    @Test
+    void consultaNaoEscreveNoRascunho() throws Exception {
+        Cen c = cenario();
+        String id = rascunho(c);
+        NotaEntity antes = nota(id);
+        chamar("GET", URL + "/" + id, c.adm(), null).then().statusCode(200);
+        chamar("GET", URL + "/0/10", c.adm(), null).then().statusCode(200);
+        chamar("GET", URL + "/count?estado=rascunho", c.adm(), null).then().statusCode(200);
+        atualizar(c, id).then().statusCode(200).body("estado", equalTo("rascunho"));
+        NotaEntity depois = nota(id);
+        assertEquals(antes.getEstado(), depois.getEstado());
+        assertEquals(antes.getDataAtualizacao(), depois.getDataAtualizacao());
+        assertEquals(0, enviosStub());
+    }
+
+    @Test
+    void duasAprovacoesSimultaneasAlocamUmNumeroEEnviamUmaVez() throws Exception {
+        Cen c = cenario();
+        String id = rascunho(c);
+        ExecutorService ex = Executors.newFixedThreadPool(2);
+        try {
+            Future<Response> a = ex.submit(() -> chamar("POST", URL + "/" + id + "/aprovar", c.adm(), null));
+            Future<Response> b = ex.submit(() -> chamar("POST", URL + "/" + id + "/aprovar", c.adm(), null));
+            List<Integer> st = new ArrayList<>(List.of(a.get().statusCode(), b.get().statusCode()));
+            st.sort(Integer::compare);
+            assertEquals(List.of(200, 409), st);
+        } finally {
+            ex.shutdownNow();
+        }
+        assertEquals(1, enviosStub());
+        assertEquals(1, ultimo(c.emp()));
+    }
+
+    // ------------------------------------------------------------------------------------------ assistente: rascunho de cancelamento
+
+    private Response prepararCancel(String token, String notaId, Object codigo, Object motivo) {
+        Map<String, Object> m = new HashMap<>();
+        m.put("codigoMotivo", codigo);
+        m.put("motivo", motivo);
+        return chamar("POST", URL + "/" + notaId + "/cancelamentos/preparar", token, m);
+    }
+
+    private String rascunhoCancel(Cen c, String notaId) {
+        Response r = prepararCancel(c.adm(), notaId, 1, MOTIVO);
+        r.then().statusCode(200).body("estado", equalTo("autorizada")).body("cancelamento.estado", equalTo("rascunho"));
+        return r.jsonPath().getString("cancelamento.id");
+    }
+
+    private Response aprovarCancel(String token, String cid) {
+        return chamar("POST", "/api/nfse/cancelamentos/" + cid + "/aprovar", token, null);
+    }
+
+    private Response descartarCancel(String token, String cid) {
+        return chamar("POST", "/api/nfse/cancelamentos/" + cid + "/descartar", token, null);
+    }
+
+    @Test
+    void prepararCancelamentoValidaESemChamarOGateway() throws Exception {
+        Cen c = cenario();
+        String id = autorizada(c);
+        prepararCancel(c.adm(), id, 2, "  " + MOTIVO + "  ").then().statusCode(200).body("estado", equalTo("autorizada"))
+                .body("cancelamento.id", notNullValue()).body("cancelamento.estado", equalTo("rascunho"))
+                .body("cancelamento.codigoMotivo", equalTo(2)).body("cancelamento.motivo", equalTo(MOTIVO))
+                .body("cancelamento.podeAprovar", equalTo(true)).body("cancelamento.podeDescartar", equalTo(true))
+                .body("podeCancelar", equalTo(false)).body("podeAtualizar", equalTo(false));
+        assertEquals(0, chamadasCancela());
+        List<CancelamentoEntity> cs = cancelamentos(id);
+        assertEquals(1, cs.size());
+        CancelamentoEntity ce = cs.get(0);
+        assertEquals("rascunho", ce.getEstado());
+        assertNull(ce.getAprovadoPor());
+        assertNull(ce.getDataHoraAprovacao());
+        assertNull(ce.getPreparadoPorCliente());
+        assertNotNull(ce.getPreparadoPorUsuario());
+        assertEquals("homologacao", ce.getAmbiente());
+        assertEquals("autorizada", nota(id).getEstado());
+        // o GET tambem mostra o rascunho
+        chamar("GET", URL + "/" + id, c.adm(), null).then().body("cancelamento.estado", equalTo("rascunho"))
+                .body("cancelamento.id", equalTo(ce.getId()));
+    }
+
+    @Test
+    void prepararCancelamentoRecusaForaDoMesNotaNaoAutorizadaEMotivoInvalido() throws Exception {
+        Cen c = cenario();
+        String proc = criarProcessando(c);
+        prepararCancel(c.adm(), proc, 1, MOTIVO).then().statusCode(409).body("codigo", equalTo("nota_nao_autorizada"));
+        String id = autorizada(c);
+        String curto = "a".repeat(14);
+        prepararCancel(c.adm(), id, 1, curto).then().statusCode(400).body("detalhes.campos.campo", hasItem("motivo"));
+        prepararCancel(c.adm(), id, 1, "a".repeat(256)).then().statusCode(400).body("detalhes.campos.campo", hasItem("motivo"));
+        prepararCancel(c.adm(), id, 3, MOTIVO).then().statusCode(400).body("detalhes.campos.campo", hasItem("codigoMotivo"));
+        prepararCancel(c.adm(), id, null, null).then().statusCode(400).body("detalhes.campos.campo", hasItems("codigoMotivo", "motivo"));
+        chamar("POST", URL + "/" + id + "/cancelamentos/preparar", c.adm(), null).then().statusCode(400);
+        assertEquals(0, cancelamentos(id).size());
+        prepararCancel(c.adm(), id, 9, "a".repeat(15)).then().statusCode(200);
+        // fora do mes vigente
+        String velha = autorizada(c);
+        QuarkusTransaction.requiringNew().run(() -> em.find(NotaEntity.class, velha)
+                .setDataEmissao(LocalDateTime.now().minusMonths(1).withDayOfMonth(15)));
+        prepararCancel(c.adm(), velha, 1, MOTIVO).then().statusCode(409).body("codigo", equalTo("cancelamento_fora_do_mes"));
+        assertEquals(0, cancelamentos(velha).size());
+        // ambiente
+        String outro = autorizada(c);
+        empresa(c.emp(), e -> e.setAmbiente("producao"));
+        prepararCancel(c.adm(), outro, 1, MOTIVO).then().statusCode(409).body("codigo", equalTo("emitente_de_outro_ambiente"));
+        empresa(c.emp(), e -> e.setAmbiente("homologacao"));
+        assertEquals(0, chamadasCancela());
+        // nota de outra empresa / inexistente
+        Cen b = cenario();
+        prepararCancel(b.adm(), id, 1, MOTIVO).then().statusCode(404);
+        prepararCancel(c.adm(), UUID.randomUUID().toString(), 1, MOTIVO).then().statusCode(404);
+    }
+
+    @Test
+    void duplicidadeDeCancelamentoRascunhoOuProcessandoBloqueia() throws Exception {
+        Cen c = cenario();
+        String id = autorizada(c);
+        String cid = rascunhoCancel(c, id);
+        prepararCancel(c.adm(), id, 1, MOTIVO).then().statusCode(409).body("codigo", equalTo("cancelamento_em_andamento"));
+        cancelar(c, id).then().statusCode(409).body("codigo", equalTo("cancelamento_em_andamento"));
+        assertEquals(0, chamadasCancela());
+        assertEquals(1, cancelamentos(id).size());
+        // descartado libera novo preparo e o cancelamento direto
+        descartarCancel(c.adm(), cid).then().statusCode(200);
+        chamar("GET", URL + "/" + id, c.adm(), null).then().body("podeCancelar", equalTo(true));
+        String outro = rascunhoCancel(c, id);
+        assertNotEquals(cid, outro);
+        // processando bloqueia o preparo
+        stub("/_nfse/modo_cancela", "5023");
+        aprovarCancel(c.adm(), outro).then().statusCode(200).body("cancelamento.estado", equalTo("processando"));
+        prepararCancel(c.adm(), id, 1, MOTIVO).then().statusCode(409).body("codigo", equalTo("cancelamento_em_andamento"));
+    }
+
+    @Test
+    void aprovarCancelamentoEnviaAoGatewayEConcluiComoOCancelamentoDireto() throws Exception {
+        Cen c = cenario();
+        String id = autorizada(c);
+        String cid = rascunhoCancel(c, id);
+        aprovarCancel(c.adm(), cid).then().statusCode(200).body("estado", equalTo("cancelada")).body("podeCancelar", equalTo(false))
+                .body("cancelamento.id", equalTo(cid)).body("cancelamento.estado", equalTo("concluido"))
+                .body("cancelamento.codigoRetorno", equalTo(101)).body("cancelamento.podeAprovar", equalTo(false))
+                .body("cancelamento.podeDescartar", equalTo(false));
+        assertEquals(1, chamadasCancela());
+        JsonNode env = estadoStub().path("ultimoCancelamento");
+        assertEquals(c.tokenEmitente(), env.path("authorization").asText());
+        assertEquals(nota(id).getChave(), env.path("corpo").path("chave").asText());
+        assertEquals(1, env.path("corpo").path("codigo_cancelamento").asInt());
+        assertEquals(MOTIVO, env.path("corpo").path("motivo_cancelamento").asText());
+        CancelamentoEntity ce = cancelamentos(id).get(0);
+        assertEquals("concluido", ce.getEstado());
+        assertNotNull(ce.getAprovadoPor());
+        assertNotNull(ce.getDataHoraAprovacao());
+        assertNotNull(ce.getPreparadoPorUsuario());
+        // aprovar/descartar de novo: nao e mais rascunho
+        aprovarCancel(c.adm(), cid).then().statusCode(409).body("codigo", equalTo("cancelamento_nao_e_rascunho"));
+        descartarCancel(c.adm(), cid).then().statusCode(409).body("codigo", equalTo("cancelamento_nao_e_rascunho"));
+        assertEquals(1, chamadasCancela());
+    }
+
+    @Test
+    void aprovarCancelamentoRecusadoInconclusivoEJaCancelado() throws Exception {
+        Cen c = cenario();
+        String id = autorizada(c);
+        String cid = rascunhoCancel(c, id);
+        stub("/_nfse/modo_cancela", "5013");
+        aprovarCancel(c.adm(), cid).then().statusCode(409).body("codigo", equalTo("cancelamento_recusado"))
+                .body("detalhes.codigoRetorno", equalTo(5013));
+        assertEquals("recusado", cancelamentos(id).get(0).getEstado());
+        assertEquals("autorizada", nota(id).getEstado());
+        // inconclusivo: fica processando e a consulta conclui
+        String cid2 = rascunhoCancel(c, id);
+        stub("/_nfse/modo_cancela", "5023");
+        aprovarCancel(c.adm(), cid2).then().statusCode(200).body("estado", equalTo("autorizada"))
+                .body("cancelamento.estado", equalTo("processando"));
+        stub("/_nfse/modo_consulta", "101");
+        atualizar(c, id).then().statusCode(200).body("estado", equalTo("cancelada")).body("cancelamento.estado", equalTo("concluido"));
+        // 5015: ja cancelada no gateway = concluido
+        String id2 = autorizada(c);
+        String cid3 = rascunhoCancel(c, id2);
+        stub("/_nfse/modo_cancela", "5015");
+        aprovarCancel(c.adm(), cid3).then().statusCode(200).body("estado", equalTo("cancelada"))
+                .body("cancelamento.codigoRetorno", equalTo(5015));
+    }
+
+    @Test
+    void aprovarCancelamentoRevalidaOMesVigente() throws Exception {
+        Cen c = cenario();
+        String id = autorizada(c);
+        String cid = rascunhoCancel(c, id);
+        QuarkusTransaction.requiringNew().run(() -> em.find(NotaEntity.class, id)
+                .setDataEmissao(LocalDateTime.now().minusMonths(1).withDayOfMonth(15)));
+        aprovarCancel(c.adm(), cid).then().statusCode(409).body("codigo", equalTo("cancelamento_fora_do_mes"));
+        assertEquals(0, chamadasCancela());
+        assertEquals("rascunho", cancelamentos(id).get(0).getEstado());
+        // o rascunho ainda pode ser descartado
+        descartarCancel(c.adm(), cid).then().statusCode(200).body("cancelamento.estado", equalTo("descartado"));
+    }
+
+    @Test
+    void aprovarCancelamentoRevalidaAmbienteEEmitente() throws Exception {
+        Cen c = cenario();
+        String id = autorizada(c);
+        String cid = rascunhoCancel(c, id);
+        empresa(c.emp(), e -> e.setAmbiente("producao"));
+        aprovarCancel(c.adm(), cid).then().statusCode(409).body("codigo", equalTo("emitente_de_outro_ambiente"));
+        empresa(c.emp(), e -> {
+            e.setAmbiente("homologacao");
+            e.setStatusCadastro("pendente");
+        });
+        aprovarCancel(c.adm(), cid).then().statusCode(409).body("codigo", equalTo("emitente_nao_cadastrado"));
+        assertEquals(0, chamadasCancela());
+        assertEquals("rascunho", cancelamentos(id).get(0).getEstado());
+    }
+
+    @Test
+    void operadorSemDelegacaoNaoAprovaNemDescartaCancelamentoMasPrepara() throws Exception {
+        Cen c = cenario();
+        String id = autorizada(c);
+        var opSem = dados.usuarioComPapel(c.emp(), "operador", false);
+        String tokenSem = token(opSem.email());
+        // o preparo nao exige a delegacao
+        Response r = prepararCancel(tokenSem, id, 1, MOTIVO);
+        r.then().statusCode(200).body("cancelamento.estado", equalTo("rascunho")).body("cancelamento.podeAprovar", equalTo(false))
+                .body("cancelamento.podeDescartar", equalTo(false));
+        String cid = r.jsonPath().getString("cancelamento.id");
+        aprovarCancel(tokenSem, cid).then().statusCode(403).body("codigo", equalTo("cancelamento_nao_delegado"));
+        descartarCancel(tokenSem, cid).then().statusCode(403).body("codigo", equalTo("cancelamento_nao_delegado"));
+        assertEquals(0, chamadasCancela());
+        assertEquals("rascunho", cancelamentos(id).get(0).getEstado());
+        // com a delegacao (vale na hora)
+        QuarkusTransaction.requiringNew().run(() -> em.createQuery("update VinculoUsuarioEntity v set v.podeCancelarNfse = true "
+                + "where v.usuario.id = :u").setParameter("u", opSem.id()).executeUpdate());
+        chamar("GET", URL + "/" + id, tokenSem, null).then().body("cancelamento.podeAprovar", equalTo(true))
+                .body("cancelamento.podeDescartar", equalTo(true));
+        aprovarCancel(tokenSem, cid).then().statusCode(200).body("estado", equalTo("cancelada"));
+        assertEquals(1, chamadasCancela());
+        assertNotNull(cancelamentos(id).get(0).getAprovadoPor());
+    }
+
+    @Test
+    void descartarCancelamentoGravaQuemEQuando() throws Exception {
+        Cen c = cenario();
+        String id = autorizada(c);
+        String cid = rascunhoCancel(c, id);
+        descartarCancel(c.adm(), cid).then().statusCode(200).body("estado", equalTo("autorizada"))
+                .body("cancelamento.estado", equalTo("descartado")).body("cancelamento.podeAprovar", equalTo(false))
+                .body("podeCancelar", equalTo(true));
+        CancelamentoEntity ce = cancelamentos(id).get(0);
+        assertEquals("descartado", ce.getEstado());
+        assertNotNull(ce.getDescartadoPor());
+        assertNotNull(ce.getDataHoraDescarte());
+        assertNull(ce.getAprovadoPor());
+        aprovarCancel(c.adm(), cid).then().statusCode(409).body("codigo", equalTo("cancelamento_nao_e_rascunho"));
+        descartarCancel(c.adm(), cid).then().statusCode(409).body("codigo", equalTo("cancelamento_nao_e_rascunho"));
+        assertEquals(0, chamadasCancela());
+    }
+
+    @Test
+    void papeisEIsolamentoDosRascunhosDeCancelamento() throws Exception {
+        Cen c = cenario();
+        Cen b = cenario();
+        String id = autorizada(c);
+        String cid = rascunhoCancel(c, id);
+        String consulta = token(dados.usuarioComPapel(c.emp(), "consulta").email());
+        prepararCancel(consulta, id, 1, MOTIVO).then().statusCode(403);
+        prepararCancel(null, id, 1, MOTIVO).then().statusCode(401);
+        aprovarCancel(consulta, cid).then().statusCode(403);
+        descartarCancel(consulta, cid).then().statusCode(403);
+        aprovarCancel(null, cid).then().statusCode(401);
+        chamar("GET", URL + "/" + id, consulta, null).then().statusCode(200).body("cancelamento.podeAprovar", equalTo(false));
+        String plat = token(dados.usuario(true, true).email());
+        aprovarCancel(plat, cid).then().statusCode(403).body("codigo", equalTo("empresa_nao_selecionada"));
+        // outra empresa e inexistente: 404
+        aprovarCancel(b.adm(), cid).then().statusCode(404);
+        descartarCancel(b.adm(), cid).then().statusCode(404);
+        aprovarCancel(c.adm(), UUID.randomUUID().toString()).then().statusCode(404);
+        descartarCancel(c.adm(), UUID.randomUUID().toString()).then().statusCode(404);
+        // so POST em /api/nfse/cancelamentos
+        chamar("GET", "/api/nfse/cancelamentos/" + cid + "/aprovar", c.adm(), null).then().statusCode(403);
+        assertEquals(0, chamadasCancela());
+        assertEquals("rascunho", cancelamentos(id).get(0).getEstado());
+    }
+
+    @Test
+    void consultaNaoEscreveNoRascunhoDeCancelamentoEDuasAprovacoesNaoDuplicam() throws Exception {
+        Cen c = cenario();
+        String id = autorizada(c);
+        String cid = rascunhoCancel(c, id);
+        CancelamentoEntity antes = cancelamentos(id).get(0);
+        chamar("GET", URL + "/" + id, c.adm(), null).then().statusCode(200);
+        atualizar(c, id).then().statusCode(200).body("cancelamento.estado", equalTo("rascunho"));
+        assertEquals(antes.getDataAtualizacao(), cancelamentos(id).get(0).getDataAtualizacao());
+        assertEquals(0, chamadasCancela());
+        ExecutorService ex = Executors.newFixedThreadPool(2);
+        try {
+            Future<Response> a = ex.submit(() -> aprovarCancel(c.adm(), cid));
+            Future<Response> b = ex.submit(() -> aprovarCancel(c.adm(), cid));
+            List<Integer> st = new ArrayList<>(List.of(a.get().statusCode(), b.get().statusCode()));
+            st.sort(Integer::compare);
+            assertEquals(List.of(200, 409), st);
+        } finally {
+            ex.shutdownNow();
+        }
+        assertEquals(1, chamadasCancela());
+        assertEquals(1, cancelamentos(id).size());
     }
 
     private static void assertNull(Object o) {

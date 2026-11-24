@@ -30,7 +30,8 @@ public class VinculoEmpresaAdminResource {
     public record NovoVinculoEmpresa(
             @NotBlank(message = "O usuário é obrigatório.") @Size(max = 36, message = "usuarioId inválido.") String usuarioId,
             @NotBlank(message = "O papel é obrigatório.") @Size(max = 15, message = "Papel inválido.") String papel,
-            Boolean ativo) {
+            Boolean ativo,
+            Boolean podeCancelarNfse) {
     }
 
     @Inject
@@ -44,7 +45,7 @@ public class VinculoEmpresaAdminResource {
     @POST
     public Response criar(@PathParam("empresaId") String empresaId, @Valid NovoVinculoEmpresa body) {
         NovoVinculoEmpresa b = corpo(body);
-        VinculoEmpresa v = service.criar(empresaId, b.usuarioId(), b.papel(), b.ativo());
+        VinculoEmpresa v = service.criar(empresaId, b.usuarioId(), b.papel(), b.ativo(), b.podeCancelarNfse());
         return Response.created(URI.create("/admin/empresas/" + empresaId + "/vinculos/" + v.id())).entity(v).build();
     }
 

@@ -27,7 +27,7 @@ public final class NfseEmissaoDtos {
     public record ErroRetorno(String campo, String erro, String descricao) {
     }
 
-    /** Detalhe: o item mais os campos de edicao e acompanhamento. */
+    /** Detalhe: o item mais os campos de edicao e acompanhamento. {@code editavel}/{@code podeReenviar}: falha_envio e rejeitada. {@code podeCancelar}: considera a permissao do usuario da sessao. */
     public record NotaDetalhe(String id, String numero, String serie, String estado, LocalDateTime dataEmissao,
                               BigDecimal valorServicos, PessoaResumo pessoa, ServicoResumo servico, String chave,
                               String numeroNfse, Integer codigoRetorno, String mensagemRetorno, boolean temPdf,
@@ -35,12 +35,16 @@ public final class NfseEmissaoDtos {
                               String descricao, String codigoServico, List<ErroRetorno> errosRetorno, String linkPdf,
                               String codigoVerificacao, LocalDateTime dataHoraEvento, boolean editavel,
                               boolean podeReenviar, boolean podeAtualizar, CancelamentoInfo cancelamento,
-                              boolean podeCancelar) {
+                              boolean podeCancelar, boolean podeAprovar, boolean podeDescartar) {
     }
 
-    /** Ultimo pedido de cancelamento da nota ({@code estado}: processando, concluido, recusado). Sem xml/pdf. */
-    public record CancelamentoInfo(String estado, Integer codigoMotivo, String motivo, Integer codigoRetorno,
-                                   String mensagemRetorno, LocalDateTime dataHoraEvento, LocalDateTime solicitadoEm) {
+    /**
+     * Ultimo pedido de cancelamento da nota ({@code estado}: rascunho, processando, concluido, recusado, expirado, descartado).
+     * {@code podeAprovar}/{@code podeDescartar}: so rascunho e usuario com a permissao de cancelar. Sem xml/pdf.
+     */
+    public record CancelamentoInfo(String id, String estado, Integer codigoMotivo, String motivo, Integer codigoRetorno,
+                                   String mensagemRetorno, LocalDateTime dataHoraEvento, LocalDateTime solicitadoEm,
+                                   boolean podeAprovar, boolean podeDescartar) {
     }
 
     /** Corpo de POST /api/nfse/notas/{id}/cancelar: codigoMotivo 1, 2 ou 9; motivo de 15 a 255 caracteres (apos trim). */

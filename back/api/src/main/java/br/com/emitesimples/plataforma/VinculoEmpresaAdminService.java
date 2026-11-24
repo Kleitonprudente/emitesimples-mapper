@@ -23,7 +23,8 @@ public class VinculoEmpresaAdminService {
     public record UsuarioVinculo(String id, String nome, String email, Boolean ativo) {
     }
 
-    public record VinculoEmpresa(String id, UsuarioVinculo usuario, String papel, Boolean ativo, LocalDateTime dataCriacao) {
+    public record VinculoEmpresa(String id, UsuarioVinculo usuario, String papel, Boolean ativo, LocalDateTime dataCriacao,
+                                 Boolean podeCancelarNfse) {
     }
 
     @Inject
@@ -41,9 +42,9 @@ public class VinculoEmpresaAdminService {
         });
     }
 
-    public VinculoEmpresa criar(String empresaId, String usuarioId, String papel, Boolean ativo) {
+    public VinculoEmpresa criar(String empresaId, String usuarioId, String papel, Boolean ativo, Boolean podeCancelarNfse) {
         QuarkusTransaction.requiringNew().run(() -> exigirEmpresa(empresaId));
-        String id = usuarios.criarVinculo(usuarioId.trim(), new VinculoNovo(empresaId, papel, ativo)).id();
+        String id = usuarios.criarVinculo(usuarioId.trim(), new VinculoNovo(empresaId, papel, ativo, podeCancelarNfse)).id();
         return obter(empresaId, id);
     }
 
@@ -74,6 +75,6 @@ public class VinculoEmpresaAdminService {
     private static VinculoEmpresa dto(VinculoUsuarioEntity v) {
         UsuarioEntity u = v.getUsuario();
         return new VinculoEmpresa(v.getId(), new UsuarioVinculo(u.getId(), u.getNome(), u.getEmail(), u.getAtivo()),
-                v.getPapel(), v.getAtivo(), v.getDataCriacao());
+                v.getPapel(), v.getAtivo(), v.getDataCriacao(), v.getPodeCancelarNfse());
     }
 }
