@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
 public class ContatosDaPessoaService {
 
     public static final int MAXIMO = 50;
-    static final Set<String> TIPOS = Set.of("socio", "financeiro", "comercial", "fiscal", "outro");
+    static final Set<String> TIPOS = Set.of("SOCIO", "FINANCEIRO", "COMERCIAL", "FISCAL", "OUTRO");
     private static final Pattern EMAIL = Pattern.compile("^[A-Za-z0-9._%+'-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$");
     private static final Pattern FONE = Pattern.compile("^[0-9 ()+.\\-]+$");
 

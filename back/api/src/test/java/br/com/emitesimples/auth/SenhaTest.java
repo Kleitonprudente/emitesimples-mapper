@@ -48,7 +48,7 @@ class SenhaTest extends BaseApiTest {
 
     @Test
     void senhaAtualErradaOuAusenteDa403() {
-        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "operador");
+        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "OPERADOR");
         String t = token(u.email());
         chamar("POST", "/api/auth/senha", t, corpo("errada-errada", "Nova-Senha-123")).then().statusCode(403)
                 .body("codigo", equalTo("senha_atual_invalida"));
@@ -59,7 +59,7 @@ class SenhaTest extends BaseApiTest {
 
     @Test
     void novaSenhaFracaOuLongaDemais() {
-        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "operador");
+        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "OPERADOR");
         String t = token(u.email());
         chamar("POST", "/api/auth/senha", t, corpo(SENHA, "curta12")).then().statusCode(400)
                 .body("codigo", equalTo("senha_invalida")).body("detalhes.campos[0].campo", equalTo("novaSenha"));
@@ -76,7 +76,7 @@ class SenhaTest extends BaseApiTest {
 
     @Test
     void limitesExatosDe8E72BytesSaoAceitos() {
-        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "operador");
+        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "OPERADOR");
         String s72 = "b".repeat(72);
         chamar("POST", "/api/auth/senha", token(u.email()), corpo(SENHA, s72)).then().statusCode(204);
         login(u.email(), s72).then().statusCode(200);
@@ -95,7 +95,7 @@ class SenhaTest extends BaseApiTest {
     @Test
     void trocaDeSenhaFuncionaERevogaOsRefreshTokens() {
         String empresa = dados.empresaAtiva();
-        Usr u = dados.usuarioComPapel(empresa, "operador");
+        Usr u = dados.usuarioComPapel(empresa, "OPERADOR");
         var l1 = login(u.email(), SENHA);
         String access = l1.jsonPath().getString("accessToken");
         String refreshAntigo = refreshCookie(l1);
@@ -125,7 +125,7 @@ class SenhaTest extends BaseApiTest {
 
     @Test
     void novaSenhaIgualAAtualEhRecusada() {
-        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "operador");
+        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "OPERADOR");
         chamar("POST", "/api/auth/senha", token(u.email()), corpo(SENHA, SENHA)).then().statusCode(400)
                 .body("codigo", equalTo("senha_invalida"));
     }
@@ -134,13 +134,13 @@ class SenhaTest extends BaseApiTest {
     void primeiraSenhaComSenhaHashNuloNaoExigeSenhaAtual() {
         String empresa = dados.empresaAtiva();
         Usr u = dados.usuario(true, false, null);
-        dados.vincular(u.id(), empresa, "operador", true);
+        dados.vincular(u.id(), empresa, "OPERADOR", true);
         login(u.email(), SENHA).then().statusCode(401); // sem senha não entra
 
         // um token válido para esse usuário (ex.: sessão criada por outro meio, como o convite/confirmação futuros)
         String jwt = QuarkusTransaction.requiringNew().call(() -> emissor.emitir(
                 em.find(br.com.emitesimples.usuarios.entity.UsuarioEntity.class, u.id()),
-                em.find(EmpresaEntity.class, empresa), "operador", false));
+                em.find(EmpresaEntity.class, empresa), "OPERADOR", false));
         chamar("POST", "/api/auth/senha", jwt, corpo(null, "Primeira-Senha-1")).then().statusCode(204);
 
         assertNotNull(dados.usuarioPorId(u.id()).getSenhaHash());
@@ -152,12 +152,12 @@ class SenhaTest extends BaseApiTest {
     @Test
     void meDevolvePerfilEmpresaEPapel() {
         String empresa = dados.empresaAtiva();
-        Usr u = dados.usuarioComPapel(empresa, "consulta");
+        Usr u = dados.usuarioComPapel(empresa, "CONSULTA");
         chamar("GET", "/api/auth/me", token(u.email()), null).then().statusCode(200)
                 .body("usuario.id", equalTo(u.id()))
                 .body("usuario.email", equalTo(u.email()))
                 .body("empresa.id", equalTo(empresa))
-                .body("papel", equalTo("consulta"))
+                .body("papel", equalTo("CONSULTA"))
                 .body("plataformaAdmin", equalTo(false))
                 .body("$", not(org.hamcrest.Matchers.hasKey("senhaHash")))
                 .body("usuario", not(org.hamcrest.Matchers.hasKey("senhaHash")));

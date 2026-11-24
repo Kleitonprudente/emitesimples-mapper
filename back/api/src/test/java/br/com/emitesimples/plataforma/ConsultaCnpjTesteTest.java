@@ -233,7 +233,7 @@ class ConsultaCnpjTesteTest extends BaseApiTest {
     void soAdministradorDaPlataforma() {
         Map<String, String> corpo = Map.of("cnpj", "27865757000102");
         assertEquals(401, status("POST", URL, null, corpo));
-        for (String papel : new String[] {"consulta", "operador", "administrador"}) {
+        for (String papel : new String[] {"CONSULTA", "OPERADOR", "ADMINISTRADOR"}) {
             String t = token(dados.usuarioComPapel(dados.empresaAtiva(), papel).email());
             assertEquals(403, status("POST", URL, t, corpo), papel);
         }

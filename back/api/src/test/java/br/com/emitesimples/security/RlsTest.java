@@ -65,8 +65,8 @@ class RlsTest extends BaseApiTest {
         conB = dados.contato(empB, pesB, "RLS Contato B");
         notA = dados.nota(empA, pesA, srvA);
         notB = dados.nota(empB, pesB, srvB);
-        tokenA = token(dados.usuarioComPapel(empA, "operador").email());
-        tokenB = token(dados.usuarioComPapel(empB, "operador").email());
+        tokenA = token(dados.usuarioComPapel(empA, "OPERADOR").email());
+        tokenB = token(dados.usuarioComPapel(empB, "OPERADOR").email());
         tokenPlat = token(dados.usuario(true, true).email());
     }
 
@@ -234,13 +234,13 @@ class RlsTest extends BaseApiTest {
         try (Connection c = appComEscopo(empA, false)) {
             // INSERT na B estando como A: WITH CHECK barra (42501)
             SQLException e = assertThrows(SQLException.class, () -> executar(c,
-                    "insert into pessoa (id, empresa_id, tipo_pessoa, nome, cliente) values ('" + novo + "', '" + empB + "', 'fisica', 'x', true)"));
+                    "insert into pessoa (id, empresa_id, tipo_pessoa, nome, cliente) values ('" + novo + "', '" + empB + "', 'FISICA', 'x', true)"));
             assertEquals("42501", e.getSQLState());
         }
         try (Connection c = appComEscopo(empA, false)) {
             // INSERT na A passa
             assertEquals(1, executar(c, "insert into pessoa (id, empresa_id, tipo_pessoa, nome, cliente) values ('"
-                    + UUID.randomUUID() + "', '" + empA + "', 'fisica', 'ok', true)"));
+                    + UUID.randomUUID() + "', '" + empA + "', 'FISICA', 'ok', true)"));
             c.rollback();
         }
         try (Connection c = appComEscopo(empA, false)) {
@@ -290,7 +290,7 @@ class RlsTest extends BaseApiTest {
     }
 
     private Map<String, Object> corpoPessoa(String nome, String empresaId) {
-        return Map.of("tipoPessoa", "fisica", "nome", nome, "cliente", true, "fornecedor", false, "empresa", ref("empresa", empresaId));
+        return Map.of("tipoPessoa", "FISICA", "nome", nome, "cliente", true, "fornecedor", false, "empresa", ref("empresa", empresaId));
     }
 
     private Map<String, Object> corpoContato(String nome, String pessoaId, String empresaId) {
@@ -340,7 +340,7 @@ class RlsTest extends BaseApiTest {
 
         // (o PUT gerado de Pessoa/Servico/Contato tambem copia a empresa aninhada do corpo; ver README, achados)
         Response rp = chamar("PUT", "/api/Pessoa/id/" + p, tokenA,
-                Map.of("tipoPessoa", "fisica", "nome", "Movida", "empresa", ref("empresa", empB)));
+                Map.of("tipoPessoa", "FISICA", "nome", "Movida", "empresa", ref("empresa", empB)));
         Response rs = chamar("PUT", "/api/Servico/id/" + s, tokenA, corpoServico("Movido", empB));
         Response rc = chamar("PUT", "/api/Contato/id/" + c, tokenA, corpoContato("Movido", pesA, empB));
         for (Response r : List.of(rp, rs, rc)) {
@@ -355,6 +355,11 @@ class RlsTest extends BaseApiTest {
 
     private List<String> idsDe(String entidade, String tk) {
         return comToken(tk).get("/api/" + entidade).then().statusCode(200).extract().jsonPath().getList("id");
+    }
+
+    /** A listagem devolve so as 100 primeiras linhas e a suite acumula mais que isso: confere uma linha pelo filtro de id. */
+    private boolean enxerga(String entidade, String tk, String id) {
+        return comToken(tk).get("/api/" + entidade + "?id=" + id).then().statusCode(200).extract().jsonPath().getList("id").contains(id);
     }
 
     @Test
@@ -373,7 +378,7 @@ class RlsTest extends BaseApiTest {
             List<String> b2 = idsDe("Nota", tokenB);
             assertTrue(b2.contains(notB) && !b2.contains(notA));
             // o admin da plataforma entre elas tambem nao deixa rastro
-            assertTrue(idsDe("Pessoa", tokenPlat).containsAll(List.of(pesA, pesB)));
+            assertTrue(enxerga("Pessoa", tokenPlat, pesA) && enxerga("Pessoa", tokenPlat, pesB));
             List<String> a3 = idsDe("Pessoa", tokenA);
             assertFalse(a3.contains(pesB), "A nao herda o irrestrito do admin");
         }
@@ -461,8 +466,8 @@ class RlsTest extends BaseApiTest {
 
         String doc = String.valueOf(10000000000000L + (long) (Math.random() * 89999999999999L));
         Response e = chamar("POST", "/api/Empresa", tokenPlat, Map.of("razaoSocial", "Empresa criada pelo admin",
-                "nomeFantasia", "Admin", "documento", doc, "ambiente", "homologacao", "regimeTributario", 1,
-                "situacao", "ativa", "municipio", ref("municipio", municipioId)));
+                "nomeFantasia", "Admin", "documento", doc, "ambiente", "HOMOLOGACAO", "regimeTributario", 1,
+                "situacao", "ATIVA", "municipio", ref("municipio", municipioId)));
         assertEquals(200, e.statusCode(), e.asString());
         String novaEmpresa = e.jsonPath().getString("id");
         assertEquals(1, contarSuper("select count(*) from empresa where id = ?", novaEmpresa));
@@ -471,8 +476,7 @@ class RlsTest extends BaseApiTest {
         assertEquals(403, status("POST", "/api/Empresa", tokenA, Map.of("razaoSocial", "x")));
 
         // admin ve tudo, de varias empresas, e grava em qualquer uma
-        List<String> pessoas = idsDe("Pessoa", tokenPlat);
-        assertTrue(pessoas.contains(pesA) && pessoas.contains(pesB));
+        assertTrue(enxerga("Pessoa", tokenPlat, pesA) && enxerga("Pessoa", tokenPlat, pesB));
         Response gravada = chamar("POST", "/api/Pessoa", tokenPlat, corpoPessoa("Pelo admin na B", empB));
         assertEquals(200, gravada.statusCode(), gravada.asString());
         assertEquals(empB, escalarSuper("select empresa_id from pessoa where id = ?", gravada.jsonPath().getString("id")));
@@ -481,7 +485,7 @@ class RlsTest extends BaseApiTest {
 
     @Test
     void authContinuaFuncionandoComRlsLoginRefreshSenhaLogout() {
-        var u = dados.usuarioComPapel(empA, "operador");
+        var u = dados.usuarioComPapel(empA, "OPERADOR");
         Response l = login(u.email(), SENHA);
         assertEquals(200, l.statusCode(), l.asString());
         Response r = refresh(refreshCookie(l));

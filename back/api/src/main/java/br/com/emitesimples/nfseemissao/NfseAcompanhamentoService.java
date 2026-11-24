@@ -98,11 +98,11 @@ public class NfseAcompanhamentoService {
         try {
             r = cliente.consultarNfse(urlBase, token, c.chave());
         } catch (ApiException e) {
-            chamadas.registrar(empresaId, notaId, "consultar_nfse", "GET", "/v1/nfse/{chave}", "v1", null, null, e.getCodigo(),
+            chamadas.registrar(empresaId, notaId, "CONSULTAR", "GET", "/v1/nfse/{chave}", "V1", null, null, e.getCodigo(),
                     ms(ini), c.chave(), c.identificacao(), null, c.ambiente());
             throw e;
         }
-        chamadas.registrar(empresaId, notaId, "consultar_nfse", "GET", "/v1/nfse/{chave}", "v1", r.httpStatus(), r.codigo(),
+        chamadas.registrar(empresaId, notaId, "CONSULTAR", "GET", "/v1/nfse/{chave}", "V1", r.httpStatus(), r.codigo(),
                 r.mensagem(), ms(ini), c.chave(), c.identificacao(), null, c.ambiente());
         String idResp = NfseRetorno.texto(r.raiz(), "identificacao");
         if (idResp != null && !idResp.equals(c.identificacao()) && !idResp.equals(notaId)) {
@@ -136,8 +136,8 @@ public class NfseAcompanhamentoService {
 
     /** Nota autorizada com pedido de cancelamento ainda sem resposta conclusiva: acompanhada ate ver o 101. */
     private boolean cancelamentoPendente(NotaEntity n) {
-        return "autorizada".equals(n.getEstado()) && em.createQuery("select count(c) from CancelamentoEntity c where "
-                + "c.nota.id = :n and c.empresa.id = :e and c.estado = 'processando'", Long.class)
+        return EstadosNfse.AUTORIZADA.equals(n.getEstado()) && em.createQuery("select count(c) from CancelamentoEntity c where "
+                + "c.nota.id = :n and c.empresa.id = :e and c.estado = 'PROCESSANDO'", Long.class)
                 .setParameter("n", n.getId()).setParameter("e", n.getEmpresa().getId()).getSingleResult() > 0;
     }
 
@@ -174,13 +174,13 @@ public class NfseAcompanhamentoService {
         LocalDateTime corte = AuthService.agora().minus(LIMITE_ACOMPANHAMENTO);
         String amb = ativo;
         List<Object> linhas = new java.util.ArrayList<>(contexto.comoSistema(() -> QuarkusTransaction.requiringNew().call(() -> em.createQuery(
-                "select n.id, n.empresa.id, n.dataCriacao from NotaEntity n where n.estado in ('processando','emitida_offline') "
+                "select n.id, n.empresa.id, n.dataCriacao from NotaEntity n where n.estado in ('PROCESSANDO','EMITIDA_OFFLINE') "
                         + "and n.chave is not null and n.ambiente = :a and n.dataCriacao > :c order by n.dataAtualizacao asc, n.id")
                 .setParameter("a", amb).setParameter("c", corte).setMaxResults(500).getResultList())));
         // notas autorizadas com cancelamento pendente (a idade vem do pedido, sem corte de 24 h: a consulta o expira)
         linhas.addAll(contexto.comoSistema(() -> QuarkusTransaction.requiringNew().call(() -> em.createQuery(
-                "select n.id, n.empresa.id, c.dataCriacao from CancelamentoEntity c join c.nota n where c.estado = 'processando' "
-                        + "and n.estado = 'autorizada' and n.chave is not null and n.ambiente = :a order by c.dataAtualizacao asc, c.id")
+                "select n.id, n.empresa.id, c.dataCriacao from CancelamentoEntity c join c.nota n where c.estado = 'PROCESSANDO' "
+                        + "and n.estado = 'AUTORIZADA' and n.chave is not null and n.ambiente = :a order by c.dataAtualizacao asc, c.id")
                 .setParameter("a", amb).setMaxResults(100).getResultList())));
         Instant agora = Instant.now();
         int feitas = 0;
@@ -222,7 +222,7 @@ public class NfseAcompanhamentoService {
 
     private void marcarSemRetorno(LocalDateTime corte, String ambiente) {
         List<?> antigas = contexto.comoSistema(() -> QuarkusTransaction.requiringNew().call(() -> em.createQuery(
-                "select n.id, n.empresa.id from NotaEntity n where n.estado in ('processando','emitida_offline') "
+                "select n.id, n.empresa.id from NotaEntity n where n.estado in ('PROCESSANDO','EMITIDA_OFFLINE') "
                         + "and n.chave is not null and n.ambiente = :a and n.dataCriacao <= :c "
                         + "and (n.mensagemRetorno is null or n.mensagemRetorno <> :m)")
                 .setParameter("a", ambiente).setParameter("c", corte).setParameter("m", MSG_SEM_RETORNO)

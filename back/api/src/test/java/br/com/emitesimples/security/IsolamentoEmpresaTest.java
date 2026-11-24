@@ -52,9 +52,9 @@ class IsolamentoEmpresaTest extends BaseApiTest {
         conB = dados.contato(empB, pesB, "Contato da B");
         notA = dados.nota(empA, pesA, srvA);
         notB = dados.nota(empB, pesB, srvB);
-        tokenA = token(dados.usuarioComPapel(empA, "operador").email());
-        tokenAConsulta = token(dados.usuarioComPapel(empA, "consulta").email());
-        tokenB = token(dados.usuarioComPapel(empB, "administrador").email());
+        tokenA = token(dados.usuarioComPapel(empA, "OPERADOR").email());
+        tokenAConsulta = token(dados.usuarioComPapel(empA, "CONSULTA").email());
+        tokenB = token(dados.usuarioComPapel(empB, "ADMINISTRADOR").email());
         tokenPlat = token(dados.usuario(true, true).email());
     }
 
@@ -121,7 +121,7 @@ class IsolamentoEmpresaTest extends BaseApiTest {
 
     @Test
     void escritaPorIdEmRegistroDeOutraEmpresaDa404ENaoAltera() {
-        Map<String, Object> corpo = Map.of("tipoPessoa", "fisica", "nome", "INVADIDA", "empresa", Map.of("id", empB));
+        Map<String, Object> corpo = Map.of("tipoPessoa", "FISICA", "nome", "INVADIDA", "empresa", Map.of("id", empB));
         comToken(tokenA).body(corpo).put("/api/Pessoa/id/" + pesB).then().statusCode(404);
         comToken(tokenA).body(Map.of("nome", "INVADIDA")).patch("/api/Pessoa/id/" + pesB).then().statusCode(404);
         comToken(tokenA).delete("/api/Contato/id/" + conB).then().statusCode(403);
@@ -156,7 +156,7 @@ class IsolamentoEmpresaTest extends BaseApiTest {
         // JWT assinado pelo servidor, mas sem empresa_id e sem plataforma_admin: o escopo deve negar (403), nunca liberar tudo
         var u = dados.usuario(true, false);
         String jwt = QuarkusTransaction.requiringNew().call(() -> emissor.emitir(
-                em.find(br.com.emitesimples.usuarios.entity.UsuarioEntity.class, u.id()), null, "operador", false));
+                em.find(br.com.emitesimples.usuarios.entity.UsuarioEntity.class, u.id()), null, "OPERADOR", false));
         Response r = comToken(jwt).get("/api/Pessoa");
         assertEquals(403, r.statusCode(), r.asString());
         assertEquals(403, comToken(jwt).get("/api/Pessoa/id/" + pesA).statusCode());
@@ -168,7 +168,7 @@ class IsolamentoEmpresaTest extends BaseApiTest {
     }
 
     private Map<String, Object> corpoPessoa(String nome, String empresaId) {
-        return Map.of("tipoPessoa", "fisica", "nome", nome, "cliente", true, "fornecedor", false,
+        return Map.of("tipoPessoa", "FISICA", "nome", nome, "cliente", true, "fornecedor", false,
                 "empresa", Map.of("id", empresaId, "version", versaoDaEmpresa(empresaId)));
     }
 
@@ -183,7 +183,7 @@ class IsolamentoEmpresaTest extends BaseApiTest {
     @Test
     void postComEmpresaSoComIdFuncionaComOGeradorCorrigido() {
         Response r = chamar("POST", "/api/Pessoa", tokenA,
-                Map.of("tipoPessoa", "fisica", "nome", "x", "cliente", true, "fornecedor", false, "empresa", Map.of("id", empA)));
+                Map.of("tipoPessoa", "FISICA", "nome", "x", "cliente", true, "fornecedor", false, "empresa", Map.of("id", empA)));
         assertEquals(200, r.statusCode(), r.asString());
         assertEquals(empA, r.jsonPath().getString("empresa.id"));
     }
@@ -205,7 +205,7 @@ class IsolamentoEmpresaTest extends BaseApiTest {
     @Test
     void putNaoConseguePassarRegistroParaOutraEmpresa() {
         String p = dados.pessoa(empA, "Vai mudar de empresa");
-        Response r = chamar("PUT", "/api/Pessoa/id/" + p, tokenA, Map.of("tipoPessoa", "fisica", "nome", "Movida",
+        Response r = chamar("PUT", "/api/Pessoa/id/" + p, tokenA, Map.of("tipoPessoa", "FISICA", "nome", "Movida",
                 "empresa", Map.of("id", empB, "version", versaoDaEmpresa(empB))));
         String dona = QuarkusTransaction.requiringNew().call(() -> em.createQuery(
                 "select p.empresa.id from PessoaEntity p where p.id = :id", String.class).setParameter("id", p)

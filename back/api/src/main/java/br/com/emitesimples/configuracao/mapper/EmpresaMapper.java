@@ -318,7 +318,7 @@ public class EmpresaMapper {
         }
 
         if (entity.getSituacao() == null) {
-            entity.setSituacao("pendente_confirmacao");
+            entity.setSituacao("PENDENTE_CONFIRMACAO");
         }
         if (entity.getNfseHabilitada() == null) {
             entity.setNfseHabilitada(false);
@@ -327,13 +327,13 @@ public class EmpresaMapper {
             entity.setUltimoNumeroNfse(0);
         }
         if (entity.getStatusCadastro() == null) {
-            entity.setStatusCadastro("nao_cadastrado");
+            entity.setStatusCadastro("NAO_CADASTRADO");
         }
         if (entity.getSituacaoCertificado() == null) {
-            entity.setSituacaoCertificado("nao_enviado");
+            entity.setSituacaoCertificado("NAO_ENVIADO");
         }
         if (entity.getAmbiente() == null) {
-            entity.setAmbiente("homologacao");
+            entity.setAmbiente("HOMOLOGACAO");
         }
 
         return entity;
@@ -345,7 +345,7 @@ public class EmpresaMapper {
         }
 
         if (api.getSituacao() == null) {
-            api.setSituacao("pendente_confirmacao");
+            api.setSituacao("PENDENTE_CONFIRMACAO");
         }
         if (api.getNfseHabilitada() == null) {
             api.setNfseHabilitada(false);
@@ -354,13 +354,13 @@ public class EmpresaMapper {
             api.setUltimoNumeroNfse(0);
         }
         if (api.getStatusCadastro() == null) {
-            api.setStatusCadastro("nao_cadastrado");
+            api.setStatusCadastro("NAO_CADASTRADO");
         }
         if (api.getSituacaoCertificado() == null) {
-            api.setSituacaoCertificado("nao_enviado");
+            api.setSituacaoCertificado("NAO_ENVIADO");
         }
         if (api.getAmbiente() == null) {
-            api.setAmbiente("homologacao");
+            api.setAmbiente("HOMOLOGACAO");
         }
 
         return api;

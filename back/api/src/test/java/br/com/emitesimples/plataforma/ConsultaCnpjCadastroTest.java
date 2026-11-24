@@ -219,7 +219,7 @@ class ConsultaCnpjCadastroTest extends BaseApiTest {
     void soAdministradorDaPlataformaEApenasGet() {
         String c = cnpj(CnpjWsStubResource.RAIZ_CAD_SIMPLES);
         assertEquals(401, status("GET", BASE + c, null, null));
-        for (String papel : new String[] {"consulta", "operador", "administrador"}) {
+        for (String papel : new String[] {"CONSULTA", "OPERADOR", "ADMINISTRADOR"}) {
             String t = token(dados.usuarioComPapel(dados.empresaAtiva(), papel).email());
             assertEquals(403, status("GET", BASE + c, t, null), papel);
         }

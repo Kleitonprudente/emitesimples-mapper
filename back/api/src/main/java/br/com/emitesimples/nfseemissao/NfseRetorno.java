@@ -48,7 +48,7 @@ final class NfseRetorno {
     }
 
     static boolean emAndamento(String estado) {
-        return "processando".equals(estado) || "emitida_offline".equals(estado) || "em_conflito".equals(estado);
+        return EstadosNfse.PROCESSANDO.equals(estado) || EstadosNfse.EMITIDA_OFFLINE.equals(estado) || EstadosNfse.EM_CONFLITO.equals(estado);
     }
 
     // ------------------------------------------------------------------------------------- envio
@@ -64,14 +64,14 @@ final class NfseRetorno {
                 autorizar(n, r);
                 return Efeito.NENHUM;
             }
-            andamento(n, "processando", r);
+            andamento(n, EstadosNfse.PROCESSANDO, r);
             return c == 100 ? Efeito.CONSULTAR_AGORA : Efeito.NENHUM;
         }
         if (c == 5027) {
             if (r.chave() != null) {
                 gravarChave(n, r.chave());
             }
-            andamento(n, "em_conflito", r);
+            andamento(n, EstadosNfse.EM_CONFLITO, r);
             return Efeito.NENHUM;
         }
         if (c == 0) {
@@ -82,7 +82,7 @@ final class NfseRetorno {
                 // nada para acompanhar: seguro tentar de novo (mesmo numero e mesma identificacao)
                 return marcarFalhaEnvio(n, r.mensagem() == null ? MSG_INDISPONIVEL : r.mensagem(), c);
             }
-            andamento(n, "processando", r);
+            andamento(n, EstadosNfse.PROCESSANDO, r);
             return Efeito.NENHUM;
         }
         if (sucesso && c / 100 != 50 && c != 5006) {
@@ -99,7 +99,7 @@ final class NfseRetorno {
     }
 
     private static Efeito marcarFalhaEnvio(NotaEntity n, String mensagem, Integer codigo) {
-        n.setEstado("falha_envio");
+        n.setEstado(EstadosNfse.FALHA_ENVIO);
         n.setCodigoRetorno(codigo);
         n.setMensagemRetorno(limitar(mensagem, 500));
         n.setErrosRetorno(null);
@@ -111,11 +111,11 @@ final class NfseRetorno {
 
     static void aplicarConsulta(NotaEntity n, RetornoNfse r) {
         String atual = n.getEstado();
-        if ("cancelada".equals(atual) || "descartada".equals(atual)) {
+        if (EstadosNfse.CANCELADA.equals(atual) || EstadosNfse.DESCARTADA.equals(atual)) {
             return;
         }
         int c = r.codigo();
-        if ("autorizada".equals(atual)) {
+        if (EstadosNfse.AUTORIZADA.equals(atual)) {
             if (c == 101) {
                 cancelar(n, r);
             }
@@ -133,11 +133,11 @@ final class NfseRetorno {
                 gravarChave(n, r.chave());
             }
             guardarPdf(n, r.raiz());
-            andamento(n, "emitida_offline", r);
+            andamento(n, EstadosNfse.EMITIDA_OFFLINE, r);
         } else if (c == 5023 || c == 5030 || c == 5034) {
-            andamento(n, "processando", r);
+            andamento(n, EstadosNfse.PROCESSANDO, r);
         } else if (c == 5027) {
-            andamento(n, "em_conflito", r);
+            andamento(n, EstadosNfse.EM_CONFLITO, r);
         } else if (REJEICAO.contains(c)) {
             rejeitar(n, r);
         } else {
@@ -185,7 +185,7 @@ final class NfseRetorno {
         boolean sucesso = !Boolean.FALSE.equals(r.sucesso());
         if (cod == 5015 || sucesso && cod == 101) {
             concluir(c, r, cod);
-            if (!"cancelada".equals(n.getEstado())) {
+            if (!EstadosNfse.CANCELADA.equals(n.getEstado())) {
                 cancelar(n, r);
             }
             return ResultadoCancelamento.CONCLUIDO;
@@ -202,14 +202,14 @@ final class NfseRetorno {
     }
 
     private static void recusar(CancelamentoEntity c, Integer cod, String mensagem, java.time.LocalDateTime agora) {
-        c.setEstado("recusado");
+        c.setEstado(EstadosNfse.RECUSADO);
         c.setCodigoRetorno(cod);
         c.setMensagemRetorno(limitar(mensagem, 500));
         c.setDataHoraRecusa(agora);
     }
 
     private static void concluir(CancelamentoEntity c, RetornoNfse r, int codigo) {
-        c.setEstado("concluido");
+        c.setEstado(EstadosNfse.CONCLUIDO);
         c.setCodigoRetorno(codigo);
         c.setMensagemRetorno(limitar(r.mensagem(), 500));
         LocalDateTime evento = dataEvento(texto(r.raiz(), "data_hora_evento"));
@@ -234,16 +234,16 @@ final class NfseRetorno {
      */
     static void concluirCancelamentoPendente(EntityManager em, NotaEntity n, RetornoNfse r) {
         List<CancelamentoEntity> pendentes = em.createQuery("select c from CancelamentoEntity c where c.nota.id = :n "
-                + "and c.empresa.id = :e and c.estado = 'processando'", CancelamentoEntity.class)
+                + "and c.empresa.id = :e and c.estado = 'PROCESSANDO'", CancelamentoEntity.class)
                 .setParameter("n", n.getId()).setParameter("e", n.getEmpresa().getId()).getResultList();
         for (CancelamentoEntity c : pendentes) {
-            if ("cancelada".equals(n.getEstado())) {
+            if (EstadosNfse.CANCELADA.equals(n.getEstado())) {
                 concluir(c, r, 101);
-            } else if ("autorizada".equals(n.getEstado()) && r.codigo() == 100 && c.getDataCriacao() != null
+            } else if (EstadosNfse.AUTORIZADA.equals(n.getEstado()) && r.codigo() == 100 && c.getDataCriacao() != null
                     && c.getDataCriacao().isBefore(AuthService.agora().minus(LIMITE_CANCELAMENTO_PENDENTE))) {
                 // expirado (nao recusado): o gateway nunca recusou, so nao confirmou; libera novo pedido
                 var agora = AuthService.agora();
-                c.setEstado("expirado");
+                c.setEstado(EstadosNfse.EXPIRADO);
                 c.setMensagemRetorno(MSG_CANCELAMENTO_SEM_CONFIRMACAO);
                 c.setDataAtualizacao(agora);
             }
@@ -261,7 +261,7 @@ final class NfseRetorno {
     }
 
     private static void rejeitar(NotaEntity n, RetornoNfse r) {
-        n.setEstado("rejeitada");
+        n.setEstado(EstadosNfse.REJEITADA);
         n.setCodigoRetorno(r.codigo());
         n.setMensagemRetorno(limitar(r.mensagem(), 500));
         n.setErrosRetorno(errosComoJson(r.raiz()));
@@ -270,7 +270,7 @@ final class NfseRetorno {
 
     private static void autorizar(NotaEntity n, RetornoNfse r) {
         JsonNode raiz = r.raiz();
-        n.setEstado("autorizada");
+        n.setEstado(EstadosNfse.AUTORIZADA);
         n.setCodigoRetorno(100);
         n.setMensagemRetorno(limitar(r.mensagem(), 500));
         n.setErrosRetorno(null);
@@ -292,7 +292,7 @@ final class NfseRetorno {
     }
 
     private static void cancelar(NotaEntity n, RetornoNfse r) {
-        n.setEstado("cancelada");
+        n.setEstado(EstadosNfse.CANCELADA);
         n.setCodigoRetorno(101);
         n.setMensagemRetorno(limitar(r.mensagem(), 500));
         n.setErrosRetorno(null);

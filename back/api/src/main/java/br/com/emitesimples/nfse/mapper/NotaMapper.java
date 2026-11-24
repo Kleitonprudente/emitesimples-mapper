@@ -579,10 +579,10 @@ public class NotaMapper {
             entity.setTipoRetencao(2);
         }
         if (entity.getEstado() == null) {
-            entity.setEstado("processando");
+            entity.setEstado("PROCESSANDO");
         }
         if (entity.getAmbiente() == null) {
-            entity.setAmbiente("homologacao");
+            entity.setAmbiente("HOMOLOGACAO");
         }
 
         return entity;
@@ -606,10 +606,10 @@ public class NotaMapper {
             api.setTipoRetencao(2);
         }
         if (api.getEstado() == null) {
-            api.setEstado("processando");
+            api.setEstado("PROCESSANDO");
         }
         if (api.getAmbiente() == null) {
-            api.setAmbiente("homologacao");
+            api.setAmbiente("HOMOLOGACAO");
         }
 
         return api;

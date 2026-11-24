@@ -21,17 +21,17 @@ import br.com.emitesimples.usuarios.domain.ClienteAcesso;
 * emissão da nota (fuso America/Sao_Paulo). Prazos específicos de cada município 
 * não são tratados.
  * Dois caminhos de entrada. (A) Cancelamento DIRETO por uma pessoa: o pedido nasce 
-* em processando, criado e enviado ao gateway numa só ação. (B) Assistente de IA: 
-* só PREPARA o pedido como rascunho (preparadoPorCliente); uma pessoa com 
-* permissão de cancelar aprova (o sistema envia e o pedido vira processando) ou 
-* descarta (vira descartado). Aprovar e descartar o rascunho são requisito AINDA 
-* NÃO IMPLEMENTADO no código. O estado rascunho só existe no caminho B.
+* em PROCESSANDO, criado e enviado ao gateway numa só ação. (B) Assistente de IA: 
+* só PREPARA o pedido como RASCUNHO (preparadoPorCliente); uma pessoa com 
+* permissão de cancelar aprova (o sistema envia e o pedido vira PROCESSANDO) ou 
+* descarta (vira DESCARTADO). Aprovar e descartar o rascunho são requisito AINDA 
+* NÃO IMPLEMENTADO no código. O estado RASCUNHO só existe no caminho B.
  * Quem cancela: o administrador sempre; o operador SÓ com permissão delegada 
 * (VinculoUsuario.podeCancelarNfse). O código atual deixa o operador cancelar sem 
 * delegação: divergência a corrigir no código.
- * Estados do pedido: rascunho, processando, concluido, recusado (o gateway ou o 
-* sistema recusou), expirado (pendente por mais de 24 h sem confirmação) e 
-* descartado. As transições estão em CicloCancelamento.
+ * Estados do pedido: RASCUNHO, PROCESSANDO, CONCLUIDO, RECUSADO (o gateway ou o 
+* sistema recusou), EXPIRADO (pendente por mais de 24 h sem confirmação) e 
+* DESCARTADO. As transições estão em CicloCancelamento.
  * Vive no contexto nfse (domain.nfse). Depende do contexto usuarios (Usuario e 
 * ClienteAcesso) para o rastro; usuarios depende só de cadastros e configuracao, 
 * não há ciclo.

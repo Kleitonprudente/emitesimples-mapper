@@ -26,13 +26,13 @@ tags:
              (A) Emissão DIRETA por uma pessoa no sistema: NÃO há rascunho; a nota nasce em 
             processamento, criada e enviada ao gateway numa só ação. (B) Assistente de IA: o 
             assistente só PREPARA a nota como rascunho (preparadoPorCliente) e uma PESSOA 
-            aprova (o sistema envia e a nota vira processando) ou descarta (vira 
-            descartada). Aprovar e descartar o rascunho são requisito AINDA NÃO IMPLEMENTADO 
+            aprova (o sistema envia e a nota vira PROCESSANDO) ou descarta (vira 
+            DESCARTADA). Aprovar e descartar o rascunho são requisito AINDA NÃO IMPLEMENTADO 
             no código. O estado rascunho só existe no caminho B.
              Depois do envio, o gateway devolve o código 5023 com a chave e só depois vem a 
             autorização. Falha de infraestrutura no envio direto (gateway indisponível, 
-            token recusado, aceite sem chave, código 0) leva a falha_envio, que pode ser 
-            reenviada com o mesmo número, como a rejeitada. As transições estão em 
+            token recusado, aceite sem chave, código 0) leva a FALHA_ENVIO, que pode ser 
+            reenviada com o mesmo número, como a REJEITADA. As transições estão em 
             CicloNota.
              Vive no contexto nfse (domain.nfse). Depende de configuracao (Empresa), de 
             cadastros (Pessoa e Servico) e de usuarios (Usuario e ClienteAcesso) para o 
@@ -74,17 +74,17 @@ tags:
             emissão da nota (fuso America/Sao_Paulo). Prazos específicos de cada município 
             não são tratados.
              Dois caminhos de entrada. (A) Cancelamento DIRETO por uma pessoa: o pedido nasce 
-            em processando, criado e enviado ao gateway numa só ação. (B) Assistente de IA: 
-            só PREPARA o pedido como rascunho (preparadoPorCliente); uma pessoa com 
-            permissão de cancelar aprova (o sistema envia e o pedido vira processando) ou 
-            descarta (vira descartado). Aprovar e descartar o rascunho são requisito AINDA 
-            NÃO IMPLEMENTADO no código. O estado rascunho só existe no caminho B.
+            em PROCESSANDO, criado e enviado ao gateway numa só ação. (B) Assistente de IA: 
+            só PREPARA o pedido como RASCUNHO (preparadoPorCliente); uma pessoa com 
+            permissão de cancelar aprova (o sistema envia e o pedido vira PROCESSANDO) ou 
+            descarta (vira DESCARTADO). Aprovar e descartar o rascunho são requisito AINDA 
+            NÃO IMPLEMENTADO no código. O estado RASCUNHO só existe no caminho B.
              Quem cancela: o administrador sempre; o operador SÓ com permissão delegada 
             (VinculoUsuario.podeCancelarNfse). O código atual deixa o operador cancelar sem 
             delegação: divergência a corrigir no código.
-             Estados do pedido: rascunho, processando, concluido, recusado (o gateway ou o 
-            sistema recusou), expirado (pendente por mais de 24 h sem confirmação) e 
-            descartado. As transições estão em CicloCancelamento.
+             Estados do pedido: RASCUNHO, PROCESSANDO, CONCLUIDO, RECUSADO (o gateway ou o 
+            sistema recusou), EXPIRADO (pendente por mais de 24 h sem confirmação) e 
+            DESCARTADO. As transições estão em CicloCancelamento.
              Vive no contexto nfse (domain.nfse). Depende do contexto usuarios (Usuario e 
             ClienteAcesso) para o rastro; usuarios depende só de cadastros e configuracao, 
             não há ciclo.
@@ -2419,13 +2419,13 @@ definitions:
              (A) Emissão DIRETA por uma pessoa no sistema: NÃO há rascunho; a nota nasce em 
             processamento, criada e enviada ao gateway numa só ação. (B) Assistente de IA: o 
             assistente só PREPARA a nota como rascunho (preparadoPorCliente) e uma PESSOA 
-            aprova (o sistema envia e a nota vira processando) ou descarta (vira 
-            descartada). Aprovar e descartar o rascunho são requisito AINDA NÃO IMPLEMENTADO 
+            aprova (o sistema envia e a nota vira PROCESSANDO) ou descarta (vira 
+            DESCARTADA). Aprovar e descartar o rascunho são requisito AINDA NÃO IMPLEMENTADO 
             no código. O estado rascunho só existe no caminho B.
              Depois do envio, o gateway devolve o código 5023 com a chave e só depois vem a 
             autorização. Falha de infraestrutura no envio direto (gateway indisponível, 
-            token recusado, aceite sem chave, código 0) leva a falha_envio, que pode ser 
-            reenviada com o mesmo número, como a rejeitada. As transições estão em 
+            token recusado, aceite sem chave, código 0) leva a FALHA_ENVIO, que pode ser 
+            reenviada com o mesmo número, como a REJEITADA. As transições estão em 
             CicloNota.
              Vive no contexto nfse (domain.nfse). Depende de configuracao (Empresa), de 
             cadastros (Pessoa e Servico) e de usuarios (Usuario e ClienteAcesso) para o 
@@ -2496,7 +2496,7 @@ definitions:
             Numeração da DPS enviada ao gateway, 1 a 9 dígitos (campo numero do envio). Não 
             é o número da NFS-e devolvido na autorização.
              Vazio no rascunho do assistente: o número só é alocado quando a nota vira 
-            processando (criação direta ou aprovação), sem reservar no preparo e sem 
+            PROCESSANDO (criação direta ou aprovação), sem reservar no preparo e sem 
             buracos. Por isso o mapa não marca required. Regra de aplicação, a validar no 
             código: obrigatório fora do rascunho (e a coluna do banco continua exigindo isso 
             por constraint de estado ou validação).
@@ -2507,7 +2507,7 @@ definitions:
         pattern: \w*\W*
         description: |
             Série da DPS, 1 a 5 dígitos (campo serie do envio). Vazia no rascunho do 
-            assistente; preenchida obrigatoriamente quando a nota vira processando (criação 
+            assistente; preenchida obrigatoriamente quando a nota vira PROCESSANDO (criação 
             direta ou aprovação). Regra de aplicação, a validar no código.
 
       dataEmissao:
@@ -2517,7 +2517,7 @@ definitions:
             Data e hora de emissão enviadas (campo data_emissao do envio, ISO com fuso). 
             Regravada a cada reenvio. Define o mês vigente da regra de cancelamento (mês e 
             ano da emissão, fuso America/Sao_Paulo). Vazia no rascunho do assistente; 
-            preenchida obrigatoriamente quando a nota vira processando (criação direta ou 
+            preenchida obrigatoriamente quando a nota vira PROCESSANDO (criação direta ou 
             aprovação). Regra de aplicação, a validar no código.
 
       dataCompetencia:
@@ -2631,18 +2631,18 @@ definitions:
             Padrão 1, tributável.
 
             Valores permitidos: 
-              tributavel
+              TRIBUTAVEL
                  Valor: 1
-                 Texto: Tributável
-              imunidade
+                 Texto: Tributável - Operação tributável pelo ISS (padrão). Código gravado: 1.
+              IMUNIDADE
                  Valor: 2
-                 Texto: Imunidade
-              exportacao
+                 Texto: Imunidade - Operação com imunidade do ISS. Código gravado: 2.
+              EXPORTACAO
                  Valor: 3
-                 Texto: Exportação
-              naoIncidencia
+                 Texto: Exportação - Exportação de serviço. Código gravado: 3.
+              NAO_INCIDENCIA
                  Valor: 4
-                 Texto: Não incidência
+                 Texto: Não incidência - Operação em que o ISS não incide. Código gravado: 4.
       aliquotaIss:
         type: number
         minimum: 0
@@ -2665,12 +2665,12 @@ definitions:
             tributos_municipais.responsavel_retencao do envio). Opcional.
 
             Valores permitidos: 
-              tomador
+              TOMADOR
                  Valor: 2
-                 Texto: Tomador
-              intermediario
+                 Texto: Tomador - A retenção do ISS é feita pelo tomador. Código gravado: 2.
+              INTERMEDIARIO
                  Valor: 3
-                 Texto: Intermediário
+                 Texto: Intermediário - A retenção do ISS é feita pelo intermediário. Código gravado: 3.
       cstPisCofins:
         type: string
         maxLength: 2
@@ -2760,38 +2760,77 @@ definitions:
         format: date-time
         description: |
             Momento em que uma pessoa descartou o rascunho do assistente (ainda não 
-            implementado no código). Preenchida só no estado descartada.
+            implementado no código). Preenchida só no estado DESCARTADA.
 
       estado:
         type: string
         maxLength: 20
         pattern: \w*\W*
         description: |
-            Estado da nota no ciclo de vida, na ordem: rascunho, processando, 
-            emitida_offline, autorizada, rejeitada, falha_envio, em_conflito, cancelada, 
-            descartada. As transições estão em CicloNota.
+            Estado da nota no ciclo de vida, na ordem: RASCUNHO, PROCESSANDO, 
+            EMITIDA_OFFLINE, AUTORIZADA, REJEITADA, FALHA_ENVIO, EM_CONFLITO, CANCELADA, 
+            DESCARTADA. As transições estão em CicloNota. A semântica de cada valor está em 
+            [e] values.
              Rascunho existe SÓ no caminho do assistente de IA: é a nota preparada e ainda 
             não enviada, aguardando uma pessoa aprovar ou descartar (aprovar e descartar: 
             ainda não implementado no código). Na emissão direta pela pessoa não há 
-            rascunho: a nota nasce processando.
+            rascunho: a nota nasce PROCESSANDO.
              Processando é a nota enviada ao gateway, aguardando o retorno (código 5023 com a 
             chave). Emitida offline é a nota aceita que aguarda a prefeitura (código 2), sem 
             XML nem protocolo; vem SÓ da consulta, nunca do envio.
              Autorizada vem do código 100 e cancelada do 101. Em conflito vem do 5027. 
             Rejeitada é a recusa definitiva do governo (5001, 5002, 5005, 5007, 5024, 5025, 
             5028, 5033 e outras recusas): a nota é editável e reenviável com o mesmo número.
-             Falha de envio (falha_envio) é a falha de infraestrutura no envio direto 
+             Falha de envio (FALHA_ENVIO) é a falha de infraestrutura no envio direto 
             (gateway indisponível, token recusado, aceite sem chave, código 0, resposta 
             inesperada): a nota NÃO foi rejeitada pelo governo e pode ser reenviada com o 
             mesmo número, como a rejeitada. Substitui o uso de rascunho como estado de nova 
             tentativa.
              Descartada é o rascunho do assistente recusado por uma pessoa; nunca foi enviada 
             ao gateway e não tem chave.
-             Regra: só o estado rascunho pode ser aprovado ou descartado, e só uma pessoa o 
+             Regra: só o estado RASCUNHO pode ser aprovado ou descartado, e só uma pessoa o 
             envia ao gateway. Um agente apenas prepara. Só uma nota autorizada pode ser 
             cancelada. Depois do envio, a decisão é sempre pelo código de retorno, nunca 
             pelo texto da mensagem.
 
+            Valores permitidos: 
+              RASCUNHO
+                 Valor: RASCUNHO
+                 Texto: Rascunho - Existe SÓ no caminho do assistente de IA: nota preparada e ainda não enviada ao gateway, aguardando uma pessoa aprovar (vira PROCESSANDO) ou descartar (vira DESCARTADA). Aprovar e descartar ainda não estão implementados no código. Numero e serie ficam vazios. Na emissão direta pela pessoa não há rascunho.
+              PROCESSANDO
+                 Valor: PROCESSANDO
+                 Texto: Processando - Nota enviada ao gateway, aguardando o retorno (código 5023 com a chave) e depois a autorização. É o padrão: a emissão direta nasce aqui, e o rascunho aprovado vira este estado.
+              EMITIDA_OFFLINE
+                 Valor: EMITIDA_OFFLINE
+                 Texto: Emitida offline - Nota aceita que aguarda a prefeitura (código 2), sem XML nem protocolo. Vem SÓ da consulta, nunca do envio.
+              AUTORIZADA
+                 Valor: AUTORIZADA
+                 Texto: Autorizada - Nota autorizada pelo governo (código 100). Só uma nota autorizada pode ser cancelada.
+              CANCELADA
+                 Valor: CANCELADA
+                 Texto: Cancelada - Nota cancelada (código 101), depois que um Cancelamento é concluído.
+              REJEITADA
+                 Valor: REJEITADA
+                 Texto: Rejeitada - Recusa definitiva do governo (5001, 5002, 5005, 5007, 5024, 5025, 5028, 5033 e outras recusas). A nota é editável e reenviável com o mesmo número.
+              FALHA_ENVIO
+                 Valor: FALHA_ENVIO
+                 Texto: Falha de envio - Falha de infraestrutura no envio direto (gateway indisponível, token recusado, aceite sem chave, código 0, resposta inesperada). A nota NÃO foi rejeitada pelo governo e pode ser reenviada com o mesmo número.
+              EM_CONFLITO
+                 Valor: EM_CONFLITO
+                 Texto: Em conflito - Nota em conflito, vinda do código 5027 do gateway.
+              DESCARTADA
+                 Valor: DESCARTADA
+                 Texto: Descartada - Rascunho do assistente recusado por uma pessoa; nunca foi enviado ao gateway e não tem chave. Estado final.
+        enum:
+          - RASCUNHO
+          - PROCESSANDO
+          - EMITIDA_OFFLINE
+          - AUTORIZADA
+          - CANCELADA
+          - REJEITADA
+          - FALHA_ENVIO
+          - EM_CONFLITO
+          - DESCARTADA
       codigoRetorno:
         type: integer
         minimum: 0
@@ -2881,7 +2920,7 @@ definitions:
         description: |
             XML da NFS-e autorizada, decodificado do Base64 e guardado como conteúdo, com 
             limite explícito de 2 MiB.
-             Documento fiscal, precisa ser retido. Ausente enquanto processando e na emissão 
+             Documento fiscal, precisa ser retido. Ausente enquanto PROCESSANDO e na emissão 
             offline.
 
       pdf:
@@ -2906,6 +2945,16 @@ definitions:
             Ambiente do gateway em que a nota foi emitida. Uma nota de homologação nunca se 
             mistura com uma de produção.
 
+            Valores permitidos: 
+              HOMOLOGACAO
+                 Valor: HOMOLOGACAO
+                 Texto: Homologação - Ambiente de testes do gateway. É o padrão. Uma nota de teste nunca se mistura com uma real.
+              PRODUCAO
+                 Valor: PRODUCAO
+                 Texto: Produção - Ambiente real do gateway. As notas emitidas aqui têm validade fiscal.
+        enum:
+          - HOMOLOGACAO
+          - PRODUCAO
       dataCriacao:
         type: string
         format: date-time
@@ -2962,8 +3011,8 @@ definitions:
             Pessoa que mandou enviar a nota ao gateway: na emissão direta, quem emitiu; no 
             caminho do assistente, quem aprovou o rascunho. Regravada a cada reenvio. Só uma 
             PESSOA, nunca um ClienteAcesso, e só quem tem o scope de emitir na empresa da 
-            nota (vínculo ativo com papel administrador ou operador). Quem preparou pode ser 
-            quem aprova. Vazio enquanto rascunho e em nota descartada.
+            nota (vínculo ativo com papel ADMINISTRADOR ou OPERADOR). Quem preparou pode ser 
+            quem aprova. Vazio enquanto RASCUNHO e em nota DESCARTADA.
 
         allOf:
           - $ref: '#/definitions/IdReference'
@@ -2971,7 +3020,7 @@ definitions:
         description: |
             Pessoa que descartou o rascunho do assistente (ainda não implementado no 
             código). Só uma pessoa descarta, com o mesmo scope de emitir exigido para 
-            aprovar. Preenchido só no estado descartada.
+            aprovar. Preenchido só no estado DESCARTADA.
 
         allOf:
           - $ref: '#/definitions/IdReference'
@@ -2997,17 +3046,17 @@ definitions:
             emissão da nota (fuso America/Sao_Paulo). Prazos específicos de cada município 
             não são tratados.
              Dois caminhos de entrada. (A) Cancelamento DIRETO por uma pessoa: o pedido nasce 
-            em processando, criado e enviado ao gateway numa só ação. (B) Assistente de IA: 
-            só PREPARA o pedido como rascunho (preparadoPorCliente); uma pessoa com 
-            permissão de cancelar aprova (o sistema envia e o pedido vira processando) ou 
-            descarta (vira descartado). Aprovar e descartar o rascunho são requisito AINDA 
-            NÃO IMPLEMENTADO no código. O estado rascunho só existe no caminho B.
+            em PROCESSANDO, criado e enviado ao gateway numa só ação. (B) Assistente de IA: 
+            só PREPARA o pedido como RASCUNHO (preparadoPorCliente); uma pessoa com 
+            permissão de cancelar aprova (o sistema envia e o pedido vira PROCESSANDO) ou 
+            descarta (vira DESCARTADO). Aprovar e descartar o rascunho são requisito AINDA 
+            NÃO IMPLEMENTADO no código. O estado RASCUNHO só existe no caminho B.
              Quem cancela: o administrador sempre; o operador SÓ com permissão delegada 
             (VinculoUsuario.podeCancelarNfse). O código atual deixa o operador cancelar sem 
             delegação: divergência a corrigir no código.
-             Estados do pedido: rascunho, processando, concluido, recusado (o gateway ou o 
-            sistema recusou), expirado (pendente por mais de 24 h sem confirmação) e 
-            descartado. As transições estão em CicloCancelamento.
+             Estados do pedido: RASCUNHO, PROCESSANDO, CONCLUIDO, RECUSADO (o gateway ou o 
+            sistema recusou), EXPIRADO (pendente por mais de 24 h sem confirmação) e 
+            DESCARTADO. As transições estão em CicloCancelamento.
              Vive no contexto nfse (domain.nfse). Depende do contexto usuarios (Usuario e 
             ClienteAcesso) para o rastro; usuarios depende só de cadastros e configuracao, 
             não há ciclo.
@@ -3049,15 +3098,15 @@ definitions:
             Código do motivo do cancelamento (campo codigo_cancelamento do envio).
 
             Valores permitidos: 
-              erroEmissao
+              ERRO_EMISSAO
                  Valor: 1
-                 Texto: Erro de Emissão
-              servicoNaoConcluido
+                 Texto: Erro de Emissão - A nota foi emitida com erro. Código gravado e enviado ao gateway: 1.
+              SERVICO_NAO_CONCLUIDO
                  Valor: 2
-                 Texto: Serviço não concluído
-              outros
+                 Texto: Serviço não concluído - O serviço da nota não foi concluído. Código gravado e enviado ao gateway: 2.
+              OUTROS
                  Valor: 9
-                 Texto: Outros
+                 Texto: Outros - Outro motivo, explicado no texto do motivo. Código gravado e enviado ao gateway: 9.
       motivo:
         type: string
         maxLength: 255
@@ -3072,42 +3121,57 @@ definitions:
         description: |
             Momento em que o pedido foi enviado ao gateway por decisão de uma pessoa. No 
             fluxo direto é gravada na criação; no fluxo do assistente, na aprovação do 
-            rascunho. Vazia no rascunho e no pedido descartado.
+            rascunho. Vazia no RASCUNHO e no pedido DESCARTADO.
 
       dataHoraDescarte:
         type: string
         format: date-time
         description: |
             Momento em que uma pessoa descartou o rascunho do assistente (ainda não 
-            implementado no código). Preenchida só no estado descartado.
+            implementado no código). Preenchida só no estado DESCARTADO.
 
       dataHoraRecusa:
         type: string
         format: date-time
         description: |
             Momento em que o gateway ou o sistema recusou o pedido (a recusa não é decisão 
-            de uma pessoa). Preenchida só no estado recusado.
+            de uma pessoa). Preenchida só no estado RECUSADO.
 
       estado:
         type: string
         maxLength: 25
         pattern: \w*\W*
         description: |
-            Estado do pedido, na ordem: rascunho, processando, concluido, recusado, 
-            expirado, descartado. As transições estão em CicloCancelamento.
-             Rascunho existe SÓ no caminho do assistente de IA: o pedido preparado e ainda 
-            não enviado, aguardando uma pessoa aprovar ou descartar (ainda não implementado 
-            no código). No cancelamento direto pela pessoa o pedido nasce processando.
-             Processando é o pedido enviado ao gateway, aguardando a confirmação (trava a 
-            nota: só um por vez). Concluído vem do código 101 ou 5015; nesse momento a Nota 
-            passa a cancelada.
-             Recusado é o pedido que o gateway ou o sistema recusou (5013, 5001, token 
-            recusado e outras recusas); a nota segue autorizada. Expirado é o pedido 
-            pendente por mais de 24 h sem confirmação; a nota segue autorizada e um novo 
-            pedido é liberado. O motivo da recusa ou da expiração fica em mensagemRetorno.
-             Descartado é o rascunho do assistente recusado por uma pessoa; nunca foi enviado 
-            ao gateway.
+            Estado do pedido, na ordem: RASCUNHO, PROCESSANDO, CONCLUIDO, RECUSADO, 
+            EXPIRADO, DESCARTADO. As transições estão em CicloCancelamento. A semântica de 
+            cada valor está em [e] values.
 
+            Valores permitidos: 
+              RASCUNHO
+                 Valor: RASCUNHO
+                 Texto: Rascunho - Existe SÓ no caminho do assistente de IA: o pedido preparado e ainda não enviado ao gateway, aguardando uma pessoa aprovar (vira PROCESSANDO) ou descartar (vira DESCARTADO). Aprovar e descartar ainda não estão implementados no código. No cancelamento direto pela pessoa o pedido nasce PROCESSANDO.
+              PROCESSANDO
+                 Valor: PROCESSANDO
+                 Texto: Processando - Pedido enviado ao gateway, aguardando a confirmação. Trava a nota: só um pedido por vez. É o padrão (estado em que o cancelamento direto nasce). Termina em CONCLUIDO, RECUSADO ou EXPIRADO.
+              CONCLUIDO
+                 Valor: CONCLUIDO
+                 Texto: Concluído - O cancelamento foi confirmado pelo gateway (código 101 ou 5015, este tratado como sucesso idempotente). Nesse momento a Nota passa a CANCELADA. Estado final.
+              RECUSADO
+                 Valor: RECUSADO
+                 Texto: Recusado - O gateway ou o sistema recusou o pedido (5013, 5001, token recusado e outras recusas); a nota segue AUTORIZADA. O motivo fica em mensagemRetorno. Preenche dataHoraRecusa. A recusa não é decisão de uma pessoa. Estado final.
+              EXPIRADO
+                 Valor: EXPIRADO
+                 Texto: Expirado - O pedido ficou pendente por mais de 24 h sem confirmação do gateway; a nota segue AUTORIZADA e um novo pedido é liberado. O motivo fica em mensagemRetorno. Estado final.
+              DESCARTADO
+                 Valor: DESCARTADO
+                 Texto: Descartado - Rascunho do assistente recusado por uma pessoa; nunca foi enviado ao gateway. Preenche dataHoraDescarte e descartadoPor (ainda não implementado no código). Estado final.
+        enum:
+          - RASCUNHO
+          - PROCESSANDO
+          - CONCLUIDO
+          - RECUSADO
+          - EXPIRADO
+          - DESCARTADO
       codigoRetorno:
         type: integer
         minimum: 0
@@ -3157,6 +3221,16 @@ definitions:
         description: |
             Ambiente do gateway, o mesmo da nota cancelada.
 
+            Valores permitidos: 
+              HOMOLOGACAO
+                 Valor: HOMOLOGACAO
+                 Texto: Homologação - Ambiente de testes do gateway, o mesmo da nota cancelada. É o padrão. Um cancelamento de teste nunca se mistura com um real.
+              PRODUCAO
+                 Valor: PRODUCAO
+                 Texto: Produção - Ambiente real do gateway, o mesmo da nota cancelada.
+        enum:
+          - HOMOLOGACAO
+          - PRODUCAO
       dataCriacao:
         type: string
         format: date-time
@@ -3198,7 +3272,7 @@ definitions:
             cancelou; no caminho do assistente, quem aprovou o rascunho. Só uma PESSOA, 
             nunca um ClienteAcesso, e só quem pode cancelar na empresa: o administrador, ou 
             o operador com permissão delegada (VinculoUsuario.podeCancelarNfse), em vínculo 
-            ativo. Vazio no rascunho e no pedido descartado.
+            ativo. Vazio no RASCUNHO e no pedido DESCARTADO.
 
         allOf:
           - $ref: '#/definitions/IdReference'
@@ -3206,7 +3280,7 @@ definitions:
         description: |
             Pessoa que descartou o rascunho do assistente (ainda não implementado no 
             código), com a mesma permissão de cancelar exigida para aprovar. Preenchido só 
-            no estado descartado. Substitui recusadoPor: a recusa agora é do gateway ou do 
+            no estado DESCARTADO. Substitui recusadoPor: a recusa agora é do gateway ou do 
             sistema, não de uma pessoa.
 
         allOf:
@@ -3221,9 +3295,9 @@ definitions:
     description: |
             Empresa usuária do sistema e tenant do modelo. Cada empresa só emite e só 
             enxerga as próprias notas.
-             NUNCA é apagada, só DESATIVADA (situacao = desativada): a aplicação não deve 
+             NUNCA é apagada, só DESATIVADA (situacao = DESATIVADA): a aplicação não deve 
             expor a remoção. Nasce no signup com o documento, o e-mail e o WhatsApp 
-            informados, em situacao pendente_confirmacao, e fica ativa quando o usuário 
+            informados, em situacao PENDENTE_CONFIRMACAO, e fica ATIVA quando o usuário 
             clica no link do e-mail (ConfirmacaoCadastro).
              É identificada por um documento único (CNPJ ou CPF). Tem atividades 
             (AtividadeEmpresa) e quadro de sócios (QsaEmpresa) como detalhes ([m]/[o]).
@@ -3398,18 +3472,18 @@ definitions:
             usado na emissão. Alterável só pelo administrador da plataforma ou suporte.
 
             Valores permitidos: 
-              simplesNacional
+              SIMPLES_NACIONAL
                  Valor: 1
-                 Texto: Simples Nacional
-              simplesExcessoSublimite
+                 Texto: Simples Nacional - Empresa optante pelo Simples Nacional. Código gravado e enviado ao gateway (crt): 1.
+              SIMPLES_EXCESSO_SUBLIMITE
                  Valor: 2
-                 Texto: Simples Nacional com excesso de sublimite
-              regimeNormal
+                 Texto: Simples Nacional com excesso de sublimite - Simples Nacional com excesso de sublimite de receita. Código gravado e enviado ao gateway (crt): 2.
+              REGIME_NORMAL
                  Valor: 3
-                 Texto: Regime Normal
-              mei
+                 Texto: Regime Normal - Empresa no regime normal (lucro presumido ou real). Código gravado e enviado ao gateway (crt): 3.
+              MEI
                  Valor: 4
-                 Texto: MEI
+                 Texto: MEI - Microempreendedor Individual. Código gravado e enviado ao gateway (crt): 4.
       regimeIbsCbs:
         type: integer
         minimum: 0
@@ -3422,21 +3496,21 @@ definitions:
             administrador da plataforma ou suporte.
 
             Valores permitidos: 
-              naoInformado
+              NAO_INFORMADO
                  Valor: 0
-                 Texto: Não informado, padrão, a tag não é enviada
-              simplesOpcaoRegimeRegular
+                 Texto: Não informado - Não informado, padrão: a tag regime_cibs não é enviada. Código gravado: 0.
+              SIMPLES_OPCAO_REGIME_REGULAR
                  Valor: 1
-                 Texto: Simples Nacional com opção pelo regime regular do IBS e da CBS (crt 1 ou 2)
-              normalOpcaoSimplesPendenteSemRegular
+                 Texto: Simples Nacional com opção pelo regime regular - Simples Nacional com opção pelo regime regular do IBS e da CBS (crt 1 ou 2). Código gravado e enviado ao gateway: 1.
+              NORMAL_OPCAO_SIMPLES_PENDENTE_SEM_REGULAR
                  Valor: 2
-                 Texto: Regime Normal com opção pendente pelo Simples Nacional, sem regime regular do IBS e da CBS (crt 3)
-              normalSublimitePendenteSemRegular
+                 Texto: Regime Normal, opção pelo Simples pendente, sem regime regular - Regime Normal com opção pendente pelo Simples Nacional, sem regime regular do IBS e da CBS (crt 3). Código gravado e enviado ao gateway: 2.
+              NORMAL_SUBLIMITE_PENDENTE_SEM_REGULAR
                  Valor: 3
-                 Texto: Regime Normal com opção pendente pelo Simples Nacional com excesso de sublimite, sem regime regular do IBS e da CBS (crt 3)
-              normalOpcaoSimplesPendenteComRegular
+                 Texto: Regime Normal, excesso de sublimite pendente, sem regime regular - Regime Normal com opção pendente pelo Simples Nacional com excesso de sublimite, sem regime regular do IBS e da CBS (crt 3). Código gravado e enviado ao gateway: 3.
+              NORMAL_OPCAO_SIMPLES_PENDENTE_COM_REGULAR
                  Valor: 4
-                 Texto: Regime Normal com opção pendente pelo Simples Nacional, com regime regular do IBS e da CBS (crt 3)
+                 Texto: Regime Normal, opção pelo Simples pendente, com regime regular - Regime Normal com opção pendente pelo Simples Nacional, com regime regular do IBS e da CBS (crt 3). Código gravado e enviado ao gateway: 4.
       logo:
         type: string
         format: byte
@@ -3461,12 +3535,26 @@ definitions:
         pattern: \w*\W*
         description: |
             Situação da conta da empresa NO SISTEMA (não confundir com statusCadastro, que é 
-            o cadastro no gateway IntegraNotas). A empresa nasce pendente_confirmacao no 
+            o cadastro no gateway IntegraNotas). A empresa nasce PENDENTE_CONFIRMACAO no 
             signup,
-             vira ativa quando o usuário clica no link do e-mail (ou quando o suporte ativa) 
-            e desativada quando o suporte a desativa à mão. Nunca é apagada. Alterável só 
+             vira ATIVA quando o usuário clica no link do e-mail (ou quando o suporte ativa) 
+            e DESATIVADA quando o suporte a desativa à mão. Nunca é apagada. Alterável só 
             pelo administrador da plataforma ou suporte.
 
+            Valores permitidos: 
+              PENDENTE_CONFIRMACAO
+                 Valor: PENDENTE_CONFIRMACAO
+                 Texto: Pendente de confirmação - Estado inicial e padrão: a empresa nasce assim no signup, aguardando o clique no link de confirmação enviado por e-mail.
+              ATIVA
+                 Valor: ATIVA
+                 Texto: Ativa - Conta ativa, depois do clique no link do e-mail ou quando o suporte a ativa.
+              DESATIVADA
+                 Valor: DESATIVADA
+                 Texto: Desativada - Conta desativada à mão pelo suporte, com motivo obrigatório. A empresa nunca é apagada.
+        enum:
+          - PENDENTE_CONFIRMACAO
+          - ATIVA
+          - DESATIVADA
       dataConfirmacao:
         type: string
         format: date-time
@@ -3517,10 +3605,24 @@ definitions:
         description: |
             Situação do cadastro da empresa NO GATEWAY (emitente no IntegraNotas), no 
             ambiente do registro. Não é a situação da conta no sistema (ver situacao). A 
-            empresa nasce nao_cadastrado,
-             vira cadastrado quando o gateway devolve o token, e erro quando o cadastro é 
+            empresa nasce NAO_CADASTRADO,
+             vira CADASTRADO quando o gateway devolve o token, e ERRO quando o cadastro é 
             recusado. Alterável só pelo administrador da plataforma ou suporte.
 
+            Valores permitidos: 
+              NAO_CADASTRADO
+                 Valor: NAO_CADASTRADO
+                 Texto: Não cadastrado - A empresa ainda não foi cadastrada no gateway. É o estado inicial e o padrão.
+              CADASTRADO
+                 Valor: CADASTRADO
+                 Texto: Cadastrado - Cadastro aceito pelo gateway, que devolveu o token do emitente (nome no IntegraNotas), guardado no cofre.
+              ERRO
+                 Valor: ERRO
+                 Texto: Erro no cadastro - Cadastro recusado pelo gateway.
+        enum:
+          - NAO_CADASTRADO
+          - CADASTRADO
+          - ERRO
       dataCadastroGateway:
         type: string
         format: date-time
@@ -3544,6 +3646,28 @@ definitions:
             Situação do certificado digital da empresa no gateway, no ambiente do registro. 
             Alterável só pelo administrador da plataforma ou suporte.
 
+            Valores permitidos: 
+              NAO_ENVIADO
+                 Valor: NAO_ENVIADO
+                 Texto: Não enviado - Nenhum certificado foi enviado ao gateway. É o estado inicial e o padrão.
+              VALIDO
+                 Valor: VALIDO
+                 Texto: Válido - Certificado aceito pelo gateway e dentro da validade.
+              VENCIDO
+                 Valor: VENCIDO
+                 Texto: Vencido - Certificado com a validade vencida (erro 5011 do gateway).
+              INVALIDO
+                 Valor: INVALIDO
+                 Texto: Inválido - Certificado corrompido ou enviado com senha errada (erro 5003 do gateway).
+              NAO_PERTENCE
+                 Valor: NAO_PERTENCE
+                 Texto: Não pertence à empresa - Certificado que não pertence ao documento (CNPJ ou CPF) da empresa (erro 5029 do gateway).
+        enum:
+          - NAO_ENVIADO
+          - VALIDO
+          - VENCIDO
+          - INVALIDO
+          - NAO_PERTENCE
       id:
         type: string
         maxLength: 36
@@ -3564,6 +3688,16 @@ definitions:
              então o mesmo documento (CNPJ ou CPF) tem um registro por ambiente e uma nota de 
             teste nunca se mistura com uma real.
 
+            Valores permitidos: 
+              HOMOLOGACAO
+                 Valor: HOMOLOGACAO
+                 Texto: Homologação - Ambiente de testes do gateway. É o padrão. Nada emitido aqui tem validade fiscal e uma nota de teste nunca se mistura com uma real.
+              PRODUCAO
+                 Valor: PRODUCAO
+                 Texto: Produção - Ambiente real do gateway. As notas emitidas aqui têm validade fiscal.
+        enum:
+          - HOMOLOGACAO
+          - PRODUCAO
       dataCriacao:
         type: string
         format: date-time
@@ -3657,6 +3791,16 @@ definitions:
             Física ou jurídica. Define como se lê o documento: jurídica tem CNPJ de 14 
             dígitos, física tem CPF de 11 dígitos. Obrigatório.
 
+            Valores permitidos: 
+              FISICA
+                 Valor: FISICA
+                 Texto: Pessoa física - Pessoa física, identificada pelo CPF de 11 dígitos.
+              JURIDICA
+                 Valor: JURIDICA
+                 Texto: Pessoa jurídica - Pessoa jurídica, identificada pelo CNPJ de 14 dígitos.
+        enum:
+          - FISICA
+          - JURIDICA
       documento:
         type: string
         maxLength: 14
@@ -3712,12 +3856,12 @@ definitions:
             valores 0 ou 1. Opcional, padrão 0.
 
             Valores permitidos: 
-              proprioTomador
+              PROPRIO_TOMADOR
                  Valor: 0
-                 Texto: O destinatário é o próprio tomador/adquirente (padrão)
-              outroDestinatario
+                 Texto: Próprio tomador - O destinatário é o próprio tomador/adquirente (padrão). Código gravado: 0.
+              OUTRO_DESTINATARIO
                  Valor: 1
-                 Texto: O destinatário não é o próprio adquirente (outra pessoa ou outro estabelecimento)
+                 Texto: Outro destinatário - O destinatário não é o próprio adquirente (outra pessoa ou outro estabelecimento). Código gravado: 1.
       consumidorFinal:
         type: boolean
         description: |
@@ -4004,18 +4148,18 @@ definitions:
             Padrão 1, tributável.
 
             Valores permitidos: 
-              tributavel
+              TRIBUTAVEL
                  Valor: 1
-                 Texto: Tributável
-              imunidade
+                 Texto: Tributável - Operação tributável pelo ISS (padrão). Código gravado: 1.
+              IMUNIDADE
                  Valor: 2
-                 Texto: Imunidade
-              exportacao
+                 Texto: Imunidade - Operação com imunidade do ISS. Código gravado: 2.
+              EXPORTACAO
                  Valor: 3
-                 Texto: Exportação
-              naoIncidencia
+                 Texto: Exportação - Exportação de serviço. Código gravado: 3.
+              NAO_INCIDENCIA
                  Valor: 4
-                 Texto: Não incidência
+                 Texto: Não incidência - Operação em que o ISS não incide. Código gravado: 4.
       cstPisCofins:
         type: string
         maxLength: 2
@@ -4309,6 +4453,16 @@ definitions:
             Se a atividade é a principal ou uma secundária da empresa. No máximo uma 
             principal por empresa (regra da aplicação). Obrigatório.
 
+            Valores permitidos: 
+              PRINCIPAL
+                 Valor: PRINCIPAL
+                 Texto: Principal - Atividade econômica principal da empresa. No máximo uma por empresa (regra da aplicação).
+              SECUNDARIA
+                 Valor: SECUNDARIA
+                 Texto: Secundária - Atividade econômica secundária da empresa. Uma empresa pode ter várias.
+        enum:
+          - PRINCIPAL
+          - SECUNDARIA
       codigoCnae:
         type: string
         maxLength: 7
@@ -4574,10 +4728,33 @@ definitions:
         maxLength: 10
         pattern: \w*\W*
         description: |
-            Papel do contato perante a pessoa. Valores propostos pelo modelador (o usuário 
-            não os definiu, a confirmar): socio, financeiro, comercial, fiscal e outro. 
-            Obrigatório.
+            Papel do contato perante a pessoa. Os valores são os de [e] values: SOCIO, 
+            FINANCEIRO, COMERCIAL, FISCAL e OUTRO. Só SOCIO decorre da história do usuário 
+            (sócios do QSA entram como contatos); os demais foram propostos pelo modelador 
+            (a confirmar). Obrigatório.
 
+            Valores permitidos: 
+              SOCIO
+                 Valor: SOCIO
+                 Texto: Sócio - Sócio ou administrador da pessoa jurídica, vindo do quadro de sócios e administradores (QSA) da consulta de CNPJ. É o tipo com que os sócios do QSA entram como contatos; o usuário pode ajustá-los antes de salvar.
+              FINANCEIRO
+                 Valor: FINANCEIRO
+                 Texto: Financeiro - Pessoa de contato da área financeira da pessoa cadastrada (cobrança, pagamento, boletos).
+              COMERCIAL
+                 Valor: COMERCIAL
+                 Texto: Comercial - Pessoa de contato da área comercial da pessoa cadastrada (negociação, propostas, relacionamento).
+              FISCAL
+                 Valor: FISCAL
+                 Texto: Fiscal ou contábil - Pessoa de contato fiscal ou contábil (contador ou responsável por impostos e notas) da pessoa cadastrada.
+              OUTRO
+                 Valor: OUTRO
+                 Texto: Outro - Qualquer contato que não se enquadre nos demais tipos.
+        enum:
+          - SOCIO
+          - FINANCEIRO
+          - COMERCIAL
+          - FISCAL
+          - OUTRO
       nome:
         type: string
         maxLength: 300

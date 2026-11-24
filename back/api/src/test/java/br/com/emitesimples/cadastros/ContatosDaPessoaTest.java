@@ -32,10 +32,10 @@ class ContatosDaPessoaTest extends BaseApiTest {
         }
         empA = dados.empresaAtiva();
         empB = dados.empresaAtiva();
-        tokenOp = token(dados.usuarioComPapel(empA, "operador").email());
-        tokenAdm = token(dados.usuarioComPapel(empA, "administrador").email());
-        tokenConsulta = token(dados.usuarioComPapel(empA, "consulta").email());
-        tokenB = token(dados.usuarioComPapel(empB, "administrador").email());
+        tokenOp = token(dados.usuarioComPapel(empA, "OPERADOR").email());
+        tokenAdm = token(dados.usuarioComPapel(empA, "ADMINISTRADOR").email());
+        tokenConsulta = token(dados.usuarioComPapel(empA, "CONSULTA").email());
+        tokenB = token(dados.usuarioComPapel(empB, "ADMINISTRADOR").email());
         tokenPlat = token(dados.usuario(true, true).email());
     }
 
@@ -86,9 +86,9 @@ class ContatosDaPessoaTest extends BaseApiTest {
     void putCriaAtualizaEApagaNumaChamada() {
         String p = novaPessoa();
         Response r1 = put(tokenOp, p, List.of(
-                item(null, "socio", "  Zeca  ", "(11) 99999-8888", "zeca@teste.com"),
-                item(null, "fiscal", "Ana", null, null),
-                item(null, "outro", "Bia", "", "")));
+                item(null, "SOCIO", "  Zeca  ", "(11) 99999-8888", "zeca@teste.com"),
+                item(null, "FISCAL", "Ana", null, null),
+                item(null, "OUTRO", "Bia", "", "")));
         r1.then().statusCode(200).body("$", hasSize(3)).body("nome", equalTo(List.of("Ana", "Bia", "Zeca")))
                 .body("find { it.nome == 'Zeca' }.whatsapp", equalTo("11999998888"))
                 .body("find { it.nome == 'Zeca' }.email", equalTo("zeca@teste.com"))
@@ -100,12 +100,12 @@ class ContatosDaPessoaTest extends BaseApiTest {
 
         // altera Ana, mantem Zeca igual, apaga Bia, cria Davi
         Response r2 = put(tokenAdm, p, List.of(
-                item(idAna, "financeiro", "Ana Maria", "11 4000-1234", "ana@teste.com"),
-                item(idZeca, "socio", "Zeca", "11999998888", "zeca@teste.com"),
-                item(null, "comercial", "Davi", null, null)));
+                item(idAna, "FINANCEIRO", "Ana Maria", "11 4000-1234", "ana@teste.com"),
+                item(idZeca, "SOCIO", "Zeca", "11999998888", "zeca@teste.com"),
+                item(null, "COMERCIAL", "Davi", null, null)));
         r2.then().statusCode(200).body("nome", equalTo(List.of("Ana Maria", "Davi", "Zeca")))
                 .body("find { it.nome == 'Ana Maria' }.id", equalTo(idAna))
-                .body("find { it.nome == 'Ana Maria' }.tipoContato", equalTo("financeiro"))
+                .body("find { it.nome == 'Ana Maria' }.tipoContato", equalTo("FINANCEIRO"))
                 .body("find { it.nome == 'Ana Maria' }.whatsapp", equalTo("1140001234"))
                 .body("find { it.nome == 'Zeca' }.id", equalTo(idZeca))
                 .body("id", org.hamcrest.Matchers.not(hasItem(idBia)));
@@ -119,10 +119,10 @@ class ContatosDaPessoaTest extends BaseApiTest {
     @Test
     void idempotente_mesmoPutDuasVezesNaoDuplica() {
         String p = novaPessoa();
-        Response r1 = put(tokenOp, p, List.of(item(null, "socio", "Unico", null, null), item(null, "fiscal", "Outro", null, null)));
+        Response r1 = put(tokenOp, p, List.of(item(null, "SOCIO", "Unico", null, null), item(null, "FISCAL", "Outro", null, null)));
         r1.then().statusCode(200);
         // reenviar o MESMO corpo ainda sem ids: o PUT e "lista desejada": recria (apaga os antigos e insere), sem duplicar
-        Response r2 = put(tokenOp, p, List.of(item(null, "socio", "Unico", null, null), item(null, "fiscal", "Outro", null, null)));
+        Response r2 = put(tokenOp, p, List.of(item(null, "SOCIO", "Unico", null, null), item(null, "FISCAL", "Outro", null, null)));
         r2.then().statusCode(200).body("$", hasSize(2));
         // reenviar a resposta (com ids): nada muda, mesmos ids
         List<Map<String, Object>> salvo = r2.jsonPath().getList("$");
@@ -135,7 +135,7 @@ class ContatosDaPessoaTest extends BaseApiTest {
     @Test
     void listaVaziaApagaTodos() {
         String p = novaPessoa();
-        put(tokenOp, p, List.of(item(null, "socio", "A", null, null), item(null, "socio", "B", null, null))).then().statusCode(200);
+        put(tokenOp, p, List.of(item(null, "SOCIO", "A", null, null), item(null, "SOCIO", "B", null, null))).then().statusCode(200);
         put(tokenOp, p, List.of()).then().statusCode(200).body("$", hasSize(0));
         get(tokenOp, p).then().body("$", hasSize(0));
     }
@@ -143,31 +143,31 @@ class ContatosDaPessoaTest extends BaseApiTest {
     @Test
     void atomicidade_umItemInvalidoNaoMudaNada() {
         String p = novaPessoa();
-        Response ok = put(tokenOp, p, List.of(item(null, "socio", "Antigo 1", null, null), item(null, "fiscal", "Antigo 2", null, null)));
+        Response ok = put(tokenOp, p, List.of(item(null, "SOCIO", "Antigo 1", null, null), item(null, "FISCAL", "Antigo 2", null, null)));
         List<String> ids = ok.jsonPath().getList("id");
         // apagaria o Antigo 2, alteraria o Antigo 1 e criaria Novo, mas o ultimo item e invalido
         Response r = put(tokenOp, p, List.of(
-                item(ids.get(0), "comercial", "Mudado", null, null),
-                item(null, "socio", "Novo", null, null),
-                item(null, "invalido", "Ruim", null, null)));
+                item(ids.get(0), "COMERCIAL", "Mudado", null, null),
+                item(null, "SOCIO", "Novo", null, null),
+                item(null, "INVALIDO", "Ruim", null, null)));
         r.then().statusCode(400).body("codigo", equalTo("requisicao_invalida"));
-        get(tokenOp, p).then().body("nome", equalTo(List.of("Antigo 1", "Antigo 2"))).body("tipoContato", equalTo(List.of("socio", "fiscal")));
+        get(tokenOp, p).then().body("nome", equalTo(List.of("Antigo 1", "Antigo 2"))).body("tipoContato", equalTo(List.of("SOCIO", "FISCAL")));
     }
 
     @Test
     void idDeOutraPessoaOuInexistenteOuDeOutraEmpresaDa400SemEfeito() {
         String p1 = novaPessoa();
         String p2 = novaPessoa();
-        String doP2 = put(tokenOp, p2, List.of(item(null, "socio", "Do P2", null, null))).jsonPath().getString("[0].id");
+        String doP2 = put(tokenOp, p2, List.of(item(null, "SOCIO", "Do P2", null, null))).jsonPath().getString("[0].id");
         String cB = dados.contato(empB, dados.pessoa(empB, "PB"), "Da B");
-        put(tokenOp, p1, List.of(item(null, "socio", "Meu", null, null))).then().statusCode(200);
+        put(tokenOp, p1, List.of(item(null, "SOCIO", "Meu", null, null))).then().statusCode(200);
         for (String idAlheio : List.of(doP2, "nao-existe", cB)) {
-            put(tokenOp, p1, List.of(item(null, "socio", "Novo", null, null), item(idAlheio, "fiscal", "Sequestro", null, null)))
+            put(tokenOp, p1, List.of(item(null, "SOCIO", "Novo", null, null), item(idAlheio, "FISCAL", "Sequestro", null, null)))
                     .then().statusCode(400).body("codigo", equalTo("requisicao_invalida"))
                     .body("detalhes.campos[0].campo", equalTo("contatos[1].id"));
         }
         get(tokenOp, p1).then().body("nome", equalTo(List.of("Meu")));
-        get(tokenOp, p2).then().body("nome", equalTo(List.of("Do P2"))).body("[0].tipoContato", equalTo("socio"));
+        get(tokenOp, p2).then().body("nome", equalTo(List.of("Do P2"))).body("[0].tipoContato", equalTo("SOCIO"));
         get(tokenB, pesBDe(cB)).then().statusCode(200);
     }
 
@@ -179,14 +179,14 @@ class ContatosDaPessoaTest extends BaseApiTest {
     void validacoesComDetalhesCamposApontandoOItem() {
         String p = novaPessoa();
         List<Object> corpo = new ArrayList<>();
-        corpo.add(item(null, "socio", "Valido", null, null));
+        corpo.add(item(null, "SOCIO", "Valido", null, null));
         corpo.add(item(null, "xxx", "Tipo ruim", null, null));
-        corpo.add(item(null, "socio", "  ", null, null));
-        corpo.add(item(null, "fiscal", "Nome longo " + "x".repeat(300), null, null));
-        corpo.add(item(null, "fiscal", "Fone", "abc123", null));
-        corpo.add(item(null, "fiscal", "Fone longo", "1".repeat(21), null));
-        corpo.add(item(null, "fiscal", "Email", null, "isto-nao-e-email"));
-        corpo.add(item(null, "fiscal", "Email longo", null, "a".repeat(60) + "@x.com"));
+        corpo.add(item(null, "SOCIO", "  ", null, null));
+        corpo.add(item(null, "FISCAL", "Nome longo " + "x".repeat(300), null, null));
+        corpo.add(item(null, "FISCAL", "Fone", "abc123", null));
+        corpo.add(item(null, "FISCAL", "Fone longo", "1".repeat(21), null));
+        corpo.add(item(null, "FISCAL", "Email", null, "isto-nao-e-email"));
+        corpo.add(item(null, "FISCAL", "Email longo", null, "a".repeat(60) + "@x.com"));
         corpo.add(item(null, null, "Sem tipo", null, null));
         Response r = put(tokenOp, p, corpo);
         r.then().statusCode(400).body("codigo", equalTo("requisicao_invalida"));
@@ -206,15 +206,15 @@ class ContatosDaPessoaTest extends BaseApiTest {
         String p = novaPessoa();
         List<Object> cinquenta = new ArrayList<>();
         for (int i = 0; i < 50; i++) {
-            cinquenta.add(item(null, "outro", "C" + String.format("%02d", i), null, null));
+            cinquenta.add(item(null, "OUTRO", "C" + String.format("%02d", i), null, null));
         }
         put(tokenOp, p, cinquenta).then().statusCode(200).body("$", hasSize(50));
-        cinquenta.add(item(null, "outro", "C50", null, null));
+        cinquenta.add(item(null, "OUTRO", "C50", null, null));
         put(tokenOp, p, cinquenta).then().statusCode(400).body("detalhes.campos[0].campo", equalTo("contatos"));
         get(tokenOp, p).then().body("$", hasSize(50));
 
         String id = get(tokenOp, p).jsonPath().getString("[0].id");
-        put(tokenOp, p, List.of(item(id, "outro", "A", null, null), item(id, "outro", "B", null, null))).then().statusCode(400)
+        put(tokenOp, p, List.of(item(id, "OUTRO", "A", null, null), item(id, "OUTRO", "B", null, null))).then().statusCode(400)
                 .body("detalhes.campos[0].campo", equalTo("contatos[1].id"));
         put(tokenOp, p, null).then().statusCode(400);
     }
@@ -222,7 +222,7 @@ class ContatosDaPessoaTest extends BaseApiTest {
     @Test
     void consultaLeMasNaoEscreve_anonimo401() {
         String p = novaPessoa();
-        put(tokenConsulta, p, List.of(item(null, "socio", "X", null, null))).then().statusCode(403).body("codigo", equalTo("acesso_negado"));
+        put(tokenConsulta, p, List.of(item(null, "SOCIO", "X", null, null))).then().statusCode(403).body("codigo", equalTo("acesso_negado"));
         get(tokenConsulta, p).then().statusCode(200);
         put(null, p, List.of()).then().statusCode(401);
         get(null, p).then().statusCode(401);
@@ -232,7 +232,7 @@ class ContatosDaPessoaTest extends BaseApiTest {
     @Test
     void empresaDoCorpoEhIgnorada_vemDaSessao() {
         String p = novaPessoa();
-        Map<String, Object> i = item(null, "socio", "Com empresa", null, null);
+        Map<String, Object> i = item(null, "SOCIO", "Com empresa", null, null);
         i.put("empresa", Map.of("id", empB));
         i.put("pessoa", Map.of("id", pesBQualquer()));
         Response r = put(tokenOp, p, List.of(i));
@@ -251,7 +251,7 @@ class ContatosDaPessoaTest extends BaseApiTest {
         dados.contato(empB, pB, "Contato B");
         for (String id : List.of(pB, "nao-existe")) {
             get(tokenOp, id).then().statusCode(404).body("codigo", equalTo("nao_encontrado"));
-            put(tokenOp, id, List.of(item(null, "socio", "Invasao", null, null))).then().statusCode(404)
+            put(tokenOp, id, List.of(item(null, "SOCIO", "Invasao", null, null))).then().statusCode(404)
                     .body("codigo", equalTo("nao_encontrado"));
         }
         get(tokenB, pB).then().statusCode(200).body("nome", equalTo(List.of("Contato B")));
@@ -261,7 +261,7 @@ class ContatosDaPessoaTest extends BaseApiTest {
     @Test
     void administradorDaPlataformaSemEmpresaNaSessao_enxergaQualquerPessoaEOContatoHerdaAEmpresaDela() {
         String p = novaPessoa();
-        Response r = put(tokenPlat, p, List.of(item(null, "socio", "Pela plataforma", null, null)));
+        Response r = put(tokenPlat, p, List.of(item(null, "SOCIO", "Pela plataforma", null, null)));
         r.then().statusCode(200).body("$", hasSize(1));
         chamar("GET", "/api/Contato/id/" + r.jsonPath().getString("[0].id"), tokenPlat, null).then().statusCode(200)
                 .body("empresa.id", equalTo(empA));

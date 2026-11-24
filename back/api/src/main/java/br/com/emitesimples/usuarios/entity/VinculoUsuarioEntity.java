@@ -21,9 +21,9 @@ import br.com.emitesimples.configuracao.entity.EmpresaEntity;
 * vem daqui.
  * Unicidade: um usuário tem no máximo um vínculo por empresa (par usuario, empresa 
 * único).
- * Papel para scopes: administrador = consultar, preparar, emitir, cancelar; 
-* operador = consultar, preparar, emitir e, SÓ se o administrador delegar 
-* (podeCancelarNfse), cancelar; consulta = consultar. Emitir e cancelar exigem 
+ * Papel para scopes: ADMINISTRADOR = consultar, preparar, emitir, cancelar; 
+* OPERADOR = consultar, preparar, emitir e, SÓ se o administrador delegar 
+* (podeCancelarNfse), cancelar; CONSULTA = consultar. Emitir e cancelar exigem 
 * confirmação humana, regra de fluxo fora deste mapa.
 
 */

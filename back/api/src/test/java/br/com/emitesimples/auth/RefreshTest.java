@@ -37,13 +37,13 @@ class RefreshTest extends BaseApiTest {
     @Test
     void rotacaoGeraNovoParEMarcaOAntigoComoUsado() {
         String empresa = dados.empresaAtiva();
-        Usr u = dados.usuarioComPapel(empresa, "operador");
+        Usr u = dados.usuarioComPapel(empresa, "OPERADOR");
         String r1 = refreshDoLogin(u);
 
         Response resp = refresh(r1);
         resp.then().statusCode(200)
                 .body("accessToken", notNullValue()).body("expiresIn", equalTo(900))
-                .body("empresa.id", equalTo(empresa)).body("papel", equalTo("operador"));
+                .body("empresa.id", equalTo(empresa)).body("papel", equalTo("OPERADOR"));
         String r2 = refreshCookie(resp);
         assertNotEquals(r1, r2);
 
@@ -65,7 +65,7 @@ class RefreshTest extends BaseApiTest {
     @Test
     void reusoDoTokenAntigoDaUm401ERevogaTodosOsAtivos() {
         String empresa = dados.empresaAtiva();
-        Usr u = dados.usuarioComPapel(empresa, "operador");
+        Usr u = dados.usuarioComPapel(empresa, "OPERADOR");
         String r1 = refreshDoLogin(u);
         String r2 = refreshCookie(refresh(r1));
         String outraSessao = refreshDoLogin(u); // segunda sessão do MESMO usuário e empresa, também ativa
@@ -89,8 +89,8 @@ class RefreshTest extends BaseApiTest {
         String a = dados.empresaAtiva();
         String b = dados.empresaAtiva();
         Usr u = dados.usuario(true, false);
-        dados.vincular(u.id(), a, "operador", true);
-        dados.vincular(u.id(), b, "operador", true);
+        dados.vincular(u.id(), a, "OPERADOR", true);
+        dados.vincular(u.id(), b, "OPERADOR", true);
         String ra = refreshCookie(login(u.email(), SENHA, a));
         String rb = refreshCookie(login(u.email(), SENHA, b));
         refresh(ra).then().statusCode(200);
@@ -100,7 +100,7 @@ class RefreshTest extends BaseApiTest {
 
     @Test
     void tokenRevogadoQueReaparecesTambemEReuso() {
-        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "operador");
+        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "OPERADOR");
         String r1 = refreshDoLogin(u);
         String r2 = refreshDoLogin(u);
         logout(r1).then().statusCode(204);
@@ -110,7 +110,7 @@ class RefreshTest extends BaseApiTest {
 
     @Test
     void tokenExpiradoDa401() {
-        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "operador");
+        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "OPERADOR");
         String r1 = refreshDoLogin(u);
         dados.expirarToken(AuthService.hashDoToken(r1));
         refresh(r1).then().statusCode(401).body("codigo", equalTo("sessao_invalida"));
@@ -127,7 +127,7 @@ class RefreshTest extends BaseApiTest {
 
     @Test
     void logoutRevogaEEIdempotente() {
-        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "operador");
+        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "OPERADOR");
         String r1 = refreshDoLogin(u);
         logout(r1).then().statusCode(204);
         TokenRenovacaoEntity t = dados.tokenPorHash(AuthService.hashDoToken(r1));
@@ -140,7 +140,7 @@ class RefreshTest extends BaseApiTest {
 
     @Test
     void logoutNaoDerrubaOutraSessao() {
-        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "operador");
+        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "OPERADOR");
         String r1 = refreshDoLogin(u);
         String r2 = refreshDoLogin(u);
         logout(r1).then().statusCode(204);
@@ -150,16 +150,16 @@ class RefreshTest extends BaseApiTest {
     @Test
     void refreshDeUsuarioInativadoOuEmpresaDesativadaDa401() {
         String empresa = dados.empresaAtiva();
-        Usr u = dados.usuarioComPapel(empresa, "operador");
+        Usr u = dados.usuarioComPapel(empresa, "OPERADOR");
         String r1 = refreshDoLogin(u);
         QuarkusTransaction.requiringNew().run(() -> em.createQuery("update UsuarioEntity x set x.ativo = false where x.id = :id")
                 .setParameter("id", u.id()).executeUpdate());
         refresh(r1).then().statusCode(401);
 
         String empresa2 = dados.empresaAtiva();
-        Usr u2 = dados.usuarioComPapel(empresa2, "operador");
+        Usr u2 = dados.usuarioComPapel(empresa2, "OPERADOR");
         String r2 = refreshDoLogin(u2);
-        QuarkusTransaction.requiringNew().run(() -> em.createQuery("update EmpresaEntity x set x.situacao = 'desativada' where x.id = :id")
+        QuarkusTransaction.requiringNew().run(() -> em.createQuery("update EmpresaEntity x set x.situacao = 'DESATIVADA' where x.id = :id")
                 .setParameter("id", empresa2).executeUpdate());
         refresh(r2).then().statusCode(401);
     }
@@ -167,19 +167,19 @@ class RefreshTest extends BaseApiTest {
     @Test
     void refreshReavaliaOPapelDoVinculo() {
         String empresa = dados.empresaAtiva();
-        Usr u = dados.usuarioComPapel(empresa, "administrador");
+        Usr u = dados.usuarioComPapel(empresa, "ADMINISTRADOR");
         String r1 = refreshDoLogin(u);
         QuarkusTransaction.requiringNew().run(() -> em.createQuery(
-                "update VinculoUsuarioEntity v set v.papel = 'consulta' where v.usuario.id = :id")
+                "update VinculoUsuarioEntity v set v.papel = 'CONSULTA' where v.usuario.id = :id")
                 .setParameter("id", u.id()).executeUpdate());
         Response r = refresh(r1);
-        r.then().statusCode(200).body("papel", equalTo("consulta"));
-        assertEquals(List.of("consulta"), claims(r.jsonPath().getString("accessToken")).get("groups"));
+        r.then().statusCode(200).body("papel", equalTo("CONSULTA"));
+        assertEquals(List.of("CONSULTA"), claims(r.jsonPath().getString("accessToken")).get("groups"));
     }
 
     @Test
     void doisRefreshesSimultaneosComOMesmoTokenSoUmPassa() throws Exception {
-        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "operador");
+        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "OPERADOR");
         String r1 = refreshDoLogin(u);
         ExecutorService ex = Executors.newFixedThreadPool(2);
         try {

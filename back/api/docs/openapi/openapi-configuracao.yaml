@@ -24,9 +24,9 @@ tags:
   description: |
             Empresa usuária do sistema e tenant do modelo. Cada empresa só emite e só 
             enxerga as próprias notas.
-             NUNCA é apagada, só DESATIVADA (situacao = desativada): a aplicação não deve 
+             NUNCA é apagada, só DESATIVADA (situacao = DESATIVADA): a aplicação não deve 
             expor a remoção. Nasce no signup com o documento, o e-mail e o WhatsApp 
-            informados, em situacao pendente_confirmacao, e fica ativa quando o usuário 
+            informados, em situacao PENDENTE_CONFIRMACAO, e fica ATIVA quando o usuário 
             clica no link do e-mail (ConfirmacaoCadastro).
              É identificada por um documento único (CNPJ ou CPF). Tem atividades 
             (AtividadeEmpresa) e quadro de sócios (QsaEmpresa) como detalhes ([m]/[o]).
@@ -2698,9 +2698,9 @@ definitions:
     description: |
             Empresa usuária do sistema e tenant do modelo. Cada empresa só emite e só 
             enxerga as próprias notas.
-             NUNCA é apagada, só DESATIVADA (situacao = desativada): a aplicação não deve 
+             NUNCA é apagada, só DESATIVADA (situacao = DESATIVADA): a aplicação não deve 
             expor a remoção. Nasce no signup com o documento, o e-mail e o WhatsApp 
-            informados, em situacao pendente_confirmacao, e fica ativa quando o usuário 
+            informados, em situacao PENDENTE_CONFIRMACAO, e fica ATIVA quando o usuário 
             clica no link do e-mail (ConfirmacaoCadastro).
              É identificada por um documento único (CNPJ ou CPF). Tem atividades 
             (AtividadeEmpresa) e quadro de sócios (QsaEmpresa) como detalhes ([m]/[o]).
@@ -2875,18 +2875,18 @@ definitions:
             usado na emissão. Alterável só pelo administrador da plataforma ou suporte.
 
             Valores permitidos: 
-              simplesNacional
+              SIMPLES_NACIONAL
                  Valor: 1
-                 Texto: Simples Nacional
-              simplesExcessoSublimite
+                 Texto: Simples Nacional - Empresa optante pelo Simples Nacional. Código gravado e enviado ao gateway (crt): 1.
+              SIMPLES_EXCESSO_SUBLIMITE
                  Valor: 2
-                 Texto: Simples Nacional com excesso de sublimite
-              regimeNormal
+                 Texto: Simples Nacional com excesso de sublimite - Simples Nacional com excesso de sublimite de receita. Código gravado e enviado ao gateway (crt): 2.
+              REGIME_NORMAL
                  Valor: 3
-                 Texto: Regime Normal
-              mei
+                 Texto: Regime Normal - Empresa no regime normal (lucro presumido ou real). Código gravado e enviado ao gateway (crt): 3.
+              MEI
                  Valor: 4
-                 Texto: MEI
+                 Texto: MEI - Microempreendedor Individual. Código gravado e enviado ao gateway (crt): 4.
       regimeIbsCbs:
         type: integer
         minimum: 0
@@ -2899,21 +2899,21 @@ definitions:
             administrador da plataforma ou suporte.
 
             Valores permitidos: 
-              naoInformado
+              NAO_INFORMADO
                  Valor: 0
-                 Texto: Não informado, padrão, a tag não é enviada
-              simplesOpcaoRegimeRegular
+                 Texto: Não informado - Não informado, padrão: a tag regime_cibs não é enviada. Código gravado: 0.
+              SIMPLES_OPCAO_REGIME_REGULAR
                  Valor: 1
-                 Texto: Simples Nacional com opção pelo regime regular do IBS e da CBS (crt 1 ou 2)
-              normalOpcaoSimplesPendenteSemRegular
+                 Texto: Simples Nacional com opção pelo regime regular - Simples Nacional com opção pelo regime regular do IBS e da CBS (crt 1 ou 2). Código gravado e enviado ao gateway: 1.
+              NORMAL_OPCAO_SIMPLES_PENDENTE_SEM_REGULAR
                  Valor: 2
-                 Texto: Regime Normal com opção pendente pelo Simples Nacional, sem regime regular do IBS e da CBS (crt 3)
-              normalSublimitePendenteSemRegular
+                 Texto: Regime Normal, opção pelo Simples pendente, sem regime regular - Regime Normal com opção pendente pelo Simples Nacional, sem regime regular do IBS e da CBS (crt 3). Código gravado e enviado ao gateway: 2.
+              NORMAL_SUBLIMITE_PENDENTE_SEM_REGULAR
                  Valor: 3
-                 Texto: Regime Normal com opção pendente pelo Simples Nacional com excesso de sublimite, sem regime regular do IBS e da CBS (crt 3)
-              normalOpcaoSimplesPendenteComRegular
+                 Texto: Regime Normal, excesso de sublimite pendente, sem regime regular - Regime Normal com opção pendente pelo Simples Nacional com excesso de sublimite, sem regime regular do IBS e da CBS (crt 3). Código gravado e enviado ao gateway: 3.
+              NORMAL_OPCAO_SIMPLES_PENDENTE_COM_REGULAR
                  Valor: 4
-                 Texto: Regime Normal com opção pendente pelo Simples Nacional, com regime regular do IBS e da CBS (crt 3)
+                 Texto: Regime Normal, opção pelo Simples pendente, com regime regular - Regime Normal com opção pendente pelo Simples Nacional, com regime regular do IBS e da CBS (crt 3). Código gravado e enviado ao gateway: 4.
       logo:
         type: string
         format: byte
@@ -2938,12 +2938,26 @@ definitions:
         pattern: \w*\W*
         description: |
             Situação da conta da empresa NO SISTEMA (não confundir com statusCadastro, que é 
-            o cadastro no gateway IntegraNotas). A empresa nasce pendente_confirmacao no 
+            o cadastro no gateway IntegraNotas). A empresa nasce PENDENTE_CONFIRMACAO no 
             signup,
-             vira ativa quando o usuário clica no link do e-mail (ou quando o suporte ativa) 
-            e desativada quando o suporte a desativa à mão. Nunca é apagada. Alterável só 
+             vira ATIVA quando o usuário clica no link do e-mail (ou quando o suporte ativa) 
+            e DESATIVADA quando o suporte a desativa à mão. Nunca é apagada. Alterável só 
             pelo administrador da plataforma ou suporte.
 
+            Valores permitidos: 
+              PENDENTE_CONFIRMACAO
+                 Valor: PENDENTE_CONFIRMACAO
+                 Texto: Pendente de confirmação - Estado inicial e padrão: a empresa nasce assim no signup, aguardando o clique no link de confirmação enviado por e-mail.
+              ATIVA
+                 Valor: ATIVA
+                 Texto: Ativa - Conta ativa, depois do clique no link do e-mail ou quando o suporte a ativa.
+              DESATIVADA
+                 Valor: DESATIVADA
+                 Texto: Desativada - Conta desativada à mão pelo suporte, com motivo obrigatório. A empresa nunca é apagada.
+        enum:
+          - PENDENTE_CONFIRMACAO
+          - ATIVA
+          - DESATIVADA
       dataConfirmacao:
         type: string
         format: date-time
@@ -2994,10 +3008,24 @@ definitions:
         description: |
             Situação do cadastro da empresa NO GATEWAY (emitente no IntegraNotas), no 
             ambiente do registro. Não é a situação da conta no sistema (ver situacao). A 
-            empresa nasce nao_cadastrado,
-             vira cadastrado quando o gateway devolve o token, e erro quando o cadastro é 
+            empresa nasce NAO_CADASTRADO,
+             vira CADASTRADO quando o gateway devolve o token, e ERRO quando o cadastro é 
             recusado. Alterável só pelo administrador da plataforma ou suporte.
 
+            Valores permitidos: 
+              NAO_CADASTRADO
+                 Valor: NAO_CADASTRADO
+                 Texto: Não cadastrado - A empresa ainda não foi cadastrada no gateway. É o estado inicial e o padrão.
+              CADASTRADO
+                 Valor: CADASTRADO
+                 Texto: Cadastrado - Cadastro aceito pelo gateway, que devolveu o token do emitente (nome no IntegraNotas), guardado no cofre.
+              ERRO
+                 Valor: ERRO
+                 Texto: Erro no cadastro - Cadastro recusado pelo gateway.
+        enum:
+          - NAO_CADASTRADO
+          - CADASTRADO
+          - ERRO
       dataCadastroGateway:
         type: string
         format: date-time
@@ -3021,6 +3049,28 @@ definitions:
             Situação do certificado digital da empresa no gateway, no ambiente do registro. 
             Alterável só pelo administrador da plataforma ou suporte.
 
+            Valores permitidos: 
+              NAO_ENVIADO
+                 Valor: NAO_ENVIADO
+                 Texto: Não enviado - Nenhum certificado foi enviado ao gateway. É o estado inicial e o padrão.
+              VALIDO
+                 Valor: VALIDO
+                 Texto: Válido - Certificado aceito pelo gateway e dentro da validade.
+              VENCIDO
+                 Valor: VENCIDO
+                 Texto: Vencido - Certificado com a validade vencida (erro 5011 do gateway).
+              INVALIDO
+                 Valor: INVALIDO
+                 Texto: Inválido - Certificado corrompido ou enviado com senha errada (erro 5003 do gateway).
+              NAO_PERTENCE
+                 Valor: NAO_PERTENCE
+                 Texto: Não pertence à empresa - Certificado que não pertence ao documento (CNPJ ou CPF) da empresa (erro 5029 do gateway).
+        enum:
+          - NAO_ENVIADO
+          - VALIDO
+          - VENCIDO
+          - INVALIDO
+          - NAO_PERTENCE
       id:
         type: string
         maxLength: 36
@@ -3041,6 +3091,16 @@ definitions:
              então o mesmo documento (CNPJ ou CPF) tem um registro por ambiente e uma nota de 
             teste nunca se mistura com uma real.
 
+            Valores permitidos: 
+              HOMOLOGACAO
+                 Valor: HOMOLOGACAO
+                 Texto: Homologação - Ambiente de testes do gateway. É o padrão. Nada emitido aqui tem validade fiscal e uma nota de teste nunca se mistura com uma real.
+              PRODUCAO
+                 Valor: PRODUCAO
+                 Texto: Produção - Ambiente real do gateway. As notas emitidas aqui têm validade fiscal.
+        enum:
+          - HOMOLOGACAO
+          - PRODUCAO
       dataCriacao:
         type: string
         format: date-time
@@ -3122,6 +3182,16 @@ definitions:
             Se a atividade é a principal ou uma secundária da empresa. No máximo uma 
             principal por empresa (regra da aplicação). Obrigatório.
 
+            Valores permitidos: 
+              PRINCIPAL
+                 Valor: PRINCIPAL
+                 Texto: Principal - Atividade econômica principal da empresa. No máximo uma por empresa (regra da aplicação).
+              SECUNDARIA
+                 Valor: SECUNDARIA
+                 Texto: Secundária - Atividade econômica secundária da empresa. Uma empresa pode ter várias.
+        enum:
+          - PRINCIPAL
+          - SECUNDARIA
       codigoCnae:
         type: string
         maxLength: 7

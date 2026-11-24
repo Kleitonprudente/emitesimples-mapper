@@ -92,7 +92,7 @@ class CertificadoTest extends BaseApiTest {
     void preparar() {
         limite.limparTudo();
         Map<String, Object> c = new HashMap<>();
-        c.put("ambienteAtivo", "homologacao");
+        c.put("ambienteAtivo", "HOMOLOGACAO");
         c.put("urlHomologacao", urlStub);
         c.put("urlPublicaWebhook", "");
         c.put("tokenHomologacao", TOKEN_SOFTHOUSE);
@@ -148,7 +148,7 @@ class CertificadoTest extends BaseApiTest {
     }
 
     private String admin(String empresaId) {
-        return token(dados.usuarioComPapel(empresaId, "administrador").email());
+        return token(dados.usuarioComPapel(empresaId, "ADMINISTRADOR").email());
     }
 
     private static byte[] arquivo(String nome) {
@@ -245,7 +245,7 @@ class CertificadoTest extends BaseApiTest {
         } finally {
             descapturar(h);
         }
-        r.then().statusCode(200).body("situacao", equalTo("valido")).body("validade", notNullValue())
+        r.then().statusCode(200).body("situacao", equalTo("VALIDO")).body("validade", notNullValue())
                 .body("pendenteDeEnvio", equalTo(false)).body("venceEmDias", greaterThan(36000))
                 .body("avisos", empty());
 
@@ -257,7 +257,7 @@ class CertificadoTest extends BaseApiTest {
         assertTrue(env.path("contentType").asText().startsWith("application/json"));
 
         EmpresaEntity e = ler(emp);
-        assertEquals("valido", e.getSituacaoCertificado());
+        assertEquals("VALIDO", e.getSituacaoCertificado());
         assertNotNull(e.getValidadeCertificado());
         assertTrue(e.getValidadeCertificado().getYear() >= 2126);
         String ref = e.getReferenciaCertificado();
@@ -283,9 +283,9 @@ class CertificadoTest extends BaseApiTest {
         assertTrue(logs.stream().anyMatch(l -> l.contains("/v1/certificado")), "a chamada deixa rastro (sem segredos)");
 
         // consistencia entre as telas
-        chamar("GET", EMPRESA, tk, null).then().statusCode(200).body("certificado.situacao", equalTo("valido"))
+        chamar("GET", EMPRESA, tk, null).then().statusCode(200).body("certificado.situacao", equalTo("VALIDO"))
                 .body("certificado.pendenteDeEnvio", equalTo(false)).body("certificado.validade", notNullValue());
-        chamar("GET", NFSE, tk, null).then().statusCode(200).body("certificadoSituacao", equalTo("valido"))
+        chamar("GET", NFSE, tk, null).then().statusCode(200).body("certificadoSituacao", equalTo("VALIDO"))
                 .body("validadeCertificado", notNullValue());
     }
 
@@ -293,7 +293,7 @@ class CertificadoTest extends BaseApiTest {
     void certificadoComExtensaoP12EMaiusculasEAceito() {
         String emp = empresa();
         multipart(admin(emp), "MEU CERTIFICADO.P12", arquivo("valido.pfx"), "senha123").post(URL).then().statusCode(200)
-                .body("situacao", equalTo("nao_enviado")).body("pendenteDeEnvio", equalTo(true));
+                .body("situacao", equalTo("NAO_ENVIADO")).body("pendenteDeEnvio", equalTo(true));
     }
 
     @Test
@@ -301,26 +301,26 @@ class CertificadoTest extends BaseApiTest {
         String emp = empresa();
         String tk = admin(emp);
         int antes = enviosAoStub();
-        enviarValido(tk).then().statusCode(200).body("situacao", equalTo("nao_enviado"))
+        enviarValido(tk).then().statusCode(200).body("situacao", equalTo("NAO_ENVIADO"))
                 .body("pendenteDeEnvio", equalTo(true)).body("validade", notNullValue()).body("avisos", empty());
         assertEquals(antes, enviosAoStub(), "gateway nao chamado");
         EmpresaEntity e = ler(emp);
         assertNotNull(e.getReferenciaCertificado());
-        assertEquals("nao_enviado", e.getSituacaoCertificado());
-        chamar("GET", EMPRESA, tk, null).then().body("certificado.situacao", equalTo("nao_enviado"))
+        assertEquals("NAO_ENVIADO", e.getSituacaoCertificado());
+        chamar("GET", EMPRESA, tk, null).then().body("certificado.situacao", equalTo("NAO_ENVIADO"))
                 .body("certificado.pendenteDeEnvio", equalTo(true));
-        chamar("GET", NFSE, tk, null).then().body("certificadoSituacao", equalTo("nao_enviado"));
+        chamar("GET", NFSE, tk, null).then().body("certificadoSituacao", equalTo("NAO_ENVIADO"));
 
         // habilitar cadastra o emitente e envia o certificado guardado
         Response r = habilitar(tk);
-        r.then().statusCode(200).body("habilitada", equalTo(true)).body("certificadoSituacao", equalTo("valido"))
+        r.then().statusCode(200).body("habilitada", equalTo(true)).body("certificadoSituacao", equalTo("VALIDO"))
                 .body("$", org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasKey("avisos")));
         assertEquals(antes + 1, enviosAoStub());
         JsonNode env = ultimoEnvioAoStub();
         assertEquals(ultimoEmitenteDoStub().path("tokenDevolvido").asText(), env.path("authorization").asText());
         assertEquals(Base64.getEncoder().encodeToString(arquivo("valido.pfx")), env.path("certificado").asText());
-        assertEquals("valido", ler(emp).getSituacaoCertificado());
-        chamar("GET", EMPRESA, tk, null).then().body("certificado.situacao", equalTo("valido"))
+        assertEquals("VALIDO", ler(emp).getSituacaoCertificado());
+        chamar("GET", EMPRESA, tk, null).then().body("certificado.situacao", equalTo("VALIDO"))
                 .body("certificado.pendenteDeEnvio", equalTo(false));
 
         // um novo PUT de habilitar nao reenvia (ja valido)
@@ -337,7 +337,7 @@ class CertificadoTest extends BaseApiTest {
         int antes = enviosAoStub();
         enviarValido(tk).then().statusCode(200).body("pendenteDeEnvio", equalTo(true));
         assertEquals(antes, enviosAoStub());
-        habilitar(tk).then().statusCode(200).body("certificadoSituacao", equalTo("valido"));
+        habilitar(tk).then().statusCode(200).body("certificadoSituacao", equalTo("VALIDO"));
         assertEquals(antes + 1, enviosAoStub());
     }
 
@@ -345,7 +345,7 @@ class CertificadoTest extends BaseApiTest {
     void semCnpjNoCertificadoAceitaComAviso() {
         String emp = empresa();
         enviar(admin(emp), "sem-cnpj.pfx", "senha123").then().statusCode(200)
-                .body("avisos", hasItem("nao_foi_possivel_conferir_cnpj")).body("situacao", equalTo("nao_enviado"));
+                .body("avisos", hasItem("nao_foi_possivel_conferir_cnpj")).body("situacao", equalTo("NAO_ENVIADO"));
         assertNotNull(ler(emp).getReferenciaCertificado());
     }
 
@@ -527,12 +527,12 @@ class CertificadoTest extends BaseApiTest {
 
     @Test
     void gateway5003MarcaInvalido() {
-        comFalhaDoGateway("5003", 400, "certificado_invalido_gateway", "invalido");
+        comFalhaDoGateway("5003", 400, "certificado_invalido_gateway", "INVALIDO");
     }
 
     @Test
     void gateway5003ComoHttp400TambemMarcaInvalido() {
-        comFalhaDoGateway("5003http400", 400, "certificado_invalido_gateway", "invalido");
+        comFalhaDoGateway("5003http400", 400, "certificado_invalido_gateway", "INVALIDO");
     }
 
     @Test
@@ -547,48 +547,48 @@ class CertificadoTest extends BaseApiTest {
 
     @Test
     void gateway5011MarcaVencido() {
-        comFalhaDoGateway("5011", 400, "certificado_vencido_gateway", "vencido");
+        comFalhaDoGateway("5011", 400, "certificado_vencido_gateway", "VENCIDO");
     }
 
     @Test
     void gateway5029MarcaNaoPertence() {
-        comFalhaDoGateway("5029", 400, "certificado_nao_pertence_gateway", "nao_pertence");
+        comFalhaDoGateway("5029", 400, "certificado_nao_pertence_gateway", "NAO_PERTENCE");
     }
 
     @Test
     void tokenDoEmitenteRecusadoNaoMudaASituacao() {
-        String emp = comFalhaDoGateway("6001", 502, "integranotas_token_recusado", "nao_enviado");
+        String emp = comFalhaDoGateway("6001", 502, "integranotas_token_recusado", "NAO_ENVIADO");
         assertNotNull(emp);
     }
 
     @Test
     void gatewayIndisponivelNaoMudaASituacaoEDevolve504() {
-        comFalhaDoGateway("lento", 504, "integranotas_indisponivel", "nao_enviado");
+        comFalhaDoGateway("lento", 504, "integranotas_indisponivel", "NAO_ENVIADO");
     }
 
     @Test
     void gatewayComRespostaInvalida() {
-        comFalhaDoGateway("json", 502, "integranotas_resposta_invalida", "nao_enviado");
-        comFalhaDoGateway("500", 502, "integranotas_resposta_invalida", "nao_enviado");
+        comFalhaDoGateway("json", 502, "integranotas_resposta_invalida", "NAO_ENVIADO");
+        comFalhaDoGateway("500", 502, "integranotas_resposta_invalida", "NAO_ENVIADO");
     }
 
     @Test
     void falhaDeTransporteGuardaOCertificadoEOutroEnvioRecupera() {
-        String emp = comFalhaDoGateway("6001", 502, "integranotas_token_recusado", "nao_enviado");
+        String emp = comFalhaDoGateway("6001", 502, "integranotas_token_recusado", "NAO_ENVIADO");
         String tk = admin(emp);
         // o erro avisa que o certificado ficou guardado
         modoGateway("6001");
         enviarValido(tk).then().statusCode(502).body("detalhes.certificadoGuardado", equalTo(true));
         modoGateway("ok");
-        enviarValido(tk).then().statusCode(200).body("situacao", equalTo("valido")).body("pendenteDeEnvio", equalTo(false));
-        assertEquals("valido", ler(emp).getSituacaoCertificado());
+        enviarValido(tk).then().statusCode(200).body("situacao", equalTo("VALIDO")).body("pendenteDeEnvio", equalTo(false));
+        assertEquals("VALIDO", ler(emp).getSituacaoCertificado());
     }
 
     @Test
     void gatewayRecusouEUmNovoEnvioCorrige() {
-        String emp = comFalhaDoGateway("5003", 400, "certificado_invalido_gateway", "invalido");
+        String emp = comFalhaDoGateway("5003", 400, "certificado_invalido_gateway", "INVALIDO");
         modoGateway("ok");
-        enviarValido(admin(emp)).then().statusCode(200).body("situacao", equalTo("valido"));
+        enviarValido(admin(emp)).then().statusCode(200).body("situacao", equalTo("VALIDO"));
     }
 
     @Test
@@ -597,7 +597,7 @@ class CertificadoTest extends BaseApiTest {
         String tk = admin(emp);
         habilitar(tk).then().statusCode(200);
         modoGateway("semcodigo");
-        enviarValido(tk).then().statusCode(200).body("situacao", equalTo("valido"));
+        enviarValido(tk).then().statusCode(200).body("situacao", equalTo("VALIDO"));
     }
 
     @Test
@@ -609,7 +609,7 @@ class CertificadoTest extends BaseApiTest {
         c.put("urlHomologacao", "http://127.0.0.1:1");
         chamar("PUT", CFG, plataforma(), c).then().statusCode(204);
         enviarValido(tk).then().statusCode(504).body("codigo", equalTo("integranotas_indisponivel"));
-        assertEquals("nao_enviado", ler(emp).getSituacaoCertificado());
+        assertEquals("NAO_ENVIADO", ler(emp).getSituacaoCertificado());
         assertNotNull(ler(emp).getReferenciaCertificado());
     }
 
@@ -622,17 +622,17 @@ class CertificadoTest extends BaseApiTest {
         enviarValido(tk).then().statusCode(200);
         modoGateway("6001");
         Response r = habilitar(tk);
-        r.then().statusCode(200).body("habilitada", equalTo(true)).body("certificadoSituacao", equalTo("nao_enviado"))
-                .body("avisos", hasItem("certificado_nao_enviado")).body("statusCadastro", equalTo("cadastrado"));
+        r.then().statusCode(200).body("habilitada", equalTo(true)).body("certificadoSituacao", equalTo("NAO_ENVIADO"))
+                .body("avisos", hasItem("certificado_nao_enviado")).body("statusCadastro", equalTo("CADASTRADO"));
         assertTrue(ler(emp).getNfseHabilitada());
-        chamar("GET", NFSE, tk, null).then().body("habilitada", equalTo(true)).body("certificadoSituacao", equalTo("nao_enviado"));
+        chamar("GET", NFSE, tk, null).then().body("habilitada", equalTo(true)).body("certificadoSituacao", equalTo("NAO_ENVIADO"));
 
         modoGateway("5029");
         habilitar(tk).then().statusCode(200).body("avisos", hasItem("certificado_recusado"))
-                .body("certificadoSituacao", equalTo("nao_pertence"));
+                .body("certificadoSituacao", equalTo("NAO_PERTENCE"));
 
         modoGateway("ok");
-        habilitar(tk).then().statusCode(200).body("certificadoSituacao", equalTo("valido"))
+        habilitar(tk).then().statusCode(200).body("certificadoSituacao", equalTo("VALIDO"))
                 .body("$", org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasKey("avisos")));
     }
 
@@ -640,7 +640,7 @@ class CertificadoTest extends BaseApiTest {
     void habilitarSemCertificadoNaoTocaNoGatewayDeCertificado() {
         String emp = empresa();
         int antes = enviosAoStub();
-        habilitar(admin(emp)).then().statusCode(200).body("certificadoSituacao", equalTo("nao_enviado"))
+        habilitar(admin(emp)).then().statusCode(200).body("certificadoSituacao", equalTo("NAO_ENVIADO"))
                 .body("$", org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasKey("avisos")));
         assertEquals(antes, enviosAoStub());
     }
@@ -666,8 +666,8 @@ class CertificadoTest extends BaseApiTest {
     void papeisEMetodos() {
         String emp = empresa();
         String adm = admin(emp);
-        String op = token(dados.usuarioComPapel(emp, "operador").email());
-        String con = token(dados.usuarioComPapel(emp, "consulta").email());
+        String op = token(dados.usuarioComPapel(emp, "OPERADOR").email());
+        String con = token(dados.usuarioComPapel(emp, "CONSULTA").email());
         int antes = enviosAoStub();
         assertEquals(403, enviarValido(op).statusCode());
         assertEquals(403, enviarValido(con).statusCode());
@@ -689,7 +689,7 @@ class CertificadoTest extends BaseApiTest {
         enviarValido(admin(a)).then().statusCode(200);
         assertNotNull(ler(a).getReferenciaCertificado());
         assertNull(ler(b).getReferenciaCertificado());
-        chamar("GET", EMPRESA, admin(b), null).then().body("certificado.situacao", equalTo("nao_enviado"))
+        chamar("GET", EMPRESA, admin(b), null).then().body("certificado.situacao", equalTo("NAO_ENVIADO"))
                 .body("certificado.validade", nullValue()).body("certificado.pendenteDeEnvio", equalTo(false));
         // empresa B nao consegue usar o certificado de A (CNPJ diferente) e o segredo de A fica intacto
         enviarValido(admin(b)).then().statusCode(400).body("codigo", equalTo("certificado_nao_pertence"));

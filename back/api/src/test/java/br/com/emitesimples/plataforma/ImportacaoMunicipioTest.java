@@ -86,7 +86,7 @@ class ImportacaoMunicipioTest extends BaseApiTest {
         byte[] arq = win(CAB_IBGE, "1;" + codigo() + ";X;" + nome("Cidade") + ";SP");
         assertEquals(401, enviar(null, "m.csv", arq).statusCode());
         String empresa = dados.empresaAtiva();
-        for (String papel : new String[] {"consulta", "operador", "administrador"}) {
+        for (String papel : new String[] {"CONSULTA", "OPERADOR", "ADMINISTRADOR"}) {
             String t = token(dados.usuarioComPapel(empresa, papel).email());
             enviar(t, "m.csv", arq).then().statusCode(403);
             assertEquals(403, status("GET", "/api/admin/municipios/importacoes", t, null));
@@ -110,7 +110,7 @@ class ImportacaoMunicipioTest extends BaseApiTest {
                 "9707;0;EXTERIOR;;EX");
         Response r = enviar(admin(), "municipios.csv", arq);
         r.then().statusCode(200)
-                .body("estado", equalTo("concluida"))
+                .body("estado", equalTo("CONCLUIDA"))
                 .body("codificacao", equalTo("Windows-1252"))
                 .body("separador", equalTo(";"))
                 .body("nomeArquivo", equalTo("municipios.csv"))
@@ -132,7 +132,7 @@ class ImportacaoMunicipioTest extends BaseApiTest {
 
         // historico gravado
         ImportacaoMunicipioEntity h = historico(r.jsonPath().getString("id"));
-        assertEquals("concluida", h.getEstado());
+        assertEquals("CONCLUIDA", h.getEstado());
         assertEquals("Windows-1252", h.getCodificacaoDetectada());
         assertEquals(3, h.getLinhasLidas());
         assertEquals(criados, h.getLinhasInseridas());
@@ -199,7 +199,7 @@ class ImportacaoMunicipioTest extends BaseApiTest {
                 "1;" + codigo() + ";X;" + "A".repeat(101) + ";SP");   // linha 13: nome longo demais
         Response r = enviar(admin(), "r.csv", arq);
         r.then().statusCode(200)
-                .body("estado", equalTo("concluida_com_rejeicoes"))
+                .body("estado", equalTo("CONCLUIDA_COM_REJEICOES"))
                 .body("linhasLidas", equalTo(11))
                 .body("criados", equalTo(3))
                 .body("totalRejeitados", equalTo(8));
@@ -218,7 +218,7 @@ class ImportacaoMunicipioTest extends BaseApiTest {
                 "select count(m) from MunicipioEntity m where m.nome like 'Segunda %'", Long.class).getSingleResult()), "linha repetida nao entra");
         // o relatorio fica no historico
         ImportacaoMunicipioEntity h = historico(r.jsonPath().getString("id"));
-        assertEquals("concluida_com_rejeicoes", h.getEstado());
+        assertEquals("CONCLUIDA_COM_REJEICOES", h.getEstado());
         assertEquals(8, h.getLinhasRejeitadas());
         assertTrue(h.getResumoRejeicoes().contains("linha 3:") && h.getResumoRejeicoes().contains("linha 13:"));
     }
@@ -275,7 +275,7 @@ class ImportacaoMunicipioTest extends BaseApiTest {
         r.then().statusCode(400).body("codigo", equalTo("arquivo_invalido"));
         assertEquals(antes, totalMunicipios());
         Response lista = chamar("GET", "/api/admin/municipios/importacoes?limite=1", t, null);
-        lista.then().statusCode(200).body("[0].estado", equalTo("falhou")).body("[0].nomeArquivo", equalTo("ruim.csv"))
+        lista.then().statusCode(200).body("[0].estado", equalTo("FALHOU")).body("[0].nomeArquivo", equalTo("ruim.csv"))
                 .body("[0].linhasLidas", equalTo(0));
     }
 
@@ -347,7 +347,7 @@ class ImportacaoMunicipioTest extends BaseApiTest {
         String id = dados.municipio();
         String empresa = dados.empresaAtiva();
         Map<String, Object> corpo = Map.of("nome", nome("Corrigido"));
-        for (String papel : new String[] {"consulta", "operador", "administrador"}) {
+        for (String papel : new String[] {"CONSULTA", "OPERADOR", "ADMINISTRADOR"}) {
             String t = token(dados.usuarioComPapel(empresa, papel).email());
             assertEquals(403, status("PATCH", "/api/Municipio/id/" + id, t, corpo), papel);
             assertEquals(403, status("PUT", "/api/Municipio/id/" + id, t, corpo), papel);

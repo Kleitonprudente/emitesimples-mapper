@@ -23,7 +23,7 @@ import org.jboss.resteasy.reactive.multipart.FileUpload;
 /** Importacao da tabela de municipios por upload. So administrador da plataforma (matriz em application.properties). */
 @Path("/admin/municipios")
 @Produces(MediaType.APPLICATION_JSON)
-@RolesAllowed("plataforma_admin")
+@RolesAllowed("PLATAFORMA_ADMIN")
 public class MunicipioImportacaoResource {
 
     @Inject

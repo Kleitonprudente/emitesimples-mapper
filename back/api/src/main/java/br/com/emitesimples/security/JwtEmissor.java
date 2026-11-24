@@ -34,7 +34,7 @@ public class JwtEmissor {
             grupos.add(papel);
         }
         if (plataformaAdmin) {
-            grupos.add(EscopoTenant.CLAIM_ADMIN_PLATAFORMA);
+            grupos.add(Papeis.PLATAFORMA_ADMIN);
         }
         var b = Jwt.issuer(issuer)
                 .subject(usuario.getId())

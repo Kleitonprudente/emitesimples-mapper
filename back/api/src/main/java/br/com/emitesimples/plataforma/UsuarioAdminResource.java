@@ -34,7 +34,7 @@ import org.eclipse.microprofile.jwt.JsonWebToken;
 @Path("/admin/usuarios")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-@RolesAllowed("plataforma_admin")
+@RolesAllowed("PLATAFORMA_ADMIN")
 public class UsuarioAdminResource {
 
     private static final int PAGINA_PADRAO = 100;

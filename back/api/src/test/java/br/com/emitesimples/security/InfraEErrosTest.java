@@ -118,7 +118,7 @@ class InfraEErrosTest extends BaseApiTest {
 
     @Test
     void erro403SemPermissao() {
-        String t = token(dados.usuarioComPapel(dados.empresaAtiva(), "consulta").email());
+        String t = token(dados.usuarioComPapel(dados.empresaAtiva(), "CONSULTA").email());
         Response r = chamar("POST", "/api/Pessoa", t, Map.of());
 
         formatoUniforme(r, 403, "acesso_negado");
@@ -128,21 +128,21 @@ class InfraEErrosTest extends BaseApiTest {
     void erro403DoEscopoDeTenantTemFormatoUniforme() throws Exception {
         // 403 lançado DENTRO do recurso (EscopoTenant): passa pelo mapeador global
         var u = dados.usuario(true, false);
-        String jwt = io.smallrye.jwt.build.Jwt.issuer("emitesimples").subject(u.id()).upn(u.email()).groups("operador")
+        String jwt = io.smallrye.jwt.build.Jwt.issuer("emitesimples").subject(u.id()).upn(u.email()).groups("OPERADOR")
                 .expiresIn(60).sign(); // chave de assinatura configurada (a dos testes)
         formatoUniforme(chamar("GET", "/api/Pessoa", jwt, null), 403, "acesso_negado");
     }
 
     @Test
     void erro404() {
-        String t = token(dados.usuarioComPapel(dados.empresaAtiva(), "consulta").email());
+        String t = token(dados.usuarioComPapel(dados.empresaAtiva(), "CONSULTA").email());
         formatoUniforme(chamar("GET", "/api/Pessoa/id/nao-existe", t, null), 404, "nao_encontrado");
         formatoUniforme(chamar("GET", "/api/CaminhoQueNaoExiste", t, null), 404, "nao_encontrado");
     }
 
     @Test
     void erro405() {
-        String t = token(dados.usuarioComPapel(dados.empresaAtiva(), "consulta").email());
+        String t = token(dados.usuarioComPapel(dados.empresaAtiva(), "CONSULTA").email());
         Response r = chamar("GET", "/api/auth/login", t, null);
         formatoUniforme(r, 403, "acesso_negado"); // GET em rota so POST: a politica fecha (deny) antes do 405
     }
@@ -152,14 +152,14 @@ class InfraEErrosTest extends BaseApiTest {
         String a = dados.empresaAtiva();
         String b = dados.empresaAtiva();
         var u = dados.usuario(true, false);
-        dados.vincular(u.id(), a, "operador", true);
-        dados.vincular(u.id(), b, "operador", true);
+        dados.vincular(u.id(), a, "OPERADOR", true);
+        dados.vincular(u.id(), b, "OPERADOR", true);
         formatoUniforme(login(u.email(), SENHA), 409, "empresa_obrigatoria");
     }
 
     @Test
     void erro429() {
-        var u = dados.usuarioComPapel(dados.empresaAtiva(), "operador");
+        var u = dados.usuarioComPapel(dados.empresaAtiva(), "OPERADOR");
         for (int i = 0; i < 5; i++) {
             login(u.email(), "errada-" + i + "-xx");
         }
@@ -171,13 +171,13 @@ class InfraEErrosTest extends BaseApiTest {
         // Força um 500 real do código gerado: PUT que troca a empresa (Hibernate recusa alterar o identificador)
         String empA = dados.empresaAtiva();
         String empB = dados.empresaAtiva();
-        String t = token(dados.usuarioComPapel(empA, "operador").email());
+        String t = token(dados.usuarioComPapel(empA, "OPERADOR").email());
         String p = dados.pessoa(empA, "p");
         String versaoB = java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(
                 java.time.LocalDateTime.now());
         // versão de B é desconhecida aqui: usa o banco
         versaoB = versaoDe(empB);
-        Response r = chamar("PUT", "/api/Pessoa/id/" + p, t, Map.of("tipoPessoa", "fisica", "nome", "x",
+        Response r = chamar("PUT", "/api/Pessoa/id/" + p, t, Map.of("tipoPessoa", "FISICA", "nome", "x",
                 "empresa", Map.of("id", empB, "version", versaoB)));
         // O gerador agora barra a troca de empresa com 403 (antes era 500 do Hibernate). O mascaramento do 500
         // generico ja nao tem caso real provocavel por HTTP: so o ErrosHandler o cobre.
@@ -202,9 +202,9 @@ class InfraEErrosTest extends BaseApiTest {
     void erroDePersistenciaNoPostGeradoNaoVazaSql() {
         // violação de unicidade (documento duplicado) no POST gerado: a mensagem do banco não pode sair
         String empA = dados.empresaAtiva();
-        String t = token(dados.usuarioComPapel(empA, "operador").email());
+        String t = token(dados.usuarioComPapel(empA, "OPERADOR").email());
         String doc = "12345678901";
-        Map<String, Object> corpo = Map.of("tipoPessoa", "fisica", "nome", "dup", "documento", doc,
+        Map<String, Object> corpo = Map.of("tipoPessoa", "FISICA", "nome", "dup", "documento", doc,
                 "empresa", Map.of("id", empA, "version", versaoDe(empA)));
         Response primeira = chamar("POST", "/api/Pessoa", t, corpo);
         Response segunda = chamar("POST", "/api/Pessoa", t, corpo);

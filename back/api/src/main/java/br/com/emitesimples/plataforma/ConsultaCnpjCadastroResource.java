@@ -12,7 +12,7 @@ import org.eclipse.microprofile.jwt.JsonWebToken;
 /** Consulta de CNPJ para preencher o cadastro de empresa; so o administrador da plataforma. Cada chamada gasta uma consulta do plano. */
 @Path("/admin/consulta-cnpj")
 @Produces(MediaType.APPLICATION_JSON)
-@RolesAllowed("plataforma_admin")
+@RolesAllowed("PLATAFORMA_ADMIN")
 public class ConsultaCnpjCadastroResource {
 
     @Inject

@@ -35,9 +35,9 @@ class PoliticaAcessoTest extends BaseApiTest {
             return;
         }
         String empresa = dados.empresaAtiva();
-        consulta = token(dados.usuarioComPapel(empresa, "consulta").email());
-        operador = token(dados.usuarioComPapel(empresa, "operador").email());
-        administrador = token(dados.usuarioComPapel(empresa, "administrador").email());
+        consulta = token(dados.usuarioComPapel(empresa, "CONSULTA").email());
+        operador = token(dados.usuarioComPapel(empresa, "OPERADOR").email());
+        administrador = token(dados.usuarioComPapel(empresa, "ADMINISTRADOR").email());
         plataforma = token(dados.usuario(true, true).email());
     }
 
@@ -78,9 +78,9 @@ class PoliticaAcessoTest extends BaseApiTest {
     private void porPapel(List<String> falhas, String metodo, String caminho, boolean anon, boolean cons, boolean oper,
             boolean adm, boolean plat) {
         esperar(falhas, metodo, caminho, "anonimo", null, anon);
-        esperar(falhas, metodo, caminho, "consulta", consulta, cons);
-        esperar(falhas, metodo, caminho, "operador", operador, oper);
-        esperar(falhas, metodo, caminho, "administrador", administrador, adm);
+        esperar(falhas, metodo, caminho, "CONSULTA", consulta, cons);
+        esperar(falhas, metodo, caminho, "OPERADOR", operador, oper);
+        esperar(falhas, metodo, caminho, "ADMINISTRADOR", administrador, adm);
         esperar(falhas, metodo, caminho, "plataforma", plataforma, plat);
     }
 
@@ -102,8 +102,8 @@ class PoliticaAcessoTest extends BaseApiTest {
                 "/api/nfse/cancelamentos/" + id + "/aprovar", "/api/nfse/cancelamentos/" + id + "/descartar");
         for (String c : posts) {
             esperar(falhas, "POST", c, "anonimo", null, false);
-            esperar(falhas, "POST", c, "consulta", consulta, false);
-            for (String[] p : new String[][] {{"operador", operador}, {"administrador", administrador}}) {
+            esperar(falhas, "POST", c, "CONSULTA", consulta, false);
+            for (String[] p : new String[][] {{"OPERADOR", operador}, {"ADMINISTRADOR", administrador}}) {
                 Response r = chamar("POST", c, p[1], CORPO);
                 if (r.statusCode() == 401 || r.statusCode() == 403) {
                     falhas.add("POST " + c + " como " + p[0] + ": esperado liberado, veio " + r.statusCode());
@@ -114,12 +114,12 @@ class PoliticaAcessoTest extends BaseApiTest {
                 falhas.add("POST " + c + " como plataforma: esperado 403 empresa_nao_selecionada, veio " + r.statusCode());
             }
             for (String m : List.of("PUT", "PATCH", "DELETE")) {
-                esperar(falhas, m, c, "administrador", administrador, false);
+                esperar(falhas, m, c, "ADMINISTRADOR", administrador, false);
             }
         }
         // cancelamentos: so POST
         for (String m : List.of("GET", "PUT", "PATCH", "DELETE")) {
-            esperar(falhas, m, "/api/nfse/cancelamentos/" + id + "/aprovar", "administrador", administrador, false);
+            esperar(falhas, m, "/api/nfse/cancelamentos/" + id + "/aprovar", "ADMINISTRADOR", administrador, false);
             esperar(falhas, m, "/api/nfse/cancelamentos/" + id + "/aprovar", "anonimo", null, false);
         }
         semFalhas(falhas);
@@ -154,12 +154,12 @@ class PoliticaAcessoTest extends BaseApiTest {
         assertEquals(401, status("GET", "/api/Pessoa", plataforma.substring(0, plataforma.length() - 4) + "AAAA", null),
                 "assinatura adulterada");
         // token válido de outro emissor (outra chave) não passa
-        String estranho = io.smallrye.jwt.build.Jwt.issuer("emitesimples").subject("x").groups("plataforma_admin")
+        String estranho = io.smallrye.jwt.build.Jwt.issuer("emitesimples").subject("x").groups("PLATAFORMA_ADMIN")
                 .claim("plataforma_admin", true).sign(chaveEstranha());
         assertEquals(401, status("GET", "/api/Pessoa", estranho, null), "JWT assinado com outra chave");
         // issuer errado
         assertEquals(401, status("GET", "/api/Pessoa", io.smallrye.jwt.build.Jwt.issuer("outro").subject("x")
-                .groups("plataforma_admin").sign(chaveEstranha()), null));
+                .groups("PLATAFORMA_ADMIN").sign(chaveEstranha()), null));
         // alg none
         String semAssinatura = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString("{\"alg\":\"none\"}".getBytes())
                 + "." + plataforma.split("\\.")[1] + ".";
@@ -345,8 +345,8 @@ class PoliticaAcessoTest extends BaseApiTest {
 
         // DELETE direto de Contato: negado a todos (o registro continua)
         String empresa = dados.empresaAtiva();
-        String tk = token(dados.usuarioComPapel(empresa, "operador").email());
-        String tkConsulta = token(dados.usuarioComPapel(empresa, "consulta").email());
+        String tk = token(dados.usuarioComPapel(empresa, "OPERADOR").email());
+        String tkConsulta = token(dados.usuarioComPapel(empresa, "CONSULTA").email());
         String contato = dados.contato(empresa, dados.pessoa(empresa, "Dona do contato"), "Contato a apagar");
         assertEquals(403, status("DELETE", "/api/Contato/id/" + contato, tkConsulta, null));
         assertEquals(403, status("DELETE", "/api/Contato/id/" + contato, tk, null));

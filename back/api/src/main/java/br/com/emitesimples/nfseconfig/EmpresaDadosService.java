@@ -107,7 +107,7 @@ public class EmpresaDadosService {
         try {
             Object[] ctx = QuarkusTransaction.requiringNew().call(() -> {
                 EmpresaEntity e = carregar(id, false);
-                if (!"cadastrado".equals(e.getStatusCadastro()) || e.getReferenciaTokenEmpresa() == null
+                if (!StatusCadastro.CADASTRADO.equals(e.getStatusCadastro()) || e.getReferenciaTokenEmpresa() == null
                         || e.getAmbiente() == null) {
                     return null;
                 }
@@ -226,7 +226,7 @@ public class EmpresaDadosService {
     // ------------------------------------------------------------------------------------------- internos
 
     private static boolean documentoEditavel(EmpresaEntity e) {
-        return !"cadastrado".equals(e.getStatusCadastro());
+        return !StatusCadastro.CADASTRADO.equals(e.getStatusCadastro());
     }
 
     private static EmpresaDto dto(EmpresaEntity e) {

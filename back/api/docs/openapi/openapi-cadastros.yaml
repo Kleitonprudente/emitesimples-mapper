@@ -4633,6 +4633,16 @@ definitions:
             Física ou jurídica. Define como se lê o documento: jurídica tem CNPJ de 14 
             dígitos, física tem CPF de 11 dígitos. Obrigatório.
 
+            Valores permitidos: 
+              FISICA
+                 Valor: FISICA
+                 Texto: Pessoa física - Pessoa física, identificada pelo CPF de 11 dígitos.
+              JURIDICA
+                 Valor: JURIDICA
+                 Texto: Pessoa jurídica - Pessoa jurídica, identificada pelo CNPJ de 14 dígitos.
+        enum:
+          - FISICA
+          - JURIDICA
       documento:
         type: string
         maxLength: 14
@@ -4688,12 +4698,12 @@ definitions:
             valores 0 ou 1. Opcional, padrão 0.
 
             Valores permitidos: 
-              proprioTomador
+              PROPRIO_TOMADOR
                  Valor: 0
-                 Texto: O destinatário é o próprio tomador/adquirente (padrão)
-              outroDestinatario
+                 Texto: Próprio tomador - O destinatário é o próprio tomador/adquirente (padrão). Código gravado: 0.
+              OUTRO_DESTINATARIO
                  Valor: 1
-                 Texto: O destinatário não é o próprio adquirente (outra pessoa ou outro estabelecimento)
+                 Texto: Outro destinatário - O destinatário não é o próprio adquirente (outra pessoa ou outro estabelecimento). Código gravado: 1.
       consumidorFinal:
         type: boolean
         description: |
@@ -4980,18 +4990,18 @@ definitions:
             Padrão 1, tributável.
 
             Valores permitidos: 
-              tributavel
+              TRIBUTAVEL
                  Valor: 1
-                 Texto: Tributável
-              imunidade
+                 Texto: Tributável - Operação tributável pelo ISS (padrão). Código gravado: 1.
+              IMUNIDADE
                  Valor: 2
-                 Texto: Imunidade
-              exportacao
+                 Texto: Imunidade - Operação com imunidade do ISS. Código gravado: 2.
+              EXPORTACAO
                  Valor: 3
-                 Texto: Exportação
-              naoIncidencia
+                 Texto: Exportação - Exportação de serviço. Código gravado: 3.
+              NAO_INCIDENCIA
                  Valor: 4
-                 Texto: Não incidência
+                 Texto: Não incidência - Operação em que o ISS não incide. Código gravado: 4.
       cstPisCofins:
         type: string
         maxLength: 2
@@ -5078,10 +5088,33 @@ definitions:
         maxLength: 10
         pattern: \w*\W*
         description: |
-            Papel do contato perante a pessoa. Valores propostos pelo modelador (o usuário 
-            não os definiu, a confirmar): socio, financeiro, comercial, fiscal e outro. 
-            Obrigatório.
+            Papel do contato perante a pessoa. Os valores são os de [e] values: SOCIO, 
+            FINANCEIRO, COMERCIAL, FISCAL e OUTRO. Só SOCIO decorre da história do usuário 
+            (sócios do QSA entram como contatos); os demais foram propostos pelo modelador 
+            (a confirmar). Obrigatório.
 
+            Valores permitidos: 
+              SOCIO
+                 Valor: SOCIO
+                 Texto: Sócio - Sócio ou administrador da pessoa jurídica, vindo do quadro de sócios e administradores (QSA) da consulta de CNPJ. É o tipo com que os sócios do QSA entram como contatos; o usuário pode ajustá-los antes de salvar.
+              FINANCEIRO
+                 Valor: FINANCEIRO
+                 Texto: Financeiro - Pessoa de contato da área financeira da pessoa cadastrada (cobrança, pagamento, boletos).
+              COMERCIAL
+                 Valor: COMERCIAL
+                 Texto: Comercial - Pessoa de contato da área comercial da pessoa cadastrada (negociação, propostas, relacionamento).
+              FISCAL
+                 Valor: FISCAL
+                 Texto: Fiscal ou contábil - Pessoa de contato fiscal ou contábil (contador ou responsável por impostos e notas) da pessoa cadastrada.
+              OUTRO
+                 Valor: OUTRO
+                 Texto: Outro - Qualquer contato que não se enquadre nos demais tipos.
+        enum:
+          - SOCIO
+          - FINANCEIRO
+          - COMERCIAL
+          - FISCAL
+          - OUTRO
       nome:
         type: string
         maxLength: 300
@@ -5212,11 +5245,29 @@ definitions:
         maxLength: 23
         pattern: \w*\W*
         description: |
-            Estado da importação. Ciclo: nasce em em_andamento; termina em concluida 
-            (nenhuma linha rejeitada), concluida_com_rejeicoes (terminou, mas ao menos uma 
-            linha foi rejeitada) ou falhou (não conseguiu processar o arquivo). Os três 
+            Estado da importação. Ciclo: nasce em EM_ANDAMENTO; termina em CONCLUIDA 
+            (nenhuma linha rejeitada), CONCLUIDA_COM_REJEICOES (terminou, mas ao menos uma 
+            linha foi rejeitada) ou FALHOU (não conseguiu processar o arquivo). Os três 
             últimos são finais e preenchem dataHoraFim.
 
+            Valores permitidos: 
+              EM_ANDAMENTO
+                 Valor: EM_ANDAMENTO
+                 Texto: Em andamento - Estado inicial e padrão: a importação foi iniciada e ainda não terminou. Enquanto estiver neste estado, dataHoraFim fica vazia.
+              CONCLUIDA
+                 Valor: CONCLUIDA
+                 Texto: Concluída - Estado final: a importação terminou e nenhuma linha foi rejeitada. Preenche dataHoraFim.
+              CONCLUIDA_COM_REJEICOES
+                 Valor: CONCLUIDA_COM_REJEICOES
+                 Texto: Concluída com rejeições - Estado final: a importação terminou, mas ao menos uma linha foi rejeitada (relatadas em resumoRejeicoes). Preenche dataHoraFim.
+              FALHOU
+                 Valor: FALHOU
+                 Texto: Falhou - Estado final: o arquivo não pôde ser processado. Preenche dataHoraFim.
+        enum:
+          - EM_ANDAMENTO
+          - CONCLUIDA
+          - CONCLUIDA_COM_REJEICOES
+          - FALHOU
       dataHoraInicio:
         type: string
         format: date-time
@@ -5228,7 +5279,7 @@ definitions:
         format: date-time
         description: |
             Data e hora em que a importação terminou, com sucesso ou falha. Vazia enquanto 
-            em_andamento.
+            EM_ANDAMENTO.
 
       linhasLidas:
         type: integer
@@ -5314,9 +5365,9 @@ definitions:
     description: |
             Empresa usuária do sistema e tenant do modelo. Cada empresa só emite e só 
             enxerga as próprias notas.
-             NUNCA é apagada, só DESATIVADA (situacao = desativada): a aplicação não deve 
+             NUNCA é apagada, só DESATIVADA (situacao = DESATIVADA): a aplicação não deve 
             expor a remoção. Nasce no signup com o documento, o e-mail e o WhatsApp 
-            informados, em situacao pendente_confirmacao, e fica ativa quando o usuário 
+            informados, em situacao PENDENTE_CONFIRMACAO, e fica ATIVA quando o usuário 
             clica no link do e-mail (ConfirmacaoCadastro).
              É identificada por um documento único (CNPJ ou CPF). Tem atividades 
             (AtividadeEmpresa) e quadro de sócios (QsaEmpresa) como detalhes ([m]/[o]).
@@ -5491,18 +5542,18 @@ definitions:
             usado na emissão. Alterável só pelo administrador da plataforma ou suporte.
 
             Valores permitidos: 
-              simplesNacional
+              SIMPLES_NACIONAL
                  Valor: 1
-                 Texto: Simples Nacional
-              simplesExcessoSublimite
+                 Texto: Simples Nacional - Empresa optante pelo Simples Nacional. Código gravado e enviado ao gateway (crt): 1.
+              SIMPLES_EXCESSO_SUBLIMITE
                  Valor: 2
-                 Texto: Simples Nacional com excesso de sublimite
-              regimeNormal
+                 Texto: Simples Nacional com excesso de sublimite - Simples Nacional com excesso de sublimite de receita. Código gravado e enviado ao gateway (crt): 2.
+              REGIME_NORMAL
                  Valor: 3
-                 Texto: Regime Normal
-              mei
+                 Texto: Regime Normal - Empresa no regime normal (lucro presumido ou real). Código gravado e enviado ao gateway (crt): 3.
+              MEI
                  Valor: 4
-                 Texto: MEI
+                 Texto: MEI - Microempreendedor Individual. Código gravado e enviado ao gateway (crt): 4.
       regimeIbsCbs:
         type: integer
         minimum: 0
@@ -5515,21 +5566,21 @@ definitions:
             administrador da plataforma ou suporte.
 
             Valores permitidos: 
-              naoInformado
+              NAO_INFORMADO
                  Valor: 0
-                 Texto: Não informado, padrão, a tag não é enviada
-              simplesOpcaoRegimeRegular
+                 Texto: Não informado - Não informado, padrão: a tag regime_cibs não é enviada. Código gravado: 0.
+              SIMPLES_OPCAO_REGIME_REGULAR
                  Valor: 1
-                 Texto: Simples Nacional com opção pelo regime regular do IBS e da CBS (crt 1 ou 2)
-              normalOpcaoSimplesPendenteSemRegular
+                 Texto: Simples Nacional com opção pelo regime regular - Simples Nacional com opção pelo regime regular do IBS e da CBS (crt 1 ou 2). Código gravado e enviado ao gateway: 1.
+              NORMAL_OPCAO_SIMPLES_PENDENTE_SEM_REGULAR
                  Valor: 2
-                 Texto: Regime Normal com opção pendente pelo Simples Nacional, sem regime regular do IBS e da CBS (crt 3)
-              normalSublimitePendenteSemRegular
+                 Texto: Regime Normal, opção pelo Simples pendente, sem regime regular - Regime Normal com opção pendente pelo Simples Nacional, sem regime regular do IBS e da CBS (crt 3). Código gravado e enviado ao gateway: 2.
+              NORMAL_SUBLIMITE_PENDENTE_SEM_REGULAR
                  Valor: 3
-                 Texto: Regime Normal com opção pendente pelo Simples Nacional com excesso de sublimite, sem regime regular do IBS e da CBS (crt 3)
-              normalOpcaoSimplesPendenteComRegular
+                 Texto: Regime Normal, excesso de sublimite pendente, sem regime regular - Regime Normal com opção pendente pelo Simples Nacional com excesso de sublimite, sem regime regular do IBS e da CBS (crt 3). Código gravado e enviado ao gateway: 3.
+              NORMAL_OPCAO_SIMPLES_PENDENTE_COM_REGULAR
                  Valor: 4
-                 Texto: Regime Normal com opção pendente pelo Simples Nacional, com regime regular do IBS e da CBS (crt 3)
+                 Texto: Regime Normal, opção pelo Simples pendente, com regime regular - Regime Normal com opção pendente pelo Simples Nacional, com regime regular do IBS e da CBS (crt 3). Código gravado e enviado ao gateway: 4.
       logo:
         type: string
         format: byte
@@ -5554,12 +5605,26 @@ definitions:
         pattern: \w*\W*
         description: |
             Situação da conta da empresa NO SISTEMA (não confundir com statusCadastro, que é 
-            o cadastro no gateway IntegraNotas). A empresa nasce pendente_confirmacao no 
+            o cadastro no gateway IntegraNotas). A empresa nasce PENDENTE_CONFIRMACAO no 
             signup,
-             vira ativa quando o usuário clica no link do e-mail (ou quando o suporte ativa) 
-            e desativada quando o suporte a desativa à mão. Nunca é apagada. Alterável só 
+             vira ATIVA quando o usuário clica no link do e-mail (ou quando o suporte ativa) 
+            e DESATIVADA quando o suporte a desativa à mão. Nunca é apagada. Alterável só 
             pelo administrador da plataforma ou suporte.
 
+            Valores permitidos: 
+              PENDENTE_CONFIRMACAO
+                 Valor: PENDENTE_CONFIRMACAO
+                 Texto: Pendente de confirmação - Estado inicial e padrão: a empresa nasce assim no signup, aguardando o clique no link de confirmação enviado por e-mail.
+              ATIVA
+                 Valor: ATIVA
+                 Texto: Ativa - Conta ativa, depois do clique no link do e-mail ou quando o suporte a ativa.
+              DESATIVADA
+                 Valor: DESATIVADA
+                 Texto: Desativada - Conta desativada à mão pelo suporte, com motivo obrigatório. A empresa nunca é apagada.
+        enum:
+          - PENDENTE_CONFIRMACAO
+          - ATIVA
+          - DESATIVADA
       dataConfirmacao:
         type: string
         format: date-time
@@ -5610,10 +5675,24 @@ definitions:
         description: |
             Situação do cadastro da empresa NO GATEWAY (emitente no IntegraNotas), no 
             ambiente do registro. Não é a situação da conta no sistema (ver situacao). A 
-            empresa nasce nao_cadastrado,
-             vira cadastrado quando o gateway devolve o token, e erro quando o cadastro é 
+            empresa nasce NAO_CADASTRADO,
+             vira CADASTRADO quando o gateway devolve o token, e ERRO quando o cadastro é 
             recusado. Alterável só pelo administrador da plataforma ou suporte.
 
+            Valores permitidos: 
+              NAO_CADASTRADO
+                 Valor: NAO_CADASTRADO
+                 Texto: Não cadastrado - A empresa ainda não foi cadastrada no gateway. É o estado inicial e o padrão.
+              CADASTRADO
+                 Valor: CADASTRADO
+                 Texto: Cadastrado - Cadastro aceito pelo gateway, que devolveu o token do emitente (nome no IntegraNotas), guardado no cofre.
+              ERRO
+                 Valor: ERRO
+                 Texto: Erro no cadastro - Cadastro recusado pelo gateway.
+        enum:
+          - NAO_CADASTRADO
+          - CADASTRADO
+          - ERRO
       dataCadastroGateway:
         type: string
         format: date-time
@@ -5637,6 +5716,28 @@ definitions:
             Situação do certificado digital da empresa no gateway, no ambiente do registro. 
             Alterável só pelo administrador da plataforma ou suporte.
 
+            Valores permitidos: 
+              NAO_ENVIADO
+                 Valor: NAO_ENVIADO
+                 Texto: Não enviado - Nenhum certificado foi enviado ao gateway. É o estado inicial e o padrão.
+              VALIDO
+                 Valor: VALIDO
+                 Texto: Válido - Certificado aceito pelo gateway e dentro da validade.
+              VENCIDO
+                 Valor: VENCIDO
+                 Texto: Vencido - Certificado com a validade vencida (erro 5011 do gateway).
+              INVALIDO
+                 Valor: INVALIDO
+                 Texto: Inválido - Certificado corrompido ou enviado com senha errada (erro 5003 do gateway).
+              NAO_PERTENCE
+                 Valor: NAO_PERTENCE
+                 Texto: Não pertence à empresa - Certificado que não pertence ao documento (CNPJ ou CPF) da empresa (erro 5029 do gateway).
+        enum:
+          - NAO_ENVIADO
+          - VALIDO
+          - VENCIDO
+          - INVALIDO
+          - NAO_PERTENCE
       id:
         type: string
         maxLength: 36
@@ -5657,6 +5758,16 @@ definitions:
              então o mesmo documento (CNPJ ou CPF) tem um registro por ambiente e uma nota de 
             teste nunca se mistura com uma real.
 
+            Valores permitidos: 
+              HOMOLOGACAO
+                 Valor: HOMOLOGACAO
+                 Texto: Homologação - Ambiente de testes do gateway. É o padrão. Nada emitido aqui tem validade fiscal e uma nota de teste nunca se mistura com uma real.
+              PRODUCAO
+                 Valor: PRODUCAO
+                 Texto: Produção - Ambiente real do gateway. As notas emitidas aqui têm validade fiscal.
+        enum:
+          - HOMOLOGACAO
+          - PRODUCAO
       dataCriacao:
         type: string
         format: date-time
@@ -5738,6 +5849,16 @@ definitions:
             Se a atividade é a principal ou uma secundária da empresa. No máximo uma 
             principal por empresa (regra da aplicação). Obrigatório.
 
+            Valores permitidos: 
+              PRINCIPAL
+                 Valor: PRINCIPAL
+                 Texto: Principal - Atividade econômica principal da empresa. No máximo uma por empresa (regra da aplicação).
+              SECUNDARIA
+                 Valor: SECUNDARIA
+                 Texto: Secundária - Atividade econômica secundária da empresa. Uma empresa pode ter várias.
+        enum:
+          - PRINCIPAL
+          - SECUNDARIA
       codigoCnae:
         type: string
         maxLength: 7

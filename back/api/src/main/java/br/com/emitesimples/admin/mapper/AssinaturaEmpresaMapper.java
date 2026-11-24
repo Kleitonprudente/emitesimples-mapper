@@ -238,7 +238,7 @@ public class AssinaturaEmpresaMapper {
         }
 
         if (entity.getEstado() == null) {
-            entity.setEstado("ativa");
+            entity.setEstado("ATIVA");
         }
 
         return entity;
@@ -250,7 +250,7 @@ public class AssinaturaEmpresaMapper {
         }
 
         if (api.getEstado() == null) {
-            api.setEstado("ativa");
+            api.setEstado("ATIVA");
         }
 
         return api;

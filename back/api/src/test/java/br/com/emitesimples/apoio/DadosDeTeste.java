@@ -57,7 +57,7 @@ public class DadosDeTeste {
                     .withRazaoSocial("Empresa " + UUID.randomUUID().toString().substring(0, 8))
                     .withNomeFantasia("Fantasia")
                     .withDocumento(digitos(14))
-                    .withAmbiente("homologacao")
+                    .withAmbiente("HOMOLOGACAO")
                     .withRegimeTributario(1)
                     .withNfseHabilitada(false).withUltimoNumeroNfse(0)
                     .withSituacao(situacao)
@@ -69,7 +69,7 @@ public class DadosDeTeste {
     }
 
     public String empresaAtiva() {
-        return empresa("ativa");
+        return empresa("ATIVA");
     }
 
     /** Usuário com senha {@link #SENHA}; e-mail único. */
@@ -125,7 +125,7 @@ public class DadosDeTeste {
     public String pessoa(String empresaId, String nome) {
         return QuarkusTransaction.requiringNew().call(() -> {
             PessoaEntity p = PessoaEntity.builderOf()
-                    .withTipoPessoa("fisica").withNome(nome).withDocumento(digitos(11))
+                    .withTipoPessoa("FISICA").withNome(nome).withDocumento(digitos(11))
                     .withCliente(true).withFornecedor(false)
                     .withEmpresa(em.getReference(EmpresaEntity.class, empresaId)).build();
             em.persist(p);
@@ -158,7 +158,7 @@ public class DadosDeTeste {
     public String nota(String empresaId, String pessoaId, String servicoId) {
         return QuarkusTransaction.requiringNew().call(() -> {
             NotaEntity n = NotaEntity.builderOf()
-                    .withNumero(digitos(9)).withSerie("1").withAmbiente("homologacao").withEstado("falha_envio")
+                    .withNumero(digitos(9)).withSerie("1").withAmbiente("HOMOLOGACAO").withEstado("FALHA_ENVIO")
                     .withDataEmissao(LocalDateTime.now())
                     .withDescricao("Nota de teste")
                     .withEmpresa(em.getReference(EmpresaEntity.class, empresaId))

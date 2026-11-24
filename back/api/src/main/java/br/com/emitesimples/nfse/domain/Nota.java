@@ -19,13 +19,13 @@ import br.com.emitesimples.usuarios.domain.ClienteAcesso;
  * (A) Emissão DIRETA por uma pessoa no sistema: NÃO há rascunho; a nota nasce em 
 * processamento, criada e enviada ao gateway numa só ação. (B) Assistente de IA: o 
 * assistente só PREPARA a nota como rascunho (preparadoPorCliente) e uma PESSOA 
-* aprova (o sistema envia e a nota vira processando) ou descarta (vira 
-* descartada). Aprovar e descartar o rascunho são requisito AINDA NÃO IMPLEMENTADO 
+* aprova (o sistema envia e a nota vira PROCESSANDO) ou descarta (vira 
+* DESCARTADA). Aprovar e descartar o rascunho são requisito AINDA NÃO IMPLEMENTADO 
 * no código. O estado rascunho só existe no caminho B.
  * Depois do envio, o gateway devolve o código 5023 com a chave e só depois vem a 
 * autorização. Falha de infraestrutura no envio direto (gateway indisponível, 
-* token recusado, aceite sem chave, código 0) leva a falha_envio, que pode ser 
-* reenviada com o mesmo número, como a rejeitada. As transições estão em 
+* token recusado, aceite sem chave, código 0) leva a FALHA_ENVIO, que pode ser 
+* reenviada com o mesmo número, como a REJEITADA. As transições estão em 
 * CicloNota.
  * Vive no contexto nfse (domain.nfse). Depende de configuracao (Empresa), de 
 * cadastros (Pessoa e Servico) e de usuarios (Usuario e ClienteAcesso) para o 

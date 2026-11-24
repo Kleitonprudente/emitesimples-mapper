@@ -10,6 +10,7 @@ import br.com.emitesimples.auth.Dtos.UsuarioResumo;
 import br.com.emitesimples.configuracao.entity.EmpresaEntity;
 import br.com.emitesimples.security.ApiException;
 import br.com.emitesimples.security.JwtEmissor;
+import br.com.emitesimples.security.Papeis;
 import br.com.emitesimples.usuarios.entity.TokenRenovacaoEntity;
 import br.com.emitesimples.usuarios.entity.UsuarioEntity;
 import br.com.emitesimples.usuarios.entity.VinculoUsuarioEntity;
@@ -44,7 +45,7 @@ public class AuthService {
 
     private static final Logger LOG = Logger.getLogger(AuthService.class);
 
-    public static final String SITUACAO_ATIVA = "ativa";
+    public static final String SITUACAO_ATIVA = "ATIVA";
     private static final String MSG_CREDENCIAIS = "E-mail ou senha inválidos.";
     private static final String MSG_SESSAO = "Sessão inválida ou expirada. Entre novamente.";
 
@@ -282,8 +283,8 @@ public class AuthService {
         if (plataformaAdmin) {
             return true;
         }
-        return v != null && ("administrador".equals(v.getPapel())
-                || "operador".equals(v.getPapel()) && Boolean.TRUE.equals(v.getPodeCancelarNfse()));
+        return v != null && (Papeis.ADMINISTRADOR.equals(v.getPapel())
+                || Papeis.OPERADOR.equals(v.getPapel()) && Boolean.TRUE.equals(v.getPodeCancelarNfse()));
     }
 
     private Emitida montarSessao(UsuarioEntity u, EmpresaEntity e, String papel, boolean admin, boolean podeCancelar) {

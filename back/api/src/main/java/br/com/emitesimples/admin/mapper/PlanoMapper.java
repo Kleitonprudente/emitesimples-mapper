@@ -169,7 +169,7 @@ public class PlanoMapper {
         }
 
         if (entity.getPeriodicidade() == null) {
-            entity.setPeriodicidade("mensal");
+            entity.setPeriodicidade("MENSAL");
         }
         if (entity.getAtivo() == null) {
             entity.setAtivo(true);
@@ -184,7 +184,7 @@ public class PlanoMapper {
         }
 
         if (api.getPeriodicidade() == null) {
-            api.setPeriodicidade("mensal");
+            api.setPeriodicidade("MENSAL");
         }
         if (api.getAtivo() == null) {
             api.setAtivo(true);

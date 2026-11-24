@@ -35,7 +35,7 @@ class EmpresaDadosTest extends BaseApiTest {
     EntityManager em;
 
     private String admin(String empresaId) {
-        return token(dados.usuarioComPapel(empresaId, "administrador").email());
+        return token(dados.usuarioComPapel(empresaId, "ADMINISTRADOR").email());
     }
 
     private EmpresaEntity ler(String empresaId) {
@@ -97,7 +97,7 @@ class EmpresaDadosTest extends BaseApiTest {
                 .body("municipio.uf", equalTo("SP")).body("municipio.codigoIbge", equalTo(m.getCodigoIbge()))
                 .body("regimeTributario", equalTo(1)).body("regimeIbsCbs", nullValue())
                 .body("documentoEditavel", equalTo(true))
-                .body("certificado.situacao", equalTo("nao_enviado")).body("certificado.validade", nullValue())
+                .body("certificado.situacao", equalTo("NAO_ENVIADO")).body("certificado.validade", nullValue())
                 .body("certificado.pendenteDeEnvio", equalTo(false)).body("certificado.venceEmDias", nullValue());
     }
 
@@ -158,25 +158,25 @@ class EmpresaDadosTest extends BaseApiTest {
             e.setReferenciaCertificado("ref-cert");
             e.setReferenciaTokenEmpresa("ref-token");
             e.setValidadeCertificado(validade);
-            e.setSituacaoCertificado("valido");
+            e.setSituacaoCertificado("VALIDO");
             e.setNfseHabilitada(true);
             e.setSerieNfse("7");
             e.setUltimoNumeroNfse(41);
-            e.setSituacao("ativa");
+            e.setSituacao("ATIVA");
             e.setUrlWebhook("https://exemplo.com/x");
             e.setReferenciaCrm("crm-1");
         });
         EmpresaEntity antes = ler(emp);
         Map<String, Object> c = corpo(dados.municipio());
-        c.put("ambiente", "producao");
-        c.put("situacao", "suspensa");
-        c.put("statusCadastro", "cadastrado");
+        c.put("ambiente", "PRODUCAO");
+        c.put("situacao", "SUSPENSA");
+        c.put("statusCadastro", "CADASTRADO");
         c.put("referenciaCertificado", "outra");
-        c.put("situacaoCertificado", "invalido");
+        c.put("situacaoCertificado", "INVALIDO");
         c.put("nfseHabilitada", false);
         c.put("serieNfse", "99");
         c.put("ultimoNumeroNfse", 1);
-        put(admin(emp), c).then().statusCode(200).body("certificado.situacao", equalTo("valido"))
+        put(admin(emp), c).then().statusCode(200).body("certificado.situacao", equalTo("VALIDO"))
                 .body("certificado.pendenteDeEnvio", equalTo(false));
         EmpresaEntity depois = ler(emp);
         assertEquals(antes.getAmbiente(), depois.getAmbiente());
@@ -185,7 +185,7 @@ class EmpresaDadosTest extends BaseApiTest {
         assertEquals("ref-cert", depois.getReferenciaCertificado());
         assertEquals("ref-token", depois.getReferenciaTokenEmpresa());
         assertEquals(validade, depois.getValidadeCertificado());
-        assertEquals("valido", depois.getSituacaoCertificado());
+        assertEquals("VALIDO", depois.getSituacaoCertificado());
         assertTrue(depois.getNfseHabilitada());
         assertEquals("7", depois.getSerieNfse());
         assertEquals(41, depois.getUltimoNumeroNfse());
@@ -270,7 +270,7 @@ class EmpresaDadosTest extends BaseApiTest {
         String emp = dados.empresaAtiva();
         String tk = admin(emp);
         String doc = ler(emp).getDocumento();
-        QuarkusTransaction.requiringNew().run(() -> em.find(EmpresaEntity.class, emp).setStatusCadastro("cadastrado"));
+        QuarkusTransaction.requiringNew().run(() -> em.find(EmpresaEntity.class, emp).setStatusCadastro("CADASTRADO"));
         get(tk).then().statusCode(200).body("documentoEditavel", equalTo(false));
 
         Map<String, Object> c = corpo(dados.municipio());
@@ -294,7 +294,7 @@ class EmpresaDadosTest extends BaseApiTest {
     @Test
     void statusDiferenteDeCadastradoPermiteTrocarODocumento() {
         String emp = dados.empresaAtiva();
-        QuarkusTransaction.requiringNew().run(() -> em.find(EmpresaEntity.class, emp).setStatusCadastro("erro"));
+        QuarkusTransaction.requiringNew().run(() -> em.find(EmpresaEntity.class, emp).setStatusCadastro("ERRO"));
         Map<String, Object> cc = corpo(dados.municipio());
         put(admin(emp), cc).then().statusCode(200).body("documentoEditavel", equalTo(true))
                 .body("documento", equalTo(cc.get("documento")));
@@ -336,8 +336,8 @@ class EmpresaDadosTest extends BaseApiTest {
     void papeis() {
         String emp = dados.empresaAtiva();
         String adm = admin(emp);
-        String op = token(dados.usuarioComPapel(emp, "operador").email());
-        String con = token(dados.usuarioComPapel(emp, "consulta").email());
+        String op = token(dados.usuarioComPapel(emp, "OPERADOR").email());
+        String con = token(dados.usuarioComPapel(emp, "CONSULTA").email());
         for (String tk : new String[] {adm, op, con}) {
             get(tk).then().statusCode(200).body("documento", notNullValue());
         }

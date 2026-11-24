@@ -24,7 +24,7 @@ import java.util.List;
 @Path("/admin/empresas/{empresaId}/vinculos")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-@RolesAllowed("plataforma_admin")
+@RolesAllowed("PLATAFORMA_ADMIN")
 public class VinculoEmpresaAdminResource {
 
     public record NovoVinculoEmpresa(

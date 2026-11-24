@@ -24,13 +24,13 @@ public class ContatosDaPessoaResource {
     ContatosDaPessoaService service;
 
     @GET
-    @RolesAllowed({"administrador", "operador", "consulta", "plataforma_admin"})
+    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "CONSULTA", "PLATAFORMA_ADMIN"})
     public List<ContatosDaPessoaService.ContatoDto> listar(@PathParam("id") String pessoaId) {
         return service.listar(pessoaId);
     }
 
     @PUT
-    @RolesAllowed({"administrador", "operador", "plataforma_admin"})
+    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "PLATAFORMA_ADMIN"})
     public List<ContatosDaPessoaService.ContatoDto> substituir(@PathParam("id") String pessoaId,
             List<ContatosDaPessoaService.ContatoEntrada> corpo) {
         return service.substituir(pessoaId, corpo);

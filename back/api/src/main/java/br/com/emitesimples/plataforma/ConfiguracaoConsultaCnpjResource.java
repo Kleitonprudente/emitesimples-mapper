@@ -26,7 +26,7 @@ import org.eclipse.microprofile.jwt.JsonWebToken;
 @Path("/admin/configuracoes/consulta-cnpj")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-@RolesAllowed("plataforma_admin")
+@RolesAllowed("PLATAFORMA_ADMIN")
 public class ConfiguracaoConsultaCnpjResource {
 
     private static final ObjectMapper JSON = new ObjectMapper();

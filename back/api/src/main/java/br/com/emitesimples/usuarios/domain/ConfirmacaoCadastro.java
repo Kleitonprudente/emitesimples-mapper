@@ -11,7 +11,7 @@ import br.com.emitesimples.configuracao.domain.Empresa;
 /*
 * Confirmação do signup por link de e-mail. O link enviado ao usuário leva o 
 * token; o sistema guarda SÓ o hash do token, nunca o token. Ao confirmar, a 
-* empresa passa de pendente_confirmacao para ativa e a dataConfirmacao dela é 
+* empresa passa de PENDENTE_CONFIRMACAO para ATIVA e a dataConfirmacao dela é 
 * preenchida.
  * O endpoint de confirmação é PÚBLICO (o usuário ainda não tem sessão): esta 
 * entidade NÃO deve ter recurso REST exposto, é regra da aplicação escrita à mão.

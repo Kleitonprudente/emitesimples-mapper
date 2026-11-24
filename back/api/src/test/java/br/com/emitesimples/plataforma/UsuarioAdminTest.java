@@ -85,7 +85,7 @@ class UsuarioAdminTest extends BaseApiTest {
             if (status(c[0], c[1], null, Map.of()) != 401) {
                 falhas.add("sem token " + c[0] + " " + c[1]);
             }
-            for (String papel : new String[] {"consulta", "operador", "administrador"}) {
+            for (String papel : new String[] {"CONSULTA", "OPERADOR", "ADMINISTRADOR"}) {
                 String t = token(dados.usuarioComPapel(empresa, papel).email());
                 if (status(c[0], c[1], t, Map.of()) != 403) {
                     falhas.add(papel + " " + c[0] + " " + c[1]);
@@ -105,7 +105,7 @@ class UsuarioAdminTest extends BaseApiTest {
         String e1 = dados.empresaAtiva();
         String e2 = dados.empresaAtiva();
         String email = emailNovo();
-        Response r = criar(novo(email, "whatsapp", "+5511999998888", "vinculos", List.of(vinc(e1, "operador"), vinc(e2, "consulta"))));
+        Response r = criar(novo(email, "whatsapp", "+5511999998888", "vinculos", List.of(vinc(e1, "OPERADOR"), vinc(e2, "CONSULTA"))));
         r.then().statusCode(201)
                 .header("Location", org.hamcrest.Matchers.containsString(BASE + "/"))
                 .body("id", notNullValue())
@@ -116,7 +116,7 @@ class UsuarioAdminTest extends BaseApiTest {
                 .body("administradorPlataforma", equalTo(false))
                 .body("temSenha", equalTo(true))
                 .body("vinculos", hasSize(2))
-                .body("vinculos.papel", org.hamcrest.Matchers.containsInAnyOrder("operador", "consulta"))
+                .body("vinculos.papel", org.hamcrest.Matchers.containsInAnyOrder("OPERADOR", "CONSULTA"))
                 .body("vinculos[0].empresa.id", notNullValue())
                 .body("vinculos[0].ativo", equalTo(true));
         semSegredo(r);
@@ -124,7 +124,7 @@ class UsuarioAdminTest extends BaseApiTest {
 
         // o usuario entra com a senha temporaria (escolhendo a empresa, pois tem duas)
         login(email.toLowerCase(), TEMP).then().statusCode(409).body("codigo", equalTo("empresa_obrigatoria"));
-        login(email, TEMP, e1).then().statusCode(200).body("papel", equalTo("operador"));
+        login(email, TEMP, e1).then().statusCode(200).body("papel", equalTo("OPERADOR"));
 
         chamar("GET", BASE + "/" + id, admin(), null).then().statusCode(200).body("email", equalTo(email.toLowerCase()));
         Response vs = chamar("GET", BASE + "/" + id + "/vinculos", admin(), null);
@@ -169,9 +169,9 @@ class UsuarioAdminTest extends BaseApiTest {
         criar(novo(emailNovo(), "nome", "n".repeat(121))).then().statusCode(400).body("codigo", equalTo("requisicao_invalida"));
         // papel invalido
         criar(novo(emailNovo(), "vinculos", List.of(vinc(e, "dono")))).then().statusCode(400).body("codigo", equalTo("papel_invalido"));
-        criar(novo(emailNovo(), "vinculos", List.of(vinc(e, "ADMINISTRADOR")))).then().statusCode(400).body("codigo", equalTo("papel_invalido"));
+        criar(novo(emailNovo(), "vinculos", List.of(vinc(e, "administrador")))).then().statusCode(400).body("codigo", equalTo("papel_invalido"));
         // empresa de vinculo duplicada
-        criar(novo(emailNovo(), "vinculos", List.of(vinc(e, "operador"), vinc(e, "consulta")))).then().statusCode(400)
+        criar(novo(emailNovo(), "vinculos", List.of(vinc(e, "OPERADOR"), vinc(e, "CONSULTA")))).then().statusCode(400)
                 .body("codigo", equalTo("vinculos_duplicados"));
         // administradorPlataforma no corpo e ignorado: ninguem vira admin por esta rota
         criar(novo(emailNovo(), "administradorPlataforma", true)).then().statusCode(201).body("administradorPlataforma", equalTo(false));
@@ -182,7 +182,7 @@ class UsuarioAdminTest extends BaseApiTest {
     @Test
     void empresaInexistenteDa404ENaoCriaNada() {
         String email = emailNovo();
-        criar(novo(email, "vinculos", List.of(vinc(dados.empresaAtiva(), "operador"), vinc(UUID.randomUUID().toString(), "consulta"))))
+        criar(novo(email, "vinculos", List.of(vinc(dados.empresaAtiva(), "OPERADOR"), vinc(UUID.randomUUID().toString(), "CONSULTA"))))
                 .then().statusCode(404).body("codigo", equalTo("empresa_nao_encontrada"));
         assertEquals(0, dados.contarUsuariosPorEmail(email), "tudo ou nada: o usuario nao pode ter sido criado");
     }
@@ -268,7 +268,7 @@ class UsuarioAdminTest extends BaseApiTest {
     @Test
     void redefinirSenhaRevogaRefreshTokensETrocaASenha() {
         String empresa = dados.empresaAtiva();
-        Usr u = dados.usuarioComPapel(empresa, "operador");
+        Usr u = dados.usuarioComPapel(empresa, "OPERADOR");
         Response l = login(u.email(), SENHA);
         l.then().statusCode(200);
         String refreshAntigo = refreshCookie(l);
@@ -296,7 +296,7 @@ class UsuarioAdminTest extends BaseApiTest {
 
     @Test
     void redefinirSenhaDestravaOBloqueioPorTentativas() {
-        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "consulta");
+        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "CONSULTA");
         for (int i = 0; i < 5; i++) {
             login(u.email(), "errada-errada").then().statusCode(401);
         }
@@ -315,31 +315,31 @@ class UsuarioAdminTest extends BaseApiTest {
         String id = criar(novo(email)).jsonPath().getString("id");
         login(email, TEMP).then().statusCode(401); // sem vinculo e nao admin: nao entra
 
-        Response c = chamar("POST", BASE + "/" + id + "/vinculos", admin(), vinc(e1, "consulta"));
-        c.then().statusCode(201).body("papel", equalTo("consulta")).body("ativo", equalTo(true))
+        Response c = chamar("POST", BASE + "/" + id + "/vinculos", admin(), vinc(e1, "CONSULTA"));
+        c.then().statusCode(201).body("papel", equalTo("CONSULTA")).body("ativo", equalTo(true))
                 .body("empresa.id", equalTo(e1)).body("usuarioId", equalTo(id)).body("id", notNullValue());
         semSegredo(c);
         String vid = c.jsonPath().getString("id");
         // vinculo duplicado: 409
-        chamar("POST", BASE + "/" + id + "/vinculos", admin(), vinc(e1, "operador")).then().statusCode(409)
+        chamar("POST", BASE + "/" + id + "/vinculos", admin(), vinc(e1, "OPERADOR")).then().statusCode(409)
                 .body("codigo", equalTo("vinculo_ja_existe"));
         // validacoes
         chamar("POST", BASE + "/" + id + "/vinculos", admin(), vinc(e2, "chefe")).then().statusCode(400).body("codigo", equalTo("papel_invalido"));
-        chamar("POST", BASE + "/" + id + "/vinculos", admin(), vinc(UUID.randomUUID().toString(), "operador")).then().statusCode(404)
+        chamar("POST", BASE + "/" + id + "/vinculos", admin(), vinc(UUID.randomUUID().toString(), "OPERADOR")).then().statusCode(404)
                 .body("codigo", equalTo("empresa_nao_encontrada"));
-        chamar("POST", BASE + "/" + UUID.randomUUID() + "/vinculos", admin(), vinc(e2, "operador")).then().statusCode(404)
+        chamar("POST", BASE + "/" + UUID.randomUUID() + "/vinculos", admin(), vinc(e2, "OPERADOR")).then().statusCode(404)
                 .body("codigo", equalTo("usuario_nao_encontrado"));
-        chamar("POST", BASE + "/" + id + "/vinculos", admin(), Map.of("papel", "operador")).then().statusCode(400);
+        chamar("POST", BASE + "/" + id + "/vinculos", admin(), Map.of("papel", "OPERADOR")).then().statusCode(400);
 
         // agora entra, com o papel do vinculo; a mudanca de papel vale no proximo login
         String tokenAntes = login(email, TEMP, e1).jsonPath().getString("accessToken");
         assertEquals(403, status("POST", "/api/Pessoa", tokenAntes, Map.of())); // consulta nao escreve
-        chamar("PATCH", BASE + "/" + id + "/vinculos/" + vid, admin(), Map.of("papel", "operador")).then().statusCode(200)
-                .body("papel", equalTo("operador")).body("ativo", equalTo(true));
-        login(email, TEMP, e1).then().statusCode(200).body("papel", equalTo("operador"));
+        chamar("PATCH", BASE + "/" + id + "/vinculos/" + vid, admin(), Map.of("papel", "OPERADOR")).then().statusCode(200)
+                .body("papel", equalTo("OPERADOR")).body("ativo", equalTo(true));
+        login(email, TEMP, e1).then().statusCode(200).body("papel", equalTo("OPERADOR"));
 
         // segundo vinculo, depois desativa o primeiro: continua listado, ativo=false, e o login naquela empresa falha
-        String vid2 = chamar("POST", BASE + "/" + id + "/vinculos", admin(), Map.of("empresaId", e2, "papel", "administrador", "ativo", true))
+        String vid2 = chamar("POST", BASE + "/" + id + "/vinculos", admin(), Map.of("empresaId", e2, "papel", "ADMINISTRADOR", "ativo", true))
                 .jsonPath().getString("id");
         Response l = login(email, TEMP, e1);
         String refresh = refreshCookie(l);
@@ -363,8 +363,8 @@ class UsuarioAdminTest extends BaseApiTest {
     @Test
     void alterarVinculoValidaPapelEPertencimento() {
         String e = dados.empresaAtiva();
-        String idA = criar(novo(emailNovo(), "vinculos", List.of(vinc(e, "operador")))).jsonPath().getString("id");
-        String idB = criar(novo(emailNovo(), "vinculos", List.of(vinc(e, "operador")))).jsonPath().getString("id");
+        String idA = criar(novo(emailNovo(), "vinculos", List.of(vinc(e, "OPERADOR")))).jsonPath().getString("id");
+        String idB = criar(novo(emailNovo(), "vinculos", List.of(vinc(e, "OPERADOR")))).jsonPath().getString("id");
         String vidA = chamar("GET", BASE + "/" + idA + "/vinculos", admin(), null).jsonPath().getString("[0].id");
         chamar("PATCH", BASE + "/" + idA + "/vinculos/" + vidA, admin(), Map.of("papel", "rei")).then().statusCode(400)
                 .body("codigo", equalTo("papel_invalido"));
@@ -375,14 +375,14 @@ class UsuarioAdminTest extends BaseApiTest {
         chamar("PATCH", BASE + "/" + UUID.randomUUID() + "/vinculos/" + vidA, admin(), Map.of("ativo", false)).then().statusCode(404)
                 .body("codigo", equalTo("usuario_nao_encontrado"));
         // nada mudou
-        chamar("GET", BASE + "/" + idA + "/vinculos", admin(), null).then().body("[0].ativo", equalTo(true)).body("[0].papel", equalTo("operador"));
+        chamar("GET", BASE + "/" + idA + "/vinculos", admin(), null).then().body("[0].ativo", equalTo(true)).body("[0].papel", equalTo("OPERADOR"));
     }
 
     // -------------------------------------- o recurso GERADO /api/Usuario: nunca devolve senha_hash (achado)
 
     @Test
     void recursoGeradoUsuarioNaoVazaHash() {
-        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "consulta");
+        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "CONSULTA");
         Response lista = chamar("GET", "/api/Usuario", admin(), null);
         lista.then().statusCode(200);
         semSegredo(lista);
@@ -390,7 +390,7 @@ class UsuarioAdminTest extends BaseApiTest {
         um.then().statusCode(200);
         semSegredo(um);
         assertFalse(um.asString().toLowerCase().contains("hash"));
-        assertEquals(403, status("GET", "/api/Usuario/id/" + u.id(), token(dados.usuarioComPapel(dados.empresaAtiva(), "administrador").email()), null));
+        assertEquals(403, status("GET", "/api/Usuario/id/" + u.id(), token(dados.usuarioComPapel(dados.empresaAtiva(), "ADMINISTRADOR").email()), null));
         // PUT gerado com o corpo devolvido pelo GET nao apaga a senha de ninguem
         chamar("PUT", "/api/Usuario/id/" + u.id(), admin(), um.getBody().as(Map.class)).then().statusCode(204);
         login(u.email(), SENHA).then().statusCode(200);

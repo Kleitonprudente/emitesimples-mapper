@@ -25,7 +25,7 @@ class CookieSecureTest extends BaseApiTest {
 
     @Test
     void cookieSaiComSecureQuandoLigado() {
-        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "operador");
+        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "OPERADOR");
         Response l = login(u.email(), SENHA);
         l.then().statusCode(200);
         String sc = l.getHeader("Set-Cookie").toLowerCase();

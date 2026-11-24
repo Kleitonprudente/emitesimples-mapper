@@ -44,7 +44,7 @@ class CepTest extends BaseApiTest {
 
     private String token() {
         if (token == null) {
-            token = token(dados.usuarioComPapel(dados.empresaAtiva(), "consulta").email());
+            token = token(dados.usuarioComPapel(dados.empresaAtiva(), "CONSULTA").email());
         }
         return token;
     }
@@ -82,7 +82,7 @@ class CepTest extends BaseApiTest {
 
     @Test
     void qualquerPapelAutenticadoConsulta() {
-        for (String papel : new String[] {"consulta", "operador", "administrador"}) {
+        for (String papel : new String[] {"CONSULTA", "OPERADOR", "ADMINISTRADOR"}) {
             String t = token(dados.usuarioComPapel(dados.empresaAtiva(), papel).email());
             chamar("GET", "/api/cep/01001000", t, null).then().statusCode(200);
         }
@@ -189,8 +189,8 @@ class CepTest extends BaseApiTest {
 
     @Test
     void limitePorUsuarioDa429ComRetryAfter() {
-        String a = token(dados.usuarioComPapel(dados.empresaAtiva(), "consulta").email());
-        String b = token(dados.usuarioComPapel(dados.empresaAtiva(), "consulta").email());
+        String a = token(dados.usuarioComPapel(dados.empresaAtiva(), "CONSULTA").email());
+        String b = token(dados.usuarioComPapel(dados.empresaAtiva(), "CONSULTA").email());
         for (int i = 0; i < 30; i++) {
             chamar("GET", "/api/cep/01001000", a, null).then().statusCode(200);
         }

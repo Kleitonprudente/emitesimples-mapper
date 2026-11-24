@@ -34,10 +34,10 @@ public class ImportacaoMunicipioService {
 
     private static final Logger LOG = Logger.getLogger(ImportacaoMunicipioService.class);
 
-    static final String EM_ANDAMENTO = "em_andamento";
-    static final String CONCLUIDA = "concluida";
-    static final String CONCLUIDA_COM_REJEICOES = "concluida_com_rejeicoes";
-    static final String FALHOU = "falhou";
+    static final String EM_ANDAMENTO = "EM_ANDAMENTO";
+    static final String CONCLUIDA = "CONCLUIDA";
+    static final String CONCLUIDA_COM_REJEICOES = "CONCLUIDA_COM_REJEICOES";
+    static final String FALHOU = "FALHOU";
     static final int MAX_REJEICOES_NA_RESPOSTA = 1000;
     private static final int MAX_RESUMO = 4000;
     private static final long CHAVE_TRAVA = 727_401_001L;

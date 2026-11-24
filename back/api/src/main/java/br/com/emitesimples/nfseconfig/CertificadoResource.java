@@ -31,7 +31,7 @@ public class CertificadoResource {
 
     @POST
     @Consumes(MediaType.MULTIPART_FORM_DATA)
-    @RolesAllowed("administrador")
+    @RolesAllowed("ADMINISTRADOR")
     public CertificadoResposta enviar(@RestForm("arquivo") FileUpload arquivo, @RestForm("senha") String senha) {
         if (arquivo == null) {
             return service.enviar(jwt.getSubject(), null, -1, null, senha);

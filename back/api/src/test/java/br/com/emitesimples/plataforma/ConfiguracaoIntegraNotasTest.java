@@ -68,7 +68,7 @@ class ConfiguracaoIntegraNotasTest extends BaseApiTest {
 
     private void reiniciar() {
         Map<String, Object> c = new HashMap<>();
-        c.put("ambienteAtivo", "homologacao");
+        c.put("ambienteAtivo", "HOMOLOGACAO");
         c.put("urlHomologacao", HOM);
         c.put("urlProducao", PROD);
         c.put("urlPublicaWebhook", "");
@@ -97,8 +97,8 @@ class ConfiguracaoIntegraNotasTest extends BaseApiTest {
     void soAdministradorDaPlataforma() {
         String empresa = dados.empresaAtiva();
         assertEquals(401, status("GET", URL, null, null));
-        assertEquals(401, status("PUT", URL, null, Map.of("ambienteAtivo", "homologacao")));
-        for (String papel : new String[] {"consulta", "operador", "administrador"}) {
+        assertEquals(401, status("PUT", URL, null, Map.of("ambienteAtivo", "HOMOLOGACAO")));
+        for (String papel : new String[] {"CONSULTA", "OPERADOR", "ADMINISTRADOR"}) {
             String t = token(dados.usuarioComPapel(empresa, papel).email());
             assertEquals(403, status("GET", URL, t, null), papel);
             assertEquals(403, status("PUT", URL, t, Map.of("tokenHomologacao", "abc")), papel);
@@ -115,15 +115,15 @@ class ConfiguracaoIntegraNotasTest extends BaseApiTest {
     @Test
     void leituraInicialTemPadroesSemTokens() {
         reiniciar();
-        get().then().statusCode(200).body("ambienteAtivo", equalTo("homologacao")).body("urlHomologacao", equalTo(HOM))
+        get().then().statusCode(200).body("ambienteAtivo", equalTo("HOMOLOGACAO")).body("urlHomologacao", equalTo(HOM))
                 .body("urlProducao", equalTo(PROD)).body("urlPublicaWebhook", nullValue())
                 .body("tokenHomologacaoConfigurado", equalTo(false)).body("tokenProducaoConfigurado", equalTo(false))
                 .body("producaoPermitida", equalTo(false)).body("dataAtualizacao", notNullValue());
-        assertEquals("homologacao", config.ambienteAtivo());
-        assertEquals(HOM, config.urlBase("homologacao"));
-        assertEquals(PROD, config.urlBase("producao"));
-        assertEquals(Optional.empty(), config.tokenSofthouse("homologacao"));
-        assertEquals(Optional.empty(), config.tokenSofthouse("producao"));
+        assertEquals("HOMOLOGACAO", config.ambienteAtivo());
+        assertEquals(HOM, config.urlBase("HOMOLOGACAO"));
+        assertEquals(PROD, config.urlBase("PRODUCAO"));
+        assertEquals(Optional.empty(), config.tokenSofthouse("HOMOLOGACAO"));
+        assertEquals(Optional.empty(), config.tokenSofthouse("PRODUCAO"));
         assertEquals(Optional.empty(), config.urlPublicaWebhook());
         assertThrows(IllegalArgumentException.class, () -> config.urlBase("outro"));
     }
@@ -148,7 +148,7 @@ class ConfiguracaoIntegraNotasTest extends BaseApiTest {
             r.then().statusCode(200).body("urlHomologacao", equalTo("https://stub.hom-api.integranotas.com.br"))
                     .body("urlProducao", equalTo("http://localhost:8099/prod")) // barra final normalizada
                     .body("urlPublicaWebhook", equalTo("https://api.exemplo.com.br"))
-                    .body("ambienteAtivo", equalTo("homologacao"))
+                    .body("ambienteAtivo", equalTo("HOMOLOGACAO"))
                     .body("tokenHomologacaoConfigurado", equalTo(true)).body("tokenProducaoConfigurado", equalTo(true))
                     .body("atualizadoPor.nome", notNullValue()).body("atualizadoPor.id", notNullValue());
             assertFalse(r.asString().contains(tokHom) || r.asString().contains(tokProd), "a leitura nunca devolve token");
@@ -159,10 +159,10 @@ class ConfiguracaoIntegraNotasTest extends BaseApiTest {
             assertFalse(new String((byte[]) lh[1], java.nio.charset.StandardCharsets.ISO_8859_1).contains(tokHom));
             assertEquals(12, ((byte[]) lh[2]).length);
             assertEquals(tokHom, segredos.ler((String) lh[0]));
-            assertEquals(Optional.of(tokHom), config.tokenSofthouse("homologacao"));
-            assertEquals(Optional.of(tokProd), config.tokenSofthouse("producao"));
+            assertEquals(Optional.of(tokHom), config.tokenSofthouse("HOMOLOGACAO"));
+            assertEquals(Optional.of(tokProd), config.tokenSofthouse("PRODUCAO"));
             assertEquals(Optional.of("https://api.exemplo.com.br"), config.urlPublicaWebhook());
-            assertEquals("https://stub.hom-api.integranotas.com.br", config.urlBase("homologacao"));
+            assertEquals("https://stub.hom-api.integranotas.com.br", config.urlBase("HOMOLOGACAO"));
 
             // campo ausente (e null) mantem tudo
             put(Map.of("urlPublicaWebhook", "https://outro.exemplo.com.br/app")).then().statusCode(204);
@@ -174,7 +174,7 @@ class ConfiguracaoIntegraNotasTest extends BaseApiTest {
                     .body("urlHomologacao", equalTo("https://stub.hom-api.integranotas.com.br"))
                     .body("urlProducao", equalTo("http://localhost:8099/prod"))
                     .body("urlPublicaWebhook", equalTo("https://outro.exemplo.com.br/app"));
-            assertEquals(Optional.of(tokHom), config.tokenSofthouse("homologacao"));
+            assertEquals(Optional.of(tokHom), config.tokenSofthouse("HOMOLOGACAO"));
 
             // substitui: mesmo id, IV novo
             String tokHom2 = "tok-HOM-OUTRO-" + System.nanoTime();
@@ -182,8 +182,8 @@ class ConfiguracaoIntegraNotasTest extends BaseApiTest {
             Object[] depois = linhaSegredo("segredo_softhouse_hom_id");
             assertEquals(lh[0], depois[0]);
             assertFalse(Arrays.equals((byte[]) lh[2], (byte[]) depois[2]));
-            assertEquals(Optional.of(tokHom2), config.tokenSofthouse("homologacao"));
-            assertEquals(Optional.of(tokProd), config.tokenSofthouse("producao")); // o outro ambiente intacto
+            assertEquals(Optional.of(tokHom2), config.tokenSofthouse("HOMOLOGACAO"));
+            assertEquals(Optional.of(tokProd), config.tokenSofthouse("PRODUCAO")); // o outro ambiente intacto
 
             // "" remove so o do ambiente pedido e apaga o segredo
             long antes = totalSegredos();
@@ -192,7 +192,7 @@ class ConfiguracaoIntegraNotasTest extends BaseApiTest {
             assertEquals(antes - 1, totalSegredos());
             assertEquals(null, linhaSegredo("segredo_softhouse_prod_id"));
             assertEquals(lp[0] == null, false);
-            assertEquals(Optional.empty(), config.tokenSofthouse("producao"));
+            assertEquals(Optional.empty(), config.tokenSofthouse("PRODUCAO"));
 
             put(Map.of("urlPublicaWebhook", "")).then().statusCode(204);
             get().then().body("urlPublicaWebhook", nullValue());
@@ -214,22 +214,22 @@ class ConfiguracaoIntegraNotasTest extends BaseApiTest {
         put(Map.of("tokenHomologacao", "abc")).then().statusCode(204);
         long antes = totalSegredos();
         // pedido misto: a producao bloqueada derruba o pedido inteiro, sem gravar nada
-        Response r = put(Map.of("ambienteAtivo", "producao", "tokenHomologacao", "novo", "urlPublicaWebhook", "https://a.exemplo.com.br"));
+        Response r = put(Map.of("ambienteAtivo", "PRODUCAO", "tokenHomologacao", "novo", "urlPublicaWebhook", "https://a.exemplo.com.br"));
         assertEquals(409, r.statusCode());
         assertEquals("producao_bloqueada", r.jsonPath().getString("codigo"));
         assertEquals("Produção está bloqueada neste servidor.", r.jsonPath().getString("mensagem"));
         assertEquals(antes, totalSegredos());
-        get().then().body("ambienteAtivo", equalTo("homologacao")).body("urlPublicaWebhook", nullValue());
-        assertEquals(Optional.of("abc"), config.tokenSofthouse("homologacao"));
+        get().then().body("ambienteAtivo", equalTo("HOMOLOGACAO")).body("urlPublicaWebhook", nullValue());
+        assertEquals(Optional.of("abc"), config.tokenSofthouse("HOMOLOGACAO"));
         // homologacao explicita continua valendo
-        put(Map.of("ambienteAtivo", "homologacao")).then().statusCode(204);
+        put(Map.of("ambienteAtivo", "HOMOLOGACAO")).then().statusCode(204);
         reiniciar();
     }
 
     @Test
     void ambienteInvalido() {
         reiniciar();
-        for (String a : new String[] {"", "PRODUCAO", "sandbox", "homologação"}) {
+        for (String a : new String[] {"", "producao", "homologacao", "sandbox", "homologação"}) {
             Response r = put(Map.of("ambienteAtivo", a));
             assertEquals(400, r.statusCode(), a);
             assertEquals("ambiente_invalido", r.jsonPath().getString("codigo"), a);
@@ -241,9 +241,9 @@ class ConfiguracaoIntegraNotasTest extends BaseApiTest {
     void producaoLiberadaPorPropriedadeEAceita() {
         IntegraNotasConfigService s = new IntegraNotasConfigService();
         s.permitirProducao = true;
-        assertEquals("producao", s.validarAmbiente("producao"));
+        assertEquals("PRODUCAO", s.validarAmbiente("PRODUCAO"));
         s.permitirProducao = false;
-        assertEquals(409, assertThrows(ApiException.class, () -> s.validarAmbiente("producao")).getStatus());
+        assertEquals(409, assertThrows(ApiException.class, () -> s.validarAmbiente("PRODUCAO")).getStatus());
     }
 
     @Test
@@ -359,7 +359,7 @@ class ConfiguracaoIntegraNotasTest extends BaseApiTest {
             assertEquals("character varying/YES/-/5", coluna(c, "empresa", "serie_nfse"));
             assertEquals("integer/NO/0/32,0", coluna(c, "empresa", "ultimo_numero_nfse"));
             assertEquals("numeric/YES/-/5,2", coluna(c, "servico", "percentual_tributos_simples"));
-            assertEquals("character varying/NO/'homologacao'::character varying/15", coluna(c, "configuracao_integranotas", "ambiente_ativo"));
+            assertEquals("character varying/NO/'HOMOLOGACAO'::character varying/15", coluna(c, "configuracao_integranotas", "ambiente_ativo"));
             assertEquals("character varying/YES/-/200", coluna(c, "configuracao_integranotas", "url_publica_webhook"));
             assertEquals("character varying/YES/-/36", coluna(c, "configuracao_integranotas", "segredo_softhouse_hom_id"));
             assertEquals("character varying/YES/-/36", coluna(c, "configuracao_integranotas", "segredo_softhouse_prod_id"));

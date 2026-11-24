@@ -26,7 +26,7 @@ import org.eclipse.microprofile.jwt.JsonWebToken;
 @Path("/admin/configuracoes/integranotas")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-@RolesAllowed("plataforma_admin")
+@RolesAllowed("PLATAFORMA_ADMIN")
 public class ConfiguracaoIntegraNotasResource {
 
     private static final ObjectMapper JSON = new ObjectMapper();

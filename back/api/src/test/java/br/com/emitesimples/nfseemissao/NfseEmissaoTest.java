@@ -92,7 +92,7 @@ class NfseEmissaoTest extends BaseApiTest {
     void preparar() {
         plataforma = token(dados.usuario(true, true).email());
         Map<String, Object> c = new HashMap<>();
-        c.put("ambienteAtivo", "homologacao");
+        c.put("ambienteAtivo", "HOMOLOGACAO");
         c.put("urlHomologacao", urlStub);
         c.put("urlProducao", "https://api.integranotas.com.br");
         c.put("urlPublicaWebhook", "");
@@ -139,13 +139,13 @@ class NfseEmissaoTest extends BaseApiTest {
             e.setNfseHabilitada(true);
             e.setSerieNfse("1");
             e.setUltimoNumeroNfse(0);
-            e.setAmbiente("homologacao");
-            e.setStatusCadastro("cadastrado");
+            e.setAmbiente("HOMOLOGACAO");
+            e.setStatusCadastro("CADASTRADO");
             e.setReferenciaTokenEmpresa(ref);
-            e.setSituacaoCertificado("valido");
+            e.setSituacaoCertificado("VALIDO");
             e.setValidadeCertificado(LocalDate.now().plusYears(1));
         });
-        String adm = token(dados.usuarioComPapel(emp, "administrador").email());
+        String adm = token(dados.usuarioComPapel(emp, "ADMINISTRADOR").email());
         return new Cen(emp, adm, pessoa(emp, "Cliente " + UUID.randomUUID().toString().substring(0, 6), false), servico(emp),
                 tokenEmit);
     }
@@ -155,7 +155,7 @@ class NfseEmissaoTest extends BaseApiTest {
         String cidade = dados.municipio();
         QuarkusTransaction.requiringNew().run(() -> {
             PessoaEntity p = em.find(PessoaEntity.class, id);
-            p.setTipoPessoa(juridica ? "juridica" : "fisica");
+            p.setTipoPessoa(juridica ? "JURIDICA" : "FISICA");
             p.setDocumento(dig(juridica ? 14 : 11));
             p.setLogradouro("Rua do Tomador");
             p.setNumeroEndereco("45");
@@ -223,7 +223,7 @@ class NfseEmissaoTest extends BaseApiTest {
     /** Cria (stub aceita com 5023) e devolve o id. */
     private String criarProcessando(Cen c) {
         Response r = criar(c);
-        r.then().statusCode(200).body("estado", equalTo("processando"));
+        r.then().statusCode(200).body("estado", equalTo("PROCESSANDO"));
         return r.jsonPath().getString("id");
     }
 
@@ -237,7 +237,7 @@ class NfseEmissaoTest extends BaseApiTest {
         b.put("pessoaId", pj);
         b.put("informacoesComplementares", "Pedido 77");
         Response r = chamar("POST", URL, c.adm(), b);
-        r.then().statusCode(200).body("estado", equalTo("processando")).body("numero", equalTo("1")).body("serie", equalTo("1"))
+        r.then().statusCode(200).body("estado", equalTo("PROCESSANDO")).body("numero", equalTo("1")).body("serie", equalTo("1"))
                 .body("chave", notNullValue()).body("codigoRetorno", equalTo(5023)).body("editavel", equalTo(false))
                 .body("podeReenviar", equalTo(false)).body("podeAtualizar", equalTo(true))
                 .body("pessoa.nome", equalTo("Empresa Tomadora SA")).body("informacoesComplementares", equalTo("Pedido 77"))
@@ -292,7 +292,7 @@ class NfseEmissaoTest extends BaseApiTest {
         NotaEntity n = nota(id);
         assertEquals("00", n.getCstPisCofins());
         assertEquals(Integer.valueOf(1), n.getTipoOperacaoIss());
-        assertEquals("homologacao", n.getAmbiente());
+        assertEquals("HOMOLOGACAO", n.getAmbiente());
     }
 
     @Test
@@ -378,7 +378,7 @@ class NfseEmissaoTest extends BaseApiTest {
         assertNull(nota(id).getXml());
         stub("/_nfse/modo_consulta", "100");
         Response r = atualizar(c, id);
-        r.then().statusCode(200).body("estado", equalTo("autorizada")).body("codigoVerificacao", equalTo("82 55 B2"))
+        r.then().statusCode(200).body("estado", equalTo("AUTORIZADA")).body("codigoVerificacao", equalTo("82 55 B2"))
                 .body("numeroNfse", notNullValue()).body("temPdf", equalTo(true)).body("linkPdf", containsString("https://"))
                 .body("dataHoraEvento", equalTo("2026-11-21T11:25:22")).body("podeAtualizar", equalTo(false))
                 .body("editavel", equalTo(false));
@@ -395,10 +395,10 @@ class NfseEmissaoTest extends BaseApiTest {
         Cen c = cenario();
         String id = criarProcessando(c);
         stub("/_nfse/modo_consulta", "100");
-        for (int i = 0; i < 25 && !"autorizada".equals(nota(id).getEstado()); i++) {
+        for (int i = 0; i < 25 && !"AUTORIZADA".equals(nota(id).getEstado()); i++) {
             acompanhamento.executarCiclo();
         }
-        assertEquals("autorizada", nota(id).getEstado());
+        assertEquals("AUTORIZADA", nota(id).getEstado());
         // outra nota: velha demais -> mensagem "Sem retorno..."
         stub("/_nfse/modo_consulta", "5023");
         String velha = criarProcessando(c);
@@ -406,7 +406,7 @@ class NfseEmissaoTest extends BaseApiTest {
                 .setParameter(1, LocalDateTime.now().minusHours(25)).setParameter(2, velha).executeUpdate());
         acompanhamento.executarCiclo();
         assertEquals(NfseAcompanhamentoService.MSG_SEM_RETORNO, nota(velha).getMensagemRetorno());
-        assertEquals("processando", nota(velha).getEstado());
+        assertEquals("PROCESSANDO", nota(velha).getEstado());
     }
 
     @Test
@@ -414,7 +414,7 @@ class NfseEmissaoTest extends BaseApiTest {
         Cen c = cenario();
         String id = criarProcessando(c);
         stub("/_nfse/modo_consulta", "5023");
-        atualizar(c, id).then().statusCode(200).body("estado", equalTo("processando"));
+        atualizar(c, id).then().statusCode(200).body("estado", equalTo("PROCESSANDO"));
     }
 
     @Test
@@ -423,7 +423,7 @@ class NfseEmissaoTest extends BaseApiTest {
             Cen c = cenario();
             String id = criarProcessando(c);
             stub("/_nfse/modo_consulta", modo);
-            atualizar(c, id).then().statusCode(200).body("estado", equalTo("autorizada"));
+            atualizar(c, id).then().statusCode(200).body("estado", equalTo("AUTORIZADA"));
             NotaEntity n = nota(id);
             assertTrue(new String(n.getXml(), "UTF-8").startsWith("<NFSe"), modo);
             assertTrue(new String(n.getPdf(), "UTF-8").startsWith("%PDF"), modo);
@@ -434,7 +434,7 @@ class NfseEmissaoTest extends BaseApiTest {
     void envioQueJaTrazCemAutorizadoViraAutorizada() {
         Cen c = cenario();
         stub("/_nfse/modo_envio", "100");
-        criar(c).then().statusCode(200).body("estado", equalTo("autorizada")).body("temPdf", equalTo(true));
+        criar(c).then().statusCode(200).body("estado", equalTo("AUTORIZADA")).body("temPdf", equalTo(true));
     }
 
     @Test
@@ -442,7 +442,7 @@ class NfseEmissaoTest extends BaseApiTest {
         Cen c = cenario();
         stub("/_nfse/modo_envio", "100sem");
         stub("/_nfse/modo_consulta", "100");
-        criar(c).then().statusCode(200).body("estado", equalTo("autorizada"));
+        criar(c).then().statusCode(200).body("estado", equalTo("AUTORIZADA"));
         assertEquals(1, estadoStub().path("consultas").asInt());
     }
 
@@ -451,11 +451,11 @@ class NfseEmissaoTest extends BaseApiTest {
         Cen c = cenario();
         String id = criarProcessando(c);
         stub("/_nfse/modo_consulta", "2");
-        atualizar(c, id).then().statusCode(200).body("estado", equalTo("emitida_offline")).body("temPdf", equalTo(true))
+        atualizar(c, id).then().statusCode(200).body("estado", equalTo("EMITIDA_OFFLINE")).body("temPdf", equalTo(true))
                 .body("podeAtualizar", equalTo(true));
         assertNull(nota(id).getXml());
         stub("/_nfse/modo_consulta", "100");
-        atualizar(c, id).then().statusCode(200).body("estado", equalTo("autorizada"));
+        atualizar(c, id).then().statusCode(200).body("estado", equalTo("AUTORIZADA"));
         // reenviar uma offline e proibido
         chamar("POST", URL + "/" + id + "/enviar", c.adm(), null).then().statusCode(409);
     }
@@ -465,7 +465,7 @@ class NfseEmissaoTest extends BaseApiTest {
         Cen c = cenario();
         String id = criarProcessando(c);
         stub("/_nfse/modo_consulta", "101");
-        atualizar(c, id).then().statusCode(200).body("estado", equalTo("cancelada"));
+        atualizar(c, id).then().statusCode(200).body("estado", equalTo("CANCELADA"));
     }
 
     @Test
@@ -473,15 +473,15 @@ class NfseEmissaoTest extends BaseApiTest {
         Cen c = cenario();
         String id = criarProcessando(c);
         stub("/_nfse/modo_consulta", "idoutro");
-        atualizar(c, id).then().statusCode(200).body("estado", equalTo("processando"));
+        atualizar(c, id).then().statusCode(200).body("estado", equalTo("PROCESSANDO"));
         stub("/_nfse/modo_consulta", "100");
-        atualizar(c, id).then().body("estado", equalTo("autorizada"));
+        atualizar(c, id).then().body("estado", equalTo("AUTORIZADA"));
         int antes = estadoStub().path("consultas").asInt();
         stub("/_nfse/modo_consulta", "5028");
-        atualizar(c, id).then().statusCode(200).body("estado", equalTo("autorizada"));
+        atualizar(c, id).then().statusCode(200).body("estado", equalTo("AUTORIZADA"));
         assertEquals(antes, estadoStub().path("consultas").asInt());
         assertEquals(false, acompanhamento.consultar(c.emp(), id));
-        assertEquals("autorizada", nota(id).getEstado());
+        assertEquals("AUTORIZADA", nota(id).getEstado());
     }
 
     @Test
@@ -495,9 +495,9 @@ class NfseEmissaoTest extends BaseApiTest {
         stub("/_nfse/modo_consulta", "json");
         atualizar(c, id).then().statusCode(502).body("codigo", equalTo("integranotas_resposta_invalida"));
         stub("/_nfse/modo_consulta", "5006");
-        atualizar(c, id).then().statusCode(200).body("estado", equalTo("processando")).body("codigoRetorno", equalTo(5006));
+        atualizar(c, id).then().statusCode(200).body("estado", equalTo("PROCESSANDO")).body("codigoRetorno", equalTo(5006));
         stub("/_nfse/modo_consulta", "5027");
-        atualizar(c, id).then().statusCode(200).body("estado", equalTo("em_conflito")).body("podeAtualizar", equalTo(true));
+        atualizar(c, id).then().statusCode(200).body("estado", equalTo("EM_CONFLITO")).body("podeAtualizar", equalTo(true));
     }
 
     @Test
@@ -505,7 +505,7 @@ class NfseEmissaoTest extends BaseApiTest {
         Cen c = cenario();
         stub("/_nfse/modo_envio", "json");
         String id = criar(c).jsonPath().getString("id");
-        atualizar(c, id).then().statusCode(200).body("estado", equalTo("falha_envio"));
+        atualizar(c, id).then().statusCode(200).body("estado", equalTo("FALHA_ENVIO"));
         assertEquals(0, estadoStub().path("consultas").asInt());
     }
 
@@ -523,7 +523,7 @@ class NfseEmissaoTest extends BaseApiTest {
         Cen c = cenario();
         stub("/_nfse/modo_envio", "5001");
         Response r = criar(c);
-        r.then().statusCode(200).body("estado", equalTo("rejeitada")).body("codigoRetorno", equalTo(5001)).body("editavel", equalTo(true))
+        r.then().statusCode(200).body("estado", equalTo("REJEITADA")).body("codigoRetorno", equalTo(5001)).body("editavel", equalTo(true))
                 .body("podeReenviar", equalTo(true)).body("chave", nullValue()).body("errosRetorno", hasSize(2))
                 .body("errosRetorno[0].campo", equalTo("tomador.endereco.bairro"))
                 .body("errosRetorno[0].erro", equalTo("obrigatorio")).body("errosRetorno[0].descricao", equalTo("Bairro é obrigatório"));
@@ -535,7 +535,7 @@ class NfseEmissaoTest extends BaseApiTest {
         Map<String, Object> b = new HashMap<>();
         b.put("discriminacao", "Discriminacao corrigida");
         b.put("valorServicos", new BigDecimal("200.00"));
-        chamar("POST", URL + "/" + id + "/enviar", c.adm(), b).then().statusCode(200).body("estado", equalTo("processando"))
+        chamar("POST", URL + "/" + id + "/enviar", c.adm(), b).then().statusCode(200).body("estado", equalTo("PROCESSANDO"))
                 .body("numero", equalTo("1")).body("errosRetorno", nullValue()).body("discriminacao", equalTo("Discriminacao corrigida"));
         assertEquals(1, ultimo(c.emp()));
         JsonNode p = estadoStub().path("ultimoEnvio").path("corpo");
@@ -543,7 +543,7 @@ class NfseEmissaoTest extends BaseApiTest {
         assertEquals("Discriminacao corrigida", p.path("servico").path("discriminacao").asText());
         assertEquals(0, new BigDecimal("200.00").compareTo(p.path("servico").path("valor_servicos").decimalValue()));
         stub("/_nfse/modo_consulta", "100");
-        atualizar(c, id).then().body("estado", equalTo("autorizada"));
+        atualizar(c, id).then().body("estado", equalTo("AUTORIZADA"));
         // autorizada nao reenvia
         chamar("POST", URL + "/" + id + "/enviar", c.adm(), null).then().statusCode(409).body("codigo", equalTo("nota_nao_editavel"));
     }
@@ -552,7 +552,7 @@ class NfseEmissaoTest extends BaseApiTest {
     void cincoMilVinteEOitoRejeitaSemLista() {
         Cen c = cenario();
         stub("/_nfse/modo_envio", "5028");
-        criar(c).then().statusCode(200).body("estado", equalTo("rejeitada")).body("codigoRetorno", equalTo(5028))
+        criar(c).then().statusCode(200).body("estado", equalTo("REJEITADA")).body("codigoRetorno", equalTo(5028))
                 .body("errosRetorno", nullValue()).body("mensagemRetorno", containsString("rejeitou"));
     }
 
@@ -561,7 +561,7 @@ class NfseEmissaoTest extends BaseApiTest {
         Cen c = cenario();
         stub("/_nfse/modo_envio", "5027");
         Response r = criar(c);
-        r.then().statusCode(200).body("estado", equalTo("em_conflito")).body("editavel", equalTo(false))
+        r.then().statusCode(200).body("estado", equalTo("EM_CONFLITO")).body("editavel", equalTo(false))
                 .body("podeReenviar", equalTo(false));
         String id = r.jsonPath().getString("id");
         int envios = estadoStub().path("envios").asInt();
@@ -575,7 +575,7 @@ class NfseEmissaoTest extends BaseApiTest {
             Cen c = cenario();
             stub("/_nfse/modo_envio", modo);
             Response r = criar(c);
-            r.then().statusCode(200).body("estado", equalTo("falha_envio")).body("podeReenviar", equalTo(true))
+            r.then().statusCode(200).body("estado", equalTo("FALHA_ENVIO")).body("podeReenviar", equalTo(true))
                     .body("numero", equalTo("1")).body("chave", nullValue()).body("mensagemRetorno", notNullValue());
             if (!modo.equals("6001")) {
                 assertEquals("A IntegraNotas está indisponível. Tente enviar novamente.", r.jsonPath().getString("mensagemRetorno"), modo);
@@ -583,7 +583,7 @@ class NfseEmissaoTest extends BaseApiTest {
             assertEquals(1, ultimo(c.emp()));
             stub("/_nfse/modo_envio", "5023");
             String id = r.jsonPath().getString("id");
-            chamar("POST", URL + "/" + id + "/enviar", c.adm(), null).then().statusCode(200).body("estado", equalTo("processando"))
+            chamar("POST", URL + "/" + id + "/enviar", c.adm(), null).then().statusCode(200).body("estado", equalTo("PROCESSANDO"))
                     .body("numero", equalTo("1"));
             assertEquals(1, ultimo(c.emp()));
         }
@@ -593,11 +593,11 @@ class NfseEmissaoTest extends BaseApiTest {
     void cincoMilTrintaEQuatroSemChaveVaiParaFalhaEnvioEComChaveFicaProcessando() {
         Cen c = cenario();
         stub("/_nfse/modo_envio", "semchave");
-        criar(c).then().statusCode(200).body("estado", equalTo("falha_envio"));
+        criar(c).then().statusCode(200).body("estado", equalTo("FALHA_ENVIO"));
         stub("/_nfse/modo_envio", "5034");
-        criar(c).then().statusCode(200).body("estado", equalTo("processando")).body("codigoRetorno", equalTo(5034));
+        criar(c).then().statusCode(200).body("estado", equalTo("PROCESSANDO")).body("codigoRetorno", equalTo(5034));
         stub("/_nfse/modo_envio", "8429");
-        criar(c).then().statusCode(200).body("estado", equalTo("falha_envio")).body("codigoRetorno", equalTo(8429));
+        criar(c).then().statusCode(200).body("estado", equalTo("FALHA_ENVIO")).body("codigoRetorno", equalTo(8429));
     }
 
     @Test
@@ -644,17 +644,17 @@ class NfseEmissaoTest extends BaseApiTest {
         });
         esperar409(c, "emitente_nao_cadastrado", 0);
         empresa(c.emp(), e -> {
-            e.setStatusCadastro("cadastrado");
-            e.setAmbiente("producao");
+            e.setStatusCadastro("CADASTRADO");
+            e.setAmbiente("PRODUCAO");
         });
         esperar409(c, "emitente_de_outro_ambiente", 0);
         empresa(c.emp(), e -> {
-            e.setAmbiente("homologacao");
-            e.setSituacaoCertificado("invalido");
+            e.setAmbiente("HOMOLOGACAO");
+            e.setSituacaoCertificado("INVALIDO");
         });
         esperar409(c, "certificado_nao_valido", 0);
         empresa(c.emp(), e -> {
-            e.setSituacaoCertificado("valido");
+            e.setSituacaoCertificado("VALIDO");
             e.setValidadeCertificado(LocalDate.now().minusDays(1)); // vencido pela data
         });
         esperar409(c, "certificado_nao_valido", 0);
@@ -669,12 +669,12 @@ class NfseEmissaoTest extends BaseApiTest {
     void emissaoEmProducaoEstaBloqueada() {
         Cen c = cenario();
         QuarkusTransaction.requiringNew().run(() -> em.createNativeQuery(
-                "update configuracao_integranotas set ambiente_ativo = 'producao'").executeUpdate());
+                "update configuracao_integranotas set ambiente_ativo = 'PRODUCAO'").executeUpdate());
         try {
             criar(c).then().statusCode(409).body("codigo", equalTo("emissao_producao_bloqueada"));
         } finally {
             QuarkusTransaction.requiringNew().run(() -> em.createNativeQuery(
-                    "update configuracao_integranotas set ambiente_ativo = 'homologacao'").executeUpdate());
+                    "update configuracao_integranotas set ambiente_ativo = 'HOMOLOGACAO'").executeUpdate());
         }
         assertEquals(0, contarNotas(c.emp()));
     }
@@ -762,7 +762,7 @@ class NfseEmissaoTest extends BaseApiTest {
         stub("/_nfse/modo_envio", "5023");
         String n3 = chamar("POST", URL, c.adm(), b).jsonPath().getString("id");
         stub("/_nfse/modo_consulta", "100");
-        atualizar(c, n1).then().body("estado", equalTo("autorizada"));
+        atualizar(c, n1).then().body("estado", equalTo("AUTORIZADA"));
         // ordenacao: mais recente primeiro
         Response todas = chamar("GET", URL + "/0/99", c.adm(), null);
         todas.then().statusCode(200).body("$", hasSize(3)).body("[0].id", equalTo(n3)).body("[1].id", equalTo(n2)).body("[2].id", equalTo(n1));
@@ -776,13 +776,13 @@ class NfseEmissaoTest extends BaseApiTest {
         chamar("GET", URL + "/2/5", c.adm(), null).then().body("$", hasSize(1)).body("[0].id", equalTo(n1));
         chamar("GET", URL + "/5/2", c.adm(), null).then().statusCode(400);
         // filtro de estado
-        chamar("GET", URL + "/0/99?estado=rejeitada", c.adm(), null).then().body("$", hasSize(1)).body("[0].id", equalTo(n2));
-        chamar("GET", URL + "/count?estado=autorizada", c.adm(), null).then().statusCode(200).body("count", equalTo(1));
+        chamar("GET", URL + "/0/99?estado=REJEITADA", c.adm(), null).then().body("$", hasSize(1)).body("[0].id", equalTo(n2));
+        chamar("GET", URL + "/count?estado=AUTORIZADA", c.adm(), null).then().statusCode(200).body("count", equalTo(1));
         chamar("GET", URL + "/count", c.adm(), null).then().body("count", equalTo(3));
         // busca: nome (sem diferenciar caixa), numero, chave
         chamar("GET", URL + "/0/99?busca=alfa", c.adm(), null).then().body("$", hasSize(1)).body("[0].id", equalTo(n1));
         chamar("GET", URL + "/count?busca=BETA", c.adm(), null).then().body("count", equalTo(2));
-        chamar("GET", URL + "/0/99?busca=1&estado=autorizada", c.adm(), null).then().body("$", hasSize(1));
+        chamar("GET", URL + "/0/99?busca=1&estado=AUTORIZADA", c.adm(), null).then().body("$", hasSize(1));
         String chave = chamar("GET", URL + "/" + n3, c.adm(), null).jsonPath().getString("chave");
         chamar("GET", URL + "/0/99?busca=" + chave.substring(30, 50), c.adm(), null).then().body("$", hasSize(1)).body("[0].id", equalTo(n3));
         chamar("GET", URL + "/count?busca=%25", c.adm(), null).then().body("count", equalTo(0)); // % e literal
@@ -812,19 +812,19 @@ class NfseEmissaoTest extends BaseApiTest {
         chamar("GET", URL + "/count", b.adm(), null).then().body("count", equalTo(0));
         // plataforma COM empresa na sessao tambem so enxerga a empresa da sessao
         var up = dados.usuario(true, true);
-        dados.vincular(up.id(), b.emp(), "administrador", true);
+        dados.vincular(up.id(), b.emp(), "ADMINISTRADOR", true);
         String plat = token(up.email(), b.emp());
         chamar("GET", URL + "/" + id, plat, null).then().statusCode(404);
         chamar("GET", URL + "/0/99", plat, null).then().body("$", hasSize(0));
-        assertEquals("processando", nota(id).getEstado());
+        assertEquals("PROCESSANDO", nota(id).getEstado());
     }
 
     @Test
     void papeisEAcesso() {
         Cen c = cenario();
         String id = criarProcessando(c);
-        String consulta = token(dados.usuarioComPapel(c.emp(), "consulta").email());
-        String operador = token(dados.usuarioComPapel(c.emp(), "operador").email());
+        String consulta = token(dados.usuarioComPapel(c.emp(), "CONSULTA").email());
+        String operador = token(dados.usuarioComPapel(c.emp(), "OPERADOR").email());
         chamar("GET", URL + "/0/9", consulta, null).then().statusCode(200);
         chamar("GET", URL + "/count", consulta, null).then().statusCode(200);
         chamar("GET", URL + "/" + id, consulta, null).then().statusCode(200);
@@ -878,13 +878,13 @@ class NfseEmissaoTest extends BaseApiTest {
         }
         assertTrue(estadoStub().path("consultas").asInt() >= 1, "o gatilho deve consultar o gateway");
         Thread.sleep(300);
-        assertEquals("processando", nota(id).getEstado()); // o evento disse "autorizada", o gateway nao
+        assertEquals("PROCESSANDO", nota(id).getEstado()); // o evento disse "AUTORIZADA", o gateway nao
         EventoWebhookEntity ev = eventoDe(c.emp()).get(0);
-        assertEquals("processado", ev.getEstadoProcessamento());
+        assertEquals("PROCESSADO", ev.getEstadoProcessamento());
         // agora o gateway confirma: o proximo gatilho autoriza
         stub("/_nfse/modo_consulta", "100");
         webhook(c.emp(), eventoForjado(chave, "")).then().statusCode(200);
-        esperar(id, "autorizada");
+        esperar(id, "AUTORIZADA");
     }
 
     @Test
@@ -900,12 +900,12 @@ class NfseEmissaoTest extends BaseApiTest {
         assertEquals(antes, estadoStub().path("consultas").asInt());
         List<EventoWebhookEntity> evs = eventoDe(b.emp());
         assertEquals(2, evs.size());
-        evs.forEach(e -> assertEquals("ignorado", e.getEstadoProcessamento()));
-        assertEquals("processando", nota(id).getEstado());
+        evs.forEach(e -> assertEquals("IGNORADO", e.getEstadoProcessamento()));
+        assertEquals("PROCESSANDO", nota(id).getEstado());
         // so a identificacao (sem chave) tambem casa com a nota da propria empresa
         stub("/_nfse/modo_consulta", "100");
         webhook(a.emp(), eventoForjado("", id.replace("-", ""))).then().statusCode(200);
-        esperar(id, "autorizada");
+        esperar(id, "AUTORIZADA");
     }
 
     private List<EventoWebhookEntity> eventoDe(String emp) {
@@ -944,14 +944,14 @@ class NfseEmissaoTest extends BaseApiTest {
                         + "c.identificacao, c.mensagemRetorno from ChamadaGatewayEntity c where c.nota.id = :n order by c.dataChamada",
                 Object[].class).setParameter("n", id).getResultList());
         assertEquals(2, linhas.size());
-        assertEquals("enviar_nfse", linhas.get(0)[0]);
+        assertEquals("EMITIR", linhas.get(0)[0]);
         assertEquals("POST", linhas.get(0)[1]);
         assertEquals("/v2/nfse", linhas.get(0)[2]);
-        assertEquals("v2", linhas.get(0)[3]);
+        assertEquals("V2", linhas.get(0)[3]);
         assertEquals(200, linhas.get(0)[4]);
         assertEquals(5023, linhas.get(0)[5]);
         assertEquals(id.replace("-", ""), linhas.get(0)[8]);
-        assertEquals("consultar_nfse", linhas.get(1)[0]);
+        assertEquals("CONSULTAR", linhas.get(1)[0]);
         assertEquals(100, linhas.get(1)[5]);
         for (Object[] l : linhas) {
             String tudo = Arrays.toString(l);
@@ -968,7 +968,7 @@ class NfseEmissaoTest extends BaseApiTest {
         stub("/_nfse/modo_envio", "100");
         try {
             Response r = criar(c);
-            r.then().statusCode(200).body("estado", equalTo("autorizada"));
+            r.then().statusCode(200).body("estado", equalTo("AUTORIZADA"));
             return r.jsonPath().getString("id");
         } finally {
             stub("/_nfse/modo_envio", "5023");
@@ -1002,8 +1002,8 @@ class NfseEmissaoTest extends BaseApiTest {
         String id = autorizada(c);
         chamar("GET", URL + "/" + id, c.adm(), null).then().statusCode(200).body("podeCancelar", equalTo(true))
                 .body("cancelamento", nullValue());
-        cancelar(c, id).then().statusCode(200).body("estado", equalTo("cancelada")).body("podeCancelar", equalTo(false))
-                .body("podeAtualizar", equalTo(false)).body("cancelamento.estado", equalTo("concluido"))
+        cancelar(c, id).then().statusCode(200).body("estado", equalTo("CANCELADA")).body("podeCancelar", equalTo(false))
+                .body("podeAtualizar", equalTo(false)).body("cancelamento.estado", equalTo("CONCLUIDO"))
                 .body("cancelamento.codigoMotivo", equalTo(1)).body("cancelamento.motivo", equalTo(MOTIVO))
                 .body("cancelamento.codigoRetorno", equalTo(101))
                 .body("cancelamento.mensagemRetorno", containsString("cancelamento"))
@@ -1018,15 +1018,15 @@ class NfseEmissaoTest extends BaseApiTest {
         assertEquals(MOTIVO, env.path("corpo").path("motivo_cancelamento").asText());
         assertEquals(3, env.path("corpo").size());
         NotaEntity n = nota(id);
-        assertEquals("cancelada", n.getEstado());
+        assertEquals("CANCELADA", n.getEstado());
         assertEquals(101, n.getCodigoRetorno());
         List<CancelamentoEntity> cs = cancelamentos(id);
         assertEquals(1, cs.size());
         CancelamentoEntity ce = cs.get(0);
-        assertEquals("concluido", ce.getEstado());
+        assertEquals("CONCLUIDO", ce.getEstado());
         assertEquals(c.emp(), QuarkusTransaction.requiringNew().call(() -> em.find(CancelamentoEntity.class, ce.getId())
                 .getEmpresa().getId()));
-        assertEquals("homologacao", ce.getAmbiente());
+        assertEquals("HOMOLOGACAO", ce.getAmbiente());
         assertTrue(new String(ce.getXml(), "UTF-8").startsWith("<NFSe"));
         assertTrue(new String(ce.getPdf(), "UTF-8").startsWith("%PDF"));
         // o PDF do evento sai em /cancelamento/pdf
@@ -1034,18 +1034,18 @@ class NfseEmissaoTest extends BaseApiTest {
                 .statusCode(200).contentType("application/pdf").extract().asByteArray();
         assertEquals("%PDF", new String(pdf, 0, 4, "UTF-8"));
         // idempotente: nota ja cancelada devolve o detalhe e NAO chama o gateway de novo
-        cancelar(c, id).then().statusCode(200).body("estado", equalTo("cancelada"))
-                .body("cancelamento.estado", equalTo("concluido"));
+        cancelar(c, id).then().statusCode(200).body("estado", equalTo("CANCELADA"))
+                .body("cancelamento.estado", equalTo("CONCLUIDO"));
         assertEquals(1, chamadasCancela());
         assertEquals(1, cancelamentos(id).size());
         // ChamadaGateway: so metadados
         List<Object[]> ls = QuarkusTransaction.requiringNew().call(() -> em.createQuery(
                 "select c.rota, c.versaoApi, c.codigoRetorno, c.resumoEnvio, c.mensagemRetorno from ChamadaGatewayEntity c "
-                        + "where c.nota.id = :n and c.operacao = 'cancelar_nfse'", Object[].class).setParameter("n", id)
+                        + "where c.nota.id = :n and c.operacao = 'CANCELAR'", Object[].class).setParameter("n", id)
                 .getResultList());
         assertEquals(1, ls.size());
         assertEquals("/v1/nfse/cancela", ls.get(0)[0]);
-        assertEquals("v1", ls.get(0)[1]);
+        assertEquals("V1", ls.get(0)[1]);
         assertEquals(101, ls.get(0)[2]);
         assertFalse(Arrays.toString(ls.get(0)).contains(c.tokenEmitente()));
         assertFalse(Arrays.toString(ls.get(0)).contains(MOTIVO));
@@ -1054,13 +1054,13 @@ class NfseEmissaoTest extends BaseApiTest {
     @Test
     void operadorTambemCancelaECodigosDeMotivo2e9() throws Exception {
         Cen c = cenario();
-        String operador = token(dados.usuarioComPapel(c.emp(), "operador", true).email());
+        String operador = token(dados.usuarioComPapel(c.emp(), "OPERADOR", true).email());
         String a = autorizada(c);
         cancelar(operador, a, 2, "Servico nao foi concluido a tempo").then().statusCode(200)
-                .body("estado", equalTo("cancelada")).body("cancelamento.codigoMotivo", equalTo(2));
+                .body("estado", equalTo("CANCELADA")).body("cancelamento.codigoMotivo", equalTo(2));
         assertEquals(2, estadoStub().path("ultimoCancelamento").path("corpo").path("codigo_cancelamento").asInt());
         String b = autorizada(c);
-        cancelar(c.adm(), b, 9, "  Outro motivo qualquer aqui  ").then().statusCode(200).body("estado", equalTo("cancelada"))
+        cancelar(c.adm(), b, 9, "  Outro motivo qualquer aqui  ").then().statusCode(200).body("estado", equalTo("CANCELADA"))
                 .body("cancelamento.motivo", equalTo("Outro motivo qualquer aqui"));
         assertEquals(9, estadoStub().path("ultimoCancelamento").path("corpo").path("codigo_cancelamento").asInt());
     }
@@ -1070,9 +1070,9 @@ class NfseEmissaoTest extends BaseApiTest {
         Cen c = cenario();
         String id = autorizada(c);
         stub("/_nfse/modo_cancela", "5015");
-        cancelar(c, id).then().statusCode(200).body("estado", equalTo("cancelada"))
-                .body("cancelamento.estado", equalTo("concluido")).body("cancelamento.codigoRetorno", equalTo(5015));
-        assertEquals("cancelada", nota(id).getEstado());
+        cancelar(c, id).then().statusCode(200).body("estado", equalTo("CANCELADA"))
+                .body("cancelamento.estado", equalTo("CONCLUIDO")).body("cancelamento.codigoRetorno", equalTo(5015));
+        assertEquals("CANCELADA", nota(id).getEstado());
     }
 
     @Test
@@ -1082,18 +1082,18 @@ class NfseEmissaoTest extends BaseApiTest {
         stub("/_nfse/modo_cancela", "5013");
         cancelar(c, id).then().statusCode(409).body("codigo", equalTo("cancelamento_recusado"))
                 .body("mensagem", containsString("autorizada")).body("detalhes.codigoRetorno", equalTo(5013));
-        assertEquals("autorizada", nota(id).getEstado());
+        assertEquals("AUTORIZADA", nota(id).getEstado());
         List<CancelamentoEntity> cs = cancelamentos(id);
         assertEquals(1, cs.size());
-        assertEquals("recusado", cs.get(0).getEstado());
+        assertEquals("RECUSADO", cs.get(0).getEstado());
         assertEquals(5013, cs.get(0).getCodigoRetorno());
         assertNotNull(cs.get(0).getMensagemRetorno());
-        chamar("GET", URL + "/" + id, c.adm(), null).then().body("estado", equalTo("autorizada"))
-                .body("podeCancelar", equalTo(true)).body("cancelamento.estado", equalTo("recusado"))
+        chamar("GET", URL + "/" + id, c.adm(), null).then().body("estado", equalTo("AUTORIZADA"))
+                .body("podeCancelar", equalTo(true)).body("cancelamento.estado", equalTo("RECUSADO"))
                 .body("cancelamento.codigoRetorno", equalTo(5013));
         // depois de recusado, da para tentar de novo
         stub("/_nfse/modo_cancela", "101");
-        cancelar(c, id).then().statusCode(200).body("estado", equalTo("cancelada"));
+        cancelar(c, id).then().statusCode(200).body("estado", equalTo("CANCELADA"));
         assertEquals(2, cancelamentos(id).size());
     }
 
@@ -1104,7 +1104,7 @@ class NfseEmissaoTest extends BaseApiTest {
         stub("/_nfse/modo_cancela", "5001");
         cancelar(c, id).then().statusCode(409).body("codigo", equalTo("cancelamento_recusado"))
                 .body("mensagem", equalTo("Erro de validação."));
-        assertEquals("autorizada", nota(id).getEstado());
+        assertEquals("AUTORIZADA", nota(id).getEstado());
     }
 
     @Test
@@ -1114,8 +1114,8 @@ class NfseEmissaoTest extends BaseApiTest {
         stub("/_nfse/modo_cancela", "6001");
         String corpo = cancelar(c, id).then().statusCode(409).body("codigo", equalTo("cancelamento_recusado")).extract().asString();
         assertFalse(corpo.contains(c.tokenEmitente()));
-        assertEquals("recusado", cancelamentos(id).get(0).getEstado());
-        assertEquals("autorizada", nota(id).getEstado());
+        assertEquals("RECUSADO", cancelamentos(id).get(0).getEstado());
+        assertEquals("AUTORIZADA", nota(id).getEstado());
     }
 
     @Test
@@ -1129,7 +1129,7 @@ class NfseEmissaoTest extends BaseApiTest {
                 equalTo("O cancelamento só é possível dentro do mês vigente da emissão da nota."));
         assertEquals(0, chamadasCancela());
         assertEquals(0, cancelamentos(id).size());
-        assertEquals("autorizada", nota(id).getEstado());
+        assertEquals("AUTORIZADA", nota(id).getEstado());
     }
 
     @Test
@@ -1148,7 +1148,7 @@ class NfseEmissaoTest extends BaseApiTest {
         Cen c = cenario();
         String id = criarProcessando(c);
         cancelar(c, id).then().statusCode(409).body("codigo", equalTo("nota_nao_autorizada"));
-        QuarkusTransaction.requiringNew().run(() -> em.find(NotaEntity.class, id).setEstado("rejeitada"));
+        QuarkusTransaction.requiringNew().run(() -> em.find(NotaEntity.class, id).setEstado("REJEITADA"));
         cancelar(c, id).then().statusCode(409).body("codigo", equalTo("nota_nao_autorizada"));
         assertEquals(0, chamadasCancela());
         assertEquals(0, cancelamentos(id).size());
@@ -1183,7 +1183,7 @@ class NfseEmissaoTest extends BaseApiTest {
     void papeisDoCancelamento() throws Exception {
         Cen c = cenario();
         String id = autorizada(c);
-        String consulta = token(dados.usuarioComPapel(c.emp(), "consulta").email());
+        String consulta = token(dados.usuarioComPapel(c.emp(), "CONSULTA").email());
         cancelar(consulta, id, 1, MOTIVO).then().statusCode(403);
         cancelar(null, id, 1, MOTIVO).then().statusCode(401);
         String plat = token(dados.usuario(true, true).email());
@@ -1193,14 +1193,14 @@ class NfseEmissaoTest extends BaseApiTest {
                 .body("codigo", equalTo("pdf_indisponivel"));
         chamar("GET", URL + "/" + id + "/cancelamento/pdf", null, null).then().statusCode(401);
         assertEquals(0, chamadasCancela());
-        assertEquals("autorizada", nota(id).getEstado());
+        assertEquals("AUTORIZADA", nota(id).getEstado());
     }
 
     @Test
     void operadorSemDelegacaoNaoCancelaEComDelegacaoCancela() throws Exception {
         Cen c = cenario();
         String id = autorizada(c);
-        var opSem = dados.usuarioComPapel(c.emp(), "operador", false);
+        var opSem = dados.usuarioComPapel(c.emp(), "OPERADOR", false);
         String tokenSem = token(opSem.email());
         // detalhe coerente com a permissao: false para operador sem delegacao
         chamar("GET", URL + "/" + id, tokenSem, null).then().statusCode(200).body("podeCancelar", equalTo(false));
@@ -1208,7 +1208,7 @@ class NfseEmissaoTest extends BaseApiTest {
                 .body("mensagem", equalTo("Seu usuário não tem permissão para cancelar notas. Peça ao administrador."));
         assertEquals(0, chamadasCancela());
         assertEquals(0, cancelamentos(id).size());
-        assertEquals("autorizada", nota(id).getEstado());
+        assertEquals("AUTORIZADA", nota(id).getEstado());
         // /me e o administrador
         chamar("GET", "/api/auth/me", tokenSem, null).then().statusCode(200).body("podeCancelarNfse", equalTo(false));
         chamar("GET", "/api/auth/me", c.adm(), null).then().statusCode(200).body("podeCancelarNfse", equalTo(true));
@@ -1217,16 +1217,16 @@ class NfseEmissaoTest extends BaseApiTest {
         QuarkusTransaction.requiringNew().run(() -> em.createQuery("update VinculoUsuarioEntity v set v.podeCancelarNfse = true "
                 + "where v.usuario.id = :u").setParameter("u", opSem.id()).executeUpdate());
         chamar("GET", URL + "/" + id, tokenSem, null).then().body("podeCancelar", equalTo(true));
-        cancelar(tokenSem, id, 1, MOTIVO).then().statusCode(200).body("estado", equalTo("cancelada"));
+        cancelar(tokenSem, id, 1, MOTIVO).then().statusCode(200).body("estado", equalTo("CANCELADA"));
         // delegacao so vale para o operador: vinculo de consulta com a flag continua barrado
-        String c2 = token(dados.usuarioComPapel(c.emp(), "consulta", true).email());
+        String c2 = token(dados.usuarioComPapel(c.emp(), "CONSULTA", true).email());
         cancelar(c2, autorizada(c), 1, MOTIVO).then().statusCode(403);
     }
 
     @Test
     void operadorDelegadoSoNaEmpresaDoVinculoAtivo() throws Exception {
         Cen c = cenario();
-        var op = dados.usuarioComPapel(c.emp(), "operador", true);
+        var op = dados.usuarioComPapel(c.emp(), "OPERADOR", true);
         String tk = token(op.email());
         String id = autorizada(c);
         QuarkusTransaction.requiringNew().run(() -> em.createQuery("update VinculoUsuarioEntity v set v.ativo = false "
@@ -1244,11 +1244,11 @@ class NfseEmissaoTest extends BaseApiTest {
         chamar("GET", URL + "/" + id + "/cancelamento/pdf", b.adm(), null).then().statusCode(404)
                 .body("codigo", equalTo("nao_encontrado"));
         var up = dados.usuario(true, true);
-        dados.vincular(up.id(), b.emp(), "administrador", true);
+        dados.vincular(up.id(), b.emp(), "ADMINISTRADOR", true);
         cancelar(token(up.email(), b.emp()), id, 1, MOTIVO).then().statusCode(404);
         assertEquals(0, chamadasCancela());
         assertEquals(0, cancelamentos(id).size());
-        assertEquals("autorizada", nota(id).getEstado());
+        assertEquals("AUTORIZADA", nota(id).getEstado());
         // a empresa dona cancela e o detalhe da outra empresa continua 404
         cancelar(a, id).then().statusCode(200);
         chamar("GET", URL + "/" + id, b.adm(), null).then().statusCode(404);
@@ -1263,16 +1263,16 @@ class NfseEmissaoTest extends BaseApiTest {
         Cen c = cenario();
         String id = autorizada(c);
         QuarkusTransaction.requiringNew().run(() -> em.createNativeQuery(
-                "update configuracao_integranotas set ambiente_ativo = 'producao'").executeUpdate());
+                "update configuracao_integranotas set ambiente_ativo = 'PRODUCAO'").executeUpdate());
         try {
             cancelar(c, id).then().statusCode(409).body("codigo", equalTo("emissao_producao_bloqueada"));
         } finally {
             QuarkusTransaction.requiringNew().run(() -> em.createNativeQuery(
-                    "update configuracao_integranotas set ambiente_ativo = 'homologacao'").executeUpdate());
+                    "update configuracao_integranotas set ambiente_ativo = 'HOMOLOGACAO'").executeUpdate());
         }
         assertEquals(0, chamadasCancela());
         assertEquals(0, cancelamentos(id).size());
-        assertEquals("autorizada", nota(id).getEstado());
+        assertEquals("AUTORIZADA", nota(id).getEstado());
     }
 
     @Test
@@ -1280,21 +1280,21 @@ class NfseEmissaoTest extends BaseApiTest {
         Cen c = cenario();
         String id = autorizada(c);
         stub("/_nfse/modo_cancela", "5023");
-        cancelar(c, id).then().statusCode(200).body("estado", equalTo("autorizada"))
-                .body("cancelamento.estado", equalTo("processando")).body("podeCancelar", equalTo(false))
+        cancelar(c, id).then().statusCode(200).body("estado", equalTo("AUTORIZADA"))
+                .body("cancelamento.estado", equalTo("PROCESSANDO")).body("podeCancelar", equalTo(false))
                 .body("podeAtualizar", equalTo(true));
-        assertEquals("processando", cancelamentos(id).get(0).getEstado());
+        assertEquals("PROCESSANDO", cancelamentos(id).get(0).getEstado());
         // um segundo pedido enquanto ha um em processamento
         cancelar(c, id).then().statusCode(409).body("codigo", equalTo("cancelamento_em_andamento"));
         assertEquals(1, chamadasCancela());
         // o gateway ainda diz autorizada: continua pendente
         stub("/_nfse/modo_consulta", "100");
-        atualizar(c, id).then().statusCode(200).body("estado", equalTo("autorizada"))
-                .body("cancelamento.estado", equalTo("processando"));
+        atualizar(c, id).then().statusCode(200).body("estado", equalTo("AUTORIZADA"))
+                .body("cancelamento.estado", equalTo("PROCESSANDO"));
         // 101: nota cancelada E registro concluido
         stub("/_nfse/modo_consulta", "101");
-        atualizar(c, id).then().statusCode(200).body("estado", equalTo("cancelada"))
-                .body("cancelamento.estado", equalTo("concluido")).body("cancelamento.codigoRetorno", equalTo(101))
+        atualizar(c, id).then().statusCode(200).body("estado", equalTo("CANCELADA"))
+                .body("cancelamento.estado", equalTo("CONCLUIDO")).body("cancelamento.codigoRetorno", equalTo(101))
                 .body("cancelamento.dataHoraEvento", equalTo("2026-11-21T10:00:00")).body("podeAtualizar", equalTo(false));
         CancelamentoEntity ce = cancelamentos(id).get(0);
         assertTrue(new String(ce.getXml(), "UTF-8").startsWith("<NFSe"));
@@ -1307,9 +1307,9 @@ class NfseEmissaoTest extends BaseApiTest {
             Cen c = cenario();
             String id = autorizada(c);
             stub("/_nfse/modo_cancela", modo);
-            cancelar(c, id).then().statusCode(200).body("estado", equalTo("autorizada"))
-                    .body("cancelamento.estado", equalTo("processando"));
-            assertEquals("autorizada", nota(id).getEstado());
+            cancelar(c, id).then().statusCode(200).body("estado", equalTo("AUTORIZADA"))
+                    .body("cancelamento.estado", equalTo("PROCESSANDO"));
+            assertEquals("AUTORIZADA", nota(id).getEstado());
         }
     }
 
@@ -1318,8 +1318,8 @@ class NfseEmissaoTest extends BaseApiTest {
         Cen c = cenario();
         String id = autorizada(c);
         stub("/_nfse/modo_cancela", "lento");
-        cancelar(c, id).then().statusCode(200).body("estado", equalTo("autorizada"))
-                .body("cancelamento.estado", equalTo("processando"));
+        cancelar(c, id).then().statusCode(200).body("estado", equalTo("AUTORIZADA"))
+                .body("cancelamento.estado", equalTo("PROCESSANDO"));
     }
 
     @Test
@@ -1327,13 +1327,13 @@ class NfseEmissaoTest extends BaseApiTest {
         Cen c = cenario();
         String id = autorizada(c);
         stub("/_nfse/modo_cancela", "5023");
-        cancelar(c, id).then().statusCode(200).body("cancelamento.estado", equalTo("processando"));
+        cancelar(c, id).then().statusCode(200).body("cancelamento.estado", equalTo("PROCESSANDO"));
         stub("/_nfse/modo_consulta", "101");
-        for (int i = 0; i < 5 && !"cancelada".equals(nota(id).getEstado()); i++) {
+        for (int i = 0; i < 5 && !"CANCELADA".equals(nota(id).getEstado()); i++) {
             acompanhamento.executarCiclo();
         }
-        assertEquals("cancelada", nota(id).getEstado());
-        assertEquals("concluido", cancelamentos(id).get(0).getEstado());
+        assertEquals("CANCELADA", nota(id).getEstado());
+        assertEquals("CONCLUIDO", cancelamentos(id).get(0).getEstado());
     }
 
     @Test
@@ -1344,11 +1344,11 @@ class NfseEmissaoTest extends BaseApiTest {
         cancelar(c, id).then().statusCode(200);
         stub("/_nfse/modo_consulta", "101");
         webhook(c.emp(), eventoForjado(nota(id).getChave(), nota(id).getId().replace("-", ""))).then().statusCode(200);
-        esperar(id, "cancelada");
-        for (int i = 0; i < 50 && !"concluido".equals(cancelamentos(id).get(0).getEstado()); i++) {
+        esperar(id, "CANCELADA");
+        for (int i = 0; i < 50 && !"CONCLUIDO".equals(cancelamentos(id).get(0).getEstado()); i++) {
             Thread.sleep(100);
         }
-        assertEquals("concluido", cancelamentos(id).get(0).getEstado());
+        assertEquals("CONCLUIDO", cancelamentos(id).get(0).getEstado());
     }
 
     @Test
@@ -1361,25 +1361,25 @@ class NfseEmissaoTest extends BaseApiTest {
         QuarkusTransaction.requiringNew().run(() -> em.find(CancelamentoEntity.class, cid)
                 .setDataCriacao(LocalDateTime.now().minusHours(25)));
         stub("/_nfse/modo_consulta", "100");
-        atualizar(c, id).then().statusCode(200).body("estado", equalTo("autorizada"))
-                .body("cancelamento.estado", equalTo("expirado")).body("podeCancelar", equalTo(true));
+        atualizar(c, id).then().statusCode(200).body("estado", equalTo("AUTORIZADA"))
+                .body("cancelamento.estado", equalTo("EXPIRADO")).body("podeCancelar", equalTo(true));
         CancelamentoEntity exp = cancelamentos(id).get(0);
-        assertEquals("expirado", exp.getEstado());
+        assertEquals("EXPIRADO", exp.getEstado());
         assertEquals(null, exp.getDataHoraRecusa());
         assertEquals(br.com.emitesimples.nfseemissao.NfseRetorno.MSG_CANCELAMENTO_SEM_CONFIRMACAO, exp.getMensagemRetorno());
         stub("/_nfse/modo_cancela", "101");
-        cancelar(c, id).then().statusCode(200).body("estado", equalTo("cancelada"));
+        cancelar(c, id).then().statusCode(200).body("estado", equalTo("CANCELADA"));
     }
 
     @Test
     void emitenteDeOutroAmbienteOuSemCadastroNaoCancela() throws Exception {
         Cen c = cenario();
         String id = autorizada(c);
-        empresa(c.emp(), e -> e.setAmbiente("producao"));
+        empresa(c.emp(), e -> e.setAmbiente("PRODUCAO"));
         cancelar(c, id).then().statusCode(409).body("codigo", equalTo("emitente_de_outro_ambiente"));
         empresa(c.emp(), e -> {
-            e.setAmbiente("homologacao");
-            e.setStatusCadastro("pendente");
+            e.setAmbiente("HOMOLOGACAO");
+            e.setStatusCadastro("NAO_CADASTRADO");
         });
         cancelar(c, id).then().statusCode(409).body("codigo", equalTo("emitente_nao_cadastrado"));
         assertEquals(0, chamadasCancela());
@@ -1411,7 +1411,7 @@ class NfseEmissaoTest extends BaseApiTest {
 
     private String rascunho(Cen c) {
         Response r = preparar(c.adm(), c);
-        r.then().statusCode(200).body("estado", equalTo("rascunho"));
+        r.then().statusCode(200).body("estado", equalTo("RASCUNHO"));
         return r.jsonPath().getString("id");
     }
 
@@ -1424,11 +1424,11 @@ class NfseEmissaoTest extends BaseApiTest {
         Cen c = cenario();
         // preparar nao exige certificado/emitente (so a aprovacao)
         empresa(c.emp(), e -> {
-            e.setSituacaoCertificado("pendente");
-            e.setStatusCadastro("pendente");
+            e.setSituacaoCertificado("NAO_ENVIADO");
+            e.setStatusCadastro("NAO_CADASTRADO");
         });
         Response r = preparar(c.adm(), c);
-        r.then().statusCode(200).body("estado", equalTo("rascunho")).body("numero", nullValue()).body("serie", nullValue())
+        r.then().statusCode(200).body("estado", equalTo("RASCUNHO")).body("numero", nullValue()).body("serie", nullValue())
                 .body("dataEmissao", nullValue()).body("chave", nullValue()).body("valorServicos", equalTo(150.5f))
                 .body("discriminacao", equalTo("Servico de desenvolvimento prestado")).body("descricao", equalTo("Desenvolvimento"))
                 .body("codigoServico", equalTo("010101")).body("podeAprovar", equalTo(true))
@@ -1452,9 +1452,9 @@ class NfseEmissaoTest extends BaseApiTest {
         assertEquals(0, ultimo(c.emp()));
         assertEquals(0, enviosStub());
         // aparece na lista e no detalhe
-        chamar("GET", URL + "/" + id, c.adm(), null).then().statusCode(200).body("estado", equalTo("rascunho"))
+        chamar("GET", URL + "/" + id, c.adm(), null).then().statusCode(200).body("estado", equalTo("RASCUNHO"))
                 .body("podeAprovar", equalTo(true));
-        chamar("GET", URL + "/0/100?estado=rascunho", c.adm(), null).then().statusCode(200).body("id", hasItem(id));
+        chamar("GET", URL + "/0/100?estado=RASCUNHO", c.adm(), null).then().statusCode(200).body("id", hasItem(id));
     }
 
     @Test
@@ -1498,7 +1498,7 @@ class NfseEmissaoTest extends BaseApiTest {
         Cen c = cenario();
         String id = rascunho(c);
         assertEquals(0, enviosStub());
-        chamar("POST", URL + "/" + id + "/aprovar", c.adm(), null).then().statusCode(200).body("estado", equalTo("processando"))
+        chamar("POST", URL + "/" + id + "/aprovar", c.adm(), null).then().statusCode(200).body("estado", equalTo("PROCESSANDO"))
                 .body("numero", equalTo("1")).body("serie", equalTo("1")).body("dataEmissao", notNullValue())
                 .body("podeAprovar", equalTo(false)).body("podeDescartar", equalTo(false)).body("podeAtualizar", equalTo(true));
         assertEquals(1, enviosStub());
@@ -1507,11 +1507,11 @@ class NfseEmissaoTest extends BaseApiTest {
         assertNotNull(n.getAprovadoPor());
         assertNotNull(n.getDataHoraAprovacao());
         assertNotNull(n.getPreparadoPorUsuario());
-        assertEquals("homologacao", n.getAmbiente());
+        assertEquals("HOMOLOGACAO", n.getAmbiente());
         assertNotNull(n.getDataCompetencia());
         // segue o fluxo normal: a consulta autoriza
         stub("/_nfse/modo_consulta", "100");
-        atualizar(c, id).then().statusCode(200).body("estado", equalTo("autorizada"));
+        atualizar(c, id).then().statusCode(200).body("estado", equalTo("AUTORIZADA"));
         // aprovar de novo: nao e mais rascunho
         chamar("POST", URL + "/" + id + "/aprovar", c.adm(), null).then().statusCode(409).body("codigo", equalTo("nota_nao_e_rascunho"));
         assertEquals(1, enviosStub());
@@ -1522,21 +1522,21 @@ class NfseEmissaoTest extends BaseApiTest {
     void aprovarPodeAjustarOsCamposEExigeOEmitente() throws Exception {
         Cen c = cenario();
         String id = rascunho(c);
-        empresa(c.emp(), e -> e.setSituacaoCertificado("pendente"));
+        empresa(c.emp(), e -> e.setSituacaoCertificado("NAO_ENVIADO"));
         chamar("POST", URL + "/" + id + "/aprovar", c.adm(), null).then().statusCode(409).body("codigo", equalTo("certificado_nao_valido"));
-        assertEquals("rascunho", nota(id).getEstado());
+        assertEquals("RASCUNHO", nota(id).getEstado());
         assertEquals(0, ultimo(c.emp()));
         assertEquals(0, enviosStub());
         empresa(c.emp(), e -> {
-            e.setSituacaoCertificado("valido");
-            e.setStatusCadastro("pendente");
+            e.setSituacaoCertificado("VALIDO");
+            e.setStatusCadastro("NAO_CADASTRADO");
         });
         chamar("POST", URL + "/" + id + "/aprovar", c.adm(), null).then().statusCode(409).body("codigo", equalTo("emitente_nao_cadastrado"));
-        empresa(c.emp(), e -> e.setStatusCadastro("cadastrado"));
+        empresa(c.emp(), e -> e.setStatusCadastro("CADASTRADO"));
         Map<String, Object> ajuste = new HashMap<>();
         ajuste.put("valorServicos", new BigDecimal("99.90"));
         ajuste.put("informacoesComplementares", "ajustado na aprovacao");
-        chamar("POST", URL + "/" + id + "/aprovar", c.adm(), ajuste).then().statusCode(200).body("estado", equalTo("processando"))
+        chamar("POST", URL + "/" + id + "/aprovar", c.adm(), ajuste).then().statusCode(200).body("estado", equalTo("PROCESSANDO"))
                 .body("valorServicos", equalTo(99.9f)).body("informacoesComplementares", equalTo("ajustado na aprovacao"));
         assertEquals(1, ultimo(c.emp()));
     }
@@ -1549,14 +1549,14 @@ class NfseEmissaoTest extends BaseApiTest {
         chamar("POST", URL + "/" + id + "/aprovar", c.adm(), null).then().statusCode(409).body("codigo", equalTo("nota_nao_e_rascunho"));
         chamar("POST", URL + "/" + id + "/descartar", c.adm(), null).then().statusCode(409).body("codigo", equalTo("nota_nao_e_rascunho"));
         assertEquals(envios, enviosStub());
-        assertEquals("processando", nota(id).getEstado());
+        assertEquals("PROCESSANDO", nota(id).getEstado());
         // rascunho nao e reenviado por /enviar
         String r = rascunho(c);
         chamar("POST", URL + "/" + r + "/enviar", c.adm(), null).then().statusCode(409).body("codigo", equalTo("nota_nao_editavel"));
         assertEquals(envios, enviosStub());
     }
 
-    /** BLOQUEADO: o CHECK ck_nota_numeracao (V9) exige numero/serie/dataEmissao em todo estado que nao seja 'rascunho'; precisa de V10. */
+    /** BLOQUEADO: o CHECK ck_nota_numeracao (V9) exige numero/serie/dataEmissao em todo estado que nao seja 'RASCUNHO'; precisa de V10. */
     @Test
     void notaDescartadaNaoAprovaNemDescartaNemEnvia() throws Exception {
         Cen c = cenario();
@@ -1572,10 +1572,10 @@ class NfseEmissaoTest extends BaseApiTest {
     void descartarGravaQuemQuandoENaoTocaNumeracaoNemGateway() throws Exception {
         Cen c = cenario();
         String id = rascunho(c);
-        chamar("POST", URL + "/" + id + "/descartar", c.adm(), null).then().statusCode(200).body("estado", equalTo("descartada"))
+        chamar("POST", URL + "/" + id + "/descartar", c.adm(), null).then().statusCode(200).body("estado", equalTo("DESCARTADA"))
                 .body("podeAprovar", equalTo(false)).body("podeDescartar", equalTo(false)).body("numero", nullValue());
         NotaEntity n = nota(id);
-        assertEquals("descartada", n.getEstado());
+        assertEquals("DESCARTADA", n.getEstado());
         assertNotNull(n.getDescartadoPor());
         assertNotNull(n.getDataHoraDescarte());
         assertNull(n.getAprovadoPor());
@@ -1587,25 +1587,25 @@ class NfseEmissaoTest extends BaseApiTest {
     void papeisDoRascunhoDeNota() throws Exception {
         Cen c = cenario();
         String id = rascunho(c);
-        String consulta = token(dados.usuarioComPapel(c.emp(), "consulta").email());
-        String operador = token(dados.usuarioComPapel(c.emp(), "operador").email());
+        String consulta = token(dados.usuarioComPapel(c.emp(), "CONSULTA").email());
+        String operador = token(dados.usuarioComPapel(c.emp(), "OPERADOR").email());
         preparar(consulta, c).then().statusCode(403);
         preparar(null, c).then().statusCode(401);
         chamar("POST", URL + "/" + id + "/aprovar", consulta, null).then().statusCode(403);
         chamar("POST", URL + "/" + id + "/descartar", consulta, null).then().statusCode(403);
         chamar("POST", URL + "/" + id + "/aprovar", null, null).then().statusCode(401);
         // consulta le o rascunho, mas sem podeAprovar/podeDescartar
-        chamar("GET", URL + "/" + id, consulta, null).then().statusCode(200).body("estado", equalTo("rascunho"))
+        chamar("GET", URL + "/" + id, consulta, null).then().statusCode(200).body("estado", equalTo("RASCUNHO"))
                 .body("podeAprovar", equalTo(false)).body("podeDescartar", equalTo(false));
         // plataforma sem empresa na sessao
         String plat = token(dados.usuario(true, true).email());
         preparar(plat, c).then().statusCode(403).body("codigo", equalTo("empresa_nao_selecionada"));
         chamar("POST", URL + "/" + id + "/aprovar", plat, null).then().statusCode(403).body("codigo", equalTo("empresa_nao_selecionada"));
-        assertEquals("rascunho", nota(id).getEstado());
+        assertEquals("RASCUNHO", nota(id).getEstado());
         assertEquals(0, enviosStub());
         // operador prepara e aprova
         preparar(operador, c).then().statusCode(200).body("podeAprovar", equalTo(true));
-        chamar("POST", URL + "/" + id + "/aprovar", operador, null).then().statusCode(200).body("estado", equalTo("processando"));
+        chamar("POST", URL + "/" + id + "/aprovar", operador, null).then().statusCode(200).body("estado", equalTo("PROCESSANDO"));
     }
 
     @Test
@@ -1622,7 +1622,7 @@ class NfseEmissaoTest extends BaseApiTest {
         Map<String, Object> m = corpo(a, "10.00");
         m.put("pessoaId", b.pessoa());
         chamar("POST", URL + "/preparar", a.adm(), m).then().statusCode(404);
-        assertEquals("rascunho", nota(id).getEstado());
+        assertEquals("RASCUNHO", nota(id).getEstado());
         assertEquals(0, enviosStub());
         assertEquals(0, ultimo(a.emp()));
     }
@@ -1634,8 +1634,8 @@ class NfseEmissaoTest extends BaseApiTest {
         NotaEntity antes = nota(id);
         chamar("GET", URL + "/" + id, c.adm(), null).then().statusCode(200);
         chamar("GET", URL + "/0/10", c.adm(), null).then().statusCode(200);
-        chamar("GET", URL + "/count?estado=rascunho", c.adm(), null).then().statusCode(200);
-        atualizar(c, id).then().statusCode(200).body("estado", equalTo("rascunho"));
+        chamar("GET", URL + "/count?estado=RASCUNHO", c.adm(), null).then().statusCode(200);
+        atualizar(c, id).then().statusCode(200).body("estado", equalTo("RASCUNHO"));
         NotaEntity depois = nota(id);
         assertEquals(antes.getEstado(), depois.getEstado());
         assertEquals(antes.getDataAtualizacao(), depois.getDataAtualizacao());
@@ -1671,7 +1671,7 @@ class NfseEmissaoTest extends BaseApiTest {
 
     private String rascunhoCancel(Cen c, String notaId) {
         Response r = prepararCancel(c.adm(), notaId, 1, MOTIVO);
-        r.then().statusCode(200).body("estado", equalTo("autorizada")).body("cancelamento.estado", equalTo("rascunho"));
+        r.then().statusCode(200).body("estado", equalTo("AUTORIZADA")).body("cancelamento.estado", equalTo("RASCUNHO"));
         return r.jsonPath().getString("cancelamento.id");
     }
 
@@ -1687,8 +1687,8 @@ class NfseEmissaoTest extends BaseApiTest {
     void prepararCancelamentoValidaESemChamarOGateway() throws Exception {
         Cen c = cenario();
         String id = autorizada(c);
-        prepararCancel(c.adm(), id, 2, "  " + MOTIVO + "  ").then().statusCode(200).body("estado", equalTo("autorizada"))
-                .body("cancelamento.id", notNullValue()).body("cancelamento.estado", equalTo("rascunho"))
+        prepararCancel(c.adm(), id, 2, "  " + MOTIVO + "  ").then().statusCode(200).body("estado", equalTo("AUTORIZADA"))
+                .body("cancelamento.id", notNullValue()).body("cancelamento.estado", equalTo("RASCUNHO"))
                 .body("cancelamento.codigoMotivo", equalTo(2)).body("cancelamento.motivo", equalTo(MOTIVO))
                 .body("cancelamento.podeAprovar", equalTo(true)).body("cancelamento.podeDescartar", equalTo(true))
                 .body("podeCancelar", equalTo(false)).body("podeAtualizar", equalTo(false));
@@ -1696,15 +1696,15 @@ class NfseEmissaoTest extends BaseApiTest {
         List<CancelamentoEntity> cs = cancelamentos(id);
         assertEquals(1, cs.size());
         CancelamentoEntity ce = cs.get(0);
-        assertEquals("rascunho", ce.getEstado());
+        assertEquals("RASCUNHO", ce.getEstado());
         assertNull(ce.getAprovadoPor());
         assertNull(ce.getDataHoraAprovacao());
         assertNull(ce.getPreparadoPorCliente());
         assertNotNull(ce.getPreparadoPorUsuario());
-        assertEquals("homologacao", ce.getAmbiente());
-        assertEquals("autorizada", nota(id).getEstado());
+        assertEquals("HOMOLOGACAO", ce.getAmbiente());
+        assertEquals("AUTORIZADA", nota(id).getEstado());
         // o GET tambem mostra o rascunho
-        chamar("GET", URL + "/" + id, c.adm(), null).then().body("cancelamento.estado", equalTo("rascunho"))
+        chamar("GET", URL + "/" + id, c.adm(), null).then().body("cancelamento.estado", equalTo("RASCUNHO"))
                 .body("cancelamento.id", equalTo(ce.getId()));
     }
 
@@ -1730,9 +1730,9 @@ class NfseEmissaoTest extends BaseApiTest {
         assertEquals(0, cancelamentos(velha).size());
         // ambiente
         String outro = autorizada(c);
-        empresa(c.emp(), e -> e.setAmbiente("producao"));
+        empresa(c.emp(), e -> e.setAmbiente("PRODUCAO"));
         prepararCancel(c.adm(), outro, 1, MOTIVO).then().statusCode(409).body("codigo", equalTo("emitente_de_outro_ambiente"));
-        empresa(c.emp(), e -> e.setAmbiente("homologacao"));
+        empresa(c.emp(), e -> e.setAmbiente("HOMOLOGACAO"));
         assertEquals(0, chamadasCancela());
         // nota de outra empresa / inexistente
         Cen b = cenario();
@@ -1756,7 +1756,7 @@ class NfseEmissaoTest extends BaseApiTest {
         assertNotEquals(cid, outro);
         // processando bloqueia o preparo
         stub("/_nfse/modo_cancela", "5023");
-        aprovarCancel(c.adm(), outro).then().statusCode(200).body("cancelamento.estado", equalTo("processando"));
+        aprovarCancel(c.adm(), outro).then().statusCode(200).body("cancelamento.estado", equalTo("PROCESSANDO"));
         prepararCancel(c.adm(), id, 1, MOTIVO).then().statusCode(409).body("codigo", equalTo("cancelamento_em_andamento"));
     }
 
@@ -1765,8 +1765,8 @@ class NfseEmissaoTest extends BaseApiTest {
         Cen c = cenario();
         String id = autorizada(c);
         String cid = rascunhoCancel(c, id);
-        aprovarCancel(c.adm(), cid).then().statusCode(200).body("estado", equalTo("cancelada")).body("podeCancelar", equalTo(false))
-                .body("cancelamento.id", equalTo(cid)).body("cancelamento.estado", equalTo("concluido"))
+        aprovarCancel(c.adm(), cid).then().statusCode(200).body("estado", equalTo("CANCELADA")).body("podeCancelar", equalTo(false))
+                .body("cancelamento.id", equalTo(cid)).body("cancelamento.estado", equalTo("CONCLUIDO"))
                 .body("cancelamento.codigoRetorno", equalTo(101)).body("cancelamento.podeAprovar", equalTo(false))
                 .body("cancelamento.podeDescartar", equalTo(false));
         assertEquals(1, chamadasCancela());
@@ -1776,7 +1776,7 @@ class NfseEmissaoTest extends BaseApiTest {
         assertEquals(1, env.path("corpo").path("codigo_cancelamento").asInt());
         assertEquals(MOTIVO, env.path("corpo").path("motivo_cancelamento").asText());
         CancelamentoEntity ce = cancelamentos(id).get(0);
-        assertEquals("concluido", ce.getEstado());
+        assertEquals("CONCLUIDO", ce.getEstado());
         assertNotNull(ce.getAprovadoPor());
         assertNotNull(ce.getDataHoraAprovacao());
         assertNotNull(ce.getPreparadoPorUsuario());
@@ -1794,20 +1794,20 @@ class NfseEmissaoTest extends BaseApiTest {
         stub("/_nfse/modo_cancela", "5013");
         aprovarCancel(c.adm(), cid).then().statusCode(409).body("codigo", equalTo("cancelamento_recusado"))
                 .body("detalhes.codigoRetorno", equalTo(5013));
-        assertEquals("recusado", cancelamentos(id).get(0).getEstado());
-        assertEquals("autorizada", nota(id).getEstado());
+        assertEquals("RECUSADO", cancelamentos(id).get(0).getEstado());
+        assertEquals("AUTORIZADA", nota(id).getEstado());
         // inconclusivo: fica processando e a consulta conclui
         String cid2 = rascunhoCancel(c, id);
         stub("/_nfse/modo_cancela", "5023");
-        aprovarCancel(c.adm(), cid2).then().statusCode(200).body("estado", equalTo("autorizada"))
-                .body("cancelamento.estado", equalTo("processando"));
+        aprovarCancel(c.adm(), cid2).then().statusCode(200).body("estado", equalTo("AUTORIZADA"))
+                .body("cancelamento.estado", equalTo("PROCESSANDO"));
         stub("/_nfse/modo_consulta", "101");
-        atualizar(c, id).then().statusCode(200).body("estado", equalTo("cancelada")).body("cancelamento.estado", equalTo("concluido"));
+        atualizar(c, id).then().statusCode(200).body("estado", equalTo("CANCELADA")).body("cancelamento.estado", equalTo("CONCLUIDO"));
         // 5015: ja cancelada no gateway = concluido
         String id2 = autorizada(c);
         String cid3 = rascunhoCancel(c, id2);
         stub("/_nfse/modo_cancela", "5015");
-        aprovarCancel(c.adm(), cid3).then().statusCode(200).body("estado", equalTo("cancelada"))
+        aprovarCancel(c.adm(), cid3).then().statusCode(200).body("estado", equalTo("CANCELADA"))
                 .body("cancelamento.codigoRetorno", equalTo(5015));
     }
 
@@ -1820,9 +1820,9 @@ class NfseEmissaoTest extends BaseApiTest {
                 .setDataEmissao(LocalDateTime.now().minusMonths(1).withDayOfMonth(15)));
         aprovarCancel(c.adm(), cid).then().statusCode(409).body("codigo", equalTo("cancelamento_fora_do_mes"));
         assertEquals(0, chamadasCancela());
-        assertEquals("rascunho", cancelamentos(id).get(0).getEstado());
+        assertEquals("RASCUNHO", cancelamentos(id).get(0).getEstado());
         // o rascunho ainda pode ser descartado
-        descartarCancel(c.adm(), cid).then().statusCode(200).body("cancelamento.estado", equalTo("descartado"));
+        descartarCancel(c.adm(), cid).then().statusCode(200).body("cancelamento.estado", equalTo("DESCARTADO"));
     }
 
     @Test
@@ -1830,38 +1830,38 @@ class NfseEmissaoTest extends BaseApiTest {
         Cen c = cenario();
         String id = autorizada(c);
         String cid = rascunhoCancel(c, id);
-        empresa(c.emp(), e -> e.setAmbiente("producao"));
+        empresa(c.emp(), e -> e.setAmbiente("PRODUCAO"));
         aprovarCancel(c.adm(), cid).then().statusCode(409).body("codigo", equalTo("emitente_de_outro_ambiente"));
         empresa(c.emp(), e -> {
-            e.setAmbiente("homologacao");
-            e.setStatusCadastro("pendente");
+            e.setAmbiente("HOMOLOGACAO");
+            e.setStatusCadastro("NAO_CADASTRADO");
         });
         aprovarCancel(c.adm(), cid).then().statusCode(409).body("codigo", equalTo("emitente_nao_cadastrado"));
         assertEquals(0, chamadasCancela());
-        assertEquals("rascunho", cancelamentos(id).get(0).getEstado());
+        assertEquals("RASCUNHO", cancelamentos(id).get(0).getEstado());
     }
 
     @Test
     void operadorSemDelegacaoNaoAprovaNemDescartaCancelamentoMasPrepara() throws Exception {
         Cen c = cenario();
         String id = autorizada(c);
-        var opSem = dados.usuarioComPapel(c.emp(), "operador", false);
+        var opSem = dados.usuarioComPapel(c.emp(), "OPERADOR", false);
         String tokenSem = token(opSem.email());
         // o preparo nao exige a delegacao
         Response r = prepararCancel(tokenSem, id, 1, MOTIVO);
-        r.then().statusCode(200).body("cancelamento.estado", equalTo("rascunho")).body("cancelamento.podeAprovar", equalTo(false))
+        r.then().statusCode(200).body("cancelamento.estado", equalTo("RASCUNHO")).body("cancelamento.podeAprovar", equalTo(false))
                 .body("cancelamento.podeDescartar", equalTo(false));
         String cid = r.jsonPath().getString("cancelamento.id");
         aprovarCancel(tokenSem, cid).then().statusCode(403).body("codigo", equalTo("cancelamento_nao_delegado"));
         descartarCancel(tokenSem, cid).then().statusCode(403).body("codigo", equalTo("cancelamento_nao_delegado"));
         assertEquals(0, chamadasCancela());
-        assertEquals("rascunho", cancelamentos(id).get(0).getEstado());
+        assertEquals("RASCUNHO", cancelamentos(id).get(0).getEstado());
         // com a delegacao (vale na hora)
         QuarkusTransaction.requiringNew().run(() -> em.createQuery("update VinculoUsuarioEntity v set v.podeCancelarNfse = true "
                 + "where v.usuario.id = :u").setParameter("u", opSem.id()).executeUpdate());
         chamar("GET", URL + "/" + id, tokenSem, null).then().body("cancelamento.podeAprovar", equalTo(true))
                 .body("cancelamento.podeDescartar", equalTo(true));
-        aprovarCancel(tokenSem, cid).then().statusCode(200).body("estado", equalTo("cancelada"));
+        aprovarCancel(tokenSem, cid).then().statusCode(200).body("estado", equalTo("CANCELADA"));
         assertEquals(1, chamadasCancela());
         assertNotNull(cancelamentos(id).get(0).getAprovadoPor());
     }
@@ -1871,11 +1871,11 @@ class NfseEmissaoTest extends BaseApiTest {
         Cen c = cenario();
         String id = autorizada(c);
         String cid = rascunhoCancel(c, id);
-        descartarCancel(c.adm(), cid).then().statusCode(200).body("estado", equalTo("autorizada"))
-                .body("cancelamento.estado", equalTo("descartado")).body("cancelamento.podeAprovar", equalTo(false))
+        descartarCancel(c.adm(), cid).then().statusCode(200).body("estado", equalTo("AUTORIZADA"))
+                .body("cancelamento.estado", equalTo("DESCARTADO")).body("cancelamento.podeAprovar", equalTo(false))
                 .body("podeCancelar", equalTo(true));
         CancelamentoEntity ce = cancelamentos(id).get(0);
-        assertEquals("descartado", ce.getEstado());
+        assertEquals("DESCARTADO", ce.getEstado());
         assertNotNull(ce.getDescartadoPor());
         assertNotNull(ce.getDataHoraDescarte());
         assertNull(ce.getAprovadoPor());
@@ -1890,7 +1890,7 @@ class NfseEmissaoTest extends BaseApiTest {
         Cen b = cenario();
         String id = autorizada(c);
         String cid = rascunhoCancel(c, id);
-        String consulta = token(dados.usuarioComPapel(c.emp(), "consulta").email());
+        String consulta = token(dados.usuarioComPapel(c.emp(), "CONSULTA").email());
         prepararCancel(consulta, id, 1, MOTIVO).then().statusCode(403);
         prepararCancel(null, id, 1, MOTIVO).then().statusCode(401);
         aprovarCancel(consulta, cid).then().statusCode(403);
@@ -1907,7 +1907,7 @@ class NfseEmissaoTest extends BaseApiTest {
         // so POST em /api/nfse/cancelamentos
         chamar("GET", "/api/nfse/cancelamentos/" + cid + "/aprovar", c.adm(), null).then().statusCode(403);
         assertEquals(0, chamadasCancela());
-        assertEquals("rascunho", cancelamentos(id).get(0).getEstado());
+        assertEquals("RASCUNHO", cancelamentos(id).get(0).getEstado());
     }
 
     @Test
@@ -1917,7 +1917,7 @@ class NfseEmissaoTest extends BaseApiTest {
         String cid = rascunhoCancel(c, id);
         CancelamentoEntity antes = cancelamentos(id).get(0);
         chamar("GET", URL + "/" + id, c.adm(), null).then().statusCode(200);
-        atualizar(c, id).then().statusCode(200).body("cancelamento.estado", equalTo("rascunho"));
+        atualizar(c, id).then().statusCode(200).body("cancelamento.estado", equalTo("RASCUNHO"));
         assertEquals(antes.getDataAtualizacao(), cancelamentos(id).get(0).getDataAtualizacao());
         assertEquals(0, chamadasCancela());
         ExecutorService ex = Executors.newFixedThreadPool(2);

@@ -90,8 +90,8 @@ class WebhookIntegraNotasTest extends BaseApiTest {
         assertEquals("Autorizado o uso da NFS-e", e.getMensagem());
         assertEquals("abc-123", e.getIdentificacao());
         assertEquals("nao_verificada", e.getResultadoAssinatura());
-        assertEquals("ignorado", e.getEstadoProcessamento()); // sem nota correspondente: so gatilho
-        assertEquals("homologacao", e.getAmbiente());
+        assertEquals("IGNORADO", e.getEstadoProcessamento()); // sem nota correspondente: so gatilho
+        assertEquals("HOMOLOGACAO", e.getAmbiente());
         assertNotNull(e.getDataRecebimento());
         assertNull(e.getNota());
         // nada de xml/pdf/assinatura em nenhum campo de texto da linha
@@ -178,7 +178,7 @@ class WebhookIntegraNotasTest extends BaseApiTest {
     @Test
     void rotaFechadaParaOutrosMetodosECaminhos() {
         String emp = dados.empresaAtiva();
-        String adm = token(dados.usuarioComPapel(emp, "administrador").email());
+        String adm = token(dados.usuarioComPapel(emp, "ADMINISTRADOR").email());
         String caminho = url(emp);
         for (String m : new String[] {"GET", "PUT", "PATCH", "DELETE"}) {
             assertEquals(401, status(m, caminho, null, null), m + " anonimo");

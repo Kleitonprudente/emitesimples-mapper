@@ -56,20 +56,20 @@ class NfseUnidadeTest {
 
     @Test
     void autorizadaNaoRegrideEcanceladaSoVindaDe101() throws Exception {
-        NotaEntity n = nota("autorizada");
+        NotaEntity n = nota("AUTORIZADA");
         NfseRetorno.aplicarConsulta(n, ret("{\"codigo\":5028,\"sucesso\":false}"));
-        assertEquals("autorizada", n.getEstado());
+        assertEquals("AUTORIZADA", n.getEstado());
         NfseRetorno.aplicarConsulta(n, ret("{\"codigo\":5023,\"sucesso\":true}"));
-        assertEquals("autorizada", n.getEstado());
+        assertEquals("AUTORIZADA", n.getEstado());
         NfseRetorno.aplicarConsulta(n, ret("{\"codigo\":101,\"sucesso\":true}"));
-        assertEquals("cancelada", n.getEstado());
+        assertEquals("CANCELADA", n.getEstado());
         NfseRetorno.aplicarConsulta(n, ret("{\"codigo\":100,\"sucesso\":true}"));
-        assertEquals("cancelada", n.getEstado());
+        assertEquals("CANCELADA", n.getEstado());
     }
 
     @Test
     void rejeitadaFalhaEnvioERascunhoNaoSaoAlteradosPelaConsulta() throws Exception {
-        for (String e : new String[] {"rejeitada", "falha_envio", "rascunho", "descartada"}) {
+        for (String e : new String[] {"REJEITADA", "FALHA_ENVIO", "RASCUNHO", "DESCARTADA"}) {
             NotaEntity n = nota(e);
             NfseRetorno.aplicarConsulta(n, ret("{\"codigo\":100,\"sucesso\":true,\"mensagem\":\"ok\"}"));
             assertEquals(e, n.getEstado());
@@ -78,26 +78,26 @@ class NfseUnidadeTest {
 
     @Test
     void falhaDeInfraestruturaEIndisponivelVaoParaFalhaEnvioComOMesmoNumero() throws Exception {
-        NotaEntity n = nota("processando");
+        NotaEntity n = nota("PROCESSANDO");
         NfseRetorno.aplicarFalhaDeEnvio(n, "integranotas_indisponivel");
-        assertEquals("falha_envio", n.getEstado());
+        assertEquals("FALHA_ENVIO", n.getEstado());
         assertEquals("5", n.getNumero());
-        n = nota("processando");
+        n = nota("PROCESSANDO");
         NfseRetorno.aplicarFalhaDeEnvio(n, "integranotas_token_recusado");
-        assertEquals("falha_envio", n.getEstado());
+        assertEquals("FALHA_ENVIO", n.getEstado());
         assertEquals(NfseRetorno.MSG_TOKEN, n.getMensagemRetorno());
-        n = nota("processando");
+        n = nota("PROCESSANDO");
         assertEquals(NfseRetorno.Efeito.FALHA_ENVIO, NfseRetorno.aplicarEnvio(n, ret("{\"codigo\":0,\"sucesso\":false}")));
-        assertEquals("falha_envio", n.getEstado());
-        n = nota("processando");
+        assertEquals("FALHA_ENVIO", n.getEstado());
+        n = nota("PROCESSANDO");
         NfseRetorno.aplicarEnvio(n, ret("{\"codigo\":5023,\"sucesso\":true}")); // aceite sem chave
-        assertEquals("falha_envio", n.getEstado());
+        assertEquals("FALHA_ENVIO", n.getEstado());
     }
 
     @Test
     void payloadRecusaNotaSemNumeracao() {
         for (int i = 0; i < 3; i++) {
-            NotaEntity n = nota("processando");
+            NotaEntity n = nota("PROCESSANDO");
             if (i == 0) {
                 n.setNumero(null);
             } else if (i == 1) {
@@ -113,17 +113,17 @@ class NfseUnidadeTest {
 
     @Test
     void tabelaDeCodigosDaConsulta() throws Exception {
-        NotaEntity n = nota("processando");
+        NotaEntity n = nota("PROCESSANDO");
         NfseRetorno.aplicarConsulta(n, ret("{\"codigo\":5027,\"sucesso\":false}"));
-        assertEquals("em_conflito", n.getEstado());
+        assertEquals("EM_CONFLITO", n.getEstado());
         NfseRetorno.aplicarConsulta(n, ret("{\"codigo\":7001,\"sucesso\":false,\"mensagem\":\"falha\"}"));
-        assertEquals("em_conflito", n.getEstado());
-        n = nota("processando");
+        assertEquals("EM_CONFLITO", n.getEstado());
+        n = nota("PROCESSANDO");
         NfseRetorno.aplicarConsulta(n, ret("{\"codigo\":5024,\"sucesso\":false,\"mensagem\":\"negado\"}"));
-        assertEquals("rejeitada", n.getEstado());
-        n = nota("processando");
+        assertEquals("REJEITADA", n.getEstado());
+        n = nota("PROCESSANDO");
         NfseRetorno.aplicarConsulta(n, ret("{\"codigo\":8429,\"sucesso\":false,\"mensagem\":\"limite\"}"));
-        assertEquals("processando", n.getEstado());
+        assertEquals("PROCESSANDO", n.getEstado());
         assertEquals(8429, n.getCodigoRetorno());
     }
 
@@ -177,7 +177,7 @@ class NfseUnidadeTest {
 
     @Test
     void tributosNacionaisSoComCstDiferenteDeZeroOuValores() {
-        NotaEntity n = nota("processando");
+        NotaEntity n = nota("PROCESSANDO");
         n.setServico(new ServicoEntity());
         assertTrue(NfsePayloadMapper.montar(n, pessoa(), false).corpo().path("servico").path("tributos_nacionais").isMissingNode());
         n.setCstPisCofins("01");
@@ -190,7 +190,7 @@ class NfseUnidadeTest {
 
     @Test
     void tributosTotaisSoComAFlagLigadaEParaOptanteDoSimples() {
-        NotaEntity n = nota("processando");
+        NotaEntity n = nota("PROCESSANDO");
         ServicoEntity s = new ServicoEntity();
         s.setPercentualTributosSimples(new BigDecimal("6"));
         n.setServico(s);

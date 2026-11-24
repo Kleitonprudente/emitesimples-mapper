@@ -232,7 +232,7 @@ public class FaturaCrmMapper {
         }
 
         if (entity.getEstado() == null) {
-            entity.setEstado("aberta");
+            entity.setEstado("ABERTA");
         }
 
         return entity;
@@ -244,7 +244,7 @@ public class FaturaCrmMapper {
         }
 
         if (api.getEstado() == null) {
-            api.setEstado("aberta");
+            api.setEstado("ABERTA");
         }
 
         return api;

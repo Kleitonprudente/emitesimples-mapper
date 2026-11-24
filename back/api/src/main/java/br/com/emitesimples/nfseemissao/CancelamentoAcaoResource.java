@@ -25,14 +25,14 @@ public class CancelamentoAcaoResource {
 
     @POST
     @Path("/{id}/aprovar")
-    @RolesAllowed({"administrador", "operador", "plataforma_admin"})
+    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "PLATAFORMA_ADMIN"})
     public NotaDetalhe aprovar(@PathParam("id") String id) {
         return service.aprovarCancelamento(id);
     }
 
     @POST
     @Path("/{id}/descartar")
-    @RolesAllowed({"administrador", "operador", "plataforma_admin"})
+    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "PLATAFORMA_ADMIN"})
     public NotaDetalhe descartar(@PathParam("id") String id) {
         return service.descartarCancelamento(id);
     }

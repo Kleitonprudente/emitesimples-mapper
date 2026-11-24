@@ -29,7 +29,7 @@ class CookieRefreshTest extends BaseApiTest {
     private static final long SETE_DIAS = 7L * 24 * 3600;
 
     private Usr operador() {
-        return dados.usuarioComPapel(dados.empresaAtiva(), "operador");
+        return dados.usuarioComPapel(dados.empresaAtiva(), "OPERADOR");
     }
 
     /** O unico Set-Cookie da resposta (deve ser o refresh_token). */

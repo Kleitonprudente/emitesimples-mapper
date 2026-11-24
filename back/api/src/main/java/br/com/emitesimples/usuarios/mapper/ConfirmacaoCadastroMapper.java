@@ -207,7 +207,7 @@ public class ConfirmacaoCadastroMapper {
         }
 
         if (entity.getEstado() == null) {
-            entity.setEstado("pendente");
+            entity.setEstado("PENDENTE");
         }
 
         return entity;
@@ -219,7 +219,7 @@ public class ConfirmacaoCadastroMapper {
         }
 
         if (api.getEstado() == null) {
-            api.setEstado("pendente");
+            api.setEstado("PENDENTE");
         }
 
         return api;

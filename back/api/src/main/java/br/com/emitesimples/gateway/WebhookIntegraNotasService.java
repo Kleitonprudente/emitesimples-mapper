@@ -73,7 +73,7 @@ public class WebhookIntegraNotasService {
                     .withIdentificacao(texto(r, "identificacao", 40))
                     .withDataRecebimento(agora)
                     .withResultadoAssinatura("nao_verificada")
-                    .withEstadoProcessamento("ignorado")
+                    .withEstadoProcessamento("IGNORADO")
                     .withAmbiente(emp.getAmbiente())
                     .withDataCriacao(agora).withDataAtualizacao(agora)
                     .withEmpresa(emp)
@@ -95,7 +95,7 @@ public class WebhookIntegraNotasService {
             String notaId = notaDaEmpresa(empresaId, e.getChave(), e.getIdentificacao());
             if (notaId != null) {
                 e.setNota(em.getReference(NotaEntity.class, notaId));
-                e.setEstadoProcessamento("processado");
+                e.setEstadoProcessamento("PROCESSADO");
                 e.setDataProcessamento(agora);
                 notaCasada[0] = notaId;
             }

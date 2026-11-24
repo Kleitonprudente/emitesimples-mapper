@@ -253,10 +253,10 @@ public class EventoWebhookMapper {
         }
 
         if (entity.getEstadoProcessamento() == null) {
-            entity.setEstadoProcessamento("recebido");
+            entity.setEstadoProcessamento("RECEBIDO");
         }
         if (entity.getAmbiente() == null) {
-            entity.setAmbiente("homologacao");
+            entity.setAmbiente("HOMOLOGACAO");
         }
 
         return entity;
@@ -268,10 +268,10 @@ public class EventoWebhookMapper {
         }
 
         if (api.getEstadoProcessamento() == null) {
-            api.setEstadoProcessamento("recebido");
+            api.setEstadoProcessamento("RECEBIDO");
         }
         if (api.getAmbiente() == null) {
-            api.setAmbiente("homologacao");
+            api.setAmbiente("HOMOLOGACAO");
         }
 
         return api;

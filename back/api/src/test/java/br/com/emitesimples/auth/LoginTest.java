@@ -33,7 +33,7 @@ class LoginTest extends BaseApiTest {
     @Test
     void sucessoComClaimsCorretas() {
         String empresa = dados.empresaAtiva();
-        Usr u = dados.usuarioComPapel(empresa, "administrador");
+        Usr u = dados.usuarioComPapel(empresa, "ADMINISTRADOR");
 
         Response r = login(u.email(), SENHA);
         r.then().statusCode(200)
@@ -41,7 +41,7 @@ class LoginTest extends BaseApiTest {
                 .body("usuario.id", equalTo(u.id()))
                 .body("usuario.email", equalTo(u.email()))
                 .body("empresa.id", equalTo(empresa))
-                .body("papel", equalTo("administrador"))
+                .body("papel", equalTo("ADMINISTRADOR"))
                 .body("plataformaAdmin", equalTo(false))
                 .body("accessToken", notNullValue())
                 .body("refreshToken", nullValue());
@@ -52,7 +52,7 @@ class LoginTest extends BaseApiTest {
         assertEquals("emitesimples", c.get("iss"));
         assertEquals(u.id(), c.get("sub"));
         assertEquals(u.email(), c.get("upn"));
-        assertEquals(List.of("administrador"), c.get("groups"));
+        assertEquals(List.of("ADMINISTRADOR"), c.get("groups"));
         assertEquals(empresa, c.get("empresa_id"));
         assertFalse(c.containsKey("plataforma_admin"), "usuário comum não pode ter a claim plataforma_admin");
         assertEquals(900, ((Number) c.get("exp")).longValue() - ((Number) c.get("iat")).longValue());
@@ -77,20 +77,20 @@ class LoginTest extends BaseApiTest {
 
     @Test
     void tokenEmitidoEAceitoPeloServidor() {
-        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "operador");
+        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "OPERADOR");
         comToken(token(u.email())).get("/api/auth/me").then().statusCode(200)
-                .body("usuario.email", equalTo(u.email())).body("papel", equalTo("operador"));
+                .body("usuario.email", equalTo(u.email())).body("papel", equalTo("OPERADOR"));
     }
 
     @Test
     void emailNaoDiferenciaMaiusculas() {
-        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "consulta");
+        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "CONSULTA");
         login(u.email().toUpperCase(), SENHA).then().statusCode(200);
     }
 
     @Test
     void senhaErradaEEmailInexistenteDaoO401GenericoIdentico() {
-        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "operador");
+        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "OPERADOR");
         Response errada = login(u.email(), "senha-errada-1");
         Response inexistente = login("nao-existe-" + System.nanoTime() + "@teste.local", "senha-errada-1");
         errada.then().statusCode(401);
@@ -103,7 +103,7 @@ class LoginTest extends BaseApiTest {
     @Test
     void usuarioInativoNaoLoga() {
         Usr u = dados.usuario(false, false);
-        dados.vincular(u.id(), dados.empresaAtiva(), "operador", true);
+        dados.vincular(u.id(), dados.empresaAtiva(), "OPERADOR", true);
         Response r = login(u.email(), SENHA);
         r.then().statusCode(401).body("codigo", equalTo("credenciais_invalidas"));
         assertEquals(login("nao-existe-" + System.nanoTime() + "@teste.local", SENHA).getBody().asString(), r.getBody().asString());
@@ -111,33 +111,33 @@ class LoginTest extends BaseApiTest {
 
     @Test
     void empresaPendenteDeConfirmacaoNaoLoga() {
-        Usr u = dados.usuarioComPapel(dados.empresa("pendente_confirmacao"), "administrador");
+        Usr u = dados.usuarioComPapel(dados.empresa("PENDENTE_CONFIRMACAO"), "ADMINISTRADOR");
         login(u.email(), SENHA).then().statusCode(401).body("codigo", equalTo("credenciais_invalidas"));
     }
 
     @Test
     void empresaDesativadaNaoLoga() {
-        Usr u = dados.usuarioComPapel(dados.empresa("desativada"), "administrador");
+        Usr u = dados.usuarioComPapel(dados.empresa("DESATIVADA"), "ADMINISTRADOR");
         login(u.email(), SENHA).then().statusCode(401).body("codigo", equalTo("credenciais_invalidas"));
     }
 
     @Test
     void vinculoInativoNaoLoga() {
         Usr u = dados.usuario(true, false);
-        dados.vincular(u.id(), dados.empresaAtiva(), "operador", false);
+        dados.vincular(u.id(), dados.empresaAtiva(), "OPERADOR", false);
         login(u.email(), SENHA).then().statusCode(401).body("codigo", equalTo("credenciais_invalidas"));
     }
 
     @Test
     void usuarioSemSenhaDefinidaNaoLoga() {
         Usr u = dados.usuario(true, false, null);
-        dados.vincular(u.id(), dados.empresaAtiva(), "operador", true);
+        dados.vincular(u.id(), dados.empresaAtiva(), "OPERADOR", true);
         login(u.email(), SENHA).then().statusCode(401).body("codigo", equalTo("credenciais_invalidas"));
     }
 
     @Test
     void senhaComMaisDe72BytesNaoLoga() {
-        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "operador");
+        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "OPERADOR");
         login(u.email(), SENHA + "x".repeat(80)).then().statusCode(401);
     }
 
@@ -145,24 +145,24 @@ class LoginTest extends BaseApiTest {
     void variosVinculosExigemEmpresaId() {
         String a = dados.empresaAtiva();
         String b = dados.empresaAtiva();
-        String inativa = dados.empresa("desativada");
+        String inativa = dados.empresa("DESATIVADA");
         Usr u = dados.usuario(true, false);
-        dados.vincular(u.id(), a, "administrador", true);
-        dados.vincular(u.id(), b, "consulta", true);
-        dados.vincular(u.id(), inativa, "operador", true); // não pode aparecer na lista
+        dados.vincular(u.id(), a, "ADMINISTRADOR", true);
+        dados.vincular(u.id(), b, "CONSULTA", true);
+        dados.vincular(u.id(), inativa, "OPERADOR", true); // não pode aparecer na lista
 
         login(u.email(), SENHA).then().statusCode(409)
                 .body("codigo", equalTo("empresa_obrigatoria"))
                 .body("detalhes.empresas", hasSize(2))
                 .body("detalhes.empresas.id", containsInAnyOrder(a, b))
-                .body("detalhes.empresas.papel", containsInAnyOrder("administrador", "consulta"))
+                .body("detalhes.empresas.papel", containsInAnyOrder("ADMINISTRADOR", "CONSULTA"))
                 .body("detalhes.empresas[0]", hasKey("razaoSocial"));
 
         login(u.email(), SENHA, b).then().statusCode(200)
-                .body("empresa.id", equalTo(b)).body("papel", equalTo("consulta"));
+                .body("empresa.id", equalTo(b)).body("papel", equalTo("CONSULTA"));
         Map<String, Object> c = claims(login(u.email(), SENHA, a).jsonPath().getString("accessToken"));
         assertEquals(a, c.get("empresa_id"));
-        assertEquals(List.of("administrador"), c.get("groups"));
+        assertEquals(List.of("ADMINISTRADOR"), c.get("groups"));
 
         // empresa em que NÃO tem vínculo ativo: 401 genérico (não revela nada)
         login(u.email(), SENHA, inativa).then().statusCode(401).body("codigo", equalTo("credenciais_invalidas"));
@@ -182,7 +182,7 @@ class LoginTest extends BaseApiTest {
         assertNull(r.getCookie("refresh_token"), "admin sem empresa nao recebe cookie de refresh");
         assertNull(r.getHeader("Set-Cookie"));
         Map<String, Object> c = claims(r.jsonPath().getString("accessToken"));
-        assertEquals(List.of("plataforma_admin"), c.get("groups"));
+        assertEquals(List.of("PLATAFORMA_ADMIN"), c.get("groups"));
         assertEquals(true, c.get("plataforma_admin"));
         assertFalse(c.containsKey("empresa_id"), "sem empresa na sessão não há claim empresa_id");
 
@@ -194,12 +194,12 @@ class LoginTest extends BaseApiTest {
     void administradorDaPlataformaComVinculoUnicoEntraNaEmpresa() {
         String e = dados.empresaAtiva();
         Usr u = dados.usuario(true, true);
-        dados.vincular(u.id(), e, "operador", true);
+        dados.vincular(u.id(), e, "OPERADOR", true);
         Response r = login(u.email(), SENHA);
         r.then().statusCode(200).body("empresa.id", equalTo(e)).body("refreshToken", nullValue());
         assertNotNull(r.getCookie("refresh_token"));
         Map<String, Object> c = claims(r.jsonPath().getString("accessToken"));
-        assertEquals(List.of("operador", "plataforma_admin"), c.get("groups"));
+        assertEquals(List.of("OPERADOR", "PLATAFORMA_ADMIN"), c.get("groups"));
         assertEquals(true, c.get("plataforma_admin"));
     }
 
@@ -216,7 +216,7 @@ class LoginTest extends BaseApiTest {
 
     @Test
     void bloqueioPorForcaBrutaAposCincoFalhas() {
-        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "operador");
+        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "OPERADOR");
         for (int i = 0; i < 5; i++) {
             login(u.email(), "errada-" + i + "-xx").then().statusCode(401);
         }
@@ -226,7 +226,7 @@ class LoginTest extends BaseApiTest {
         long retry = Long.parseLong(r.getHeader("Retry-After"));
         assertTrue(retry > 0 && retry <= 900, "Retry-After=" + retry);
         // outro e-mail não é afetado
-        Usr outro = dados.usuarioComPapel(dados.empresaAtiva(), "operador");
+        Usr outro = dados.usuarioComPapel(dados.empresaAtiva(), "OPERADOR");
         login(outro.email(), SENHA).then().statusCode(200);
         // e-mail inexistente também é contado (não revela existência): 5 falhas -> 429
         String fantasma = "fantasma-" + System.nanoTime() + "@teste.local";
@@ -238,7 +238,7 @@ class LoginTest extends BaseApiTest {
 
     @Test
     void quatroFalhasNaoBloqueiamESucessoZeraContador() {
-        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "operador");
+        Usr u = dados.usuarioComPapel(dados.empresaAtiva(), "OPERADOR");
         for (int i = 0; i < 4; i++) {
             login(u.email(), "errada-" + i + "-xx").then().statusCode(401);
         }

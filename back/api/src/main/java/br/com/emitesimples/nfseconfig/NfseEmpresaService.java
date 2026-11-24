@@ -248,7 +248,7 @@ public class NfseEmpresaService {
 
     private static void aplicarToken(EmpresaEntity e, String novoSegredo, String ambiente, LocalDateTime agora) {
         e.setReferenciaTokenEmpresa(novoSegredo);
-        e.setStatusCadastro("cadastrado");
+        e.setStatusCadastro(StatusCadastro.CADASTRADO);
         e.setDataCadastroGateway(agora);
         e.setAmbiente(ambiente);
         e.setDataAtualizacao(agora);
@@ -304,7 +304,7 @@ public class NfseEmpresaService {
         try {
             QuarkusTransaction.requiringNew().run(() -> {
                 EmpresaEntity e = carregar(empresaId, true);
-                e.setStatusCadastro("erro");
+                e.setStatusCadastro(StatusCadastro.ERRO);
                 e.setDataAtualizacao(AuthService.agora());
             });
         } catch (RuntimeException ex) {
@@ -341,7 +341,7 @@ public class NfseEmpresaService {
     // ------------------------------------------------------------------------------------------- regras
 
     private static boolean jaCadastrado(EmpresaEntity e, String ambienteAtivo) {
-        return "cadastrado".equals(e.getStatusCadastro()) && e.getReferenciaTokenEmpresa() != null
+        return StatusCadastro.CADASTRADO.equals(e.getStatusCadastro()) && e.getReferenciaTokenEmpresa() != null
                 && ambienteAtivo.equals(e.getAmbiente());
     }
 

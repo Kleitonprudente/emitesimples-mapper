@@ -80,7 +80,7 @@ class ConfiguracaoConsultaCnpjTest extends BaseApiTest {
         String empresa = dados.empresaAtiva();
         assertEquals(401, status("GET", URL, null, null));
         assertEquals(401, status("PUT", URL, null, Map.of("urlBase", BASE)));
-        for (String papel : new String[] {"consulta", "operador", "administrador"}) {
+        for (String papel : new String[] {"CONSULTA", "OPERADOR", "ADMINISTRADOR"}) {
             String t = token(dados.usuarioComPapel(empresa, papel).email());
             assertEquals(403, status("GET", URL, t, null), papel);
             assertEquals(403, status("PUT", URL, t, Map.of("urlBase", BASE, "token", "abc")), papel);

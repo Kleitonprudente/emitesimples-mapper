@@ -80,7 +80,7 @@ class NfseEmpresaTest extends BaseApiTest {
 
     private void configurar(String urlPublica, String tokenSofthouse) {
         Map<String, Object> c = new HashMap<>();
-        c.put("ambienteAtivo", "homologacao");
+        c.put("ambienteAtivo", "HOMOLOGACAO");
         c.put("urlHomologacao", urlStub);
         c.put("urlProducao", PROD);
         c.put("urlPublicaWebhook", urlPublica == null ? "" : urlPublica);
@@ -134,7 +134,7 @@ class NfseEmpresaTest extends BaseApiTest {
     }
 
     private String admin(String empresaId) {
-        return token(dados.usuarioComPapel(empresaId, "administrador").email());
+        return token(dados.usuarioComPapel(empresaId, "ADMINISTRADOR").email());
     }
 
     private static Map<String, Object> habilitar(String serie, long ultimo) {
@@ -177,7 +177,7 @@ class NfseEmpresaTest extends BaseApiTest {
         String pessoa = dados.pessoa(empresaId, "Tomador " + System.nanoTime());
         String servico = dados.servico(empresaId, "Servico " + System.nanoTime());
         QuarkusTransaction.requiringNew().run(() -> em.persist(NotaEntity.builderOf()
-                .withNumero(numero).withSerie(serie).withAmbiente("homologacao").withEstado("autorizada")
+                .withNumero(numero).withSerie(serie).withAmbiente("HOMOLOGACAO").withEstado("AUTORIZADA")
                 .withDataEmissao(java.time.LocalDateTime.now())
                 .withDescricao("Nota")
                 .withEmpresa(em.getReference(EmpresaEntity.class, empresaId))
@@ -217,8 +217,8 @@ class NfseEmpresaTest extends BaseApiTest {
         }
         r.then().statusCode(200)
                 .body("habilitada", equalTo(true)).body("serie", equalTo("12")).body("ultimoNumero", equalTo(99))
-                .body("proximoNumero", equalTo(100)).body("ambiente", equalTo("homologacao"))
-                .body("statusCadastro", equalTo("cadastrado")).body("dataCadastroGateway", notNullValue())
+                .body("proximoNumero", equalTo(100)).body("ambiente", equalTo("HOMOLOGACAO"))
+                .body("statusCadastro", equalTo("CADASTRADO")).body("dataCadastroGateway", notNullValue())
                 .body("emitenteTokenConfigurado", equalTo(true)).body("integracaoDisponivel", equalTo(true))
                 .body("validadeCertificado", nullValue());
 
@@ -251,12 +251,12 @@ class NfseEmpresaTest extends BaseApiTest {
         assertFalse(c.has("regime_cibs"), "regime IBS/CBS ausente na empresa: nao enviado");
 
         // empresa gravada
-        assertEquals("cadastrado", e.getStatusCadastro());
+        assertEquals("CADASTRADO", e.getStatusCadastro());
         assertTrue(e.getNfseHabilitada());
         assertEquals("12", e.getSerieNfse());
         assertEquals(99, e.getUltimoNumeroNfse());
         assertNotNull(e.getDataCadastroGateway());
-        assertEquals("homologacao", e.getAmbiente());
+        assertEquals("HOMOLOGACAO", e.getAmbiente());
 
         // token: no cofre (cifrado), nunca em claro, nunca na resposta nem em log
         String ref = e.getReferenciaTokenEmpresa();
@@ -305,7 +305,7 @@ class NfseEmpresaTest extends BaseApiTest {
         int antes = chamadasAoStub();
         String ref = ler(emp).getReferenciaTokenEmpresa();
         put(tk, habilitar("1", 8)).then().statusCode(200).body("ultimoNumero", equalTo(8))
-                .body("statusCadastro", equalTo("cadastrado"));
+                .body("statusCadastro", equalTo("CADASTRADO"));
         put(tk, habilitar("1", 8)).then().statusCode(200);
         assertEquals(antes, chamadasAoStub(), "idempotente: o gateway nao e chamado de novo");
         assertEquals(ref, ler(emp).getReferenciaTokenEmpresa());
@@ -320,7 +320,7 @@ class NfseEmpresaTest extends BaseApiTest {
         String ref = ler(emp).getReferenciaTokenEmpresa();
 
         put(tk, desabilitar()).then().statusCode(200).body("habilitada", equalTo(false)).body("serie", equalTo("3"))
-                .body("ultimoNumero", equalTo(20)).body("statusCadastro", equalTo("cadastrado"))
+                .body("ultimoNumero", equalTo(20)).body("statusCadastro", equalTo("CADASTRADO"))
                 .body("emitenteTokenConfigurado", equalTo(true));
         assertEquals(ref, ler(emp).getReferenciaTokenEmpresa());
 
@@ -439,15 +439,15 @@ class NfseEmpresaTest extends BaseApiTest {
         assertFalse(r.asString().contains(TOKEN_SOFTHOUSE));
         assertFalse(String.join("\n", logs).contains(TOKEN_SOFTHOUSE));
         EmpresaEntity e = ler(emp);
-        assertEquals("erro", e.getStatusCadastro());
+        assertEquals("ERRO", e.getStatusCadastro());
         assertFalse(e.getNfseHabilitada());
         assertEquals(null, e.getReferenciaTokenEmpresa());
-        get(tk).then().statusCode(200).body("statusCadastro", equalTo("erro")).body("habilitada", equalTo(false))
+        get(tk).then().statusCode(200).body("statusCadastro", equalTo("ERRO")).body("habilitada", equalTo(false))
                 .body("emitenteTokenConfigurado", equalTo(false));
 
         // corrigido o problema, o mesmo PUT recupera
         renomear(emp, "Fantasia Corrigida");
-        put(tk, habilitar("1", 0)).then().statusCode(200).body("statusCadastro", equalTo("cadastrado"))
+        put(tk, habilitar("1", 0)).then().statusCode(200).body("statusCadastro", equalTo("CADASTRADO"))
                 .body("habilitada", equalTo(true));
         assertNotNull(ler(emp).getReferenciaTokenEmpresa());
     }
@@ -460,7 +460,7 @@ class NfseEmpresaTest extends BaseApiTest {
                 .body("mensagem", containsString("Dados recusados."))
                 .body("detalhes.erros", hasItem("cmun: Município inválido"))
                 .body("detalhes.erros", hasItem("cep: CEP inválido")).body("detalhes.codigoGateway", equalTo(4002));
-        assertEquals("erro", ler(emp).getStatusCadastro());
+        assertEquals("ERRO", ler(emp).getStatusCadastro());
     }
 
     @Test
@@ -478,7 +478,7 @@ class NfseEmpresaTest extends BaseApiTest {
         configurar(null, IntegraNotasStubResource.TOKEN_RECUSADO);
         String emp = empresa();
         put(admin(emp), habilitar("1", 0)).then().statusCode(502).body("codigo", equalTo("integranotas_token_recusado"));
-        assertEquals("erro", ler(emp).getStatusCadastro());
+        assertEquals("ERRO", ler(emp).getStatusCadastro());
     }
 
     @Test
@@ -519,7 +519,7 @@ class NfseEmpresaTest extends BaseApiTest {
         chamar("PUT", CFG, plataforma(), c).then().statusCode(204);
         String emp = empresa();
         put(admin(emp), habilitar("1", 0)).then().statusCode(504).body("codigo", equalTo("integranotas_indisponivel"));
-        assertEquals("erro", ler(emp).getStatusCadastro());
+        assertEquals("ERRO", ler(emp).getStatusCadastro());
     }
 
     // ------------------------------------------------------------------------------------------ papeis e isolamento
@@ -528,8 +528,8 @@ class NfseEmpresaTest extends BaseApiTest {
     void papeis() {
         String emp = empresa();
         String adm = admin(emp);
-        String op = token(dados.usuarioComPapel(emp, "operador").email());
-        String con = token(dados.usuarioComPapel(emp, "consulta").email());
+        String op = token(dados.usuarioComPapel(emp, "OPERADOR").email());
+        String con = token(dados.usuarioComPapel(emp, "CONSULTA").email());
         for (String tk : new String[] {adm, op, con}) {
             get(tk).then().statusCode(200).body("habilitada", equalTo(false)).body("serie", nullValue())
                     .body("ultimoNumero", equalTo(0)).body("proximoNumero", equalTo(1))
@@ -599,7 +599,7 @@ class NfseEmpresaTest extends BaseApiTest {
         }
         assertEquals(antes + 1, chamadasAoStub(), "um unico emitente criado");
         EmpresaEntity e = ler(emp);
-        assertEquals("cadastrado", e.getStatusCadastro());
+        assertEquals("CADASTRADO", e.getStatusCadastro());
         assertTrue(e.getNfseHabilitada());
     }
 

@@ -22,13 +22,13 @@ public class EmpresaDadosResource {
     EmpresaDadosService service;
 
     @GET
-    @RolesAllowed({"administrador", "operador", "consulta", "plataforma_admin"})
+    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "CONSULTA", "PLATAFORMA_ADMIN"})
     public EmpresaDadosService.EmpresaDto obter() {
         return service.obter();
     }
 
     @PUT
-    @RolesAllowed("administrador")
+    @RolesAllowed("ADMINISTRADOR")
     public EmpresaDadosService.EmpresaDto atualizar(EmpresaDadosService.EmpresaEntrada corpo) {
         return service.atualizar(corpo);
     }

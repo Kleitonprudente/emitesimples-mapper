@@ -202,7 +202,7 @@ public class VinculoUsuarioMapper {
         }
 
         if (entity.getPapel() == null) {
-            entity.setPapel("consulta");
+            entity.setPapel("CONSULTA");
         }
         if (entity.getPodeCancelarNfse() == null) {
             entity.setPodeCancelarNfse(false);
@@ -220,7 +220,7 @@ public class VinculoUsuarioMapper {
         }
 
         if (api.getPapel() == null) {
-            api.setPapel("consulta");
+            api.setPapel("CONSULTA");
         }
         if (api.getPodeCancelarNfse() == null) {
             api.setPodeCancelarNfse(false);

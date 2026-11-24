@@ -253,7 +253,7 @@ public class ChamadaGatewayMapper {
         }
 
         if (entity.getAmbiente() == null) {
-            entity.setAmbiente("homologacao");
+            entity.setAmbiente("HOMOLOGACAO");
         }
 
         return entity;
@@ -265,7 +265,7 @@ public class ChamadaGatewayMapper {
         }
 
         if (api.getAmbiente() == null) {
-            api.setAmbiente("homologacao");
+            api.setAmbiente("HOMOLOGACAO");
         }
 
         return api;

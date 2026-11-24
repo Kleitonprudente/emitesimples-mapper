@@ -12,9 +12,9 @@ import br.com.emitesimples.cadastros.domain.Municipio;
 /*
 * Empresa usuária do sistema e tenant do modelo. Cada empresa só emite e só 
 * enxerga as próprias notas.
- * NUNCA é apagada, só DESATIVADA (situacao = desativada): a aplicação não deve 
+ * NUNCA é apagada, só DESATIVADA (situacao = DESATIVADA): a aplicação não deve 
 * expor a remoção. Nasce no signup com o documento, o e-mail e o WhatsApp 
-* informados, em situacao pendente_confirmacao, e fica ativa quando o usuário 
+* informados, em situacao PENDENTE_CONFIRMACAO, e fica ATIVA quando o usuário 
 * clica no link do e-mail (ConfirmacaoCadastro).
  * É identificada por um documento único (CNPJ ou CPF). Tem atividades 
 * (AtividadeEmpresa) e quadro de sócios (QsaEmpresa) como detalhes ([m]/[o]).

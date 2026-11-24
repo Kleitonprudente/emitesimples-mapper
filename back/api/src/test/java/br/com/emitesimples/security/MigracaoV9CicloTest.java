@@ -57,7 +57,7 @@ class MigracaoV9CicloTest extends BaseApiTest {
         String id = UUID.randomUUID().toString();
         executar("insert into nota (id, estado, numero, serie, ambiente, descricao, empresa_id, pessoa_id, servico_id, "
                 + "data_emissao) values ('" + id + "', " + lit(estado) + ", " + lit(numero) + ", " + lit(serie)
-                + ", 'homologacao', 'n', '" + emp + "', '" + pessoa + "', '" + servico + "', "
+                + ", 'HOMOLOGACAO', 'n', '" + emp + "', '" + pessoa + "', '" + servico + "', "
                 + (comData ? "now()" : "null") + ")");
         return id;
     }
@@ -65,11 +65,11 @@ class MigracaoV9CicloTest extends BaseApiTest {
     @Test
     void checkDeNumeracaoSoIsentaORascunhoEADescartada() throws SQLException {
         assertTrue(escalar("select pg_get_constraintdef(oid) from pg_constraint where conname = 'ck_nota_numeracao'")
-                .contains("rascunho"));
-        notaComEstado("rascunho", null, null, false); // o rascunho do assistente nao tem numeracao
-        notaComEstado("descartada", null, null, false); // nem a nota descartada (nunca foi enviada)
-        notaComEstado("processando", "10", "1", true);
-        for (String estado : new String[] {"processando", "falha_envio", "rejeitada", "autorizada"}) {
+                .contains("RASCUNHO"));
+        notaComEstado("RASCUNHO", null, null, false); // o rascunho do assistente nao tem numeracao
+        notaComEstado("DESCARTADA", null, null, false); // nem a nota descartada (nunca foi enviada)
+        notaComEstado("PROCESSANDO", "10", "1", true);
+        for (String estado : new String[] {"PROCESSANDO", "FALHA_ENVIO", "REJEITADA", "AUTORIZADA"}) {
             assertThrows(SQLException.class, () -> notaComEstado(estado, null, "1", true), estado + " sem numero");
             assertThrows(SQLException.class, () -> notaComEstado(estado, "11", null, true), estado + " sem serie");
             assertThrows(SQLException.class, () -> notaComEstado(estado, "12", "1", false), estado + " sem data de emissao");
@@ -99,7 +99,7 @@ class MigracaoV9CicloTest extends BaseApiTest {
         var u = dados.usuario(true, false);
         String vid = UUID.randomUUID().toString();
         executar("insert into vinculousuario (id, papel, ativo, usuario_id, empresa_id) values ('" + vid
-                + "', 'operador', true, '" + u.id() + "', '" + emp + "')");
+                + "', 'OPERADOR', true, '" + u.id() + "', '" + emp + "')");
         assertEquals("f", escalar("select pode_cancelar_nfse from vinculousuario where id = '" + vid + "'").substring(0, 1));
         assertThrows(SQLException.class, () -> executar("update vinculousuario set pode_cancelar_nfse = null where id = '" + vid + "'"));
     }
@@ -121,9 +121,12 @@ class MigracaoV9CicloTest extends BaseApiTest {
         }
         assertEquals(6, updates.size()); // 1 de NOTA + 5 de CANCELAMENTO
         String emp = dados.empresaAtiva();
-        // numero ja alocado em 'rascunho' (comportamento antigo) vira falha_envio; rascunho sem numero (assistente) fica
+        // Executa os UPDATEs da V9 (que operam com os valores de ANTES da V10, em minusculas) sobre linhas com esses valores antigos;
+        // a V10 depois os converte para maiusculas (provado em MigracaoV10EnumsTest). Numero ja alocado em 'rascunho' (comportamento
+        // antigo) vira falha_envio; o rascunho sem numero do assistente (hoje 'RASCUNHO', o unico que o CHECK pos-V10 aceita sem
+        // numeracao) nao casa com o filtro da V9 e fica como esta. As linhas "antigas" em minusculas tem numeracao: passam no CHECK.
         String nota = notaComEstado("rascunho", "77", "1", true);
-        String notaSemNumero = notaComEstado("rascunho", null, null, false);
+        String notaSemNumero = notaComEstado("RASCUNHO", null, null, false);
         String msgExpirado = "O IntegraNotas não confirmou o cancelamento. Verifique a nota e solicite o cancelamento novamente.";
         String[][] casos = {{"aguardando_aprovacao", null, "rascunho"}, {"solicitado", null, "processando"},
                 {"cancelado", null, "concluido"}, {"rejeitado", null, "recusado"}, {"recusado", msgExpirado, "expirado"},
@@ -133,7 +136,7 @@ class MigracaoV9CicloTest extends BaseApiTest {
             String id = UUID.randomUUID().toString();
             ids.add(id);
             executar("insert into cancelamento (id, estado, codigo_motivo, motivo, ambiente, empresa_id, nota_id, mensagem_retorno) "
-                    + "values ('" + id + "', " + lit(c[0]) + ", 1, 'motivo de teste qualquer', 'homologacao', '" + emp + "', '"
+                    + "values ('" + id + "', " + lit(c[0]) + ", 1, 'motivo de teste qualquer', 'HOMOLOGACAO', '" + emp + "', '"
                     + nota + "', " + lit(c[1]) + ")");
         }
         for (String u : updates) {
@@ -143,6 +146,6 @@ class MigracaoV9CicloTest extends BaseApiTest {
             assertEquals(casos[i][2], escalar("select estado from cancelamento where id = '" + ids.get(i) + "'"), casos[i][0]);
         }
         assertEquals("falha_envio", escalar("select estado from nota where id = '" + nota + "'"));
-        assertEquals("rascunho", escalar("select estado from nota where id = '" + notaSemNumero + "'"));
+        assertEquals("RASCUNHO", escalar("select estado from nota where id = '" + notaSemNumero + "'"));
     }
 }

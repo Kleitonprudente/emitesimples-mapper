@@ -20,7 +20,7 @@ class PessoaPapelTest extends BaseApiTest {
 
     private static Map<String, Object> corpo(String doc, boolean cliente, boolean fornecedor) {
         Map<String, Object> m = new HashMap<>();
-        m.put("tipoPessoa", "fisica");
+        m.put("tipoPessoa", "FISICA");
         m.put("documento", doc);
         m.put("nome", "Pessoa " + doc);
         m.put("consumidorFinal", true);
@@ -32,7 +32,7 @@ class PessoaPapelTest extends BaseApiTest {
     @Test
     void pessoaSemPapelEhRecusadaComMensagemLegivel() {
         String emp = dados.empresaAtiva();
-        String tk = token(dados.usuarioComPapel(emp, "operador").email());
+        String tk = token(dados.usuarioComPapel(emp, "OPERADOR").email());
         comToken(tk).body(corpo("39053344705", false, false)).post("/api/Pessoa").then().statusCode(400)
                 .body("codigo", equalTo("pessoa_sem_papel"))
                 .body("mensagem", equalTo("A pessoa precisa ser cliente, fornecedor ou as duas coisas."));
@@ -41,7 +41,7 @@ class PessoaPapelTest extends BaseApiTest {
     @Test
     void umPapelOuAmbosSaoAceitos() throws SQLException {
         String emp = dados.empresaAtiva();
-        String tk = token(dados.usuarioComPapel(emp, "operador").email());
+        String tk = token(dados.usuarioComPapel(emp, "OPERADOR").email());
         for (Object[] c : new Object[][] {{"52998224725", true, false}, {"11144477735", false, true}, {"45317828791", true, true}}) {
             var r = chamar("POST", "/api/Pessoa", tk, corpo((String) c[0], (boolean) c[1], (boolean) c[2]));
             assertEquals(200, r.statusCode(), (String) c[0]);

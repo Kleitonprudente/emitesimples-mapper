@@ -26,8 +26,8 @@ class ContatoPorPessoaTest extends BaseApiTest {
         String emp = dados.empresaAtiva();
         String p = dados.pessoa(emp, "Dona");
         String c = dados.contato(emp, p, "Existente");
-        Map<String, Object> corpo = Map.of("tipoContato", "socio", "nome", "X", "pessoa", Map.of("id", p));
-        for (String papel : List.of("administrador", "operador", "consulta")) {
+        Map<String, Object> corpo = Map.of("tipoContato", "SOCIO", "nome", "X", "pessoa", Map.of("id", p));
+        for (String papel : List.of("ADMINISTRADOR", "OPERADOR", "CONSULTA")) {
             String tk = token(dados.usuarioComPapel(emp, papel).email());
             assertEquals(403, status("POST", "/api/Contato", tk, corpo), papel);
             assertEquals(403, status("PUT", "/api/Contato/id/" + c, tk, corpo), papel);
@@ -39,7 +39,7 @@ class ContatoPorPessoaTest extends BaseApiTest {
         assertEquals(403, status("DELETE", "/api/Contato/id/" + c, plat, null));
         assertEquals(401, status("POST", "/api/Contato", null, corpo));
         assertEquals(401, status("DELETE", "/api/Contato/id/" + c, null, null));
-        String tk = token(dados.usuarioComPapel(emp, "administrador").email());
+        String tk = token(dados.usuarioComPapel(emp, "ADMINISTRADOR").email());
         comToken(tk).get("/api/Contato/id/" + c).then().statusCode(200).body("nome", equalTo("Existente"));
     }
 
@@ -49,7 +49,7 @@ class ContatoPorPessoaTest extends BaseApiTest {
         String outra = dados.empresaAtiva();
         String p = dados.pessoa(empresa, "Ordem");
         String po = dados.pessoa(outra, "Outra");
-        String tk = token(dados.usuarioComPapel(empresa, "consulta").email());
+        String tk = token(dados.usuarioComPapel(empresa, "CONSULTA").email());
         for (String n : List.of("Carla", "Ana", "Bruno")) {
             dados.contato(empresa, p, n);
         }
@@ -72,7 +72,7 @@ class ContatoPorPessoaTest extends BaseApiTest {
         String empresa = dados.empresaAtiva();
         String p1 = dados.pessoa(empresa, "P1");
         String p2 = dados.pessoa(empresa, "P2");
-        String tk = token(dados.usuarioComPapel(empresa, "administrador").email());
+        String tk = token(dados.usuarioComPapel(empresa, "ADMINISTRADOR").email());
         String c1 = dados.contato(empresa, p1, "Do P1");
         String c2 = dados.contato(empresa, p2, "Do P2");
         comToken(tk).get("/api/Contato/0/99?pessoa.id=" + p1).then().statusCode(200)

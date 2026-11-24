@@ -37,9 +37,9 @@ tags:
             vem daqui.
              Unicidade: um usuário tem no máximo um vínculo por empresa (par usuario, empresa 
             único).
-             Papel para scopes: administrador = consultar, preparar, emitir, cancelar; 
-            operador = consultar, preparar, emitir e, SÓ se o administrador delegar 
-            (podeCancelarNfse), cancelar; consulta = consultar. Emitir e cancelar exigem 
+             Papel para scopes: ADMINISTRADOR = consultar, preparar, emitir, cancelar; 
+            OPERADOR = consultar, preparar, emitir e, SÓ se o administrador delegar 
+            (podeCancelarNfse), cancelar; CONSULTA = consultar. Emitir e cancelar exigem 
             confirmação humana, regra de fluxo fora deste mapa.
 
 - name: ClienteAcesso
@@ -65,7 +65,7 @@ tags:
   description: |
             Confirmação do signup por link de e-mail. O link enviado ao usuário leva o 
             token; o sistema guarda SÓ o hash do token, nunca o token. Ao confirmar, a 
-            empresa passa de pendente_confirmacao para ativa e a dataConfirmacao dela é 
+            empresa passa de PENDENTE_CONFIRMACAO para ATIVA e a dataConfirmacao dela é 
             preenchida.
              O endpoint de confirmação é PÚBLICO (o usuário ainda não tem sessão): esta 
             entidade NÃO deve ter recurso REST exposto, é regra da aplicação escrita à mão.
@@ -4051,9 +4051,9 @@ definitions:
             vem daqui.
              Unicidade: um usuário tem no máximo um vínculo por empresa (par usuario, empresa 
             único).
-             Papel para scopes: administrador = consultar, preparar, emitir, cancelar; 
-            operador = consultar, preparar, emitir e, SÓ se o administrador delegar 
-            (podeCancelarNfse), cancelar; consulta = consultar. Emitir e cancelar exigem 
+             Papel para scopes: ADMINISTRADOR = consultar, preparar, emitir, cancelar; 
+            OPERADOR = consultar, preparar, emitir e, SÓ se o administrador delegar 
+            (podeCancelarNfse), cancelar; CONSULTA = consultar. Emitir e cancelar exigem 
             confirmação humana, regra de fluxo fora deste mapa.
 
     type: object
@@ -4088,16 +4088,30 @@ definitions:
         maxLength: 15
         pattern: \w*\W*
         description: |
-            Papel do usuário nesta empresa. Mapeamento para scopes: administrador = 
-            consultar, preparar, emitir, cancelar; operador = consultar, preparar, emitir e 
-            cancelar só com a permissão delegada (podeCancelarNfse); consulta = consultar.
+            Papel do usuário nesta empresa. Mapeamento para scopes: ADMINISTRADOR = 
+            consultar, preparar, emitir, cancelar; OPERADOR = consultar, preparar, emitir e 
+            cancelar só com a permissão delegada (podeCancelarNfse); CONSULTA = consultar.
 
+            Valores permitidos: 
+              ADMINISTRADOR
+                 Valor: ADMINISTRADOR
+                 Texto: Administrador - Pode consultar, preparar, emitir e cancelar notas nesta empresa. Emitir e cancelar exigem confirmação humana.
+              OPERADOR
+                 Valor: OPERADOR
+                 Texto: Operador - Pode consultar, preparar e emitir notas. Só cancela se o administrador delegar a permissão (podeCancelarNfse).
+              CONSULTA
+                 Valor: CONSULTA
+                 Texto: Consulta - Só leitura: pode consultar, e nunca prepara, emite nem cancela. É o papel padrão.
+        enum:
+          - ADMINISTRADOR
+          - OPERADOR
+          - CONSULTA
       podeCancelarNfse:
         type: boolean
         description: |
             Permissão delegada pelo administrador para o operador cancelar NFS-e nesta 
             empresa. O administrador sempre pode cancelar, com ou sem este campo; o operador 
-            só cancela se for verdadeiro; o papel consulta nunca cancela. Padrão não.
+            só cancela se for verdadeiro; o papel CONSULTA nunca cancela. Padrão não.
              Divergência de código conhecida: o código atual deixa o operador cancelar sem 
             esta delegação, a corrigir depois.
 
@@ -4345,7 +4359,7 @@ definitions:
     description: |
             Confirmação do signup por link de e-mail. O link enviado ao usuário leva o 
             token; o sistema guarda SÓ o hash do token, nunca o token. Ao confirmar, a 
-            empresa passa de pendente_confirmacao para ativa e a dataConfirmacao dela é 
+            empresa passa de PENDENTE_CONFIRMACAO para ATIVA e a dataConfirmacao dela é 
             preenchida.
              O endpoint de confirmação é PÚBLICO (o usuário ainda não tem sessão): esta 
             entidade NÃO deve ter recurso REST exposto, é regra da aplicação escrita à mão.
@@ -4401,9 +4415,23 @@ definitions:
         maxLength: 10
         pattern: \w*\W*
         description: |
-            Estado da confirmação: pendente até o clique, confirmado depois dele, expirado 
+            Estado da confirmação: PENDENTE até o clique, CONFIRMADO depois dele, EXPIRADO 
             se a dataExpiracao passou sem clique.
 
+            Valores permitidos: 
+              PENDENTE
+                 Valor: PENDENTE
+                 Texto: Pendente - Estado inicial e padrão: aguardando o clique do usuário no link enviado por e-mail. dataConfirmacao fica vazia.
+              CONFIRMADO
+                 Valor: CONFIRMADO
+                 Texto: Confirmado - O link foi usado: a empresa foi ativada e a dataConfirmacao preenchida.
+              EXPIRADO
+                 Valor: EXPIRADO
+                 Texto: Expirado - A dataExpiracao passou sem o clique no link: a confirmação não vale mais.
+        enum:
+          - PENDENTE
+          - CONFIRMADO
+          - EXPIRADO
       id:
         type: string
         maxLength: 36
@@ -4439,9 +4467,9 @@ definitions:
     description: |
             Empresa usuária do sistema e tenant do modelo. Cada empresa só emite e só 
             enxerga as próprias notas.
-             NUNCA é apagada, só DESATIVADA (situacao = desativada): a aplicação não deve 
+             NUNCA é apagada, só DESATIVADA (situacao = DESATIVADA): a aplicação não deve 
             expor a remoção. Nasce no signup com o documento, o e-mail e o WhatsApp 
-            informados, em situacao pendente_confirmacao, e fica ativa quando o usuário 
+            informados, em situacao PENDENTE_CONFIRMACAO, e fica ATIVA quando o usuário 
             clica no link do e-mail (ConfirmacaoCadastro).
              É identificada por um documento único (CNPJ ou CPF). Tem atividades 
             (AtividadeEmpresa) e quadro de sócios (QsaEmpresa) como detalhes ([m]/[o]).
@@ -4616,18 +4644,18 @@ definitions:
             usado na emissão. Alterável só pelo administrador da plataforma ou suporte.
 
             Valores permitidos: 
-              simplesNacional
+              SIMPLES_NACIONAL
                  Valor: 1
-                 Texto: Simples Nacional
-              simplesExcessoSublimite
+                 Texto: Simples Nacional - Empresa optante pelo Simples Nacional. Código gravado e enviado ao gateway (crt): 1.
+              SIMPLES_EXCESSO_SUBLIMITE
                  Valor: 2
-                 Texto: Simples Nacional com excesso de sublimite
-              regimeNormal
+                 Texto: Simples Nacional com excesso de sublimite - Simples Nacional com excesso de sublimite de receita. Código gravado e enviado ao gateway (crt): 2.
+              REGIME_NORMAL
                  Valor: 3
-                 Texto: Regime Normal
-              mei
+                 Texto: Regime Normal - Empresa no regime normal (lucro presumido ou real). Código gravado e enviado ao gateway (crt): 3.
+              MEI
                  Valor: 4
-                 Texto: MEI
+                 Texto: MEI - Microempreendedor Individual. Código gravado e enviado ao gateway (crt): 4.
       regimeIbsCbs:
         type: integer
         minimum: 0
@@ -4640,21 +4668,21 @@ definitions:
             administrador da plataforma ou suporte.
 
             Valores permitidos: 
-              naoInformado
+              NAO_INFORMADO
                  Valor: 0
-                 Texto: Não informado, padrão, a tag não é enviada
-              simplesOpcaoRegimeRegular
+                 Texto: Não informado - Não informado, padrão: a tag regime_cibs não é enviada. Código gravado: 0.
+              SIMPLES_OPCAO_REGIME_REGULAR
                  Valor: 1
-                 Texto: Simples Nacional com opção pelo regime regular do IBS e da CBS (crt 1 ou 2)
-              normalOpcaoSimplesPendenteSemRegular
+                 Texto: Simples Nacional com opção pelo regime regular - Simples Nacional com opção pelo regime regular do IBS e da CBS (crt 1 ou 2). Código gravado e enviado ao gateway: 1.
+              NORMAL_OPCAO_SIMPLES_PENDENTE_SEM_REGULAR
                  Valor: 2
-                 Texto: Regime Normal com opção pendente pelo Simples Nacional, sem regime regular do IBS e da CBS (crt 3)
-              normalSublimitePendenteSemRegular
+                 Texto: Regime Normal, opção pelo Simples pendente, sem regime regular - Regime Normal com opção pendente pelo Simples Nacional, sem regime regular do IBS e da CBS (crt 3). Código gravado e enviado ao gateway: 2.
+              NORMAL_SUBLIMITE_PENDENTE_SEM_REGULAR
                  Valor: 3
-                 Texto: Regime Normal com opção pendente pelo Simples Nacional com excesso de sublimite, sem regime regular do IBS e da CBS (crt 3)
-              normalOpcaoSimplesPendenteComRegular
+                 Texto: Regime Normal, excesso de sublimite pendente, sem regime regular - Regime Normal com opção pendente pelo Simples Nacional com excesso de sublimite, sem regime regular do IBS e da CBS (crt 3). Código gravado e enviado ao gateway: 3.
+              NORMAL_OPCAO_SIMPLES_PENDENTE_COM_REGULAR
                  Valor: 4
-                 Texto: Regime Normal com opção pendente pelo Simples Nacional, com regime regular do IBS e da CBS (crt 3)
+                 Texto: Regime Normal, opção pelo Simples pendente, com regime regular - Regime Normal com opção pendente pelo Simples Nacional, com regime regular do IBS e da CBS (crt 3). Código gravado e enviado ao gateway: 4.
       logo:
         type: string
         format: byte
@@ -4679,12 +4707,26 @@ definitions:
         pattern: \w*\W*
         description: |
             Situação da conta da empresa NO SISTEMA (não confundir com statusCadastro, que é 
-            o cadastro no gateway IntegraNotas). A empresa nasce pendente_confirmacao no 
+            o cadastro no gateway IntegraNotas). A empresa nasce PENDENTE_CONFIRMACAO no 
             signup,
-             vira ativa quando o usuário clica no link do e-mail (ou quando o suporte ativa) 
-            e desativada quando o suporte a desativa à mão. Nunca é apagada. Alterável só 
+             vira ATIVA quando o usuário clica no link do e-mail (ou quando o suporte ativa) 
+            e DESATIVADA quando o suporte a desativa à mão. Nunca é apagada. Alterável só 
             pelo administrador da plataforma ou suporte.
 
+            Valores permitidos: 
+              PENDENTE_CONFIRMACAO
+                 Valor: PENDENTE_CONFIRMACAO
+                 Texto: Pendente de confirmação - Estado inicial e padrão: a empresa nasce assim no signup, aguardando o clique no link de confirmação enviado por e-mail.
+              ATIVA
+                 Valor: ATIVA
+                 Texto: Ativa - Conta ativa, depois do clique no link do e-mail ou quando o suporte a ativa.
+              DESATIVADA
+                 Valor: DESATIVADA
+                 Texto: Desativada - Conta desativada à mão pelo suporte, com motivo obrigatório. A empresa nunca é apagada.
+        enum:
+          - PENDENTE_CONFIRMACAO
+          - ATIVA
+          - DESATIVADA
       dataConfirmacao:
         type: string
         format: date-time
@@ -4735,10 +4777,24 @@ definitions:
         description: |
             Situação do cadastro da empresa NO GATEWAY (emitente no IntegraNotas), no 
             ambiente do registro. Não é a situação da conta no sistema (ver situacao). A 
-            empresa nasce nao_cadastrado,
-             vira cadastrado quando o gateway devolve o token, e erro quando o cadastro é 
+            empresa nasce NAO_CADASTRADO,
+             vira CADASTRADO quando o gateway devolve o token, e ERRO quando o cadastro é 
             recusado. Alterável só pelo administrador da plataforma ou suporte.
 
+            Valores permitidos: 
+              NAO_CADASTRADO
+                 Valor: NAO_CADASTRADO
+                 Texto: Não cadastrado - A empresa ainda não foi cadastrada no gateway. É o estado inicial e o padrão.
+              CADASTRADO
+                 Valor: CADASTRADO
+                 Texto: Cadastrado - Cadastro aceito pelo gateway, que devolveu o token do emitente (nome no IntegraNotas), guardado no cofre.
+              ERRO
+                 Valor: ERRO
+                 Texto: Erro no cadastro - Cadastro recusado pelo gateway.
+        enum:
+          - NAO_CADASTRADO
+          - CADASTRADO
+          - ERRO
       dataCadastroGateway:
         type: string
         format: date-time
@@ -4762,6 +4818,28 @@ definitions:
             Situação do certificado digital da empresa no gateway, no ambiente do registro. 
             Alterável só pelo administrador da plataforma ou suporte.
 
+            Valores permitidos: 
+              NAO_ENVIADO
+                 Valor: NAO_ENVIADO
+                 Texto: Não enviado - Nenhum certificado foi enviado ao gateway. É o estado inicial e o padrão.
+              VALIDO
+                 Valor: VALIDO
+                 Texto: Válido - Certificado aceito pelo gateway e dentro da validade.
+              VENCIDO
+                 Valor: VENCIDO
+                 Texto: Vencido - Certificado com a validade vencida (erro 5011 do gateway).
+              INVALIDO
+                 Valor: INVALIDO
+                 Texto: Inválido - Certificado corrompido ou enviado com senha errada (erro 5003 do gateway).
+              NAO_PERTENCE
+                 Valor: NAO_PERTENCE
+                 Texto: Não pertence à empresa - Certificado que não pertence ao documento (CNPJ ou CPF) da empresa (erro 5029 do gateway).
+        enum:
+          - NAO_ENVIADO
+          - VALIDO
+          - VENCIDO
+          - INVALIDO
+          - NAO_PERTENCE
       id:
         type: string
         maxLength: 36
@@ -4782,6 +4860,16 @@ definitions:
              então o mesmo documento (CNPJ ou CPF) tem um registro por ambiente e uma nota de 
             teste nunca se mistura com uma real.
 
+            Valores permitidos: 
+              HOMOLOGACAO
+                 Valor: HOMOLOGACAO
+                 Texto: Homologação - Ambiente de testes do gateway. É o padrão. Nada emitido aqui tem validade fiscal e uma nota de teste nunca se mistura com uma real.
+              PRODUCAO
+                 Valor: PRODUCAO
+                 Texto: Produção - Ambiente real do gateway. As notas emitidas aqui têm validade fiscal.
+        enum:
+          - HOMOLOGACAO
+          - PRODUCAO
       dataCriacao:
         type: string
         format: date-time
@@ -4863,6 +4951,16 @@ definitions:
             Se a atividade é a principal ou uma secundária da empresa. No máximo uma 
             principal por empresa (regra da aplicação). Obrigatório.
 
+            Valores permitidos: 
+              PRINCIPAL
+                 Valor: PRINCIPAL
+                 Texto: Principal - Atividade econômica principal da empresa. No máximo uma por empresa (regra da aplicação).
+              SECUNDARIA
+                 Valor: SECUNDARIA
+                 Texto: Secundária - Atividade econômica secundária da empresa. Uma empresa pode ter várias.
+        enum:
+          - PRINCIPAL
+          - SECUNDARIA
       codigoCnae:
         type: string
         maxLength: 7

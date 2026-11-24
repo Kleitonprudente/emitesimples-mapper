@@ -76,7 +76,7 @@ class ConsultaCnpjEmpresaTest extends BaseApiTest {
     void operadorEAdministradorConsultamComOMesmoMapeamentoDaRotaAdmin() {
         String c = cnpj(CnpjWsStubResource.RAIZ_CAD_SIMPLES);
         String esperado = chamar("GET", BASE_ADMIN + c, plataforma(), null).then().statusCode(200).extract().asString();
-        for (String p : new String[] {"operador", "administrador"}) {
+        for (String p : new String[] {"OPERADOR", "ADMINISTRADOR"}) {
             Response r = chamar("GET", BASE + c, papel(p), null);
             r.then().statusCode(200)
                     .body("cnpj", equalTo(c))
@@ -94,7 +94,7 @@ class ConsultaCnpjEmpresaTest extends BaseApiTest {
 
     @Test
     void errosSaoOsMesmosDaRotaAdmin() {
-        String t = papel("operador");
+        String t = papel("OPERADOR");
         chamar("GET", BASE + "123", t, null).then().statusCode(400).body("codigo", equalTo("cnpj_invalido"));
         chamar("GET", BASE + cnpj(CnpjWsStubResource.RAIZ_404), t, null).then().statusCode(404)
                 .body("codigo", equalTo("cnpj_nao_encontrado"));
@@ -112,20 +112,20 @@ class ConsultaCnpjEmpresaTest extends BaseApiTest {
         String c = cnpj(CnpjWsStubResource.RAIZ_CAD_SIMPLES);
         int antes = Integer.parseInt(stub("/_contagem/" + c));
         assertEquals(401, status("GET", BASE + c, null, null));
-        assertEquals(403, status("GET", BASE + c, papel("consulta"), null));
+        assertEquals(403, status("GET", BASE + c, papel("CONSULTA"), null));
         assertEquals(antes, Integer.parseInt(stub("/_contagem/" + c)));
         for (String m : new String[] {"POST", "PUT", "PATCH", "DELETE"}) {
-            for (String t : new String[] {papel("administrador"), plataforma()}) {
+            for (String t : new String[] {papel("ADMINISTRADOR"), plataforma()}) {
                 assertEquals(403, status(m, BASE + c, t, Map.of()), m);
             }
             assertEquals(401, status(m, BASE + c, null, Map.of()), m);
         }
-        assertEquals(200, status("GET", BASE + c, papel("operador"), null));
+        assertEquals(200, status("GET", BASE + c, papel("OPERADOR"), null));
     }
 
     @Test
     void naoAbreNadaAlemDaRota() {
-        String t = papel("administrador");
+        String t = papel("ADMINISTRADOR");
         assertEquals(403, status("GET", BASE_ADMIN + cnpj(CnpjWsStubResource.RAIZ_MINIMO), t, null));
         assertEquals(403, status("GET", CFG, t, null));
         assertEquals(403, status("POST", CFG + "/testar", t, Map.of()));
@@ -134,7 +134,7 @@ class ConsultaCnpjEmpresaTest extends BaseApiTest {
     @Test
     void limiteDeTrintaPorMinutoPorUsuarioCompartilhadoComARotaAdmin() {
         String c = cnpj(CnpjWsStubResource.RAIZ_MINIMO);
-        String t = papel("operador");
+        String t = papel("OPERADOR");
         for (int i = 0; i < 30; i++) {
             assertEquals(200, status("GET", BASE + c, t, null));
         }
@@ -142,7 +142,7 @@ class ConsultaCnpjEmpresaTest extends BaseApiTest {
         r.then().statusCode(429).body("codigo", equalTo("muitas_tentativas"));
         assertTrue(Integer.parseInt(r.getHeader("Retry-After")) >= 1);
         // outro usuario nao e afetado
-        assertEquals(200, status("GET", BASE + c, papel("operador"), null));
+        assertEquals(200, status("GET", BASE + c, papel("OPERADOR"), null));
         // contador compartilhado: a plataforma gasta 15 em cada rota e a 31a cai em qualquer uma
         String p = plataforma();
         for (int i = 0; i < 15; i++) {
@@ -159,7 +159,7 @@ class ConsultaCnpjEmpresaTest extends BaseApiTest {
         configurar(token);
         List<String> logs = new ArrayList<>();
         Handler h = capturarLogs(logs);
-        String t = papel("operador");
+        String t = papel("OPERADOR");
         Response ok;
         Response erro;
         try {

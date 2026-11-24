@@ -12,6 +12,7 @@ import br.com.emitesimples.plataforma.PlataformaDtos.VinculoAdmin;
 import br.com.emitesimples.plataforma.PlataformaDtos.VinculoAlteracao;
 import br.com.emitesimples.plataforma.PlataformaDtos.VinculoNovo;
 import br.com.emitesimples.security.ApiException;
+import br.com.emitesimples.security.Papeis;
 import br.com.emitesimples.usuarios.entity.UsuarioEntity;
 import br.com.emitesimples.usuarios.entity.VinculoUsuarioEntity;
 import io.quarkus.narayana.jta.QuarkusTransaction;
@@ -42,7 +43,7 @@ public class UsuarioAdminService {
 
     private static final Logger LOG = Logger.getLogger(UsuarioAdminService.class);
 
-    public static final Set<String> PAPEIS = Set.of("administrador", "operador", "consulta");
+    public static final Set<String> PAPEIS = Papeis.DE_VINCULO;
     static final int MAX_PAGINA = 100;
 
     @Inject
@@ -293,8 +294,8 @@ public class UsuarioAdminService {
 
     private static void validarPapel(String papel) {
         if (papel == null || !PAPEIS.contains(papel)) {
-            throw new ApiException(400, "papel_invalido", "Papel inválido. Use administrador, operador ou consulta.",
-                    Map.of("campos", List.of(Map.of("campo", "papel", "mensagem", "Use administrador, operador ou consulta."))));
+            throw new ApiException(400, "papel_invalido", "Papel inválido. Use ADMINISTRADOR, OPERADOR ou CONSULTA.",
+                    Map.of("campos", List.of(Map.of("campo", "papel", "mensagem", "Use ADMINISTRADOR, OPERADOR ou CONSULTA."))));
         }
     }
 

@@ -23,8 +23,8 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 @ApplicationScoped
 public class IntegraNotasConfigService {
 
-    public static final String HOMOLOGACAO = "homologacao";
-    public static final String PRODUCAO = "producao";
+    public static final String HOMOLOGACAO = "HOMOLOGACAO";
+    public static final String PRODUCAO = "PRODUCAO";
     static final int MAX_URL = 200;
     static final int MAX_TOKEN = 2000;
     private static final String DOMINIO = "integranotas.com.br";
@@ -65,7 +65,7 @@ public class IntegraNotasConfigService {
                 l.porNome, permitirProducao);
     }
 
-    /** Ambiente ativo: "homologacao" (padrao) ou "producao". */
+    /** Ambiente ativo: "HOMOLOGACAO" (padrao) ou "PRODUCAO". */
     public String ambienteAtivo() {
         return linha().ambiente;
     }
@@ -181,7 +181,7 @@ public class IntegraNotasConfigService {
 
     String validarAmbiente(String ambiente) {
         if (!HOMOLOGACAO.equals(ambiente) && !PRODUCAO.equals(ambiente)) {
-            throw new ApiException(400, "ambiente_invalido", "Ambiente inválido. Use homologacao ou producao.");
+            throw new ApiException(400, "ambiente_invalido", "Ambiente inválido. Use HOMOLOGACAO ou PRODUCAO.");
         }
         if (PRODUCAO.equals(ambiente) && !permitirProducao) {
             throw new ApiException(409, "producao_bloqueada", "Produção está bloqueada neste servidor.");

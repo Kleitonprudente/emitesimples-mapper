@@ -16,7 +16,7 @@ import org.eclipse.microprofile.jwt.JsonWebToken;
  */
 @Path("/consulta-cnpj")
 @Produces(MediaType.APPLICATION_JSON)
-@RolesAllowed({"administrador", "operador", "plataforma_admin"})
+@RolesAllowed({"ADMINISTRADOR", "OPERADOR", "PLATAFORMA_ADMIN"})
 public class ConsultaCnpjEmpresaResource {
 
     @Inject

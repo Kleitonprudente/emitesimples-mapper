@@ -9,10 +9,12 @@ import br.com.emitesimples.gateway.IntegraNotasCliente.RetornoNfse;
 import br.com.emitesimples.nfse.entity.CancelamentoEntity;
 import br.com.emitesimples.nfse.entity.NotaEntity;
 import br.com.emitesimples.nfseconfig.CertificadoSituacao;
+import br.com.emitesimples.nfseconfig.StatusCadastro;
 import br.com.emitesimples.nfseemissao.NfseEmissaoDtos.*;
 import br.com.emitesimples.plataforma.IntegraNotasConfigService;
 import br.com.emitesimples.plataforma.SegredoService;
 import br.com.emitesimples.security.ApiException;
+import br.com.emitesimples.security.Papeis;
 import br.com.emitesimples.tenant.EscopoTenant;
 import br.com.emitesimples.usuarios.entity.UsuarioEntity;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -140,7 +142,7 @@ public class NfseEmissaoService {
                 .withDataEmissao(LocalDateTime.now(NfsePayloadMapper.SAO_PAULO))
                 .withDataCompetencia(LocalDate.now(NfsePayloadMapper.SAO_PAULO))
                 .withInformacoesComplementares(c.info() == null || c.info().isBlank() ? null : c.info().strip())
-                .withEstado("processando").withDataHoraAprovacao(agora)
+                .withEstado(EstadosNfse.PROCESSANDO).withDataHoraAprovacao(agora)
                 .withEmpresa(e).withPessoa(p).withServico(s)
                 .withPreparadoPorUsuario(usuario(usuarioId)).withAprovadoPor(usuario(usuarioId))
                 .withDataCriacao(agora).withDataAtualizacao(agora)
@@ -157,11 +159,11 @@ public class NfseEmissaoService {
             throw naoEncontrado("Nota não encontrada.");
         }
         switch (n.getEstado()) {
-            case "falha_envio", "rejeitada" -> {
+            case EstadosNfse.FALHA_ENVIO, EstadosNfse.REJEITADA -> {
             }
-            case "processando", "emitida_offline" -> throw new ApiException(409, "nota_em_processamento",
+            case EstadosNfse.PROCESSANDO, EstadosNfse.EMITIDA_OFFLINE -> throw new ApiException(409, "nota_em_processamento",
                     "A nota já está em processamento. Use Atualizar para ver o resultado.");
-            case "em_conflito" -> throw new ApiException(409, "nota_em_conflito",
+            case EstadosNfse.EM_CONFLITO -> throw new ApiException(409, "nota_em_conflito",
                     "A nota está em conflito no gateway. Não reenvie; use Atualizar.");
             default -> throw new ApiException(409, "nota_nao_editavel", "Esta nota não pode mais ser alterada nem reenviada.");
         }
@@ -169,7 +171,7 @@ public class NfseEmissaoService {
         preCondicoes(e, ativo);
         aplicarAjustes(n, e, emp, c);
         var agora = AuthService.agora();
-        n.setEstado("processando");
+        n.setEstado(EstadosNfse.PROCESSANDO);
         n.setCodigoRetorno(null);
         n.setMensagemRetorno(null);
         n.setErrosRetorno(null);
@@ -239,7 +241,7 @@ public class NfseEmissaoService {
         var agora = AuthService.agora();
         NotaEntity n = NotaEntity.builderOf()
                 .withInformacoesComplementares(c.info() == null || c.info().isBlank() ? null : c.info().strip())
-                .withEstado("rascunho").withEmpresa(e).withPessoa(p).withServico(s)
+                .withEstado(EstadosNfse.RASCUNHO).withEmpresa(e).withPessoa(p).withServico(s)
                 .withPreparadoPorUsuario(usuario(usuarioId)) // preparadoPorCliente: sem autenticacao do assistente ainda (README)
                 .withDataCriacao(agora).withDataAtualizacao(agora)
                 .build();
@@ -267,7 +269,7 @@ public class NfseEmissaoService {
         if (n == null) {
             throw naoEncontrado("Nota não encontrada.");
         }
-        if (!"rascunho".equals(n.getEstado())) {
+        if (!EstadosNfse.RASCUNHO.equals(n.getEstado())) {
             throw new ApiException(409, "nota_nao_e_rascunho", MSG_NAO_RASCUNHO);
         }
         EmpresaEntity e = em.createQuery("select e from EmpresaEntity e where e.id = :id", EmpresaEntity.class)
@@ -287,7 +289,7 @@ public class NfseEmissaoService {
         n.setAmbiente(e.getAmbiente());
         n.setDataEmissao(LocalDateTime.now(NfsePayloadMapper.SAO_PAULO));
         n.setDataCompetencia(LocalDate.now(NfsePayloadMapper.SAO_PAULO));
-        n.setEstado("processando");
+        n.setEstado(EstadosNfse.PROCESSANDO);
         n.setDataHoraAprovacao(agora);
         n.setAprovadoPor(usuario(usuarioId));
         n.setDataAtualizacao(agora);
@@ -302,11 +304,11 @@ public class NfseEmissaoService {
             if (n == null) {
                 throw naoEncontrado("Nota não encontrada.");
             }
-            if (!"rascunho".equals(n.getEstado())) {
+            if (!EstadosNfse.RASCUNHO.equals(n.getEstado())) {
                 throw new ApiException(409, "nota_nao_e_rascunho", MSG_NAO_RASCUNHO);
             }
             var agora = AuthService.agora();
-            n.setEstado("descartada");
+            n.setEstado(EstadosNfse.DESCARTADA);
             n.setDescartadoPor(usuario(usuarioId));
             n.setDataHoraDescarte(agora);
             n.setDataAtualizacao(agora);
@@ -341,7 +343,7 @@ public class NfseEmissaoService {
             throw new ApiException(409, "emissao_producao_bloqueada",
                     "A emissão em produção está bloqueada nesta fase. Use o ambiente de homologação.");
         }
-        if (e.getReferenciaTokenEmpresa() == null || !"cadastrado".equals(e.getStatusCadastro())) {
+        if (e.getReferenciaTokenEmpresa() == null || !StatusCadastro.CADASTRADO.equals(e.getStatusCadastro())) {
             throw new ApiException(409, "emitente_nao_cadastrado",
                     "O emitente ainda não foi cadastrado no IntegraNotas. Habilite a NFS-e da empresa.");
         }
@@ -384,14 +386,14 @@ public class NfseEmissaoService {
         }
         long ms = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - ini);
         var m = pre.montado();
-        chamadas.registrar(emp, notaId, "enviar_nfse", "POST", "/v2/nfse", "v2", r == null ? null : r.httpStatus(),
+        chamadas.registrar(emp, notaId, "EMITIR", "POST", "/v2/nfse", "V2", r == null ? null : r.httpStatus(),
                 r == null ? null : r.codigo(), r == null ? falha : r.mensagem(), ms, r == null ? null : r.chave(),
                 m.identificacao(), m.resumo(), pre.ambiente());
         RetornoNfse retorno = r;
         String falhaFinal = falha;
         NfseRetorno.Efeito efeito = QuarkusTransaction.requiringNew().call(() -> {
             NotaEntity n = acompanhamento.carregar(emp, notaId, true);
-            if (n == null || !"processando".equals(n.getEstado())) {
+            if (n == null || !EstadosNfse.PROCESSANDO.equals(n.getEstado())) {
                 return NfseRetorno.Efeito.NENHUM;
             }
             if (retorno == null) {
@@ -478,7 +480,7 @@ public class NfseEmissaoService {
             falha = "integranotas_indisponivel";
         }
         long ms = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - ini);
-        chamadas.registrar(emp, id, "cancelar_nfse", "POST", "/v1/nfse/cancela", "v1", r == null ? null : r.httpStatus(),
+        chamadas.registrar(emp, id, "CANCELAR", "POST", "/v1/nfse/cancela", "V1", r == null ? null : r.httpStatus(),
                 r == null ? null : r.codigo(), r == null ? falha : r.mensagem(), ms, pre.chave(), pre.identificacao(),
                 "codigo_cancelamento=" + motivo.codigo(), pre.ambiente());
         RetornoNfse retorno = r;
@@ -486,7 +488,7 @@ public class NfseEmissaoService {
         NfseRetorno.ResultadoCancelamento res = QuarkusTransaction.requiringNew().call(() -> {
             NotaEntity n = acompanhamento.carregar(emp, id, true);
             CancelamentoEntity c = em.find(CancelamentoEntity.class, pre.cancelamentoId());
-            if (n == null || c == null || !"processando".equals(c.getEstado())) {
+            if (n == null || c == null || !EstadosNfse.PROCESSANDO.equals(c.getEstado())) {
                 return NfseRetorno.ResultadoCancelamento.PROCESSANDO; // concluido por outro caminho (consulta/webhook)
             }
             return NfseRetorno.aplicarCancelamento(n, c, retorno, falhaFinal);
@@ -511,7 +513,7 @@ public class NfseEmissaoService {
     /** Papeis que preparam/aprovam/descartam nota (os mesmos de criar): administrador, operador, plataforma_admin. */
     private boolean podeEscreverSessao() {
         var grupos = jwt.getGroups();
-        return grupos != null && (grupos.contains("administrador") || grupos.contains("operador") || grupos.contains("plataforma_admin"));
+        return grupos != null && (grupos.contains(Papeis.ADMINISTRADOR) || grupos.contains(Papeis.OPERADOR) || grupos.contains(Papeis.PLATAFORMA_ADMIN));
     }
 
     private boolean podeCancelarSessao(String emp) {
@@ -519,14 +521,14 @@ public class NfseEmissaoService {
         if (grupos == null) {
             return false;
         }
-        if (grupos.contains("plataforma_admin") || grupos.contains("administrador")) {
+        if (grupos.contains(Papeis.PLATAFORMA_ADMIN) || grupos.contains(Papeis.ADMINISTRADOR)) {
             return true;
         }
-        if (!grupos.contains("operador")) {
+        if (!grupos.contains(Papeis.OPERADOR)) {
             return false;
         }
         return em.createQuery("select count(v) from VinculoUsuarioEntity v where v.usuario.id = :u and v.empresa.id = :e "
-                + "and v.ativo = true and v.papel = 'operador' and v.podeCancelarNfse = true", Long.class)
+                + "and v.ativo = true and v.papel = 'OPERADOR' and v.podeCancelarNfse = true", Long.class)
                 .setParameter("u", jwt.getSubject()).setParameter("e", emp).getSingleResult() > 0;
     }
 
@@ -535,13 +537,13 @@ public class NfseEmissaoService {
         if (n == null) {
             throw naoEncontrado("Nota não encontrada.");
         }
-        if ("cancelada".equals(n.getEstado())) {
+        if (EstadosNfse.CANCELADA.equals(n.getEstado())) {
             return null;
         }
         EmpresaEntity e = validarCancelavel(n, emp, ativo, null);
         var agora = AuthService.agora();
         CancelamentoEntity c = CancelamentoEntity.builderOf()
-                .withCodigoMotivo(m.codigo()).withMotivo(m.texto()).withEstado("processando")
+                .withCodigoMotivo(m.codigo()).withMotivo(m.texto()).withEstado(EstadosNfse.PROCESSANDO)
                 .withAmbiente(n.getAmbiente()).withDataHoraAprovacao(agora)
                 .withEmpresa(e).withNota(n)
                 .withPreparadoPorUsuario(usuario(usuarioId)).withAprovadoPor(usuario(usuarioId))
@@ -569,23 +571,23 @@ public class NfseEmissaoService {
             throw new ApiException(409, "emissao_producao_bloqueada",
                     "O cancelamento em produção está bloqueado nesta fase. Use o ambiente de homologação.");
         }
-        if (!"autorizada".equals(n.getEstado()) || n.getChave() == null) {
+        if (!EstadosNfse.AUTORIZADA.equals(n.getEstado()) || n.getChave() == null) {
             throw new ApiException(409, "nota_nao_autorizada", "Só é possível cancelar uma nota autorizada.");
         }
         if (!mesVigente(n.getDataEmissao())) {
             throw new ApiException(409, "cancelamento_fora_do_mes", MSG_FORA_DO_MES);
         }
         List<String> pendentes = em.createQuery("select c.estado from CancelamentoEntity c where c.nota.id = :n and c.empresa.id = :e "
-                + "and c.estado in ('processando', 'rascunho') and c.id <> :ig", String.class)
+                + "and c.estado in ('PROCESSANDO', 'RASCUNHO') and c.id <> :ig", String.class)
                 .setParameter("n", id).setParameter("e", emp).setParameter("ig", ignorarId == null ? "-" : ignorarId)
                 .getResultList();
         if (!pendentes.isEmpty()) {
-            throw new ApiException(409, "cancelamento_em_andamento", pendentes.contains("processando")
+            throw new ApiException(409, "cancelamento_em_andamento", pendentes.contains(EstadosNfse.PROCESSANDO)
                     ? "Já há um cancelamento desta nota em processamento. Use Atualizar para ver o resultado."
                     : "Já há um rascunho de cancelamento desta nota aguardando aprovação. Aprove ou descarte o rascunho.");
         }
         EmpresaEntity e = em.find(EmpresaEntity.class, emp);
-        if (e.getReferenciaTokenEmpresa() == null || !"cadastrado".equals(e.getStatusCadastro())) {
+        if (e.getReferenciaTokenEmpresa() == null || !StatusCadastro.CADASTRADO.equals(e.getStatusCadastro())) {
             throw new ApiException(409, "emitente_nao_cadastrado",
                     "O emitente ainda não foi cadastrado no IntegraNotas. Habilite a NFS-e da empresa.");
         }
@@ -612,7 +614,7 @@ public class NfseEmissaoService {
             EmpresaEntity e = validarCancelavel(n, emp, ativo, null);
             var agora = AuthService.agora();
             em.persist(CancelamentoEntity.builderOf()
-                    .withCodigoMotivo(motivo.codigo()).withMotivo(motivo.texto()).withEstado("rascunho")
+                    .withCodigoMotivo(motivo.codigo()).withMotivo(motivo.texto()).withEstado(EstadosNfse.RASCUNHO)
                     .withAmbiente(n.getAmbiente()).withEmpresa(e).withNota(n)
                     .withPreparadoPorUsuario(usuario(usuarioId)) // preparadoPorCliente: README (autenticacao do assistente)
                     .withDataCriacao(agora).withDataAtualizacao(agora)
@@ -656,7 +658,7 @@ public class NfseEmissaoService {
             exigirRascunhoCancelamento(c);
             EmpresaEntity e = validarCancelavel(n, emp, ativo, c.getId());
             var agora = AuthService.agora();
-            c.setEstado("processando");
+            c.setEstado(EstadosNfse.PROCESSANDO);
             c.setAprovadoPor(usuario(usuarioId));
             c.setDataHoraAprovacao(agora);
             c.setDataAtualizacao(agora);
@@ -681,7 +683,7 @@ public class NfseEmissaoService {
             }
             exigirRascunhoCancelamento(c);
             var agora = AuthService.agora();
-            c.setEstado("descartado");
+            c.setEstado(EstadosNfse.DESCARTADO);
             c.setDescartadoPor(usuario(usuarioId));
             c.setDataHoraDescarte(agora);
             c.setDataAtualizacao(agora);
@@ -691,7 +693,7 @@ public class NfseEmissaoService {
     }
 
     private static void exigirRascunhoCancelamento(CancelamentoEntity c) {
-        if (!"rascunho".equals(c.getEstado())) {
+        if (!EstadosNfse.RASCUNHO.equals(c.getEstado())) {
             throw new ApiException(409, "cancelamento_nao_e_rascunho", "Só um rascunho de cancelamento pode ser aprovado ou descartado.");
         }
     }
@@ -725,7 +727,7 @@ public class NfseEmissaoService {
                 throw naoEncontrado("Nota não encontrada.");
             }
             List<byte[]> l = em.createQuery("select c.pdf from CancelamentoEntity c where c.nota.id = :id and c.empresa.id = :emp "
-                    + "and c.estado = 'concluido' order by c.dataCriacao desc", byte[].class)
+                    + "and c.estado = 'CONCLUIDO' order by c.dataCriacao desc", byte[].class)
                     .setParameter("id", id).setParameter("emp", emp).getResultList();
             for (byte[] p : l) {
                 if (p != null) {
@@ -838,13 +840,13 @@ public class NfseEmissaoService {
     private static NotaDetalhe detalhe(Object[] l, CancelamentoEntity c, boolean sessaoPode, boolean sessaoEscreve) {
         NotaItem i = item(l);
         String estado = i.estado();
-        boolean editavel = "falha_envio".equals(estado) || "rejeitada".equals(estado);
-        boolean pendente = c != null && "processando".equals(c.getEstado());
-        boolean atualizar = (NfseRetorno.emAndamento(estado) || "autorizada".equals(estado) && pendente) && i.chave() != null;
-        boolean rascunhoCancel = c != null && "rascunho".equals(c.getEstado());
-        boolean podeCancelar = sessaoPode && "autorizada".equals(estado) && !pendente && !rascunhoCancel
+        boolean editavel = EstadosNfse.FALHA_ENVIO.equals(estado) || EstadosNfse.REJEITADA.equals(estado);
+        boolean pendente = c != null && EstadosNfse.PROCESSANDO.equals(c.getEstado());
+        boolean atualizar = (NfseRetorno.emAndamento(estado) || EstadosNfse.AUTORIZADA.equals(estado) && pendente) && i.chave() != null;
+        boolean rascunhoCancel = c != null && EstadosNfse.RASCUNHO.equals(c.getEstado());
+        boolean podeCancelar = sessaoPode && EstadosNfse.AUTORIZADA.equals(estado) && !pendente && !rascunhoCancel
                 && mesVigente(i.dataEmissao());
-        boolean rascunho = "rascunho".equals(estado) && sessaoEscreve;
+        boolean rascunho = EstadosNfse.RASCUNHO.equals(estado) && sessaoEscreve;
         CancelamentoInfo info = c == null ? null : new CancelamentoInfo(c.getId(), c.getEstado(), c.getCodigoMotivo(), c.getMotivo(),
                 c.getCodigoRetorno(), c.getMensagemRetorno(), c.getDataHoraEvento(), c.getDataCriacao(), rascunhoCancel && sessaoPode,
                 rascunhoCancel && sessaoPode);

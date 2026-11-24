@@ -204,7 +204,7 @@ public class ImportacaoMunicipioMapper {
         }
 
         if (entity.getEstado() == null) {
-            entity.setEstado("em_andamento");
+            entity.setEstado("EM_ANDAMENTO");
         }
         if (entity.getLinhasLidas() == null) {
             entity.setLinhasLidas(0);
@@ -231,7 +231,7 @@ public class ImportacaoMunicipioMapper {
         }
 
         if (api.getEstado() == null) {
-            api.setEstado("em_andamento");
+            api.setEstado("EM_ANDAMENTO");
         }
         if (api.getLinhasLidas() == null) {
             api.setLinhasLidas(0);

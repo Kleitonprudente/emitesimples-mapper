@@ -22,13 +22,13 @@ public class NfseEmpresaResource {
     NfseEmpresaService service;
 
     @GET
-    @RolesAllowed({"administrador", "operador", "consulta", "plataforma_admin"})
+    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "CONSULTA", "PLATAFORMA_ADMIN"})
     public NfseEmpresaService.NfseDto obter() {
         return service.obter();
     }
 
     @PUT
-    @RolesAllowed("administrador")
+    @RolesAllowed("ADMINISTRADOR")
     public NfseEmpresaService.NfseDto atualizar(NfseEmpresaService.NfseEntrada corpo) {
         return service.atualizar(corpo);
     }

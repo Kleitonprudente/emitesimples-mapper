@@ -1,6 +1,7 @@
 package br.com.emitesimples.nfseemissao;
 
 import br.com.emitesimples.nfseemissao.NfseEmissaoDtos.*;
+import br.com.emitesimples.security.Papeis;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
@@ -23,21 +24,21 @@ import java.util.List;
 @Consumes(MediaType.APPLICATION_JSON)
 public class NfseEmissaoResource {
 
-    private static final String[] LEITURA = {"administrador", "operador", "consulta", "plataforma_admin"};
+    private static final String[] LEITURA = {Papeis.ADMINISTRADOR, Papeis.OPERADOR, Papeis.CONSULTA, Papeis.PLATAFORMA_ADMIN};
 
     @Inject
     NfseEmissaoService service;
 
     @GET
     @Path("/count")
-    @RolesAllowed({"administrador", "operador", "consulta", "plataforma_admin"})
+    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "CONSULTA", "PLATAFORMA_ADMIN"})
     public Contagem contar(@QueryParam("estado") String estado, @QueryParam("busca") String busca) {
         return service.contar(estado, busca);
     }
 
     @GET
     @Path("/{from}/{to}")
-    @RolesAllowed({"administrador", "operador", "consulta", "plataforma_admin"})
+    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "CONSULTA", "PLATAFORMA_ADMIN"})
     public List<NotaItem> listar(@PathParam("from") int from, @PathParam("to") int to,
             @QueryParam("estado") String estado, @QueryParam("busca") String busca) {
         return service.listar(from, to, estado, busca);
@@ -45,7 +46,7 @@ public class NfseEmissaoResource {
 
     @GET
     @Path("/{id}")
-    @RolesAllowed({"administrador", "operador", "consulta", "plataforma_admin"})
+    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "CONSULTA", "PLATAFORMA_ADMIN"})
     public NotaDetalhe detalhe(@PathParam("id") String id) {
         return service.detalhe(id);
     }
@@ -53,55 +54,55 @@ public class NfseEmissaoResource {
     @GET
     @Path("/{id}/pdf")
     @Produces({"application/pdf", "application/json"})
-    @RolesAllowed({"administrador", "operador", "consulta", "plataforma_admin"})
+    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "CONSULTA", "PLATAFORMA_ADMIN"})
     public Response pdf(@PathParam("id") String id) {
         return Response.ok(service.pdf(id)).type("application/pdf").header("Content-Disposition", "inline").build();
     }
 
     @POST
-    @RolesAllowed({"administrador", "operador", "plataforma_admin"})
+    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "PLATAFORMA_ADMIN"})
     public NotaDetalhe criar(CriarEntrada corpo) {
         return service.criar(corpo);
     }
 
     @POST
     @Path("/{id}/enviar")
-    @RolesAllowed({"administrador", "operador", "plataforma_admin"})
+    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "PLATAFORMA_ADMIN"})
     public NotaDetalhe enviar(@PathParam("id") String id, EnviarEntrada corpo) {
         return service.enviar(id, corpo);
     }
 
     @POST
     @Path("/preparar")
-    @RolesAllowed({"administrador", "operador", "plataforma_admin"})
+    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "PLATAFORMA_ADMIN"})
     public NotaDetalhe preparar(CriarEntrada corpo) {
         return service.preparar(corpo);
     }
 
     @POST
     @Path("/{id}/aprovar")
-    @RolesAllowed({"administrador", "operador", "plataforma_admin"})
+    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "PLATAFORMA_ADMIN"})
     public NotaDetalhe aprovar(@PathParam("id") String id, EnviarEntrada corpo) {
         return service.aprovar(id, corpo);
     }
 
     @POST
     @Path("/{id}/descartar")
-    @RolesAllowed({"administrador", "operador", "plataforma_admin"})
+    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "PLATAFORMA_ADMIN"})
     public NotaDetalhe descartar(@PathParam("id") String id) {
         return service.descartar(id);
     }
 
     @POST
     @Path("/{id}/cancelamentos/preparar")
-    @RolesAllowed({"administrador", "operador", "plataforma_admin"})
+    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "PLATAFORMA_ADMIN"})
     public NotaDetalhe prepararCancelamento(@PathParam("id") String id, CancelarEntrada corpo) {
         return service.prepararCancelamento(id, corpo);
     }
 
     @POST
     @Path("/{id}/cancelar")
-    @RolesAllowed({"administrador", "operador", "plataforma_admin"})
+    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "PLATAFORMA_ADMIN"})
     public NotaDetalhe cancelar(@PathParam("id") String id, CancelarEntrada corpo) {
         return service.cancelar(id, corpo);
     }
@@ -109,14 +110,14 @@ public class NfseEmissaoResource {
     @GET
     @Path("/{id}/cancelamento/pdf")
     @Produces({"application/pdf", "application/json"})
-    @RolesAllowed({"administrador", "operador", "consulta", "plataforma_admin"})
+    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "CONSULTA", "PLATAFORMA_ADMIN"})
     public Response pdfCancelamento(@PathParam("id") String id) {
         return Response.ok(service.pdfCancelamento(id)).type("application/pdf").header("Content-Disposition", "inline").build();
     }
 
     @POST
     @Path("/{id}/atualizar")
-    @RolesAllowed({"administrador", "operador", "plataforma_admin"})
+    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "PLATAFORMA_ADMIN"})
     public NotaDetalhe atualizar(@PathParam("id") String id) {
         return service.atualizar(id);
     }

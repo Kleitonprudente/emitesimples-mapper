@@ -8,16 +8,16 @@ import java.time.temporal.ChronoUnit;
 /**
  * Leitura unica da situacao do certificado da empresa (usada por {@code GET /api/configuracao/empresa}, pelo POST do
  * certificado e por {@code GET /api/configuracao/nfse}, para os tres concordarem). Valores gravados:
- * {@code nao_enviado | valido | vencido | invalido | nao_pertence}. Sem certificado e sem situacao gravada: {@code nao_enviado}
+ * {@code NAO_ENVIADO | VALIDO | VENCIDO | INVALIDO | NAO_PERTENCE}. Sem certificado e sem situacao gravada: {@code NAO_ENVIADO}
  * (e {@code pendenteDeEnvio=false}, pois nao ha o que enviar).
  */
 public final class CertificadoSituacao {
 
-    public static final String NAO_ENVIADO = "nao_enviado";
-    public static final String VALIDO = "valido";
-    public static final String VENCIDO = "vencido";
-    public static final String INVALIDO = "invalido";
-    public static final String NAO_PERTENCE = "nao_pertence";
+    public static final String NAO_ENVIADO = "NAO_ENVIADO";
+    public static final String VALIDO = "VALIDO";
+    public static final String VENCIDO = "VENCIDO";
+    public static final String INVALIDO = "INVALIDO";
+    public static final String NAO_PERTENCE = "NAO_PERTENCE";
     static final ZoneId BRASIL = ZoneId.of("America/Sao_Paulo");
 
     private CertificadoSituacao() {
@@ -31,7 +31,7 @@ public final class CertificadoSituacao {
         return e.getReferenciaCertificado() != null;
     }
 
-    /** Situacao gravada; ou {@code vencido} se a validade ja passou e a situacao ainda era valido/nao_enviado. */
+    /** Situacao gravada; ou {@code VENCIDO} se a validade ja passou e a situacao ainda era VALIDO/NAO_ENVIADO. */
     public static String situacao(EmpresaEntity e) {
         String s = e.getSituacaoCertificado() == null ? NAO_ENVIADO : e.getSituacaoCertificado();
         LocalDate v = e.getValidadeCertificado();

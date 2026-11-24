@@ -74,7 +74,7 @@ class NfseEmitenteExistenteTest extends BaseApiTest {
 
     private void configurar(String urlPublica, String tokenSofthouse) {
         Map<String, Object> c = new HashMap<>();
-        c.put("ambienteAtivo", "homologacao");
+        c.put("ambienteAtivo", "HOMOLOGACAO");
         c.put("urlHomologacao", urlStub);
         c.put("urlPublicaWebhook", urlPublica == null ? "" : urlPublica);
         c.put("tokenHomologacao", tokenSofthouse == null ? "" : tokenSofthouse);
@@ -126,7 +126,7 @@ class NfseEmitenteExistenteTest extends BaseApiTest {
     }
 
     private String admin(String empresaId) {
-        return token(dados.usuarioComPapel(empresaId, "administrador").email());
+        return token(dados.usuarioComPapel(empresaId, "ADMINISTRADOR").email());
     }
 
     private static Map<String, Object> habilitar() {
@@ -206,7 +206,7 @@ class NfseEmitenteExistenteTest extends BaseApiTest {
         } finally {
             descapturar(h);
         }
-        r.then().statusCode(200).body("habilitada", equalTo(true)).body("statusCadastro", equalTo("cadastrado"))
+        r.then().statusCode(200).body("habilitada", equalTo(true)).body("statusCadastro", equalTo("CADASTRADO"))
                 .body("emitenteTokenConfigurado", equalTo(true)).body("dataCadastroGateway", notNullValue());
         assertEquals(posts + 1, contagem("/_contagem"), "tentou criar uma vez");
         assertEquals(listas + 1, contagem("/_contagem_lista"));
@@ -258,7 +258,7 @@ class NfseEmitenteExistenteTest extends BaseApiTest {
                 .body("mensagem", equalTo("Este CNPJ já está cadastrado na IntegraNotas, mas o token do emitente não pôde ser obtido. "
                         + "Confira o token da softhouse ou fale com o suporte."));
         EmpresaEntity e = ler(emp);
-        assertEquals("erro", e.getStatusCadastro());
+        assertEquals("ERRO", e.getStatusCadastro());
         assertFalse(e.getNfseHabilitada());
         assertEquals(null, e.getReferenciaTokenEmpresa());
         assertEquals(puts, contagem("/_contagem_put"));
@@ -270,7 +270,7 @@ class NfseEmitenteExistenteTest extends BaseApiTest {
         semear(ler(emp).getDocumento(), "tok-" + System.nanoTime(), false);
         stubPost("/_modo_lista", "semtoken");
         put(admin(emp), habilitar()).then().statusCode(409).body("codigo", equalTo("emitente_existente_sem_token"));
-        assertEquals("erro", ler(emp).getStatusCadastro());
+        assertEquals("ERRO", ler(emp).getStatusCadastro());
     }
 
     @Test
@@ -281,7 +281,7 @@ class NfseEmitenteExistenteTest extends BaseApiTest {
             stubPost("/_modo_lista", modo);
             put(admin(emp), habilitar()).then().statusCode(409).body("codigo", equalTo("emitente_existente_sem_token"));
             EmpresaEntity e = ler(emp);
-            assertEquals("erro", e.getStatusCadastro(), modo);
+            assertEquals("ERRO", e.getStatusCadastro(), modo);
             assertFalse(e.getNfseHabilitada());
         }
     }
@@ -317,7 +317,7 @@ class NfseEmitenteExistenteTest extends BaseApiTest {
         int posts = contagem("/_contagem");
         int listas = contagem("/_contagem_lista");
         put(tk, habilitar()).then().statusCode(200).body("habilitada", equalTo(true))
-                .body("statusCadastro", equalTo("cadastrado"));
+                .body("statusCadastro", equalTo("CADASTRADO"));
         assertEquals(posts, contagem("/_contagem"), "nao tenta criar de novo");
         assertEquals(listas + 1, contagem("/_contagem_lista"));
         EmpresaEntity e = ler(emp);
@@ -354,7 +354,7 @@ class NfseEmitenteExistenteTest extends BaseApiTest {
         put(tk, habilitar()).then().statusCode(502).body("codigo", equalTo("integranotas_recusou"))
                 .body("detalhes.erros", contains("cep: CEP inválido")).body("detalhes.codigoGateway", equalTo(5001));
         assertFalse(ler(emp).getNfseHabilitada());
-        assertEquals("cadastrado", ler(emp).getStatusCadastro(), "o token continua valido");
+        assertEquals("CADASTRADO", ler(emp).getStatusCadastro(), "o token continua valido");
         renomear(emp, "Fant corrigida");
         put(tk, habilitar()).then().statusCode(200).body("habilitada", equalTo(true));
     }
@@ -368,7 +368,7 @@ class NfseEmitenteExistenteTest extends BaseApiTest {
                 .body("detalhes.erros", hasItem("cep: CEP inválido"));
         EmpresaEntity e = ler(emp);
         assertFalse(e.getNfseHabilitada());
-        assertEquals("cadastrado", e.getStatusCadastro());
+        assertEquals("CADASTRADO", e.getStatusCadastro());
         assertEquals(tokenExistente, segredos.ler(e.getReferenciaTokenEmpresa()));
     }
 
