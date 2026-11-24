@@ -1,5 +1,6 @@
 import type { Papel } from '@/lib/api'
 import { EMPRESAS_MOCK, MOCK_USERS, MUNICIPIOS, type Municipio } from '@/mocks/fixtures'
+import { definirDelegacao, delegacaoDe } from '@/mocks/delegacao'
 import { erro, json } from '@/mocks/http'
 
 /* ---------------------------------------------------------------------------
@@ -229,7 +230,7 @@ function filtrar(q: Record<string, string | number | boolean | null | undefined>
   return rows
 }
 
-const comEmpresa = (v: VinculoRow) => ({ ...v, empresa: { id: v.empresaId, razaoSocial: EMPRESAS_MOCK[v.empresaId]?.razaoSocial ?? v.empresaId } })
+const comEmpresa = (uid: string, v: VinculoRow) => ({ ...v, podeCancelarNfse: v.papel === 'administrador' || delegacaoDe(uid, v.empresaId), empresa: { id: v.empresaId, razaoSocial: EMPRESAS_MOCK[v.empresaId]?.razaoSocial ?? v.empresaId } })
 
 async function importar(body: unknown, quem: string): Promise<Response> {
   const arquivo = body instanceof FormData ? body.get('arquivo') : null
@@ -408,7 +409,7 @@ export async function adminRoutes(req: { method: string; path: string; query?: R
     const uid = vins[1]!
     if (!usuarios.some((x) => x.id === uid)) return erro(404, 'usuario_nao_encontrado', 'Usuário não encontrado.')
     const lista = (vinculos[uid] ??= [])
-    if (!vins[2] && method === 'GET') return json(200, lista.map(comEmpresa))
+    if (!vins[2] && method === 'GET') return json(200, lista.map((v) => comEmpresa(uid, v)))
     if (!vins[2] && method === 'POST') {
       const empresaId = String(body.empresaId ?? '')
       const papel = body.papel as Papel
@@ -417,7 +418,8 @@ export async function adminRoutes(req: { method: string; path: string; query?: R
       if (lista.some((v) => v.empresaId === empresaId)) return erro(409, 'vinculo_duplicado', 'O usuário já tem vínculo com esta empresa.')
       const novo: VinculoRow = { id: `vin-${uid}-${++seq}`, empresaId, papel, ativo: true }
       lista.push(novo)
-      return json(200, comEmpresa(novo))
+      if (typeof body.podeCancelarNfse === 'boolean') definirDelegacao(uid, empresaId, body.podeCancelarNfse)
+      return json(200, comEmpresa(uid, novo))
     }
     if (vins[2] && method === 'PATCH') {
       const v = lista.find((x) => x.id === vins[2])
@@ -426,7 +428,8 @@ export async function adminRoutes(req: { method: string; path: string; query?: R
       if (!PAPEIS.includes(papel)) return erro(400, 'papel_invalido', 'Papel inválido.')
       v.papel = papel
       v.ativo = body.ativo !== false
-      return json(200, comEmpresa(v))
+      if (typeof body.podeCancelarNfse === 'boolean') definirDelegacao(uid, v.empresaId, body.podeCancelarNfse)
+      return json(200, comEmpresa(uid, v))
     }
   }
   return null

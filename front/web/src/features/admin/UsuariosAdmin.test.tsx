@@ -211,7 +211,44 @@ describe('UsuariosAdmin', () => {
     await user.click(await screen.findByRole('option', { name: 'Administrador' }))
     await user.click(within(dlg).getByRole('button', { name: 'Adicionar vínculo' }))
     await waitFor(() => expect(chamadas('POST', '/admin/usuarios/u1/vinculos')).toHaveLength(1))
-    expect(chamadas('POST', '/admin/usuarios/u1/vinculos')[0]![1].body).toEqual({ empresaId: 'emp-2', papel: 'administrador' })
+    expect(chamadas('POST', '/admin/usuarios/u1/vinculos')[0]![1].body).toEqual({ empresaId: 'emp-2', papel: 'administrador', podeCancelarNfse: false })
+  })
+
+  it('vinculos: coluna Pode cancelar delega ao operador (PATCH) e o formulario de adicionar leva o campo com a dica', async () => {
+    rotas()
+    const user = userEvent.setup()
+    renderTela()
+    await user.click(await screen.findByRole('button', { name: 'Vínculos de Ana Ribeiro' }))
+    const dlg = await screen.findByRole('dialog', { name: /Vínculos de Ana Ribeiro/ })
+    expect(await within(dlg).findByRole('columnheader', { name: 'Pode cancelar' })).toBeInTheDocument()
+    const interruptor = within(dlg).getByRole('switch', { name: 'Pode cancelar NFS-e em Horizonte Contábil Ltda' })
+    expect(interruptor).not.toBeChecked()
+    await user.click(interruptor)
+    await waitFor(() => expect(chamadas('PATCH', '/admin/usuarios/u1/vinculos/v1')).toHaveLength(1))
+    expect(chamadas('PATCH', '/admin/usuarios/u1/vinculos/v1')[0]![1].body).toEqual({ papel: 'operador', ativo: true, podeCancelarNfse: true })
+
+    expect(within(dlg).getByText('Administradores sempre podem; operadores só com esta permissão.')).toBeInTheDocument()
+    await user.click(within(dlg).getByRole('combobox', { name: /^Empresa/ }))
+    await user.click(await screen.findByRole('option', { name: 'Studio Bella ME' }))
+    await user.click(within(dlg).getByRole('combobox', { name: /^Papel\*?$/ }))
+    await user.click(await screen.findByRole('option', { name: 'Operador' }))
+    await user.click(within(dlg).getByRole('switch', { name: /Pode cancelar NFS-e \(delegar ao operador\)/ }))
+    await user.click(within(dlg).getByRole('button', { name: 'Adicionar vínculo' }))
+    await waitFor(() => expect(chamadas('POST', '/admin/usuarios/u1/vinculos')).toHaveLength(1))
+    expect(chamadas('POST', '/admin/usuarios/u1/vinculos')[0]![1].body).toEqual({ empresaId: 'emp-2', papel: 'operador', podeCancelarNfse: true })
+  })
+
+  it('vinculos: administrador sempre pode (interruptor marcado e travado)', async () => {
+    rotas((path, opts) => {
+      if (path === '/admin/usuarios/u1/vinculos' && !opts.method) return [{ ...VINCULOS[0], papel: 'administrador' }]
+    })
+    const user = userEvent.setup()
+    renderTela()
+    await user.click(await screen.findByRole('button', { name: 'Vínculos de Ana Ribeiro' }))
+    const dlg = await screen.findByRole('dialog', { name: /Vínculos de Ana Ribeiro/ })
+    const interruptor = await within(dlg).findByRole('switch', { name: 'Pode cancelar NFS-e em Horizonte Contábil Ltda' })
+    expect(interruptor).toBeChecked()
+    expect(interruptor).toBeDisabled()
   })
 
   it('vinculos: erro do servidor ao adicionar aparece no dialogo', async () => {

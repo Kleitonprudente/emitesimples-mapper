@@ -38,7 +38,7 @@ function AcaoIcone({ rotulo, onClick, children }: { rotulo: string; onClick: () 
 
 function colunas(abrir: (n: NotaItem) => void): ColumnDef<NotaItem>[] {
   return [
-    { id: 'numero', header: 'Número', enableSorting: false, cell: ({ row }) => `${row.original.serie}-${row.original.numero}` },
+    { id: 'numero', header: 'Número', enableSorting: false, cell: ({ row }) => (row.original.numero ? `${row.original.serie}-${row.original.numero}` : '—') },
     {
       id: 'cliente',
       header: 'Cliente',

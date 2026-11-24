@@ -64,7 +64,8 @@ describe('NotasLista', () => {
     ['emitida_offline', 'Emitida offline'],
     ['rejeitada', 'Rejeitada'],
     ['em_conflito', 'Em conflito'],
-    ['rascunho', 'Rascunho'],
+    ['rascunho', 'Rascunho (assistente)'],
+    ['falha_envio', 'Falha no envio'],
     ['cancelada', 'Cancelada'],
     ['descartada', 'Descartada'],
   ])('badge de situacao %s mostra %s', async (estado, rotulo) => {
@@ -124,6 +125,18 @@ describe('NotasLista', () => {
     await waitFor(() => expect(apiMock).toHaveBeenCalledWith('/nfse/notas/0/9', { query: { estado: 'rejeitada', busca: undefined } }))
     await user.type(screen.getByRole('searchbox', { name: 'Buscar' }), 'ana')
     await waitFor(() => expect(apiMock).toHaveBeenCalledWith('/nfse/notas/0/9', { query: { estado: 'rejeitada', busca: 'ana' } }))
+  })
+
+  it('o filtro de situacao oferece os estados novos (Falha no envio e Rascunho do assistente)', async () => {
+    prepara([nota()])
+    const user = userEvent.setup()
+    renderTela()
+    await screen.findByText('1-100')
+    await user.click(screen.getByRole('combobox', { name: 'Situação' }))
+    expect(await screen.findByRole('option', { name: 'Falha no envio' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Rascunho (assistente)' })).toBeInTheDocument()
+    await user.click(screen.getByRole('option', { name: 'Falha no envio' }))
+    await waitFor(() => expect(apiMock).toHaveBeenCalledWith('/nfse/notas/0/9', { query: { estado: 'falha_envio', busca: undefined } }))
   })
 
   it('mostra erro de carregamento com Tentar novamente', async () => {

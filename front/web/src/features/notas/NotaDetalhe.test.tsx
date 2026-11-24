@@ -49,7 +49,7 @@ function renderTela() {
     </QueryClientProvider>,
   )
 }
-const com = (papel: string) => ({ usuario: { id: 'u', nome: 'Ana', email: 'a@x.com' }, empresa: { id: 'e', razaoSocial: 'H' }, papel, plataformaAdmin: false })
+const com = (papel: string, podeCancelarNfse?: boolean) => ({ usuario: { id: 'u', nome: 'Ana', email: 'a@x.com' }, empresa: { id: 'e', razaoSocial: 'H' }, papel, plataformaAdmin: false, ...(podeCancelarNfse === undefined ? {} : { podeCancelarNfse }) })
 
 beforeEach(() => {
   apiMock.mockReset()
@@ -249,19 +249,216 @@ describe('NotaDetalhe', () => {
     })
   })
 
-  describe('rascunho', () => {
-    it('com podeReenviar mostra aviso de nao enviada e o formulario', async () => {
-      prepara(nota({ estado: 'rascunho', podeReenviar: true, editavel: true }))
+  describe('falha no envio', () => {
+    const FALHA = nota({ estado: 'falha_envio', mensagemRetorno: 'Falha de comunicação com o gateway.', podeReenviar: true, editavel: true })
+
+    it('badge de aviso, explica a falha e reenvia como rejeitada (mesmo numero)', async () => {
+      prepara(FALHA)
+      aoPost = async () => nota({ estado: 'processando', podeAtualizar: true })
       renderTela()
-      expect(await screen.findByText('Esta nota ainda não foi enviada.')).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Corrigir e reenviar' })).toBeInTheDocument()
+      expect(await screen.findByText('Falha no envio')).toBeInTheDocument()
+      expect(screen.getByText('Falha de comunicação com o gateway.')).toBeInTheDocument()
+      expect(screen.getByText('A nota não chegou à prefeitura por uma falha no envio. Reenvie para tentar de novo.')).toBeInTheDocument()
+      expect(screen.getByText('O número da nota é mantido no reenvio.')).toBeInTheDocument()
+      await userEvent.setup().click(screen.getByRole('button', { name: 'Corrigir e reenviar' }))
+      await waitFor(() => expect(posts()[0]![0]).toBe('/nfse/notas/n1/enviar'))
+      await waitFor(() => expect(toastMock.success).toHaveBeenCalledWith('Nota reenviada.'))
     })
 
-    it('sem podeReenviar e leitura', async () => {
+    it('sem podeReenviar fica somente leitura', async () => {
+      prepara({ ...FALHA, podeReenviar: false })
+      renderTela()
+      await screen.findByText('A nota não chegou à prefeitura por uma falha no envio. Reenvie para tentar de novo.')
+      expect(screen.queryByRole('button', { name: 'Corrigir e reenviar' })).not.toBeInTheDocument()
+    })
+
+    it('consulta nao ve o formulario de reenvio', async () => {
+      sessao.atual = com('consulta')
+      prepara(FALHA)
+      renderTela()
+      await screen.findByText('Falha de comunicação com o gateway.')
+      expect(screen.queryByRole('button', { name: 'Corrigir e reenviar' })).not.toBeInTheDocument()
+    })
+  })
+
+  describe('rascunho do assistente', () => {
+    const RASCUNHO = nota({ estado: 'rascunho', podeAprovar: true, podeDescartar: true })
+    const APROVADA = nota({ estado: 'processando', podeAtualizar: true })
+
+    it('mostra o aviso e o badge, e nunca o formulario de reenvio nem o antigo "ainda nao foi enviada"', async () => {
+      prepara(nota({ estado: 'rascunho', podeReenviar: true, editavel: true, podeAprovar: true, podeDescartar: true }))
+      renderTela()
+      expect(await screen.findByText('Preparada pelo assistente. Revise e aprove para emitir.')).toBeInTheDocument()
+      expect(screen.getByText('Rascunho (assistente)')).toBeInTheDocument()
+      expect(screen.queryByText('Esta nota ainda não foi enviada.')).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Corrigir e reenviar' })).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Aprovar e emitir' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Descartar' })).toBeInTheDocument()
+    })
+
+    it('os botoes seguem podeAprovar e podeDescartar', async () => {
+      prepara(nota({ estado: 'rascunho', podeAprovar: false, podeDescartar: true }))
+      renderTela()
+      await screen.findByText('Preparada pelo assistente. Revise e aprove para emitir.')
+      expect(screen.queryByRole('button', { name: 'Aprovar e emitir' })).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Descartar' })).toBeInTheDocument()
+    })
+
+    it('sem as permissoes nao ha botoes (leitura)', async () => {
       prepara(nota({ estado: 'rascunho' }))
       renderTela()
-      await screen.findByText('Rascunho')
-      expect(screen.queryByRole('button', { name: 'Corrigir e reenviar' })).not.toBeInTheDocument()
+      await screen.findByText('Rascunho (assistente)')
+      expect(screen.queryByRole('button', { name: /Aprovar|Descartar/ })).not.toBeInTheDocument()
+    })
+
+    it('Aprovar e emitir pede confirmacao, so chama /aprovar ao confirmar e a nota vai a processando', async () => {
+      prepara(RASCUNHO)
+      aoPost = async () => {
+        atual = APROVADA
+        return atual
+      }
+      const user = userEvent.setup()
+      renderTela()
+      await user.click(await screen.findByRole('button', { name: 'Aprovar e emitir' }))
+      const dlg = await screen.findByRole('alertdialog')
+      expect(within(dlg).getByText('Aprovar e emitir esta nota?')).toBeInTheDocument()
+      expect(posts()).toHaveLength(0)
+      await user.click(within(dlg).getByRole('button', { name: 'Voltar' }))
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
+      expect(posts()).toHaveLength(0)
+      await user.click(screen.getByRole('button', { name: 'Aprovar e emitir' }))
+      await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Confirmar' }))
+      await waitFor(() => expect(posts()).toHaveLength(1))
+      expect(posts()[0]).toEqual(['/nfse/notas/n1/aprovar', { method: 'POST' }])
+      expect(await screen.findByText('Aguardando a autorização da prefeitura…')).toBeInTheDocument()
+      expect(toastMock.success).toHaveBeenCalledWith('Nota aprovada e enviada à prefeitura.')
+      expect(screen.queryByRole('button', { name: 'Aprovar e emitir' })).not.toBeInTheDocument()
+    })
+
+    it('Descartar pede confirmacao, chama /descartar e a nota vira Descartada', async () => {
+      prepara(RASCUNHO)
+      aoPost = async () => {
+        atual = nota({ estado: 'descartada' })
+        return atual
+      }
+      const user = userEvent.setup()
+      renderTela()
+      await user.click(await screen.findByRole('button', { name: 'Descartar' }))
+      const dlg = await screen.findByRole('alertdialog')
+      expect(within(dlg).getByText('Descartar este rascunho?')).toBeInTheDocument()
+      expect(posts()).toHaveLength(0)
+      await user.click(within(dlg).getByRole('button', { name: 'Confirmar' }))
+      await waitFor(() => expect(posts()[0]).toEqual(['/nfse/notas/n1/descartar', { method: 'POST' }]))
+      expect(await screen.findByText('Descartada')).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Descartar' })).not.toBeInTheDocument()
+      expect(toastMock.success).toHaveBeenCalledWith('Rascunho descartado.')
+    })
+
+    it('erro do back ao aprovar aparece legivel e os botoes continuam', async () => {
+      prepara(RASCUNHO)
+      aoPost = async () => {
+        throw new ApiError(409, 'certificado_nao_valido', 'x')
+      }
+      const user = userEvent.setup()
+      renderTela()
+      await user.click(await screen.findByRole('button', { name: 'Aprovar e emitir' }))
+      await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Confirmar' }))
+      expect(await screen.findByText('O certificado digital não está válido. Envie em Configuração > Empresa.')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Aprovar e emitir' })).toBeEnabled()
+    })
+
+    it('nao ha botao para preparar nota pelo assistente na tela', async () => {
+      prepara(RASCUNHO)
+      renderTela()
+      await screen.findByText('Rascunho (assistente)')
+      expect(screen.queryByRole('button', { name: /Preparar|Nova nota/i })).not.toBeInTheDocument()
+    })
+  })
+
+  describe('cancelamento preparado pelo assistente', () => {
+    const MOTIVO = 'Valor emitido errado, nota refeita.'
+    const COM_RASCUNHO = (extra: object = {}) =>
+      nota({ cancelamento: { id: 'c1', estado: 'rascunho', codigoMotivo: 1, motivo: MOTIVO, solicitadoEm: '2026-11-23T11:00:00', podeAprovar: true, podeDescartar: true, ...extra } })
+
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(new Date('2026-11-23T15:00:00Z'))
+    })
+
+    it('mostra o bloco com os botoes, a situacao e esconde Cancelar NFS-e', async () => {
+      sessao.atual = com('administrador')
+      prepara(COM_RASCUNHO())
+      renderTela()
+      expect(await screen.findByText('Cancelamento preparado pelo assistente')).toBeInTheDocument()
+      expect(screen.getByText(MOTIVO)).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Aprovar cancelamento' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Descartar' })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Cancelar NFS-e' })).not.toBeInTheDocument()
+    })
+
+    it('os botoes seguem cancelamento.podeAprovar e podeDescartar', async () => {
+      prepara(COM_RASCUNHO({ podeAprovar: false, podeDescartar: false }))
+      renderTela()
+      await screen.findByText('Cancelamento preparado pelo assistente')
+      expect(screen.queryByRole('button', { name: 'Aprovar cancelamento' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Descartar' })).not.toBeInTheDocument()
+    })
+
+    it('Aprovar cancelamento confirma e chama /nfse/cancelamentos/{id}/aprovar', async () => {
+      prepara(COM_RASCUNHO())
+      aoPost = async () => {
+        atual = nota({ estado: 'cancelada', cancelamento: { id: 'c1', estado: 'concluido', codigoMotivo: 1, motivo: MOTIVO } })
+        return atual
+      }
+      const user = userEvent.setup()
+      renderTela()
+      await user.click(await screen.findByRole('button', { name: 'Aprovar cancelamento' }))
+      const dlg = await screen.findByRole('alertdialog')
+      expect(within(dlg).getByText('Aprovar o cancelamento da nota?')).toBeInTheDocument()
+      expect(posts()).toHaveLength(0)
+      await user.click(within(dlg).getByRole('button', { name: 'Confirmar' }))
+      await waitFor(() => expect(posts()[0]).toEqual(['/nfse/cancelamentos/c1/aprovar', { method: 'POST' }]))
+      expect(await screen.findByText('Cancelada')).toBeInTheDocument()
+      expect(screen.queryByText('Cancelamento preparado pelo assistente')).not.toBeInTheDocument()
+    })
+
+    it('Descartar o cancelamento chama /descartar e a nota volta a poder cancelar', async () => {
+      sessao.atual = com('administrador')
+      prepara(COM_RASCUNHO())
+      aoPost = async () => {
+        atual = nota({ cancelamento: { id: 'c1', estado: 'descartado', codigoMotivo: 1, motivo: MOTIVO } })
+        return atual
+      }
+      const user = userEvent.setup()
+      renderTela()
+      await user.click(await screen.findByRole('button', { name: 'Descartar' }))
+      await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Confirmar' }))
+      await waitFor(() => expect(posts()[0]).toEqual(['/nfse/cancelamentos/c1/descartar', { method: 'POST' }]))
+      expect(await screen.findByText('Descartado')).toBeInTheDocument()
+      expect(screen.queryByText('Cancelamento preparado pelo assistente')).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Cancelar NFS-e' })).toBeInTheDocument()
+    })
+
+    it('erro do back (sem delegacao) aparece em mensagem legivel', async () => {
+      prepara(COM_RASCUNHO())
+      aoPost = async () => {
+        throw new ApiError(403, 'cancelamento_nao_delegado', 'Seu usuário não tem permissão para cancelar notas. Peça ao administrador.')
+      }
+      const user = userEvent.setup()
+      renderTela()
+      await user.click(await screen.findByRole('button', { name: 'Aprovar cancelamento' }))
+      await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Confirmar' }))
+      expect(await screen.findByText('Seu usuário não tem permissão para cancelar notas. Peça ao administrador.')).toBeInTheDocument()
+    })
+
+    it.each([
+      ['expirado', 'Expirado: sem confirmação'],
+      ['descartado', 'Descartado'],
+    ])('cancelamento %s mostra o rotulo %s e nenhum botao do assistente', async (estado, rotulo) => {
+      prepara(nota({ cancelamento: { id: 'c9', estado, codigoMotivo: 1, motivo: MOTIVO } }))
+      renderTela()
+      expect(await screen.findByText(rotulo)).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /Aprovar cancelamento/ })).not.toBeInTheDocument()
     })
   })
 
@@ -310,9 +507,10 @@ describe('NotaDetalhe', () => {
     beforeEach(() => {
       vi.useFakeTimers({ toFake: ['Date'] })
       vi.setSystemTime(new Date('2026-11-23T15:00:00Z'))
+      sessao.atual = com('operador', true)
     })
 
-    it('operador ve o botao em nota autorizada do mes vigente', async () => {
+    it('operador delegado ve o botao em nota autorizada do mes vigente', async () => {
       prepara(nota())
       renderTela()
       expect(await screen.findByRole('button', { name: 'Cancelar NFS-e' })).toBeInTheDocument()
@@ -326,11 +524,57 @@ describe('NotaDetalhe', () => {
       ['operador', 'autorizada', { podeCancelar: false }],
       ['operador', 'autorizada', { cancelamento: { estado: 'processando' } }],
     ])('%s com nota %s %j: sem botao Cancelar', async (papel, estado, extra) => {
-      sessao.atual = com(papel)
+      sessao.atual = com(papel, true)
       prepara(nota({ estado, ...extra }))
       renderTela()
       await screen.findByRole('heading', { name: 'Nota 1-100' })
       expect(botaoCancelar()).not.toBeInTheDocument()
+    })
+
+    it('operador SEM delegacao nao ve o botao, mas ve o texto discreto no mes vigente', async () => {
+      sessao.atual = com('operador', false)
+      prepara(nota({ podeCancelar: false }))
+      renderTela()
+      expect(await screen.findByText('Cancelamento depende de permissão delegada pelo administrador.')).toBeInTheDocument()
+      expect(botaoCancelar()).not.toBeInTheDocument()
+    })
+
+    it('sessao sem o campo podeCancelarNfse (leitura tolerante): operador nao cancela', async () => {
+      sessao.atual = com('operador')
+      prepara(nota())
+      renderTela()
+      expect(await screen.findByText('Cancelamento depende de permissão delegada pelo administrador.')).toBeInTheDocument()
+      expect(botaoCancelar()).not.toBeInTheDocument()
+    })
+
+    it('administrador sem o campo na sessao ve o botao e nao ve o texto', async () => {
+      sessao.atual = com('administrador')
+      prepara(nota())
+      renderTela()
+      expect(await screen.findByRole('button', { name: 'Cancelar NFS-e' })).toBeInTheDocument()
+      expect(screen.queryByText('Cancelamento depende de permissão delegada pelo administrador.')).not.toBeInTheDocument()
+    })
+
+    it('sem delegacao e fora do mes vigente nao mostra o texto (nada a delegar)', async () => {
+      sessao.atual = com('operador', false)
+      prepara(nota({ dataEmissao: '2026-10-20T14:00:00', podeCancelar: false }))
+      renderTela()
+      await screen.findByRole('heading', { name: 'Nota 1-100' })
+      expect(screen.queryByText('Cancelamento depende de permissão delegada pelo administrador.')).not.toBeInTheDocument()
+      expect(botaoCancelar()).not.toBeInTheDocument()
+    })
+
+    it('403 cancelamento_nao_delegado do back aparece no modal com a mensagem do back', async () => {
+      prepara(nota())
+      aoPost = async () => {
+        throw new ApiError(403, 'cancelamento_nao_delegado', 'Seu usuário não tem permissão para cancelar notas. Peça ao administrador.')
+      }
+      renderTela()
+      const d = await abrirModal()
+      digitar(d, JUSTIFICATIVA)
+      await userEvent.setup().click(confirmar(d))
+      expect(await within(d).findByText('Seu usuário não tem permissão para cancelar notas. Peça ao administrador.')).toBeInTheDocument()
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
 
     it('fora do mes vigente avisa na pagina e nao abre o modal nem chama a API', async () => {

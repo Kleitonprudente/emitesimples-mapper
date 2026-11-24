@@ -13,9 +13,9 @@ import type { TableState } from '@/runtime/table-state'
  *     POST /admin/usuarios {nome, email, whatsapp?, senha, ativo, vinculos?:[{empresaId, papel}]}
  *     PATCH /admin/usuarios/{id} {nome?, whatsapp?, ativo?}        (whatsapp '' apaga; 400 auto_desativacao)
  *     POST /admin/usuarios/{id}/senha {senha}                       -> 204
- *     GET  /admin/usuarios/{id}/vinculos                           -> [{id, empresaId, empresa?:{razaoSocial}, papel, ativo}]
- *     POST /admin/usuarios/{id}/vinculos {empresaId, papel}
- *     PATCH /admin/usuarios/{id}/vinculos/{vinculoId} {papel?, ativo?}   (nunca exclui: so desativa)
+ *     GET  /admin/usuarios/{id}/vinculos                           -> [{id, empresaId, empresa?:{razaoSocial}, papel, ativo, podeCancelarNfse}]
+ *     POST /admin/usuarios/{id}/vinculos {empresaId, papel, podeCancelarNfse?}
+ *     PATCH /admin/usuarios/{id}/vinculos/{vinculoId} {papel?, ativo?, podeCancelarNfse?}   (nunca exclui: so desativa)
  *     GET  /Empresa?razaoSocial=*termo*&sortBy=razaoSocial         -> [{id, razaoSocial}]   (Combobox de empresa)
  *   Municipios
  *     POST /admin/municipios/importacao  multipart, campo `arquivo` -> {id, linhasLidas, criados, atualizados, inalterados, rejeitados:[{linha, motivo}], totalRejeitados, nomeArquivo, estado, dataHoraInicio}
@@ -70,6 +70,8 @@ export interface Vinculo {
   empresaNome: string
   papel: Papel
   ativo: boolean
+  /** Delegacao de cancelar NFS-e ao operador (ausente = false). Administrador sempre pode. */
+  podeCancelarNfse: boolean
 }
 
 export function lerVinculo(raw: unknown): Vinculo {
@@ -82,6 +84,7 @@ export function lerVinculo(raw: unknown): Vinculo {
     empresaNome: str(empresa.razaoSocial) ?? str(r.empresaRazaoSocial) ?? str(r.razaoSocial) ?? empresaId,
     papel: (str(r.papel) ?? 'consulta') as Papel,
     ativo: r.ativo !== false,
+    podeCancelarNfse: r.podeCancelarNfse === true,
   }
 }
 
@@ -161,7 +164,7 @@ export function useVinculos(usuarioId: string) {
 export function useAdicionarVinculo(usuarioId: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (v: { empresaId: string; papel: Papel }) => api<unknown>(`/admin/usuarios/${usuarioId}/vinculos`, { method: 'POST', body: v }),
+    mutationFn: (v: { empresaId: string; papel: Papel; podeCancelarNfse?: boolean }) => api<unknown>(`/admin/usuarios/${usuarioId}/vinculos`, { method: 'POST', body: v }),
     onSuccess: () => qc.invalidateQueries({ queryKey: adminKeys.vinculos(usuarioId) }),
   })
 }
@@ -169,8 +172,8 @@ export function useAdicionarVinculo(usuarioId: string) {
 export function useAtualizarVinculo(usuarioId: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (v: { vinculoId: string; papel: Papel; ativo: boolean }) =>
-      api<unknown>(`/admin/usuarios/${usuarioId}/vinculos/${v.vinculoId}`, { method: 'PATCH', body: { papel: v.papel, ativo: v.ativo } }),
+    mutationFn: (v: { vinculoId: string; papel: Papel; ativo: boolean; podeCancelarNfse?: boolean }) =>
+      api<unknown>(`/admin/usuarios/${usuarioId}/vinculos/${v.vinculoId}`, { method: 'PATCH', body: { papel: v.papel, ativo: v.ativo, podeCancelarNfse: v.podeCancelarNfse } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: adminKeys.vinculos(usuarioId) }),
   })
 }

@@ -54,6 +54,7 @@ describe('VinculosDaEmpresa', () => {
     expect(screen.getByText('10/01/2026')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Criar novo usuário' })).toHaveAttribute('href', '/admin/usuarios')
     expect(screen.getByText('O usuário precisa existir antes de ser vinculado.')).toBeInTheDocument()
+    expect(screen.getByText('Administradores sempre podem; operadores só com esta permissão.')).toBeInTheDocument()
   })
 
   it('mostra o estado vazio', async () => {
@@ -123,7 +124,43 @@ describe('VinculosDaEmpresa', () => {
     await escolheCarla(user)
     await user.click(screen.getByRole('button', { name: 'Vincular' }))
     await waitFor(() => expect(chamadas('POST')).toHaveLength(1))
-    expect(chamadas('POST')[0]).toEqual([URL_V, { method: 'POST', body: { usuarioId: 'u3', papel: 'operador' } }])
+    expect(chamadas('POST')[0]).toEqual([URL_V, { method: 'POST', body: { usuarioId: 'u3', papel: 'operador', podeCancelarNfse: false } }])
+  })
+
+  it('coluna Pode cancelar: administrador sempre (marcado e travado), operador pela delegacao, e a dica', async () => {
+    prepara([ANA, { ...BRUNO, ativo: true, podeCancelarNfse: false }, { ...BRUNO, id: 'v4', usuario: { ...BRUNO.usuario, id: 'u4', nome: 'Davi Delegado' }, podeCancelarNfse: true }])
+    renderTela()
+    await screen.findByText('Ana Ribeiro')
+    expect(screen.getByRole('columnheader', { name: 'Pode cancelar' })).toBeInTheDocument()
+    const ana = screen.getByRole('switch', { name: 'Pode cancelar NFS-e: Ana Ribeiro' })
+    expect(ana).toBeChecked()
+    expect(ana).toBeDisabled()
+    expect(screen.getByRole('switch', { name: 'Pode cancelar NFS-e: Bruno Operador' })).not.toBeChecked()
+    expect(screen.getByRole('switch', { name: 'Pode cancelar NFS-e: Davi Delegado' })).toBeChecked()
+    expect(screen.getByText('Administradores sempre podem; operadores só com esta permissão.')).toBeInTheDocument()
+  })
+
+  it('delegar e remover a delegacao enviam PATCH com podeCancelarNfse', async () => {
+    prepara([{ ...BRUNO, ativo: true, podeCancelarNfse: false }])
+    renderTela()
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('switch', { name: 'Pode cancelar NFS-e: Bruno Operador' }))
+    await waitFor(() => expect(chamadas('PATCH')).toHaveLength(1))
+    expect(chamadas('PATCH')[0]).toEqual([`${URL_V}/v2`, { method: 'PATCH', body: { papel: undefined, ativo: undefined, podeCancelarNfse: true } }])
+  })
+
+  it('o formulario de vincular tem o interruptor de delegacao e envia no POST', async () => {
+    prepara([ANA])
+    aoEnviar = () => ({})
+    renderTela()
+    const user = userEvent.setup()
+    await escolheCarla(user)
+    const delegar = screen.getByRole('switch', { name: 'Pode cancelar NFS-e (delegar ao operador)' })
+    expect(delegar).not.toBeChecked()
+    await user.click(delegar)
+    await user.click(screen.getByRole('button', { name: 'Vincular' }))
+    await waitFor(() => expect(chamadas('POST')).toHaveLength(1))
+    expect(chamadas('POST')[0]![1].body).toEqual({ usuarioId: 'u3', papel: 'operador', podeCancelarNfse: true })
   })
 
   it('409 mostra a mensagem de usuario ja vinculado', async () => {

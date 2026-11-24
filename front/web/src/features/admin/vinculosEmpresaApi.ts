@@ -6,16 +6,23 @@ import type { FkSource } from '@/runtime/Combobox'
 /* ---------------------------------------------------------------------------
  * Vinculos de usuario de UMA empresa (aba "Usuarios" do cadastro de Empresa; so plataforma).
  *   GET   /admin/empresas/{empresaId}/vinculos -> [{id, usuario:{id,nome,email,ativo}, papel, ativo, dataCriacao}]
- *   POST  /admin/empresas/{empresaId}/vinculos {usuarioId, papel, ativo?}  -> 201 (409 vinculo_ja_existe, 404 usuario_nao_encontrado, 400 papel invalido)
- *   PATCH /admin/empresas/{empresaId}/vinculos/{vinculoId} {papel?, ativo?}  (nunca exclui: so desativa)
+ *   (resposta e lista tambem trazem `podeCancelarNfse`: boolean, delegacao de cancelar NFS-e; administrador sempre pode)
+ *   POST  /admin/empresas/{empresaId}/vinculos {usuarioId, papel, ativo?, podeCancelarNfse?}  -> 201 (409 vinculo_ja_existe, 404 usuario_nao_encontrado, 400 papel invalido)
+ *   PATCH /admin/empresas/{empresaId}/vinculos/{vinculoId} {papel?, ativo?, podeCancelarNfse?}  (nunca exclui: so desativa)
  *   GET   /admin/usuarios/{from}/{to}?busca&ativo=true -> busca do usuario a vincular (rota ja usada por adminApi)
  * ------------------------------------------------------------------------- */
+
+/** Textos da delegacao de cancelar NFS-e (usados tambem na tela de usuarios). */
+export const ROTULO_PODE_CANCELAR = 'Pode cancelar NFS-e (delegar ao operador)'
+export const DICA_PODE_CANCELAR = 'Administradores sempre podem; operadores só com esta permissão.'
 
 export interface VinculoDaEmpresa {
   id: string
   usuario: { id: string; nome: string; email: string; ativo: boolean }
   papel: Papel
   ativo: boolean
+  /** Delegacao de cancelar NFS-e ao operador (ausente = false). Administrador sempre pode, qualquer que seja o valor. */
+  podeCancelarNfse: boolean
   dataCriacao?: string
 }
 
@@ -29,6 +36,7 @@ export function lerVinculoDaEmpresa(raw: unknown): VinculoDaEmpresa {
     usuario: { id: u.id, nome: u.nome, email: u.email, ativo: u.ativo },
     papel: (typeof r.papel === 'string' ? r.papel : 'consulta') as Papel,
     ativo: r.ativo !== false,
+    podeCancelarNfse: r.podeCancelarNfse === true,
     dataCriacao: typeof r.dataCriacao === 'string' ? r.dataCriacao : undefined,
   }
 }
@@ -47,7 +55,7 @@ export function useVinculosDaEmpresa(empresaId: string) {
 export function useVincularUsuario(empresaId: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (v: { usuarioId: string; papel: Papel; ativo?: boolean }) => api<unknown>(`/admin/empresas/${empresaId}/vinculos`, { method: 'POST', body: v }),
+    mutationFn: (v: { usuarioId: string; papel: Papel; ativo?: boolean; podeCancelarNfse?: boolean }) => api<unknown>(`/admin/empresas/${empresaId}/vinculos`, { method: 'POST', body: v }),
     onSuccess: () => qc.invalidateQueries({ queryKey: vinculosEmpresaKeys.lista(empresaId) }),
   })
 }
@@ -55,8 +63,8 @@ export function useVincularUsuario(empresaId: string) {
 export function useAtualizarVinculoDaEmpresa(empresaId: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (v: { vinculoId: string; papel?: Papel; ativo?: boolean }) =>
-      api<unknown>(`/admin/empresas/${empresaId}/vinculos/${v.vinculoId}`, { method: 'PATCH', body: { papel: v.papel, ativo: v.ativo } }),
+    mutationFn: (v: { vinculoId: string; papel?: Papel; ativo?: boolean; podeCancelarNfse?: boolean }) =>
+      api<unknown>(`/admin/empresas/${empresaId}/vinculos/${v.vinculoId}`, { method: 'PATCH', body: { papel: v.papel, ativo: v.ativo, podeCancelarNfse: v.podeCancelarNfse } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: vinculosEmpresaKeys.lista(empresaId) }),
   })
 }

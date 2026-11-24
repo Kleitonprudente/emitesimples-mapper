@@ -20,7 +20,7 @@ describe('mock registry', () => {
   it('login valido devolve o contrato (sem refreshToken no corpo)', async () => {
     const r = await call('POST', '/auth/login', { email: 'admin@exemplo.com.br', senha: 'senha1234' })
     expect(r.status).toBe(200)
-    expect(Object.keys(r.body).sort()).toEqual(['accessToken', 'empresa', 'expiresIn', 'papel', 'plataformaAdmin', 'usuario'])
+    expect(Object.keys(r.body).sort()).toEqual(['accessToken', 'empresa', 'expiresIn', 'papel', 'plataformaAdmin', 'podeCancelarNfse', 'usuario'])
     expect(r.body.papel).toBe('administrador')
   })
 

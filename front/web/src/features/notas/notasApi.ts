@@ -20,6 +20,11 @@ import type { TableState } from '@/runtime/table-state'
  *        com `cancelamento.estado = 'processando'` ate /atualizar (ou o webhook) concluir.
  *        NotaDetalhe ganha `cancelamento` ({estado: 'processando'|'concluido'|'recusado', codigoMotivo, motivo, codigoRetorno,
  *        mensagemRetorno, dataHoraEvento, solicitadoEm} | null) e `podeCancelar` (boolean; ausente = o cliente calcula).
+ *        Delegacao: operador so cancela com `podeCancelarNfse` na sessao; sem ela 403 `cancelamento_nao_delegado` (mensagem do back).
+ *   Assistente (a UI NAO prepara; so aprova ou descarta o que o assistente preparou):
+ *   POST /nfse/notas/preparar (corpo de criar) -> NotaDetalhe `rascunho`; POST /nfse/notas/{id}/aprovar (corpo opcional como /enviar) -> processando;
+ *   POST /nfse/notas/{id}/descartar -> `descartada`; POST /nfse/notas/{id}/cancelamentos/preparar {codigoMotivo, motivo} -> cancelamento `rascunho`;
+ *   POST /nfse/cancelamentos/{id}/aprovar | /descartar -> NotaDetalhe. NotaDetalhe: `podeAprovar`, `podeDescartar`; `cancelamento`: `id`, `podeAprovar`, `podeDescartar`.
  *   GET  /nfse/notas/{id}/pdf                    -> application/pdf (404 pdf_indisponivel)
  * Erros {codigo, mensagem, detalhes?}: 409 nfse_nao_habilitada|emitente_nao_cadastrado|emitente_de_outro_ambiente|certificado_nao_valido|
  *   servico_inativo|nota_em_processamento|nota_nao_editavel|nota_em_conflito; cancelar: 409 nota_nao_autorizada|
@@ -27,12 +32,14 @@ import type { TableState } from '@/runtime/table-state'
  *   400 requisicao_invalida (detalhes.campos)|discriminacao_obrigatoria; 404; 403; 429. Leitura tolerante (campo ausente = padrao seguro).
  * ------------------------------------------------------------------------- */
 
-export type EstadoNota = 'rascunho' | 'processando' | 'emitida_offline' | 'autorizada' | 'rejeitada' | 'em_conflito' | 'cancelada' | 'descartada'
+/** `rascunho` e SO do assistente de IA (nunca na emissao direta); `falha_envio` = falha de infraestrutura no envio direto (reenviavel, mesmo numero). */
+export type EstadoNota = 'rascunho' | 'falha_envio' | 'processando' | 'emitida_offline' | 'autorizada' | 'rejeitada' | 'em_conflito' | 'cancelada' | 'descartada'
 
-export const ESTADOS: readonly EstadoNota[] = ['rascunho', 'processando', 'emitida_offline', 'autorizada', 'rejeitada', 'em_conflito', 'cancelada', 'descartada']
+export const ESTADOS: readonly EstadoNota[] = ['rascunho', 'falha_envio', 'processando', 'emitida_offline', 'autorizada', 'rejeitada', 'em_conflito', 'cancelada', 'descartada']
 
 export const ESTADO: Record<EstadoNota, { rotulo: string; tone: BadgeTone }> = {
-  rascunho: { rotulo: 'Rascunho', tone: 'neutral' },
+  rascunho: { rotulo: 'Rascunho (assistente)', tone: 'neutral' },
+  falha_envio: { rotulo: 'Falha no envio', tone: 'warning' },
   processando: { rotulo: 'Processando', tone: 'info' },
   emitida_offline: { rotulo: 'Emitida offline', tone: 'info' },
   autorizada: { rotulo: 'Autorizada', tone: 'success' },
@@ -80,12 +87,25 @@ export interface NotaDetalhe extends NotaItem {
   cancelamento: Cancelamento | null
   /** Ausente no back = undefined (o cliente calcula). */
   podeCancelar?: boolean
+  /** Rascunho do assistente: quem pode emitir aprova (envia) ou descarta. */
+  podeAprovar: boolean
+  podeDescartar: boolean
 }
 
-export type EstadoCancelamento = 'processando' | 'concluido' | 'recusado'
+export type EstadoCancelamento = 'rascunho' | 'processando' | 'concluido' | 'recusado' | 'expirado' | 'descartado'
+
+export const CANCELAMENTO: Record<EstadoCancelamento, { rotulo: string; tone: BadgeTone }> = {
+  rascunho: { rotulo: 'Rascunho (assistente)', tone: 'neutral' },
+  processando: { rotulo: 'Em processamento', tone: 'info' },
+  concluido: { rotulo: 'Concluído', tone: 'success' },
+  recusado: { rotulo: 'Recusado', tone: 'danger' },
+  expirado: { rotulo: 'Expirado: sem confirmação', tone: 'warning' },
+  descartado: { rotulo: 'Descartado', tone: 'neutral' },
+}
 export type CodigoMotivo = 1 | 2 | 9
 
 export interface Cancelamento {
+  id?: string
   estado: EstadoCancelamento
   codigoMotivo?: number
   motivo?: string
@@ -93,6 +113,8 @@ export interface Cancelamento {
   mensagemRetorno?: string
   dataHoraEvento?: string
   solicitadoEm?: string
+  podeAprovar: boolean
+  podeDescartar: boolean
 }
 
 export interface CorpoNota {
@@ -129,13 +151,14 @@ export function lerNota(raw: unknown): NotaItem {
   }
 }
 
-const ESTADOS_CANCELAMENTO: readonly EstadoCancelamento[] = ['processando', 'concluido', 'recusado']
+const ESTADOS_CANCELAMENTO = Object.keys(CANCELAMENTO) as EstadoCancelamento[]
 
 function lerCancelamento(raw: unknown): Cancelamento | null {
   if (!raw || typeof raw !== 'object') return null
   const c = rec(raw)
   if (!ESTADOS_CANCELAMENTO.includes(c.estado as EstadoCancelamento)) return null
   return {
+    id: str(c.id),
     estado: c.estado as EstadoCancelamento,
     codigoMotivo: typeof c.codigoMotivo === 'number' ? c.codigoMotivo : undefined,
     motivo: str(c.motivo),
@@ -143,6 +166,8 @@ function lerCancelamento(raw: unknown): Cancelamento | null {
     mensagemRetorno: str(c.mensagemRetorno),
     dataHoraEvento: str(c.dataHoraEvento),
     solicitadoEm: str(c.solicitadoEm),
+    podeAprovar: c.podeAprovar === true,
+    podeDescartar: c.podeDescartar === true,
   }
 }
 
@@ -165,6 +190,8 @@ export function lerDetalhe(raw: unknown): NotaDetalhe {
     podeAtualizar: r.podeAtualizar === true,
     cancelamento: lerCancelamento(r.cancelamento),
     podeCancelar: typeof r.podeCancelar === 'boolean' ? r.podeCancelar : undefined,
+    podeAprovar: r.podeAprovar === true,
+    podeDescartar: r.podeDescartar === true,
   }
 }
 
@@ -191,6 +218,7 @@ export const cancelarSchema = z.object({
 })
 export type CorpoCancelamento = z.infer<typeof cancelarSchema>
 
+export const MENSAGEM_NAO_DELEGADO = 'Seu usuário não tem permissão para cancelar notas. Peça ao administrador.'
 export const MENSAGEM_FORA_DO_MES = 'O cancelamento só é possível dentro do mês vigente da emissão da nota.'
 const FUSO = 'America/Sao_Paulo'
 
@@ -290,6 +318,34 @@ export function useCancelarNota(id: string) {
     },
   })
 }
+
+/** Aprovar (envia a nota preparada pelo assistente) ou descartar. Atualiza o cache da nota aberta com o detalhe devolvido. */
+function useAcaoDaNota(notaId: string, acao: 'aprovar' | 'descartar') {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async () => lerDetalhe(await api<unknown>(`/nfse/notas/${encodeURIComponent(notaId)}/${acao}`, { method: 'POST' })),
+    onSuccess: (nota) => {
+      qc.setQueryData(notasKeys.one(notaId), nota)
+      return qc.invalidateQueries({ queryKey: ['nfse', 'notas', 'list'] })
+    },
+  })
+}
+export const useAprovarNota = (notaId: string) => useAcaoDaNota(notaId, 'aprovar')
+export const useDescartarNota = (notaId: string) => useAcaoDaNota(notaId, 'descartar')
+
+/** Aprovar ou descartar o cancelamento preparado pelo assistente; a rota usa o id do CANCELAMENTO e devolve a nota. */
+function useAcaoDoCancelamento(notaId: string, cancelamentoId: string | undefined, acao: 'aprovar' | 'descartar') {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async () => lerDetalhe(await api<unknown>(`/nfse/cancelamentos/${encodeURIComponent(cancelamentoId ?? '')}/${acao}`, { method: 'POST' })),
+    onSuccess: (nota) => {
+      qc.setQueryData(notasKeys.one(notaId), nota)
+      return qc.invalidateQueries({ queryKey: ['nfse', 'notas', 'list'] })
+    },
+  })
+}
+export const useAprovarCancelamento = (notaId: string, cancelamentoId: string | undefined) => useAcaoDoCancelamento(notaId, cancelamentoId, 'aprovar')
+export const useDescartarCancelamento = (notaId: string, cancelamentoId: string | undefined) => useAcaoDoCancelamento(notaId, cancelamentoId, 'descartar')
 
 export const urlPdf = (id: string) => `/nfse/notas/${encodeURIComponent(id)}/pdf`
 
@@ -394,6 +450,8 @@ export function mensagemErroNota(e: ApiError): string {
       return 'Esta nota não pode mais ser editada.'
     case 'nota_em_conflito':
       return 'A prefeitura indicou conflito nesta nota. Não reenvie: use Atualizar agora.'
+    case 'cancelamento_nao_delegado':
+      return e.mensagem || MENSAGEM_NAO_DELEGADO
     case 'nota_nao_autorizada':
       return 'Só é possível cancelar uma nota autorizada.'
     case 'cancelamento_fora_do_mes':

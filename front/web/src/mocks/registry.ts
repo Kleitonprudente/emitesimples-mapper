@@ -6,6 +6,7 @@ import { empresaConfigRoutes, resetEmpresaConfig } from '@/mocks/empresa-config'
 import { nfseConfigRoutes, resetNfseConfig } from '@/mocks/nfse-config'
 import { notasRoutes, resetNotas } from '@/mocks/notas'
 import { erro, json } from '@/mocks/http'
+import { podeCancelarNfseMock, resetDelegacao } from '@/mocks/delegacao'
 import { resetVinculosEmpresa, vinculosEmpresaRoutes } from '@/mocks/vinculos-empresa'
 
 /* ---------------------------------------------------------------------------
@@ -73,6 +74,7 @@ function sessionFor(user: MockUser, empresaId: string | null): LoginResponse {
     empresa,
     papel: (vinculo?.papel ?? null) as Papel | null,
     plataformaAdmin: !!user.plataformaAdmin,
+    podeCancelarNfse: !!user.plataformaAdmin || podeCancelarNfseMock(user.id, empresaId, (vinculo?.papel ?? null) as Papel | null),
   }
 }
 
@@ -252,7 +254,7 @@ export async function handleMock(req: MockRequest): Promise<Response> {
     const c = readCookie()
     const user = c ? MOCK_USERS.find((u) => u.id === c.userId) : undefined
     const papel = (user?.vinculos.find((v) => v.empresaId === c?.empresaId)?.papel ?? null) as Papel | null
-    res = nfseConfigRoutes(req, { papel, empresaId: c?.empresaId ?? null }) ?? notasRoutes(req, { papel, empresaId: c?.empresaId ?? null, pessoa: (id) => pessoas.find((p) => p.id === id) }) ?? empresaConfigRoutes(req, { papel, empresaId: c?.empresaId ?? null }) ?? consultaCnpjRoute(req, { plataformaAdmin: !!user?.plataformaAdmin, papel }) ?? contatosRoutes(req, { plataformaAdmin: !!user?.plataformaAdmin, papel, pessoaExiste: (id) => pessoas.some((p) => p.id === id) }) ?? (await vinculosEmpresaRoutes(req, { plataformaAdmin: !!user?.plataformaAdmin })) ?? (await adminRoutes(req, { plataformaAdmin: !!user?.plataformaAdmin, nome: user?.nome ?? '' })) ?? entity(req)
+    res = nfseConfigRoutes(req, { papel, empresaId: c?.empresaId ?? null }) ?? notasRoutes(req, { papel, empresaId: c?.empresaId ?? null, podeCancelarNfse: !!user && podeCancelarNfseMock(user.id, c?.empresaId ?? null, papel), pessoa: (id) => pessoas.find((p) => p.id === id) }) ?? empresaConfigRoutes(req, { papel, empresaId: c?.empresaId ?? null }) ?? consultaCnpjRoute(req, { plataformaAdmin: !!user?.plataformaAdmin, papel }) ?? contatosRoutes(req, { plataformaAdmin: !!user?.plataformaAdmin, papel, pessoaExiste: (id) => pessoas.some((p) => p.id === id) }) ?? (await vinculosEmpresaRoutes(req, { plataformaAdmin: !!user?.plataformaAdmin })) ?? (await adminRoutes(req, { plataformaAdmin: !!user?.plataformaAdmin, nome: user?.nome ?? '' })) ?? entity(req)
   }  return res ?? erro(404, 'nao_encontrado', 'Recurso não encontrado (mock).')
 }
 
@@ -264,6 +266,7 @@ export function resetMock() {
   forceEmpty = false
   resetAdmin()
   resetVinculosEmpresa()
+  resetDelegacao()
   resetContatos()
   resetNfseConfig()
   resetNotas()

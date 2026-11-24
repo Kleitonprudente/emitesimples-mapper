@@ -6,8 +6,10 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { PlatformOnly } from '@/features/admin/PlatformOnly'
+import { DICA_PODE_CANCELAR, ROTULO_PODE_CANCELAR } from '@/features/admin/vinculosEmpresaApi'
 import {
   PAPEIS,
   empresaFk,
@@ -66,7 +68,7 @@ export const senhaSchema = z
   .object({ novaSenha: senhaTemporaria, confirmacao: z.string().min(1, 'Repita a nova senha.') })
   .refine((v) => v.novaSenha === v.confirmacao, { path: ['confirmacao'], message: 'As senhas não conferem.' })
 
-const vinculoSchema = z.object({ empresa: z.object({ id: z.string() }), papel })
+const vinculoSchema = z.object({ empresa: z.object({ id: z.string() }), papel, podeCancelarNfse: z.boolean() })
 
 const PAPEL_OPTIONS = PAPEIS.map((p) => ({ value: p.value, label: p.label }))
 
@@ -102,6 +104,7 @@ const CAMPOS_VINCULO: FieldLayout = [
     { name: 'empresa', label: 'Empresa', fk: empresaFk, required: true, width: 60 },
     { name: 'papel', label: 'Papel', options: PAPEL_OPTIONS, required: true, width: 40 },
   ],
+  { name: 'podeCancelarNfse', label: ROTULO_PODE_CANCELAR, kind: 'boolean', hint: DICA_PODE_CANCELAR },
 ]
 
 /* ------------------------------- dialogs ------------------------------- */
@@ -197,8 +200,8 @@ function SenhaDialog({ usuario, onClose }: { usuario: Usuario; onClose: () => vo
 
 function VinculoLinha({ vinculo, usuarioId }: { vinculo: Vinculo; usuarioId: string }) {
   const atualizar = useAtualizarVinculo(usuarioId)
-  const salvar = (novoPapel: Papel, ativo: boolean, msg: string) =>
-    atualizar.mutate({ vinculoId: vinculo.id, papel: novoPapel, ativo }, { onSuccess: () => notifySuccess(msg), onError: (e) => notifyError(e, 'Não foi possível atualizar o vínculo') })
+  const salvar = (novoPapel: Papel, ativo: boolean, msg: string, podeCancelarNfse?: boolean) =>
+    atualizar.mutate({ vinculoId: vinculo.id, papel: novoPapel, ativo, podeCancelarNfse }, { onSuccess: () => notifySuccess(msg), onError: (e) => notifyError(e, 'Não foi possível atualizar o vínculo') })
   return (
     <TableRow>
       <TableCell className="font-medium">{vinculo.empresaNome}</TableCell>
@@ -215,6 +218,14 @@ function VinculoLinha({ vinculo, usuarioId }: { vinculo: Vinculo; usuarioId: str
             ))}
           </SelectContent>
         </Select>
+      </TableCell>
+      <TableCell>
+        <Switch
+          checked={vinculo.papel === 'administrador' || vinculo.podeCancelarNfse}
+          disabled={atualizar.isPending || vinculo.papel === 'administrador'}
+          aria-label={`Pode cancelar NFS-e em ${vinculo.empresaNome}`}
+          onCheckedChange={(on) => salvar(vinculo.papel, vinculo.ativo, on ? 'Cancelamento delegado.' : 'Delegação de cancelamento removida.', on)}
+        />
       </TableCell>
       <TableCell>
         <Badge tone={vinculo.ativo ? 'success' : 'neutral'}>{vinculo.ativo ? 'Ativo' : 'Inativo'}</Badge>
@@ -257,6 +268,7 @@ function VinculosDialog({ usuario, onClose }: { usuario: Usuario; onClose: () =>
               <TableRow>
                 <TableHead>Empresa</TableHead>
                 <TableHead>Papel</TableHead>
+                <TableHead>Pode cancelar</TableHead>
                 <TableHead>Situação</TableHead>
                 <TableHead className="text-right">
                   <span className="sr-only">Ações</span>
@@ -276,12 +288,12 @@ function VinculosDialog({ usuario, onClose }: { usuario: Usuario; onClose: () =>
             key={formKey}
             schema={vinculoSchema}
             fields={CAMPOS_VINCULO}
-            defaults={{} as z.infer<typeof vinculoSchema>}
+            defaults={{ podeCancelarNfse: false } as z.infer<typeof vinculoSchema>}
             submitLabel="Adicionar vínculo"
             isSubmitting={adicionar.isPending}
             serverError={adicionar.error}
             onSubmit={(v) =>
-              adicionar.mutateAsync({ empresaId: v.empresa.id, papel: v.papel }).then(
+              adicionar.mutateAsync({ empresaId: v.empresa.id, papel: v.papel, podeCancelarNfse: v.podeCancelarNfse }).then(
                 () => {
                   notifySuccess('Vínculo adicionado.')
                   setFormKey((k) => k + 1)

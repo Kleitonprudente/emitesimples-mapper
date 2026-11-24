@@ -2,6 +2,17 @@ import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { CircleCheck, Info, TriangleAlert } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,6 +24,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { FormularioNota } from '@/features/notas/NotaNova'
 import {
+  CANCELAMENTO,
   ESTADO,
   JUSTIFICATIVA_MAX,
   JUSTIFICATIVA_MIN,
@@ -27,8 +39,12 @@ import {
   mensagemErroNota,
   rotuloMotivo,
   urlPdf,
+  useAprovarCancelamento,
+  useAprovarNota,
   useAtualizarNota,
   useCancelarNota,
+  useDescartarCancelamento,
+  useDescartarNota,
   useNota,
   useReenviarNota,
   valoresDaNota,
@@ -36,15 +52,16 @@ import {
   type NotaDetalhe as Nota,
 } from '@/features/notas/notasApi'
 import { ApiError, abrirPdf } from '@/lib/api'
-import { canAct, useSession } from '@/lib/auth'
+import { canAct, podeCancelarNfse, useSession } from '@/lib/auth'
 import { errorMessage, notifyError, notifySuccess } from '@/runtime/feedback'
 import { formatCurrency, formatDateTime, maskDocumento } from '@/runtime/format'
 import { ErrorState, LoadingState } from '@/runtime/states'
 
 /* ---------------------------------------------------------------------------
  * Notas Fiscais > NFS-e > detalhe e acompanhamento. Escrito a mao com o runtime: as telas de nota tem fluxo proprio de envio e
- * acompanhamento (decisao explicita do usuario). Consulta a cada 3 s enquanto aguarda a prefeitura; rejeitada/rascunho reenvia
- * mantendo o numero. Em conflito nunca reenvia: so Atualizar agora.
+ * acompanhamento (decisao explicita do usuario). Consulta a cada 3 s enquanto aguarda a prefeitura; rejeitada/falha_envio reenvia
+ * mantendo o numero. Em conflito nunca reenvia: so Atualizar agora. `rascunho` e SO do assistente: aqui a pessoa aprova ou descarta
+ * (nota e cancelamento); nunca ha botao de preparar. Cancelar exige a permissao delegada (sessao.podeCancelarNfse).
  * ------------------------------------------------------------------------- */
 
 function Linha({ rotulo, valor }: { rotulo: string; valor?: string | null }) {
@@ -80,17 +97,87 @@ function Dados({ n, somenteLeitura }: { n: Nota; somenteLeitura: boolean }) {
   )
 }
 
-const SITUACAO_CANCELAMENTO = { processando: 'Em processamento', concluido: 'Concluído', recusado: 'Recusado' } as const
+const mensagemDoErro = (e: unknown): string => (e instanceof ApiError ? mensagemErroNota(e) : errorMessage(e))
 
-function CancelamentoInfo({ c }: { c: NonNullable<Nota['cancelamento']> }) {
+/** Botao que abre uma confirmacao (AlertDialog) antes de executar. Erros ficam com quem chama (mutation.error). */
+function AcaoConfirmada(p: { rotulo: string; variante?: 'default' | 'outline' | 'destructive'; titulo: string; descricao: string; pendente: boolean; onConfirmar: () => void }) {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button variant={p.variante ?? 'outline'} disabled={p.pendente}>
+          {p.pendente && <Spinner />} {p.rotulo}
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{p.titulo}</AlertDialogTitle>
+          <AlertDialogDescription>{p.descricao}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Voltar</AlertDialogCancel>
+          <AlertDialogAction onClick={p.onConfirmar}>Confirmar</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}
+
+/** Cancelamento preparado pelo assistente: so aprovar (envia a prefeitura) ou descartar. */
+function CancelamentoRascunho({ notaId, c }: { notaId: string; c: NonNullable<Nota['cancelamento']> }) {
+  const aprovar = useAprovarCancelamento(notaId, c.id)
+  const descartar = useDescartarCancelamento(notaId, c.id)
+  const pendente = aprovar.isPending || descartar.isPending
+  const erro = aprovar.error ?? descartar.error
+  return (
+    <div className="flex flex-col gap-3">
+      <Alert variant="info">
+        <Info aria-hidden />
+        <AlertTitle>Cancelamento preparado pelo assistente</AlertTitle>
+        <AlertDescription>Revise o motivo e aprove para enviar o cancelamento à prefeitura.</AlertDescription>
+      </Alert>
+      {erro && (
+        <Alert variant="destructive">
+          <TriangleAlert aria-hidden />
+          <AlertDescription>{mensagemDoErro(erro)}</AlertDescription>
+        </Alert>
+      )}
+      {(c.podeAprovar || c.podeDescartar) && (
+        <div className="flex flex-wrap gap-2">
+          {c.podeAprovar && (
+            <AcaoConfirmada
+              rotulo="Aprovar cancelamento"
+              variante="destructive"
+              titulo="Aprovar o cancelamento da nota?"
+              descricao="O cancelamento é enviado à prefeitura e não pode ser desfeito."
+              pendente={pendente}
+              onConfirmar={() => aprovar.mutate(undefined, { onSuccess: () => notifySuccess('Cancelamento aprovado e enviado à prefeitura.') })}
+            />
+          )}
+          {c.podeDescartar && (
+            <AcaoConfirmada
+              rotulo="Descartar"
+              titulo="Descartar o cancelamento preparado?"
+              descricao="O cancelamento não será enviado e a nota segue como está."
+              pendente={pendente}
+              onConfirmar={() => descartar.mutate(undefined, { onSuccess: () => notifySuccess('Cancelamento descartado.') })}
+            />
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CancelamentoInfo({ notaId, c }: { notaId: string; c: NonNullable<Nota['cancelamento']> }) {
   return (
     <Card>
       <CardHeader>
         <CardTitle>Cancelamento</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex flex-col gap-4">
+        {c.estado === 'rascunho' && <CancelamentoRascunho notaId={notaId} c={c} />}
         <dl className="grid gap-4 sm:grid-cols-2">
-          <Linha rotulo="Situação" valor={SITUACAO_CANCELAMENTO[c.estado]} />
+          <Linha rotulo="Situação" valor={CANCELAMENTO[c.estado].rotulo} />
           <Linha rotulo="Tipo do motivo" valor={rotuloMotivo(c.codigoMotivo)} />
           <Linha rotulo="Justificativa" valor={c.motivo} />
           <Linha rotulo="Mensagem da prefeitura" valor={c.mensagemRetorno} />
@@ -194,6 +281,8 @@ function Conteudo({ id }: { id: string }) {
   const q = useNota(id)
   const atualizar = useAtualizarNota(id)
   const reenviar = useReenviarNota(id)
+  const aprovar = useAprovarNota(id)
+  const descartar = useDescartarNota(id)
   const [modalAberto, setModalAberto] = useState(false)
   const [foraDoMes, setForaDoMes] = useState(false)
   if (q.isLoading) return <LoadingState label="Carregando nota…" />
@@ -203,7 +292,10 @@ function Conteudo({ id }: { id: string }) {
   const estado = ESTADO[n.estado]
   const aguardando = aguardaPrefeitura(n.estado)
   const conflito = n.estado === 'em_conflito'
-  const reenvio = operador && n.podeReenviar && (n.estado === 'rejeitada' || n.estado === 'rascunho')
+  const reenvio = operador && n.podeReenviar && (n.estado === 'rejeitada' || n.estado === 'falha_envio')
+  const rascunho = n.estado === 'rascunho'
+  const acaoPendente = aprovar.isPending || descartar.isPending
+  const erroAcao = aprovar.error ?? descartar.error
   const cancelando = cancelamentoEmProcessamento(n)
   const botaoAtualizar =
     operador && ((n.podeAtualizar && (aguardando || conflito)) || cancelando) ? (
@@ -212,7 +304,11 @@ function Conteudo({ id }: { id: string }) {
       </Button>
     ) : null
   // So UX: o back decide (409 cancelamento_fora_do_mes). podeCancelar === false esconde o botao, salvo fora do mes (para mostrar o aviso).
-  const podeCancelar = operador && n.estado === 'autorizada' && !cancelando && (n.podeCancelar !== false || !dentroDoMesVigente(n.dataEmissao))
+  // Cancelar tambem exige a permissao delegada (sessao.podeCancelarNfse); sem ela o botao some e, no mes vigente, ha um texto discreto.
+  const cancelavel = operador && n.estado === 'autorizada' && !cancelando && n.cancelamento?.estado !== 'rascunho'
+  const delegado = podeCancelarNfse(session)
+  const podeCancelar = cancelavel && delegado && (n.podeCancelar !== false || !dentroDoMesVigente(n.dataEmissao))
+  const semDelegacao = cancelavel && !delegado && dentroDoMesVigente(n.dataEmissao)
   const aoCancelar = () => {
     if (!dentroDoMesVigente(n.dataEmissao)) {
       setForaDoMes(true)
@@ -226,7 +322,7 @@ function Conteudo({ id }: { id: string }) {
     <div className="mx-auto flex max-w-4xl flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="text-2xl font-semibold">
-          Nota {n.serie}-{n.numero}
+          {n.numero ? `Nota ${n.serie}-${n.numero}` : 'Nota sem número (rascunho)'}
         </h1>
         <Badge tone={estado.tone}>{estado.rotulo}</Badge>
         <Button variant="ghost" size="sm" className="ml-auto" onClick={() => void navigate({ to: '/notas' })}>
@@ -284,7 +380,14 @@ function Conteudo({ id }: { id: string }) {
           <AlertDescription>NFS-e autorizada.</AlertDescription>
         </Alert>
       )}
-      {(n.estado === 'rejeitada' || (n.estado === 'rascunho' && (n.mensagemRetorno || n.errosRetorno.length > 0))) && (
+      {n.estado === 'falha_envio' && (
+        <Alert variant="warning">
+          <TriangleAlert aria-hidden />
+          <AlertTitle>{n.mensagemRetorno ?? 'Não foi possível enviar a nota.'}</AlertTitle>
+          <AlertDescription>A nota não chegou à prefeitura por uma falha no envio. Reenvie para tentar de novo.</AlertDescription>
+        </Alert>
+      )}
+      {n.estado === 'rejeitada' && (
         <Alert variant="destructive">
           <TriangleAlert aria-hidden />
           <AlertTitle>{n.mensagemRetorno ?? 'A nota não foi aceita.'}</AlertTitle>
@@ -302,16 +405,46 @@ function Conteudo({ id }: { id: string }) {
           )}
         </Alert>
       )}
-      {n.estado === 'rascunho' && !n.mensagemRetorno && n.errosRetorno.length === 0 && (
+      {rascunho && (
         <Alert variant="info">
           <Info aria-hidden />
-          <AlertDescription>Esta nota ainda não foi enviada.</AlertDescription>
+          <AlertDescription>Preparada pelo assistente. Revise e aprove para emitir.</AlertDescription>
+        </Alert>
+      )}
+      {erroAcao && (
+        <Alert variant="destructive">
+          <TriangleAlert aria-hidden />
+          <AlertDescription>{mensagemDoErro(erroAcao)}</AlertDescription>
         </Alert>
       )}
 
       <Dados n={n} somenteLeitura={!reenvio} />
 
-      {n.cancelamento && <CancelamentoInfo c={n.cancelamento} />}
+      {rascunho && (n.podeAprovar || n.podeDescartar) && (
+        <div className="flex flex-wrap items-center gap-2">
+          {n.podeAprovar && (
+            <AcaoConfirmada
+              rotulo="Aprovar e emitir"
+              variante="default"
+              titulo="Aprovar e emitir esta nota?"
+              descricao="A nota será enviada à prefeitura. O assistente só preparou o rascunho: a emissão é ato seu."
+              pendente={acaoPendente}
+              onConfirmar={() => aprovar.mutate(undefined, { onSuccess: () => notifySuccess('Nota aprovada e enviada à prefeitura.') })}
+            />
+          )}
+          {n.podeDescartar && (
+            <AcaoConfirmada
+              rotulo="Descartar"
+              titulo="Descartar este rascunho?"
+              descricao="O rascunho não será enviado à prefeitura."
+              pendente={acaoPendente}
+              onConfirmar={() => descartar.mutate(undefined, { onSuccess: () => notifySuccess('Rascunho descartado.') })}
+            />
+          )}
+        </div>
+      )}
+
+      {n.cancelamento && <CancelamentoInfo notaId={n.id} c={n.cancelamento} />}
 
       {n.estado === 'autorizada' && (
         <div className="flex flex-wrap items-center gap-2">
@@ -339,6 +472,7 @@ function Conteudo({ id }: { id: string }) {
             </TooltipTrigger>
             <TooltipContent>Em breve.</TooltipContent>
           </Tooltip>
+          {semDelegacao && <p className="text-xs text-muted-foreground">Cancelamento depende de permissão delegada pelo administrador.</p>}
         </div>
       )}
 

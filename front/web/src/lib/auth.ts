@@ -83,6 +83,13 @@ export function hasRole(s: SessionData | null, min: Papel): boolean {
   return !!s?.papel && RANK[s.papel] >= RANK[min]
 }
 
+/** Pode cancelar NFS-e? Leitura tolerante: sem o campo na sessao, so administrador (e plataforma). So UX: o back decide (403 cancelamento_nao_delegado). */
+export function podeCancelarNfse(s: SessionData | null): boolean {
+  if (!s) return false
+  if (typeof s.podeCancelarNfse === 'boolean') return s.podeCancelarNfse
+  return s.plataformaAdmin || s.papel === 'administrador'
+}
+
 export const PAPEL_LABEL: Record<Papel, string> = {
   administrador: 'Administrador',
   operador: 'Operador',

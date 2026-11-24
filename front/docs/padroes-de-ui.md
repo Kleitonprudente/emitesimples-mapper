@@ -145,6 +145,13 @@ Todo cadastro tem **duas telas e um formulário**:
   nota, desativar empresa.)
 - **Emissão de nota é ato da pessoa**: o botão **Enviar** da nota é a aprovação. Nenhum fluxo automático ou de agente de IA
   emite nota; rascunho e aprovação por link são do agente de IA. Em desenvolvimento, só homologação.
+- **Assistente de IA nas notas** (`features/notas/NotaDetalhe.tsx`): o estado `rascunho` (nota ou cancelamento) é **só do
+  assistente**; a UI nunca prepara, só **aprova** (botão primário "Aprovar e emitir" / "Aprovar cancelamento") ou **descarta**,
+  sempre com `AlertDialog`, conforme `podeAprovar`/`podeDescartar` do back. Emissão direta tem `falha_envio` (badge de aviso,
+  reenvia como `rejeitada`, mesmo número). **Cancelar NFS-e é delegável**: administrador e plataforma sempre; operador só com
+  `podeCancelarNfse` na sessão (leitura tolerante: ausente = só administrador). Sem a permissão o botão some e, no mês vigente,
+  aparece "Cancelamento depende de permissão delegada pelo administrador."; a delegação é feita em Administração > vínculos
+  (empresa e usuário), com a dica "Administradores sempre podem; operadores só com esta permissão."
 
 ## 6. Linguagem e aparência
 

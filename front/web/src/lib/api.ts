@@ -39,6 +39,8 @@ export interface SessionData {
   empresa: { id: string; razaoSocial: string; nomeFantasia: string | null } | null
   papel: Papel | null
   plataformaAdmin: boolean
+  /** Permissao efetiva de cancelar NFS-e (administrador e plataforma sempre true). Ausente = derive do papel (veja `podeCancelarNfse` em lib/auth). */
+  podeCancelarNfse?: boolean
 }
 
 export interface LoginResponse extends SessionData {

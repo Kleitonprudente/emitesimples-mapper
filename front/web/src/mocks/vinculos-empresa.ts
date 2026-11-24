@@ -1,6 +1,7 @@
 import type { Papel } from '@/lib/api'
 import { adminRoutes } from '@/mocks/admin'
 import { EMPRESAS_MOCK } from '@/mocks/fixtures'
+import { delegacaoDe, definirDelegacao } from '@/mocks/delegacao'
 import { erro, json } from '@/mocks/http'
 
 /* ---------------------------------------------------------------------------
@@ -59,7 +60,7 @@ export async function vinculosEmpresaRoutes(
   const todos = await usuarios()
   const completo = (r: Row) => {
     const u = todos.find((x) => x.id === r.usuarioId)
-    return { id: r.id, usuario: { id: r.usuarioId, nome: u?.nome ?? r.usuarioId, email: u?.email ?? '', ativo: u?.ativo !== false }, papel: r.papel, ativo: r.ativo, dataCriacao: r.dataCriacao }
+    return { id: r.id, usuario: { id: r.usuarioId, nome: u?.nome ?? r.usuarioId, email: u?.email ?? '', ativo: u?.ativo !== false }, papel: r.papel, ativo: r.ativo, podeCancelarNfse: r.papel === 'administrador' || delegacaoDe(r.usuarioId, empresaId), dataCriacao: r.dataCriacao }
   }
 
   if (!m[2] && req.method === 'GET') return json(200, lista.map(completo))
@@ -72,6 +73,7 @@ export async function vinculosEmpresaRoutes(
     if (lista.some((r) => r.usuarioId === usuarioId)) return erro(409, 'vinculo_ja_existe', 'Este usuário já está vinculado.')
     const novo: Row = { id: `vemp-${++seq}`, usuarioId, papel, ativo: body.ativo !== false, dataCriacao: new Date().toISOString().slice(0, 19) }
     lista.push(novo)
+    if (typeof body.podeCancelarNfse === 'boolean') definirDelegacao(usuarioId, empresaId, body.podeCancelarNfse)
     return json(201, completo(novo))
   }
 
@@ -83,6 +85,7 @@ export async function vinculosEmpresaRoutes(
       r.papel = body.papel as Papel
     }
     if (typeof body.ativo === 'boolean') r.ativo = body.ativo
+    if (typeof body.podeCancelarNfse === 'boolean') definirDelegacao(r.usuarioId, empresaId, body.podeCancelarNfse)
     return json(200, completo(r))
   }
   return null

@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { PAPEIS } from '@/features/admin/adminApi'
-import { usuarioAtivoFk, useAtualizarVinculoDaEmpresa, useVincularUsuario, useVinculosDaEmpresa, type VinculoDaEmpresa } from '@/features/admin/vinculosEmpresaApi'
+import { DICA_PODE_CANCELAR, ROTULO_PODE_CANCELAR, usuarioAtivoFk, useAtualizarVinculoDaEmpresa, useVincularUsuario, useVinculosDaEmpresa, type VinculoDaEmpresa } from '@/features/admin/vinculosEmpresaApi'
 import { ApiError, type Papel } from '@/lib/api'
 import { Combobox, type FkValue } from '@/runtime/Combobox'
 import { errorMessage, notifyError, notifySuccess } from '@/runtime/feedback'
@@ -29,24 +29,26 @@ export function VinculosDaEmpresa({ empresaId }: { empresaId: string }) {
   const [desativar, setDesativar] = useState<VinculoDaEmpresa | null>(null)
   const [usuario, setUsuario] = useState<FkValue | null>(null)
   const [papelNovo, setPapelNovo] = useState<Papel>('operador')
+  const [cancelarNovo, setCancelarNovo] = useState(false)
   const [erroVincular, setErroVincular] = useState<string | null>(null)
 
   const vinculados = useMemo(() => (lista.data ?? []).map((v) => v.usuario.id).sort(), [lista.data])
   const fonte = useMemo(() => usuarioAtivoFk(empresaId, vinculados), [empresaId, vinculados])
 
-  const salvar = (v: VinculoDaEmpresa, mudanca: { papel?: Papel; ativo?: boolean }, msg: string) =>
+  const salvar = (v: VinculoDaEmpresa, mudanca: { papel?: Papel; ativo?: boolean; podeCancelarNfse?: boolean }, msg: string) =>
     atualizar.mutate({ vinculoId: v.id, ...mudanca }, { onSuccess: () => notifySuccess(msg), onError: (e) => notifyError(e, 'Não foi possível atualizar o vínculo') })
 
   const enviarVinculo = () => {
     if (!usuario) return
     setErroVincular(null)
     vincular.mutate(
-      { usuarioId: usuario.id, papel: papelNovo },
+      { usuarioId: usuario.id, papel: papelNovo, podeCancelarNfse: cancelarNovo },
       {
         onSuccess: () => {
           notifySuccess('Usuário vinculado.')
           setUsuario(null)
           setPapelNovo('operador')
+          setCancelarNovo(false)
         },
         onError: (e) => setErroVincular(e instanceof ApiError && e.status === 409 ? 'Este usuário já está vinculado.' : errorMessage(e)),
       },
@@ -72,6 +74,7 @@ export function VinculosDaEmpresa({ empresaId }: { empresaId: string }) {
                 <TableRow>
                   <TableHead>Usuário</TableHead>
                   <TableHead>Papel</TableHead>
+                  <TableHead>Pode cancelar</TableHead>
                   <TableHead>Situação</TableHead>
                   <TableHead>Desde</TableHead>
                 </TableRow>
@@ -96,6 +99,14 @@ export function VinculosDaEmpresa({ empresaId }: { empresaId: string }) {
                           ))}
                         </SelectContent>
                       </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Switch
+                        checked={v.papel === 'administrador' || v.podeCancelarNfse}
+                        disabled={atualizar.isPending || v.papel === 'administrador'}
+                        aria-label={`Pode cancelar NFS-e: ${v.usuario.nome}`}
+                        onCheckedChange={(on) => salvar(v, { podeCancelarNfse: on }, on ? 'Cancelamento delegado.' : 'Delegação de cancelamento removida.')}
+                      />
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -141,6 +152,21 @@ export function VinculosDaEmpresa({ empresaId }: { empresaId: string }) {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="vinculo-cancelar"
+                  checked={cancelarNovo || papelNovo === 'administrador'}
+                  disabled={vincular.isPending || papelNovo === 'administrador'}
+                  aria-describedby="vinculo-cancelar-dica"
+                  onCheckedChange={setCancelarNovo}
+                />
+                <Label htmlFor="vinculo-cancelar">{ROTULO_PODE_CANCELAR}</Label>
+              </div>
+              <p id="vinculo-cancelar-dica" className="text-xs text-muted-foreground">
+                {DICA_PODE_CANCELAR}
+              </p>
             </div>
             <Button type="button" disabled={!usuario || vincular.isPending} onClick={enviarVinculo}>
               Vincular
