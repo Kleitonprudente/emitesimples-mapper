@@ -221,7 +221,7 @@
                 [e] var
                     [v] createRole
                     [e] expr
-                        [v] if (exists($createClass/properties/role/value)) then normalize-space($createClass/properties/role/value) else if (exists(properties/role/value)) then normalize-space(properties/role/value) else 'consulta'
+                        [v] if (exists($createClass/properties/role/value)) then normalize-space($createClass/properties/role/value) else if (exists(properties/role/value)) then normalize-space(properties/role/value) else 'CONSULTA'
                 [e] var
                     [v] platformOnly
                     [e] expr
@@ -452,7 +452,7 @@
                         [e] parameters
                             [e] listRole
                                 [e] expr
-                                    [v] mi:if-else(exists(properties/role/value), normalize-space(properties/role/value), 'consulta')
+                                    [v] mi:if-else(exists(properties/role/value), normalize-space(properties/role/value), 'CONSULTA')
                             [e] listPlatform
                                 [e] expr
                                     [v] $platformOnly
@@ -606,7 +606,7 @@
                     [v] action
                 [e] parameters
                     [e] listRole
-                        [v] consulta
+                        [v] CONSULTA
                     [e] listPlatform
                         [v] false
                 [e] body

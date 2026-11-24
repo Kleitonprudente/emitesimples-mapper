@@ -115,6 +115,17 @@ conhecido** de propriedades (`type`, `label`, `icon`, `required`, `cn`, `values`
 não vira erro — vira nada. `exists(properties/minhaChave)` simplesmente é `false` para sempre. Antes de
 inventar uma propriedade, procure uma conhecida que signifique a mesma coisa.
 
+> **Nota: `properties/values` tem TRÊS formas (migração dos enums, ver `domain-modeling-guide.md` 9.7).**
+> 1. *Legado*: filho com `value[1]` = valor persistido e `value[2]` = rótulo.
+> 2. *Novo Texto*: o **nome do elemento filho** é o valor técnico (`<SOCIO>`) e ele traz `title/{pt,en}/value` e
+>    `description/{pt,en}/value`, sem `value` direto nem `codigo`.
+> 3. *Novo Inteiro* (Integer/Long): o nome do elemento é o **rótulo técnico** (`<SIMPLES_NACIONAL>`), o filho
+>    `codigo/value` guarda o **código numérico gravado** (`normalize-space(codigo/value)`), mais `title`/`description`.
+>
+> Detecção: `exists(<filho>/codigo)` = Inteiro-novo (valor = código); senão `exists(<filho>/title)` = Texto-novo
+> (valor = `local-name()`); senão legado (`normalize-space(value[1])`/`value[2]`). Rótulo nas formas novas =
+> `title/pt/value` (cai para `en`). Ao ler `values/*`, trate as três; teste `codigo` antes de `title`.
+
 ### Como se diz "isto é uma relação"
 
 Não existe atributo `isRelation`. A regra é:

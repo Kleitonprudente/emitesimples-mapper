@@ -10,7 +10,7 @@ window/cadastros/pessoa/        GestaoPessoas (list, sem filtro fixo; filtros po
 window/cadastros/cliente/       GestaoClientes (list, fixedFilter .cliente) e FormularioCliente (editor, fixedValues .cliente)
 window/cadastros/fornecedor/    GestaoFornecedores (list, fixedFilter .fornecedor) e FormularioFornecedor (editor, fixedValues .fornecedor)
 window/cadastros/municipio/     GestaoMunicipios (list, platformOnly, sem exclusao) e FormularioMunicipio (editor)
-window/cadastros/servico/       GestaoServicos (list, /servicos, operador, grupo Cadastros order 20) e FormularioServico (editor, /servicos/$id)
+window/cadastros/servico/       GestaoServicos (list, /servicos, OPERADOR, grupo Cadastros order 20) e FormularioServico (editor, /servicos/$id)
 window/configuracao/empresa/    GestaoEmpresas (list, platformOnly, sem exclusao) e FormularioEmpresa (editor, platformOnly)
 scripts/sincronizar-dominio.sh  copia/verifica o dominio
 ```
@@ -192,7 +192,7 @@ continua sendo o label da acao `primary` da lista ("Novo cliente").
 
 ## Servico (cadastro da empresa, menu Cadastros)
 
-- `GestaoServicos` (`/servicos`, operador, icone `package`, order 20; colunas nome, codigoServico, codigoNbs, percentualTributosSimples,
+- `GestaoServicos` (`/servicos`, OPERADOR, icone `package`, order 20; colunas nome, codigoServico, codigoNbs, percentualTributosSimples,
   ativo como booleano; busca por nome) e `FormularioServico` (`/servicos/$id`). Secao unica "Servico": `[nome xl | ativo s]`,
   `[codigoServico m | codigoNbs m | percentualTributosSimples m]`, `[discriminacaoPadrao full]` (rotulos e dicas no mapa).
 - Fora do formulario: `codigoInterno`, `codigoTributacaoMunicipio`, `descricaoCurta`, `valorPadrao`, `aliquotaIss`, `cstPisCofins` (opcionais
@@ -276,6 +276,19 @@ Regras:
 - `from` deve comecar com `@/features/`; o componente recebe a prop `<entidade>Id` (primeira letra minuscula do bean + `Id`).
 - Erros no modelo: ver tabela de `screenEditorById` acima.
 
+## Formatos de `values` (enums)
+
+Os geradores aceitam as TRES formas de `properties/values`; o formato novo (secao 9.7 de `docs/domain-modeling-guide.md`)
+e o alvo, e o legado sai identico ate cada enum ser migrado.
+- Legado: filho com `value[1]` (valor persistido) e `value[2]` (rotulo).
+- Novo Texto: o nome do elemento filho e o valor (`SOCIO`), com `title/pt|en/value` e `description/pt|en/value`.
+- Novo Inteiro (Integer/Long): o nome do elemento e o rotulo tecnico (`SIMPLES_NACIONAL`); `codigo/value` e o codigo
+  numerico gravado; mais `title`/`description`.
+- Deteccao: `exists(<filho>/codigo)` => valor = `normalize-space(codigo/value)`; senao `exists(<filho>/title)` => valor =
+  `local-name()`; senao `normalize-space(value[1])`. Rotulo = `title/pt/value` (cai para `en`) ou `normalize-space(value[2])`.
+- Afeta `frontend-zodSchema` (`<campo>Values` e `<campo>Labels`); `screenColumns/Form/Page` so testam `exists(properties/values)`.
+- No back, `swagger-restAPI` emite `enum:` (e a descricao dos valores) para atributo String so no formato novo.
+
 ## Lacunas encontradas
 
 Dialeto (plano secao 5):
@@ -301,7 +314,7 @@ Dialeto (plano secao 5):
 Dominio/CLI:
 - O `main.mi` do back tem `config` (mapNativeTypes etc.) duplicado aqui; mudancas no back exigem repetir a mao (o script nao cobre `main.mi`).
 - `generators/struct.mi` foi copiado alem do dominio (a tarefa listava so o dominio); o `struct` nao funciona sem ele.
-- Papel `operador` e so UX; o catalogo de papeis do dominio nao foi conferido.
+- Papel `OPERADOR` (valores de `role` em maiusculo: ADMINISTRADOR|OPERADOR|CONSULTA) e so UX; o catalogo de papeis do dominio nao foi conferido.
 
 ## Nao validado
 

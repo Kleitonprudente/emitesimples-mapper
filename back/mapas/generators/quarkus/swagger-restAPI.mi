@@ -673,8 +673,12 @@
                 [v]             Valores permitidos: 
             [e] defineDescriptionValueAllowed
                 [v]               {{ name(.) }}
-                [v]                  Valor: {{ value[1] }}
-                [v]                  Texto: {{ value[2] }}
+                [v]                  Valor: {{ if (exists(codigo)) then normalize-space(codigo/value) else if (exists(title)) then local-name() else value[1] }}
+                [v]                  Texto: {{ if (exists(title)) then concat(normalize-space((title/pt/value, title/en/value)[1]), if (exists(description/pt/value)) then concat(' - ', normalize-space(description/pt/value)) else '') else value[2] }}
+            [e] defineAttributeStringEnum-start
+                [v]         enum:
+            [e] defineAttributeStringEnum-item
+                [v]           - {{ local-name() }}
             [e] descriptionParagraph
                 [v]           {{ . }}
             [e] defineAttributeDate
@@ -1260,6 +1264,23 @@
                         [v] defineAttributeString
                     [e] write-pattern
                         [v] defineDescription
+                    [e] if
+                        [v] exists(properties/values/*/title)
+                        [e] then
+                            [e] write-pattern
+                                [v] descriptionValuesAllowed-start
+                            [e] apply-templates
+                                [e] select
+                                    [v] properties/values/*
+                                [e] mode
+                                    [v] descriptionValuesAllowed
+                            [e] write-pattern
+                                [v] defineAttributeStringEnum-start
+                            [e] apply-templates
+                                [e] select
+                                    [v] properties/values/*
+                                [e] mode
+                                    [v] defineAttributeStringEnumItem
             [e] template
                 [e] match
                     [v] attribute[@type = $mapNativeTypes/Integer/value]
@@ -1378,6 +1399,14 @@
                 [e] body
                     [e] write-pattern
                         [v] defineDescriptionValueAllowed
+        [e] mode
+            [v] defineAttributeStringEnumItem
+            [e] template
+                [e] match
+                    [v] *
+                [e] body
+                    [e] write-pattern
+                        [v] defineAttributeStringEnum-item
         [e] mode
             [v] defineRequired
             [e] template

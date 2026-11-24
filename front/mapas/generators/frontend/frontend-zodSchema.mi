@@ -24,14 +24,14 @@
             [v] import { z } from 'zod'
         [e] enum-values-string
             [v] {{ '' }}
-            [v] export const {{ @name }}Values = [{{ string-join(for $v in properties/values/*/value[1] return concat("'", replace(normalize-space($v), "'", "\\'"), "'"), ', ') }}] as const
+            [v] export const {{ @name }}Values = [{{ string-join(for $c in properties/values/* return concat("'", replace(if (exists($c/title)) then local-name($c) else normalize-space($c/value[1]), "'", "\\'"), "'"), ', ') }}] as const
             [v] export const {{ @name }}Labels: Record<string, string> = {
         [e] enum-values-number
             [v] {{ '' }}
-            [v] export const {{ @name }}Values = [{{ string-join(for $v in properties/values/*/value[1] return normalize-space($v), ', ') }}] as const
+            [v] export const {{ @name }}Values = [{{ string-join(for $c in properties/values/* return if (exists($c/codigo)) then normalize-space($c/codigo/value) else if (exists($c/title)) then local-name($c) else normalize-space($c/value[1]), ', ') }}] as const
             [v] export const {{ @name }}Labels: Record<string, string> = {
         [e] enum-label-line
-            [v]     '{{ normalize-space(value[1]) }}': '{{ replace(normalize-space(value[2]), "'", "\\'") }}',
+            [v]     '{{ if (exists(codigo)) then normalize-space(codigo/value) else if (exists(title)) then local-name() else normalize-space(value[1]) }}': '{{ replace(if (exists(title)) then normalize-space((title/pt/value, title/en/value)[1]) else normalize-space(value[2]), "'", "\\'") }}',
         [e] enum-labels-end
             [v] }
         [e] schema-start
