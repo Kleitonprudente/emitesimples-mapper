@@ -38,11 +38,11 @@ const pessoaSchema = z.looseObject({
 })
 
 const TIPOS_CONTATO = [
-  { value: 'socio', label: 'Sócio' },
-  { value: 'financeiro', label: 'Financeiro' },
-  { value: 'comercial', label: 'Comercial' },
-  { value: 'fiscal', label: 'Fiscal' },
-  { value: 'outro', label: 'Outro' },
+  { value: 'SOCIO', label: 'Sócio' },
+  { value: 'FINANCEIRO', label: 'Financeiro' },
+  { value: 'COMERCIAL', label: 'Comercial' },
+  { value: 'FISCAL', label: 'Fiscal' },
+  { value: 'OUTRO', label: 'Outro' },
 ]
 
 /** Campo de lista (detalhe 1-N): cada item usa as mesmas linhas da grade de 12 colunas. */
@@ -56,7 +56,7 @@ const CONTATOS: FieldSpec = {
     addLabel: 'Adicionar contato',
     emptyText: 'Nenhum contato adicionado.',
     maxItems: 10,
-    defaultItem: { tipoContato: 'outro' },
+    defaultItem: { tipoContato: 'OUTRO' },
     item: [
       [
         { name: 'tipoContato', label: 'Tipo', options: TIPOS_CONTATO, size: 's', required: true },
@@ -72,8 +72,8 @@ const CONTATOS: FieldSpec = {
 
 
 const CONTATOS_INICIAIS = [
-  { tipoContato: 'financeiro', nome: 'Marta Lima', whatsapp: '11987654321', email: 'marta@exemplo.com.br' },
-  { tipoContato: 'socio', nome: 'Paulo Nunes' },
+  { tipoContato: 'FINANCEIRO', nome: 'Marta Lima', whatsapp: '11987654321', email: 'marta@exemplo.com.br' },
+  { tipoContato: 'SOCIO', nome: 'Paulo Nunes' },
 ]
 
 const PESSOA: FieldLayout = [

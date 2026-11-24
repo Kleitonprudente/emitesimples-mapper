@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { api, type Papel } from '@/lib/api'
+import { api, type PapelValor } from '@/lib/api'
 import { lerUsuario } from '@/features/admin/adminApi'
 import type { FkSource } from '@/runtime/Combobox'
 
@@ -19,7 +19,7 @@ export const DICA_PODE_CANCELAR = 'Administradores sempre podem; operadores só 
 export interface VinculoDaEmpresa {
   id: string
   usuario: { id: string; nome: string; email: string; ativo: boolean }
-  papel: Papel
+  papel: PapelValor
   ativo: boolean
   /** Delegacao de cancelar NFS-e ao operador (ausente = false). Administrador sempre pode, qualquer que seja o valor. */
   podeCancelarNfse: boolean
@@ -34,7 +34,7 @@ export function lerVinculoDaEmpresa(raw: unknown): VinculoDaEmpresa {
   return {
     id: String(r.id ?? ''),
     usuario: { id: u.id, nome: u.nome, email: u.email, ativo: u.ativo },
-    papel: (typeof r.papel === 'string' ? r.papel : 'consulta') as Papel,
+    papel: (typeof r.papel === 'string' ? r.papel : 'CONSULTA') as PapelValor,
     ativo: r.ativo !== false,
     podeCancelarNfse: r.podeCancelarNfse === true,
     dataCriacao: typeof r.dataCriacao === 'string' ? r.dataCriacao : undefined,
@@ -55,7 +55,7 @@ export function useVinculosDaEmpresa(empresaId: string) {
 export function useVincularUsuario(empresaId: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (v: { usuarioId: string; papel: Papel; ativo?: boolean; podeCancelarNfse?: boolean }) => api<unknown>(`/admin/empresas/${empresaId}/vinculos`, { method: 'POST', body: v }),
+    mutationFn: (v: { usuarioId: string; papel: PapelValor; ativo?: boolean; podeCancelarNfse?: boolean }) => api<unknown>(`/admin/empresas/${empresaId}/vinculos`, { method: 'POST', body: v }),
     onSuccess: () => qc.invalidateQueries({ queryKey: vinculosEmpresaKeys.lista(empresaId) }),
   })
 }
@@ -63,7 +63,7 @@ export function useVincularUsuario(empresaId: string) {
 export function useAtualizarVinculoDaEmpresa(empresaId: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (v: { vinculoId: string; papel?: Papel; ativo?: boolean; podeCancelarNfse?: boolean }) =>
+    mutationFn: (v: { vinculoId: string; papel?: PapelValor; ativo?: boolean; podeCancelarNfse?: boolean }) =>
       api<unknown>(`/admin/empresas/${empresaId}/vinculos/${v.vinculoId}`, { method: 'PATCH', body: { papel: v.papel, ativo: v.ativo, podeCancelarNfse: v.podeCancelarNfse } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: vinculosEmpresaKeys.lista(empresaId) }),
   })

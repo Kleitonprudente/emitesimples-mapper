@@ -12,7 +12,7 @@ vi.mock('@/lib/auth', async (orig) => ({ ...(await orig<typeof import('@/lib/aut
 
 const URL_CFG = '/admin/configuracoes/integranotas'
 const BASE = {
-  ambienteAtivo: 'homologacao',
+  ambienteAtivo: 'HOMOLOGACAO',
   urlHomologacao: 'https://api.homologacao.integranotas.com.br',
   urlProducao: 'https://api.integranotas.com.br',
   urlPublicaWebhook: null,
@@ -187,7 +187,7 @@ describe('IntegraNotasAdmin', () => {
   })
 
   it('erro producao_bloqueada (409) aparece com a mensagem do back', async () => {
-    prepara({ ...COM_TOKENS, ambienteAtivo: 'producao' }, async () => {
+    prepara({ ...COM_TOKENS, ambienteAtivo: 'PRODUCAO' }, async () => {
       throw new ApiError(409, 'producao_bloqueada', 'Produção está bloqueada neste servidor.')
     })
     const user = userEvent.setup()

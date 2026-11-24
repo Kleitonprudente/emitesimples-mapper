@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isValidCnpj, isValidCpf } from '@/runtime/format'
+import { badgeTone, isValidCnpj, isValidCpf } from '@/runtime/format'
 
 describe('isValidCpf', () => {
   it('aceita CPF com digitos verificadores corretos', () => {
@@ -20,5 +20,21 @@ describe('isValidCnpj', () => {
   it('valida CNPJ', () => {
     expect(isValidCnpj('27865757000102')).toBe(true)
     expect(isValidCnpj('27865757000103')).toBe(false)
+  })
+})
+
+describe('badgeTone com valores tecnicos maiusculos (9.7)', () => {
+  it.each([
+    ['AUTORIZADA', 'success'],
+    ['EM_CONFLITO', 'warning'],
+    ['FALHA_ENVIO', 'warning'],
+    ['EMITIDA_OFFLINE', 'info'],
+    ['DESCARTADA', 'neutral'],
+    ['PENDENTE_CONFIRMACAO', 'warning'],
+    ['DESATIVADA', 'neutral'],
+    ['CONCLUIDA_COM_REJEICOES', 'warning'],
+    ['FALHOU', 'danger'],
+  ])('%s -> %s', (valor, tom) => {
+    expect(badgeTone(valor)).toBe(tom)
   })
 })

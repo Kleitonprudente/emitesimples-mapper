@@ -132,6 +132,16 @@ const TONES: Record<string, BadgeTone> = {
   ERRO: 'danger',
   INATIVO: 'neutral',
   INATIVA: 'neutral',
+  PENDENTE_CONFIRMACAO: 'warning',
+  DESATIVADA: 'neutral',
+  DESCARTADA: 'neutral',
+  EM_CONFLITO: 'warning',
+  FALHA_ENVIO: 'warning',
+  EMITIDA_OFFLINE: 'info',
+  EM_ANDAMENTO: 'info',
+  CONCLUIDA: 'success',
+  CONCLUIDA_COM_REJEICOES: 'warning',
+  FALHOU: 'danger',
 }
 
 export function badgeTone(value: string | null | undefined): BadgeTone {

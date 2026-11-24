@@ -23,7 +23,7 @@ import {
   type Usuario,
   type Vinculo,
 } from '@/features/admin/adminApi'
-import type { Papel } from '@/lib/api'
+import type { PapelValor } from '@/lib/api'
 import { AutoForm, type FieldLayout } from '@/runtime/AutoForm'
 import { DataTable } from '@/runtime/DataTable'
 import { mutationFeedback, notifyError, notifySuccess } from '@/runtime/feedback'
@@ -42,7 +42,7 @@ const senhaTemporaria = z
   .refine((s) => bytes(s) >= 8, 'A senha deve ter pelo menos 8 caracteres.')
   .refine((s) => bytes(s) <= 72, 'A senha é longa demais (máximo de 72 bytes).')
 const whatsapp = z.string().regex(/^\d{10,11}$/, 'WhatsApp com DDD (10 ou 11 dígitos).').optional()
-const papel = z.enum(['administrador', 'operador', 'consulta'], { error: 'Escolha o papel.' })
+const papel = z.enum(['ADMINISTRADOR', 'OPERADOR', 'CONSULTA'], { error: 'Escolha o papel.' })
 
 export const novoUsuarioSchema = z
   .object({
@@ -200,13 +200,13 @@ function SenhaDialog({ usuario, onClose }: { usuario: Usuario; onClose: () => vo
 
 function VinculoLinha({ vinculo, usuarioId }: { vinculo: Vinculo; usuarioId: string }) {
   const atualizar = useAtualizarVinculo(usuarioId)
-  const salvar = (novoPapel: Papel, ativo: boolean, msg: string, podeCancelarNfse?: boolean) =>
+  const salvar = (novoPapel: PapelValor, ativo: boolean, msg: string, podeCancelarNfse?: boolean) =>
     atualizar.mutate({ vinculoId: vinculo.id, papel: novoPapel, ativo, podeCancelarNfse }, { onSuccess: () => notifySuccess(msg), onError: (e) => notifyError(e, 'Não foi possível atualizar o vínculo') })
   return (
     <TableRow>
       <TableCell className="font-medium">{vinculo.empresaNome}</TableCell>
       <TableCell>
-        <Select value={vinculo.papel} disabled={atualizar.isPending} onValueChange={(v) => salvar(v as Papel, vinculo.ativo, 'Papel atualizado.')}>
+        <Select value={vinculo.papel} disabled={atualizar.isPending} onValueChange={(v) => salvar(v as PapelValor, vinculo.ativo, 'Papel atualizado.')}>
           <SelectTrigger aria-label={`Papel em ${vinculo.empresaNome}`} className="w-40">
             <SelectValue />
           </SelectTrigger>
@@ -221,8 +221,8 @@ function VinculoLinha({ vinculo, usuarioId }: { vinculo: Vinculo; usuarioId: str
       </TableCell>
       <TableCell>
         <Switch
-          checked={vinculo.papel === 'administrador' || vinculo.podeCancelarNfse}
-          disabled={atualizar.isPending || vinculo.papel === 'administrador'}
+          checked={vinculo.papel === 'ADMINISTRADOR' || vinculo.podeCancelarNfse}
+          disabled={atualizar.isPending || vinculo.papel === 'ADMINISTRADOR'}
           aria-label={`Pode cancelar NFS-e em ${vinculo.empresaNome}`}
           onCheckedChange={(on) => salvar(vinculo.papel, vinculo.ativo, on ? 'Cancelamento delegado.' : 'Delegação de cancelamento removida.', on)}
         />

@@ -1,4 +1,4 @@
-import type { LoginResponse, Papel } from '@/lib/api'
+import type { LoginResponse, PapelValor } from '@/lib/api'
 import { adminRoutes, consultaCnpjRoute, getMunicipios, resetAdmin } from '@/mocks/admin'
 import { CEPS_MOCK, EMPRESAS_MOCK, MOCK_EMAIL_BLOQUEADO, MOCK_SENHA, MOCK_USERS, buildPessoas, type MockUser, type Pessoa } from '@/mocks/fixtures'
 import { contatosRoutes, resetContatos } from '@/mocks/contatos'
@@ -72,9 +72,9 @@ function sessionFor(user: MockUser, empresaId: string | null): LoginResponse {
     expiresIn: 900,
     usuario: { id: user.id, nome: user.nome, email: user.email },
     empresa,
-    papel: (vinculo?.papel ?? null) as Papel | null,
+    papel: (vinculo?.papel ?? null) as PapelValor | null,
     plataformaAdmin: !!user.plataformaAdmin,
-    podeCancelarNfse: !!user.plataformaAdmin || podeCancelarNfseMock(user.id, empresaId, (vinculo?.papel ?? null) as Papel | null),
+    podeCancelarNfse: !!user.plataformaAdmin || podeCancelarNfseMock(user.id, empresaId, (vinculo?.papel ?? null) as PapelValor | null),
   }
 }
 
@@ -253,7 +253,7 @@ export async function handleMock(req: MockRequest): Promise<Response> {
   else {
     const c = readCookie()
     const user = c ? MOCK_USERS.find((u) => u.id === c.userId) : undefined
-    const papel = (user?.vinculos.find((v) => v.empresaId === c?.empresaId)?.papel ?? null) as Papel | null
+    const papel = (user?.vinculos.find((v) => v.empresaId === c?.empresaId)?.papel ?? null) as PapelValor | null
     res = nfseConfigRoutes(req, { papel, empresaId: c?.empresaId ?? null }) ?? notasRoutes(req, { papel, empresaId: c?.empresaId ?? null, podeCancelarNfse: !!user && podeCancelarNfseMock(user.id, c?.empresaId ?? null, papel), pessoa: (id) => pessoas.find((p) => p.id === id) }) ?? empresaConfigRoutes(req, { papel, empresaId: c?.empresaId ?? null }) ?? consultaCnpjRoute(req, { plataformaAdmin: !!user?.plataformaAdmin, papel }) ?? contatosRoutes(req, { plataformaAdmin: !!user?.plataformaAdmin, papel, pessoaExiste: (id) => pessoas.some((p) => p.id === id) }) ?? (await vinculosEmpresaRoutes(req, { plataformaAdmin: !!user?.plataformaAdmin })) ?? (await adminRoutes(req, { plataformaAdmin: !!user?.plataformaAdmin, nome: user?.nome ?? '' })) ?? entity(req)
   }  return res ?? erro(404, 'nao_encontrado', 'Recurso não encontrado (mock).')
 }

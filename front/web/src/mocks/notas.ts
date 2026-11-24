@@ -1,4 +1,4 @@
-import type { Papel } from '@/lib/api'
+import type { PapelValor } from '@/lib/api'
 import { erro, json } from '@/mocks/http'
 import { buildPessoas } from '@/mocks/fixtures'
 import { alocarNumeroNfseMock, nfseConfigMock } from '@/mocks/nfse-config'
@@ -20,9 +20,9 @@ import { alocarNumeroNfseMock, nfseConfigMock } from '@/mocks/nfse-config'
  *   POST /nfse/notas/preparar (operador+) mesmo corpo de criar -> detalhe `rascunho` (SEM numero/serie/dataEmissao: so a aprovacao aloca; NAO envia).
  *   POST /nfse/notas/{id}/aprovar (operador+) corpo opcional como /enviar -> processando (ou rejeitada/em_conflito pelos valores magicos). 409 nota_nao_editavel se nao for rascunho.
  *   POST /nfse/notas/{id}/descartar (operador+) -> descartada. 409 nota_nao_editavel se nao for rascunho.
- *   POST /nfse/notas/{id}/cancelamentos/preparar (operador+) {codigoMotivo, motivo} -> detalhe com cancelamento.estado 'rascunho'; mesmas regras de cancelar
+ *   POST /nfse/notas/{id}/cancelamentos/preparar (operador+) {codigoMotivo, motivo} -> detalhe com cancelamento.estado 'RASCUNHO'; mesmas regras de cancelar
  *        (400, 409 nota_nao_autorizada | cancelamento_em_andamento | cancelamento_fora_do_mes), sem exigir delegacao.
- *   POST /nfse/cancelamentos/{id}/aprovar (operador+, delegado) -> reavalia o mes vigente (409 cancelamento_fora_do_mes) e envia; /descartar -> 'descartado'.
+ *   POST /nfse/cancelamentos/{id}/aprovar (operador+, delegado) -> reavalia o mes vigente (409 cancelamento_fora_do_mes) e envia; /descartar -> 'DESCARTADO'.
  * Estados novos: `falha_envio` (reenviavel como rejeitada, mesmo numero; seed nota-0007) e `rascunho` (so do assistente; seed nota-0006).
  * E, para as FKs da tela, o cadastro de Servico (so leitura): GET /Servico, /Servico/{from}/{to}, /Servico/count, /Servico/id/{id}.
  *
@@ -37,11 +37,11 @@ export const VALOR_REJEICAO = 666.66
 export const VALOR_CONFLITO = 777.77
 export const VALOR_CANCELAMENTO_PENDENTE = 888.88
 
-export type EstadoNota = 'rascunho' | 'falha_envio' | 'processando' | 'emitida_offline' | 'autorizada' | 'rejeitada' | 'em_conflito' | 'cancelada' | 'descartada'
+export type EstadoNota = 'RASCUNHO' | 'FALHA_ENVIO' | 'PROCESSANDO' | 'EMITIDA_OFFLINE' | 'AUTORIZADA' | 'REJEITADA' | 'EM_CONFLITO' | 'CANCELADA' | 'DESCARTADA'
 
 interface CancelamentoMock {
   id: string
-  estado: 'rascunho' | 'processando' | 'concluido' | 'recusado' | 'expirado' | 'descartado'
+  estado: 'RASCUNHO' | 'PROCESSANDO' | 'CONCLUIDO' | 'RECUSADO' | 'EXPIRADO' | 'DESCARTADO'
   codigoMotivo: number
   motivo: string
   codigoRetorno: string | null
@@ -103,7 +103,7 @@ function base(i: number, parcial: Partial<Nota>): Nota {
     id: `nota-${String(i + 1).padStart(4, '0')}`,
     numero: i + 1,
     serie: '9',
-    estado: 'autorizada',
+    estado: 'AUTORIZADA',
     dataEmissao: `2026-11-${String(10 + i).padStart(2, '0')}T14:00:00`,
     valorServicos: 150 * (i + 1),
     pessoa: { id: p.id, nome: p.nome, documento: p.documento },
@@ -130,7 +130,7 @@ function base(i: number, parcial: Partial<Nota>): Nota {
 }
 
 const autorizadaCom = (n: number): Partial<Nota> => ({
-  estado: 'autorizada',
+  estado: 'AUTORIZADA',
   numeroNfse: String(2026000 + n),
   chave: `4108809${String(n).padStart(37, '0')}`,
   codigoVerificacao: `ABCD${1000 + n}`,
@@ -150,15 +150,15 @@ const sementes = (): Nota[] => [
   // Emitida no mes anterior: serve para ver o aviso "fora do mes vigente" no cancelamento.
   base(1, { ...autorizadaCom(2), dataEmissao: mesAnterior() }),
   base(2, {
-    estado: 'rejeitada',
+    estado: 'REJEITADA',
     codigoRetorno: 'E160',
     mensagemRetorno: 'A prefeitura rejeitou a nota.',
     errosRetorno: [{ campo: 'tomador.endereco.cep', erro: 'E160', descricao: 'CEP do tomador inválido para o município.' }],
   }),
-  base(3, { estado: 'em_conflito', codigoRetorno: 'E999', mensagemRetorno: 'Já existe uma nota com este número na prefeitura.' }),
-  base(4, { estado: 'cancelada', numeroNfse: '2026005', temPdf: true }),
-  base(5, { estado: 'rascunho' }),
-  base(6, { estado: 'falha_envio', mensagemRetorno: 'Falha de comunicação com o gateway. Reenvie a nota.' }),
+  base(3, { estado: 'EM_CONFLITO', codigoRetorno: 'E999', mensagemRetorno: 'Já existe uma nota com este número na prefeitura.' }),
+  base(4, { estado: 'CANCELADA', numeroNfse: '2026005', temPdf: true }),
+  base(5, { estado: 'RASCUNHO' }),
+  base(6, { estado: 'FALHA_ENVIO', mensagemRetorno: 'Falha de comunicação com o gateway. Reenvie a nota.' }),
 ]
 
 let notas: Nota[] = sementes()
@@ -204,26 +204,26 @@ function autorizar(n: Nota): void {
 
 /** Simula o webhook da prefeitura: passado o tempo, a nota processando e autorizada. */
 function progredir(n: Nota): void {
-  if (n.estado === 'processando' && n.enviadaEm > 0 && Date.now() - n.enviadaEm >= TEMPO_AUTORIZACAO_MS) autorizar(n)
+  if (n.estado === 'PROCESSANDO' && n.enviadaEm > 0 && Date.now() - n.enviadaEm >= TEMPO_AUTORIZACAO_MS) autorizar(n)
 }
 
-const cancelando = (n: Nota) => n.cancelamento?.estado === 'processando'
-const cancelamentoRascunho = (n: Nota) => n.cancelamento?.estado === 'rascunho'
-const podeAtualizar = (n: Nota) => n.estado === 'processando' || n.estado === 'emitida_offline' || n.estado === 'em_conflito' || cancelando(n)
+const cancelando = (n: Nota) => n.cancelamento?.estado === 'PROCESSANDO'
+const cancelamentoRascunho = (n: Nota) => n.cancelamento?.estado === 'RASCUNHO'
+const podeAtualizar = (n: Nota) => n.estado === 'PROCESSANDO' || n.estado === 'EMITIDA_OFFLINE' || n.estado === 'EM_CONFLITO' || cancelando(n)
 const anoMes = (d: Date) => {
   const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit' }).formatToParts(d)
   return `${p.find((x) => x.type === 'year')?.value}-${p.find((x) => x.type === 'month')?.value}`
 }
 /** dataEmissao sem fuso e horario local de Sao Paulo. */
 const noMesVigente = (n: Nota) => n.dataEmissao.slice(0, 7) === anoMes(new Date())
-const podeCancelar = (n: Nota, delegado: boolean) => delegado && n.estado === 'autorizada' && !cancelando(n) && !cancelamentoRascunho(n) && noMesVigente(n)
+const podeCancelar = (n: Nota, delegado: boolean) => delegado && n.estado === 'AUTORIZADA' && !cancelando(n) && !cancelamentoRascunho(n) && noMesVigente(n)
 function concluirCancelamento(n: Nota): void {
   if (!n.cancelamento) return
-  n.estado = 'cancelada'
-  n.cancelamento = { ...n.cancelamento, estado: 'concluido', codigoRetorno: '101', mensagemRetorno: 'Cancelamento homologado pela prefeitura.', dataHoraEvento: agoraIso() }
+  n.estado = 'CANCELADA'
+  n.cancelamento = { ...n.cancelamento, estado: 'CONCLUIDO', codigoRetorno: '101', mensagemRetorno: 'Cancelamento homologado pela prefeitura.', dataHoraEvento: agoraIso() }
 }
 
-const podeReenviar = (n: Nota) => n.estado === 'falha_envio' || n.estado === 'rejeitada'
+const podeReenviar = (n: Nota) => n.estado === 'FALHA_ENVIO' || n.estado === 'REJEITADA'
 
 function item(n: Nota) {
   return {
@@ -266,10 +266,10 @@ function detalhe(n: Nota, perfil: Perfil = SEM_PERFIL) {
     editavel: podeReenviar(n),
     podeReenviar: podeReenviar(n),
     podeAtualizar: podeAtualizar(n),
-    cancelamento: c ? { ...c, podeAprovar: c.estado === 'rascunho' && perfil.escreve && perfil.delegado, podeDescartar: c.estado === 'rascunho' && perfil.escreve } : null,
+    cancelamento: c ? { ...c, podeAprovar: c.estado === 'RASCUNHO' && perfil.escreve && perfil.delegado, podeDescartar: c.estado === 'RASCUNHO' && perfil.escreve } : null,
     podeCancelar: perfil.escreve && podeCancelar(n, perfil.delegado),
-    podeAprovar: n.estado === 'rascunho' && perfil.escreve,
-    podeDescartar: n.estado === 'rascunho' && perfil.escreve,
+    podeAprovar: n.estado === 'RASCUNHO' && perfil.escreve,
+    podeDescartar: n.estado === 'RASCUNHO' && perfil.escreve,
   }
 }
 
@@ -285,7 +285,7 @@ function filtradas(q: Q): Nota[] {
 }
 
 interface Ctx {
-  papel: Papel | null
+  papel: PapelValor | null
   empresaId: string | null
   /** Permissao efetiva de cancelar (administrador sempre; operador so delegado). Ausente = so administrador. */
   podeCancelarNfse?: boolean
@@ -314,8 +314,8 @@ function aplicar(alvo: Nota, b: Corpo, ctx: Ctx, criando: boolean): Response | n
   // pre-condicoes da empresa
   const cfg = nfseConfigMock()
   if (!cfg.habilitada) return erro(409, 'nfse_nao_habilitada', 'A emissão de NFS-e não está habilitada.')
-  if (cfg.statusCadastro !== 'cadastrado') return erro(409, 'emitente_nao_cadastrado', 'A empresa não está cadastrada como emitente.')
-  if (cfg.certificadoSituacao !== 'valido') return erro(409, 'certificado_nao_valido', 'O certificado digital não está válido.')
+  if (cfg.statusCadastro !== 'CADASTRADO') return erro(409, 'emitente_nao_cadastrado', 'A empresa não está cadastrada como emitente.')
+  if (cfg.certificadoSituacao !== 'VALIDO') return erro(409, 'certificado_nao_valido', 'O certificado digital não está válido.')
 
   const pessoaId = typeof b.pessoaId === 'string' ? b.pessoaId : alvo.pessoa.id
   if (pessoaId !== alvo.pessoa.id || criando) {
@@ -351,7 +351,7 @@ function enviar(n: Nota): void {
   n.codigoRetorno = null
   n.mensagemRetorno = null
   if (n.valorServicos === VALOR_REJEICAO) {
-    n.estado = 'rejeitada'
+    n.estado = 'REJEITADA'
     n.codigoRetorno = 'E160'
     n.mensagemRetorno = 'A prefeitura rejeitou a nota.'
     n.errosRetorno = [
@@ -359,11 +359,11 @@ function enviar(n: Nota): void {
       { campo: 'tomador.endereco.cep', erro: 'E161', descricao: 'CEP do tomador inválido para o município.' },
     ]
   } else if (n.valorServicos === VALOR_CONFLITO) {
-    n.estado = 'em_conflito'
+    n.estado = 'EM_CONFLITO'
     n.codigoRetorno = 'E999'
     n.mensagemRetorno = 'Já existe uma nota com este número na prefeitura.'
   } else {
-    n.estado = 'processando'
+    n.estado = 'PROCESSANDO'
   }
 }
 
@@ -393,15 +393,15 @@ export function notasRoutes(req: { method: string; path: string; query?: Q; body
 
   if (!path.startsWith('/nfse/notas') && !path.startsWith('/nfse/cancelamentos')) return null
   if (!ctx.empresaId || !ctx.papel) return erro(403, 'acesso_negado', 'Acesso negado.')
-  const escreve = ctx.papel === 'operador' || ctx.papel === 'administrador'
-  const delegado = ctx.papel === 'administrador' || ctx.podeCancelarNfse === true
+  const escreve = ctx.papel === 'OPERADOR' || ctx.papel === 'ADMINISTRADOR'
+  const delegado = ctx.papel === 'ADMINISTRADOR' || ctx.podeCancelarNfse === true
   const perfil: Perfil = { escreve, delegado }
   const naoDelegado = () => erro(403, 'cancelamento_nao_delegado', 'Seu usuário não tem permissão para cancelar notas. Peça ao administrador.')
   const negado = () => erro(403, 'acesso_negado', 'Você não tem permissão para emitir ou reenviar notas.')
 
   if (path === '/nfse/notas' && method === 'POST') {
     if (!escreve) return negado()
-    const nova: Nota = base(0, { id: `nota-${String(++seq).padStart(4, '0')}`, estado: 'rascunho', pessoa: { id: '', nome: '', documento: '' }, servico: { id: '', nome: '' }, discriminacao: '' })
+    const nova: Nota = base(0, { id: `nota-${String(++seq).padStart(4, '0')}`, estado: 'RASCUNHO', pessoa: { id: '', nome: '', documento: '' }, servico: { id: '', nome: '' }, discriminacao: '' })
     const falha = aplicar(nova, (req.body ?? {}) as Corpo, ctx, true)
     if (falha) {
       seq -= 1
@@ -417,7 +417,7 @@ export function notasRoutes(req: { method: string; path: string; query?: Q; body
   // Assistente: prepara o rascunho (valida; NAO aloca numero nem envia). Quem aprova e uma pessoa.
   if (path === '/nfse/notas/preparar' && method === 'POST') {
     if (!escreve) return negado()
-    const nova: Nota = base(0, { id: `nota-${String(++seq).padStart(4, '0')}`, estado: 'rascunho', pessoa: { id: '', nome: '', documento: '' }, servico: { id: '', nome: '' }, discriminacao: '' })
+    const nova: Nota = base(0, { id: `nota-${String(++seq).padStart(4, '0')}`, estado: 'RASCUNHO', pessoa: { id: '', nome: '', documento: '' }, servico: { id: '', nome: '' }, discriminacao: '' })
     const falha = aplicar(nova, (req.body ?? {}) as Corpo, ctx, true)
     if (falha) {
       seq -= 1
@@ -434,15 +434,15 @@ export function notasRoutes(req: { method: string; path: string; query?: Q; body
     if (!escreve) return negado()
     const dona = notas.find((n) => n.cancelamento?.id === rotaCanc[1])
     if (!dona?.cancelamento) return erro(404, 'nao_encontrado', 'Cancelamento não encontrado.')
-    if (dona.cancelamento.estado !== 'rascunho') return erro(409, 'cancelamento_nao_editavel', 'Só é possível aprovar ou descartar um cancelamento em rascunho.')
+    if (dona.cancelamento.estado !== 'RASCUNHO') return erro(409, 'cancelamento_nao_editavel', 'Só é possível aprovar ou descartar um cancelamento em rascunho.')
     if (rotaCanc[2] === 'descartar') {
-      dona.cancelamento = { ...dona.cancelamento, estado: 'descartado' }
+      dona.cancelamento = { ...dona.cancelamento, estado: 'DESCARTADO' }
       return json(200, detalhe(dona, perfil))
     }
     if (!delegado) return naoDelegado()
-    if (dona.estado !== 'autorizada') return erro(409, 'nota_nao_autorizada', 'Só é possível cancelar uma nota autorizada.')
+    if (dona.estado !== 'AUTORIZADA') return erro(409, 'nota_nao_autorizada', 'Só é possível cancelar uma nota autorizada.')
     if (!noMesVigente(dona)) return erro(409, 'cancelamento_fora_do_mes', 'O cancelamento só é possível dentro do mês vigente da emissão da nota.')
-    dona.cancelamento = { ...dona.cancelamento, estado: 'processando', solicitadoEm: agoraIso() }
+    dona.cancelamento = { ...dona.cancelamento, estado: 'PROCESSANDO', solicitadoEm: agoraIso() }
     dona.consultas = 0
     if (dona.valorServicos !== VALOR_CANCELAMENTO_PENDENTE) concluirCancelamento(dona)
     return json(200, detalhe(dona, perfil))
@@ -478,7 +478,7 @@ export function notasRoutes(req: { method: string; path: string; query?: Q; body
     if (cancelando(nota)) {
       nota.consultas += 1
       if (nota.consultas >= 2) concluirCancelamento(nota)
-    } else if (podeAtualizar(nota) && nota.estado !== 'em_conflito') {
+    } else if (podeAtualizar(nota) && nota.estado !== 'EM_CONFLITO') {
       nota.consultas += 1
       if (nota.consultas >= 2) autorizar(nota)
     }
@@ -496,9 +496,9 @@ export function notasRoutes(req: { method: string; path: string; query?: Q; body
     if (motivo.length < 15 || motivo.length > 255) campos.motivo = 'A justificativa deve ter de 15 a 255 caracteres.'
     if (Object.keys(campos).length > 0) return erro(400, 'requisicao_invalida', 'Dados inválidos.', { campos })
     if (cancelando(nota) || cancelamentoRascunho(nota)) return erro(409, 'cancelamento_em_andamento', 'Já existe um cancelamento em andamento para esta nota.')
-    if (nota.estado !== 'autorizada') return erro(409, 'nota_nao_autorizada', 'Só é possível cancelar uma nota autorizada.')
+    if (nota.estado !== 'AUTORIZADA') return erro(409, 'nota_nao_autorizada', 'Só é possível cancelar uma nota autorizada.')
     if (!noMesVigente(nota)) return erro(409, 'cancelamento_fora_do_mes', 'O cancelamento só é possível dentro do mês vigente da emissão da nota.')
-    nota.cancelamento = { id: `canc-${String(++seqCancelamento).padStart(4, '0')}`, estado: preparando ? 'rascunho' : 'processando', codigoMotivo: b.codigoMotivo as number, motivo, codigoRetorno: null, mensagemRetorno: null, dataHoraEvento: null, solicitadoEm: agoraIso() }
+    nota.cancelamento = { id: `canc-${String(++seqCancelamento).padStart(4, '0')}`, estado: preparando ? 'RASCUNHO' : 'PROCESSANDO', codigoMotivo: b.codigoMotivo as number, motivo, codigoRetorno: null, mensagemRetorno: null, dataHoraEvento: null, solicitadoEm: agoraIso() }
     if (preparando) return json(200, detalhe(nota, perfil))
     nota.consultas = 0
     if (nota.valorServicos !== VALOR_CANCELAMENTO_PENDENTE) concluirCancelamento(nota)
@@ -507,16 +507,16 @@ export function notasRoutes(req: { method: string; path: string; query?: Q; body
 
   if (acao === 'descartar' && method === 'POST') {
     if (!escreve) return negado()
-    if (nota.estado !== 'rascunho') return erro(409, 'nota_nao_editavel', 'Só é possível descartar um rascunho.')
-    nota.estado = 'descartada'
+    if (nota.estado !== 'RASCUNHO') return erro(409, 'nota_nao_editavel', 'Só é possível descartar um rascunho.')
+    nota.estado = 'DESCARTADA'
     return json(200, detalhe(nota, perfil))
   }
 
   if ((acao === 'enviar' || acao === 'aprovar') && method === 'POST') {
     if (!escreve) return negado()
-    if (acao === 'aprovar' && nota.estado !== 'rascunho') return erro(409, 'nota_nao_editavel', 'Só é possível aprovar um rascunho.')
-    if (nota.estado === 'processando' || nota.estado === 'emitida_offline') return erro(409, 'nota_em_processamento', 'A nota está em processamento.')
-    if (nota.estado === 'em_conflito') return erro(409, 'nota_em_conflito', 'A nota está em conflito com a prefeitura.')
+    if (acao === 'aprovar' && nota.estado !== 'RASCUNHO') return erro(409, 'nota_nao_editavel', 'Só é possível aprovar um rascunho.')
+    if (nota.estado === 'PROCESSANDO' || nota.estado === 'EMITIDA_OFFLINE') return erro(409, 'nota_em_processamento', 'A nota está em processamento.')
+    if (nota.estado === 'EM_CONFLITO') return erro(409, 'nota_em_conflito', 'A nota está em conflito com a prefeitura.')
     if (acao === 'enviar' && !podeReenviar(nota)) return erro(409, 'nota_nao_editavel', 'Esta nota não pode mais ser editada.')
     const copia = { ...nota }
     const falha = aplicar(nota, (req.body ?? {}) as Corpo, ctx, false)

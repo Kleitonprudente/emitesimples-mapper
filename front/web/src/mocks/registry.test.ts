@@ -21,7 +21,7 @@ describe('mock registry', () => {
     const r = await call('POST', '/auth/login', { email: 'admin@exemplo.com.br', senha: 'senha1234' })
     expect(r.status).toBe(200)
     expect(Object.keys(r.body).sort()).toEqual(['accessToken', 'empresa', 'expiresIn', 'papel', 'plataformaAdmin', 'podeCancelarNfse', 'usuario'])
-    expect(r.body.papel).toBe('administrador')
+    expect(r.body.papel).toBe('ADMINISTRADOR')
   })
 
   it('credenciais invalidas, empresa obrigatoria (409) e muitas tentativas (429)', async () => {
@@ -31,7 +31,7 @@ describe('mock registry', () => {
     expect(m.body.codigo).toBe('empresa_obrigatoria')
     expect(m.body.detalhes.empresas).toHaveLength(2)
     const ok = await call('POST', '/auth/login', { email: 'multi@exemplo.com.br', senha: 'senha1234', empresaId: 'emp-2' })
-    expect(ok.body.papel).toBe('operador')
+    expect(ok.body.papel).toBe('OPERADOR')
     const t = await call('POST', '/auth/login', { email: 'bloqueado@exemplo.com.br', senha: 'x' })
     expect(t.status).toBe(429)
     expect(t.headers.get('Retry-After')).toBe('90')
@@ -55,14 +55,14 @@ describe('mock registry', () => {
     expect(count.body.count).toBe(37)
     const page = await call('GET', '/Pessoa/0/9', undefined, token, { sortBy: 'nome', sortDirection: 'desc' })
     expect(page.body).toHaveLength(10)
-    const filtered = await call('GET', '/Pessoa/count', undefined, token, { tipoPessoa: 'juridica' })
+    const filtered = await call('GET', '/Pessoa/count', undefined, token, { tipoPessoa: 'JURIDICA' })
     expect(filtered.body.count).toBeGreaterThan(0)
     expect(filtered.body.count).toBeLessThan(37)
   })
 
   it('create/update/delete por id e erro de documento duplicado', async () => {
     const token = await loginToken()
-    const nova = { tipoPessoa: 'fisica', documento: '52998224725', nome: 'Teste' }
+    const nova = { tipoPessoa: 'FISICA', documento: '52998224725', nome: 'Teste' }
     const c = await call('POST', '/Pessoa', nova, token)
     expect(c.status).toBe(200)
     expect((await call('POST', '/Pessoa', nova, token)).body.codigo).toBe('documento_duplicado')
@@ -143,7 +143,7 @@ describe('mock registry: admin da plataforma', () => {
 
   it('usuarios: criar (validacoes e e-mail duplicado), editar, senha e vinculos sem exclusao', async () => {
     const token = await plataformaToken()
-    const novo = { nome: 'Nova Pessoa', email: 'nova@exemplo.com.br', senha: 'temporaria1', ativo: true, vinculos: [{ empresaId: 'emp-1', papel: 'operador' }] }
+    const novo = { nome: 'Nova Pessoa', email: 'nova@exemplo.com.br', senha: 'temporaria1', ativo: true, vinculos: [{ empresaId: 'emp-1', papel: 'OPERADOR' }] }
     expect((await call('POST', '/admin/usuarios', { ...novo, senha: 'curta' }, token)).body.codigo).toBe('senha_invalida')
     const c = await call('POST', '/admin/usuarios', novo, token)
     expect(c.status).toBe(200)
@@ -157,10 +157,10 @@ describe('mock registry: admin da plataforma', () => {
     const v1 = await call('GET', `/admin/usuarios/${id}/vinculos`, undefined, token)
     expect(v1.body).toHaveLength(1)
     expect(v1.body[0].empresa.razaoSocial).toContain('Horizonte')
-    expect((await call('POST', `/admin/usuarios/${id}/vinculos`, { empresaId: 'emp-1', papel: 'consulta' }, token)).body.codigo).toBe('vinculo_duplicado')
-    const v2 = await call('POST', `/admin/usuarios/${id}/vinculos`, { empresaId: 'emp-2', papel: 'consulta' }, token)
+    expect((await call('POST', `/admin/usuarios/${id}/vinculos`, { empresaId: 'emp-1', papel: 'CONSULTA' }, token)).body.codigo).toBe('vinculo_duplicado')
+    const v2 = await call('POST', `/admin/usuarios/${id}/vinculos`, { empresaId: 'emp-2', papel: 'CONSULTA' }, token)
     expect(v2.status).toBe(200)
-    const off = await call('PATCH', `/admin/usuarios/${id}/vinculos/${v2.body.id}`, { papel: 'consulta', ativo: false }, token)
+    const off = await call('PATCH', `/admin/usuarios/${id}/vinculos/${v2.body.id}`, { papel: 'CONSULTA', ativo: false }, token)
     expect(off.body.ativo).toBe(false)
     expect((await call('GET', `/admin/usuarios/${id}/vinculos`, undefined, token)).body).toHaveLength(2) // desativa, nunca exclui
     expect((await call('GET', '/admin/usuarios/nao-existe/vinculos', undefined, token)).status).toBe(404)
@@ -213,7 +213,7 @@ describe('mock registry: Pessoa cliente/fornecedor', () => {
 
   it('POST e PUT preservam e devolvem cliente/fornecedor', async () => {
     const token = await loginToken()
-    const nova = { tipoPessoa: 'juridica', documento: '45723174000110', nome: 'Fornecedora', cliente: false, fornecedor: true }
+    const nova = { tipoPessoa: 'JURIDICA', documento: '45723174000110', nome: 'Fornecedora', cliente: false, fornecedor: true }
     const c = await call('POST', '/Pessoa', nova, token)
     expect(c.body).toMatchObject({ cliente: false, fornecedor: true })
     const u = await call('PUT', `/Pessoa/id/${c.body.id}`, { ...nova, cliente: true }, token)
@@ -269,7 +269,7 @@ describe('mock registry: integracao IntegraNotas', () => {
 
   it('estado inicial: homologacao, producao bloqueada, sem tokens', async () => {
     const r = await call('GET', URL_CFG, undefined, await plataforma())
-    expect(r.body).toMatchObject({ ambienteAtivo: 'homologacao', producaoPermitida: false, tokenHomologacaoConfigurado: false, tokenProducaoConfigurado: false, urlPublicaWebhook: null, atualizadoPor: null })
+    expect(r.body).toMatchObject({ ambienteAtivo: 'HOMOLOGACAO', producaoPermitida: false, tokenHomologacaoConfigurado: false, tokenProducaoConfigurado: false, urlPublicaWebhook: null, atualizadoPor: null })
   })
 
   it('valida URLs, ambiente e producao bloqueada (409)', async () => {
@@ -280,7 +280,7 @@ describe('mock registry: integracao IntegraNotas', () => {
     expect((await call('PUT', URL_CFG, { urlPublicaWebhook: 'http://x.com.br' }, t)).body.codigo).toBe('url_invalida')
     expect((await call('PUT', URL_CFG, { ambienteAtivo: 'teste' }, t)).body.codigo).toBe('ambiente_invalido')
     expect((await call('PUT', URL_CFG, { tokenProducao: 5 }, t)).body.codigo).toBe('token_invalido')
-    const bloq = await call('PUT', URL_CFG, { ambienteAtivo: 'producao' }, t)
+    const bloq = await call('PUT', URL_CFG, { ambienteAtivo: 'PRODUCAO' }, t)
     expect([bloq.status, bloq.body.codigo]).toEqual([409, 'producao_bloqueada'])
   })
 

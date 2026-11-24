@@ -15,11 +15,11 @@ vi.mock('@tanstack/react-router', async (orig) => ({ ...(await orig<typeof impor
 vi.mock('sonner', () => ({ toast: toastMock }))
 
 const CFG_OK = {
-  habilitada: true, serie: '1', ultimoNumero: 9, proximoNumero: 10, ambiente: 'homologacao', statusCadastro: 'cadastrado',
-  emitenteTokenConfigurado: true, certificadoSituacao: 'valido', integracaoDisponivel: true,
+  habilitada: true, serie: '1', ultimoNumero: 9, proximoNumero: 10, ambiente: 'HOMOLOGACAO', statusCadastro: 'CADASTRADO',
+  emitenteTokenConfigurado: true, certificadoSituacao: 'VALIDO', integracaoDisponivel: true,
 }
 const NOTA = {
-  id: 'n-novo', numero: 10, serie: '1', estado: 'processando', valorServicos: 100, pessoa: { id: 'p1', nome: 'Ana', documento: '12345678909' },
+  id: 'n-novo', numero: 10, serie: '1', estado: 'PROCESSANDO', valorServicos: 100, pessoa: { id: 'p1', nome: 'Ana', documento: '12345678909' },
   servico: { id: 's1', nome: 'Consultoria' }, temPdf: false, discriminacao: 'x', errosRetorno: null, editavel: false, podeReenviar: false, podeAtualizar: true,
 }
 const PADRAO = 'Texto padrão do serviço.'
@@ -64,12 +64,12 @@ beforeEach(() => {
   apiMock.mockReset()
   navegar.mockReset()
   toastMock.success.mockReset()
-  sessao.atual = com('operador')
+  sessao.atual = com('OPERADOR')
 })
 
 describe('NotaNova', () => {
   it('consulta ve acesso restrito e nao chama a API', () => {
-    sessao.atual = com('consulta')
+    sessao.atual = com('CONSULTA')
     renderTela()
     expect(screen.getByRole('alert')).toHaveTextContent('Acesso restrito')
     expect(apiMock).not.toHaveBeenCalled()
@@ -92,14 +92,14 @@ describe('NotaNova', () => {
   })
 
   it('certificado nao valido: alerta e Enviar desabilitado', async () => {
-    prepara({ ...CFG_OK, certificadoSituacao: 'vencido' })
+    prepara({ ...CFG_OK, certificadoSituacao: 'VENCIDO' })
     renderTela()
     expect(await screen.findByText('O certificado digital não está válido. Envie em Configuração > Empresa.')).toBeInTheDocument()
     expect(enviar()).toBeDisabled()
   })
 
   it('emitente nao cadastrado e integracao indisponivel tambem bloqueiam', async () => {
-    prepara({ ...CFG_OK, statusCadastro: 'erro', integracaoDisponivel: false })
+    prepara({ ...CFG_OK, statusCadastro: 'ERRO', integracaoDisponivel: false })
     renderTela()
     expect(await screen.findByText(/ainda não está cadastrada como emitente/)).toBeInTheDocument()
     expect(screen.getByText(/integração com a IntegraNotas não está configurada/)).toBeInTheDocument()
@@ -107,7 +107,7 @@ describe('NotaNova', () => {
   })
 
   it('ambiente de producao aparece como Producao', async () => {
-    prepara({ ...CFG_OK, ambiente: 'producao' })
+    prepara({ ...CFG_OK, ambiente: 'PRODUCAO' })
     renderTela()
     expect(await screen.findByText('Produção')).toBeInTheDocument()
   })

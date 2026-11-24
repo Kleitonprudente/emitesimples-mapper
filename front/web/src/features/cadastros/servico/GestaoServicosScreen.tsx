@@ -20,13 +20,13 @@ export function GestaoServicosScreen() {
   const columns = useMemo(
     () =>
       gestaoServicosColumns({
-        editarServico: canAct(session, 'operador', false) ? (row) => void navigate({ to: '/servicos/$id', params: { id: row.id } }) : undefined,
+        editarServico: canAct(session, 'OPERADOR', false) ? (row) => void navigate({ to: '/servicos/$id', params: { id: row.id } }) : undefined,
       }),
     [session, navigate],
   )
   const [state, update] = useTableState({ sortBy: 'nome' })
   const result = useServicos(state, 'nome')
-  const canCriar = canAct(session, 'operador', false)
+  const canCriar = canAct(session, 'OPERADOR', false)
   const novo = canCriar ? (
     <Button onClick={() => void navigate({ to: '/servicos/$id', params: { id: 'novo' } })}>
       <CriarServicoIcon /> Novo serviço

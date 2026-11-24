@@ -9,14 +9,14 @@ const apiMock = vi.hoisted(() => vi.fn())
 vi.mock('@/lib/api', async (orig) => ({ ...(await orig<typeof import('@/lib/api')>()), api: apiMock }))
 
 const TIPOS = [
-  { value: 'socio', label: 'Sócio' },
-  { value: 'financeiro', label: 'Financeiro' },
-  { value: 'outro', label: 'Outro' },
+  { value: 'SOCIO', label: 'Sócio' },
+  { value: 'FINANCEIRO', label: 'Financeiro' },
+  { value: 'OUTRO', label: 'Outro' },
 ]
 
 const contatoSchema = z.object({
   id: z.string().optional(),
-  tipoContato: z.enum(['socio', 'financeiro', 'comercial', 'fiscal', 'outro']),
+  tipoContato: z.enum(['SOCIO', 'FINANCEIRO', 'COMERCIAL', 'FISCAL', 'OUTRO']),
   nome: z.string().min(1, 'Informe o nome.'),
   whatsapp: z.string().optional(),
   email: z.email('E-mail inválido.').optional(),
@@ -38,7 +38,7 @@ const ITEM: FieldLayout = [
     { name: 'email', label: 'E-mail', kind: 'email', size: 'l' },
   ],
 ]
-const LISTA = { item: ITEM, itemLabel: 'Contato', addLabel: 'Adicionar contato', maxItems: 3, defaultItem: { tipoContato: 'outro' } }
+const LISTA = { item: ITEM, itemLabel: 'Contato', addLabel: 'Adicionar contato', maxItems: 3, defaultItem: { tipoContato: 'OUTRO' } }
 
 const SIMPLES: FieldLayout = [
   { name: 'nome', label: 'Nome da pessoa', required: true },
@@ -182,7 +182,7 @@ describe('AutoForm: campo de lista', () => {
     await salvar(user)
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1))
     const enviado = onSubmit.mock.calls[0]![0] as { contatos: Record<string, unknown>[] }
-    expect(enviado.contatos).toEqual([{ tipoContato: 'outro', nome: 'Ana', whatsapp: '11987654321' }])
+    expect(enviado.contatos).toEqual([{ tipoContato: 'OUTRO', nome: 'Ana', whatsapp: '11987654321' }])
     expect(Object.keys(enviado.contatos[0]!)).not.toContain('email')
   })
 
@@ -199,8 +199,8 @@ describe('AutoForm: campo de lista', () => {
     const values: V = {
       nome: 'Empresa X',
       contatos: [
-        { id: 'con-1', tipoContato: 'financeiro', nome: 'Marta', whatsapp: '11911112222', email: 'marta@x.com' },
-        { id: 'con-2', tipoContato: 'socio', nome: 'Paulo' },
+        { id: 'con-1', tipoContato: 'FINANCEIRO', nome: 'Marta', whatsapp: '11911112222', email: 'marta@x.com' },
+        { id: 'con-2', tipoContato: 'SOCIO', nome: 'Paulo' },
       ],
     } as V
 
@@ -221,8 +221,8 @@ describe('AutoForm: campo de lista', () => {
       await salvar(user)
       await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1))
       expect(onSubmit.mock.calls[0]![0].contatos).toEqual([
-        { id: 'con-2', tipoContato: 'socio', nome: 'Paulo Nunes' },
-        { tipoContato: 'outro', nome: 'Novo' },
+        { id: 'con-2', tipoContato: 'SOCIO', nome: 'Paulo Nunes' },
+        { tipoContato: 'OUTRO', nome: 'Novo' },
       ])
     })
 
@@ -265,7 +265,7 @@ describe('AutoForm: campo de lista', () => {
 
   it('erro num item abre a secao recolhida e leva o foco ao campo invalido', async () => {
     const user = userEvent.setup()
-    renderForm(COM_SECOES, { defaults: { nome: 'X', contatos: [{ tipoContato: 'outro', nome: '' }] } as unknown as V })
+    renderForm(COM_SECOES, { defaults: { nome: 'X', contatos: [{ tipoContato: 'OUTRO', nome: '' }] } as unknown as V })
     // secao nasce aberta por ter itens; fecha manualmente e tenta salvar
     const gatilho = screen.getByRole('button', { name: /Contatos/ })
     await user.click(gatilho)
@@ -314,8 +314,8 @@ describe('AutoForm: socios do CNPJ viram contatos', () => {
     await salvar(user)
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1))
     expect(onSubmit.mock.calls[0]![0].contatos).toEqual([
-      { tipoContato: 'socio', nome: 'Joana D’Arc Silva' },
-      { tipoContato: 'socio', nome: 'JOÃO PEDRO MARTINS' },
+      { tipoContato: 'SOCIO', nome: 'Joana D’Arc Silva' },
+      { tipoContato: 'SOCIO', nome: 'JOÃO PEDRO MARTINS' },
     ])
   })
 
@@ -325,8 +325,8 @@ describe('AutoForm: socios do CNPJ viram contatos', () => {
     renderForm(COM_SECOES, {
       defaults: {
         contatos: [
-          { id: 'con-9', tipoContato: 'socio', nome: 'joao pedro martins' },
-          { id: 'con-8', tipoContato: 'financeiro', nome: 'Joana D’Arc Silva' },
+          { id: 'con-9', tipoContato: 'SOCIO', nome: 'joao pedro martins' },
+          { id: 'con-8', tipoContato: 'FINANCEIRO', nome: 'Joana D’Arc Silva' },
         ],
       } as unknown as V,
     })

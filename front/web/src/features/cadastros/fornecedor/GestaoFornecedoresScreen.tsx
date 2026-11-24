@@ -22,13 +22,13 @@ export function GestaoFornecedoresScreen() {
   const columns = useMemo(
     () =>
       gestaoFornecedoresColumns({
-        editarFornecedor: canAct(session, 'operador', false) ? (row) => void navigate({ to: '/fornecedores/$id', params: { id: row.id } }) : undefined,
+        editarFornecedor: canAct(session, 'OPERADOR', false) ? (row) => void navigate({ to: '/fornecedores/$id', params: { id: row.id } }) : undefined,
       }),
     [session, navigate],
   )
   const [state, update] = useTableState({ sortBy: 'nome' })
   const result = usePessoas(state, 'nome', { fornecedor: true })
-  const canCriar = canAct(session, 'operador', false)
+  const canCriar = canAct(session, 'OPERADOR', false)
   const novo = canCriar ? (
     <Button onClick={() => void navigate({ to: '/fornecedores/$id', params: { id: 'novo' } })}>
       <CriarFornecedorIcon /> Novo fornecedor

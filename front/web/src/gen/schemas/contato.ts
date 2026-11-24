@@ -1,13 +1,13 @@
 // GERADO por frontend/zodSchema a partir de Contato. Nao edite: a saida e sobrescrita por inteiro.
 import { z } from 'zod'
 
-export const tipoContatoValues = ['socio', 'financeiro', 'comercial', 'fiscal', 'outro'] as const
+export const tipoContatoValues = ['SOCIO', 'FINANCEIRO', 'COMERCIAL', 'FISCAL', 'OUTRO'] as const
 export const tipoContatoLabels: Record<string, string> = {
-    'socio': 'Sócio ou administrador (vindo do QSA do CNPJ)',
-    'financeiro': 'Contato do financeiro',
-    'comercial': 'Contato comercial',
-    'fiscal': 'Contato fiscal ou contábil',
-    'outro': 'Outro tipo de contato',
+    'SOCIO': 'Sócio',
+    'FINANCEIRO': 'Financeiro',
+    'COMERCIAL': 'Comercial',
+    'FISCAL': 'Fiscal ou contábil',
+    'OUTRO': 'Outro',
 }
 
 export const contatoSchema = z.object({

@@ -92,14 +92,14 @@ function Conteudo() {
   if (cfg.isLoading) return <LoadingState label="Carregando…" />
   if (cfg.isError || !cfg.data) return <ErrorState error={cfg.error} title="Não foi possível carregar a configuração da NFS-e." onRetry={() => void cfg.refetch()} />
   const c = cfg.data
-  const semCertificado = c.certificadoSituacao !== 'valido'
-  const semEmitente = c.habilitada && c.statusCadastro !== 'cadastrado'
+  const semCertificado = c.certificadoSituacao !== 'VALIDO'
+  const semEmitente = c.habilitada && c.statusCadastro !== 'CADASTRADO'
   const bloqueado = !c.habilitada || semCertificado || semEmitente || !c.integracaoDisponivel
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="text-2xl font-semibold">Nova nota</h1>
-        <Badge tone={c.ambiente === 'producao' ? 'info' : 'warning'}>{c.ambiente === 'producao' ? 'Produção' : 'Homologação'}</Badge>
+        <Badge tone={c.ambiente === 'PRODUCAO' ? 'info' : 'warning'}>{c.ambiente === 'PRODUCAO' ? 'Produção' : 'Homologação'}</Badge>
       </div>
       {!c.habilitada && (
         <Alert variant="warning">
@@ -154,6 +154,6 @@ function Conteudo() {
 
 export function NotaNova() {
   const session = useSession()
-  if (!canAct(session, 'operador')) return <ErrorState title="Acesso restrito a quem pode emitir notas." />
+  if (!canAct(session, 'OPERADOR')) return <ErrorState title="Acesso restrito a quem pode emitir notas." />
   return <Conteudo />
 }

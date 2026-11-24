@@ -51,7 +51,7 @@ describe('mock de Configuracao > Empresa', () => {
       regimeTributario: 1,
       regimeIbsCbs: null,
       documentoEditavel: true,
-      certificado: { situacao: 'nao_enviado', validade: null, pendenteDeEnvio: false, venceEmDias: null },
+      certificado: { situacao: 'NAO_ENVIADO', validade: null, pendenteDeEnvio: false, venceEmDias: null },
     })
   })
 
@@ -99,17 +99,17 @@ describe('mock de Configuracao > Empresa', () => {
   it('certificado sem NFS-e: guardado e pendente; ao habilitar a NFS-e vira valido', async () => {
     const r = await call('POST', URL_C, form('empresa.pfx'), token)
     expect(r.status).toBe(200)
-    expect(r.body).toMatchObject({ situacao: 'nao_enviado', pendenteDeEnvio: true, venceEmDias: 365, avisos: [] })
+    expect(r.body).toMatchObject({ situacao: 'NAO_ENVIADO', pendenteDeEnvio: true, venceEmDias: 365, avisos: [] })
     expect(r.body.validade).toMatch(/^\d{4}-\d{2}-\d{2}$/)
     expect((await call('GET', URL_E, undefined, token)).body.certificado).toMatchObject({ pendenteDeEnvio: true })
     ajustarNfseConfig({ habilitada: true })
-    expect((await call('GET', URL_E, undefined, token)).body.certificado).toMatchObject({ situacao: 'valido', pendenteDeEnvio: false })
+    expect((await call('GET', URL_E, undefined, token)).body.certificado).toMatchObject({ situacao: 'VALIDO', pendenteDeEnvio: false })
   })
 
   it('certificado com NFS-e habilitada: valido; vence15 e semcnpj', async () => {
     ajustarNfseConfig({ habilitada: true })
     const r = await call('POST', URL_C, form('vence15.P12'), token)
-    expect(r.body).toMatchObject({ situacao: 'valido', pendenteDeEnvio: false, venceEmDias: 15 })
+    expect(r.body).toMatchObject({ situacao: 'VALIDO', pendenteDeEnvio: false, venceEmDias: 15 })
     expect((await call('POST', URL_C, form('semcnpj.pfx'), token)).body.avisos).toEqual(['nao_foi_possivel_conferir_cnpj'])
   })
 
@@ -142,7 +142,7 @@ describe('mock de Configuracao > Empresa', () => {
   it('o arquivo e a senha nunca voltam; falha nao altera o estado', async () => {
     await call('POST', URL_C, form('vencido.pfx', 'Segredo99'), token)
     const g = await call('GET', URL_E, undefined, token)
-    expect(g.body.certificado.situacao).toBe('nao_enviado')
+    expect(g.body.certificado.situacao).toBe('NAO_ENVIADO')
     const ok = await call('POST', URL_C, form('ok.pfx', 'Segredo99'), token)
     expect(JSON.stringify([ok.body, (await call('GET', URL_E, undefined, token)).body])).not.toMatch(/Segredo99|senha|arquivo/i)
   })

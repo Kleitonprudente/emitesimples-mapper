@@ -14,7 +14,7 @@ vi.mock('@tanstack/react-router', async (orig) => ({ ...(await orig<typeof impor
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 
 const nota = (o: object = {}) => ({
-  id: 'n1', numero: 100, serie: '1', estado: 'autorizada', dataEmissao: '2026-11-10T14:30:00', valorServicos: 1500.5,
+  id: 'n1', numero: 100, serie: '1', estado: 'AUTORIZADA', dataEmissao: '2026-11-10T14:30:00', valorServicos: 1500.5,
   pessoa: { id: 'p1', nome: 'Ana Paula', documento: '12345678909' }, servico: { id: 's1', nome: 'Consultoria' },
   chave: null, numeroNfse: null, codigoRetorno: null, mensagemRetorno: null, temPdf: true, dataCriacao: '2026-11-10T14:00:00', ...o,
 })
@@ -40,7 +40,7 @@ beforeEach(() => {
   apiMock.mockReset()
   pdfMock.mockReset()
   navegar.mockReset()
-  sessao.atual = com('operador')
+  sessao.atual = com('OPERADOR')
 })
 afterEach(() => vi.useRealTimers())
 
@@ -59,15 +59,15 @@ describe('NotasLista', () => {
   })
 
   it.each([
-    ['autorizada', 'Autorizada'],
-    ['processando', 'Processando'],
-    ['emitida_offline', 'Emitida offline'],
-    ['rejeitada', 'Rejeitada'],
-    ['em_conflito', 'Em conflito'],
-    ['rascunho', 'Rascunho (assistente)'],
-    ['falha_envio', 'Falha no envio'],
-    ['cancelada', 'Cancelada'],
-    ['descartada', 'Descartada'],
+    ['AUTORIZADA', 'Autorizada'],
+    ['PROCESSANDO', 'Processando'],
+    ['EMITIDA_OFFLINE', 'Emitida offline'],
+    ['REJEITADA', 'Rejeitada'],
+    ['EM_CONFLITO', 'Em conflito'],
+    ['RASCUNHO', 'Rascunho (assistente)'],
+    ['FALHA_ENVIO', 'Falha no envio'],
+    ['CANCELADA', 'Cancelada'],
+    ['DESCARTADA', 'Descartada'],
   ])('badge de situacao %s mostra %s', async (estado, rotulo) => {
     prepara([nota({ estado })])
     renderTela()
@@ -90,7 +90,7 @@ describe('NotasLista', () => {
   })
 
   it('consulta nao ve o botao Nova nota', async () => {
-    sessao.atual = com('consulta')
+    sessao.atual = com('CONSULTA')
     prepara([nota()])
     renderTela()
     await screen.findByText('1-100')
@@ -122,9 +122,9 @@ describe('NotasLista', () => {
     await screen.findByText('1-100')
     await user.click(screen.getByRole('combobox', { name: 'Situação' }))
     await user.click(await screen.findByRole('option', { name: 'Rejeitada' }))
-    await waitFor(() => expect(apiMock).toHaveBeenCalledWith('/nfse/notas/0/9', { query: { estado: 'rejeitada', busca: undefined } }))
+    await waitFor(() => expect(apiMock).toHaveBeenCalledWith('/nfse/notas/0/9', { query: { estado: 'REJEITADA', busca: undefined } }))
     await user.type(screen.getByRole('searchbox', { name: 'Buscar' }), 'ana')
-    await waitFor(() => expect(apiMock).toHaveBeenCalledWith('/nfse/notas/0/9', { query: { estado: 'rejeitada', busca: 'ana' } }))
+    await waitFor(() => expect(apiMock).toHaveBeenCalledWith('/nfse/notas/0/9', { query: { estado: 'REJEITADA', busca: 'ana' } }))
   })
 
   it('o filtro de situacao oferece os estados novos (Falha no envio e Rascunho do assistente)', async () => {
@@ -136,7 +136,7 @@ describe('NotasLista', () => {
     expect(await screen.findByRole('option', { name: 'Falha no envio' })).toBeInTheDocument()
     expect(screen.getByRole('option', { name: 'Rascunho (assistente)' })).toBeInTheDocument()
     await user.click(screen.getByRole('option', { name: 'Falha no envio' }))
-    await waitFor(() => expect(apiMock).toHaveBeenCalledWith('/nfse/notas/0/9', { query: { estado: 'falha_envio', busca: undefined } }))
+    await waitFor(() => expect(apiMock).toHaveBeenCalledWith('/nfse/notas/0/9', { query: { estado: 'FALHA_ENVIO', busca: undefined } }))
   })
 
   it('mostra erro de carregamento com Tentar novamente', async () => {
@@ -147,7 +147,7 @@ describe('NotasLista', () => {
 
   it('recarrega a cada 10 s enquanto houver nota processando', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
-    prepara([nota({ estado: 'processando' })])
+    prepara([nota({ estado: 'PROCESSANDO' })])
     renderTela()
     await screen.findByText('1-100')
     const antes = listaChamadas().length
@@ -159,7 +159,7 @@ describe('NotasLista', () => {
 
   it('para de recarregar quando nenhuma nota esta processando', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
-    prepara([nota({ estado: 'autorizada' })])
+    prepara([nota({ estado: 'AUTORIZADA' })])
     renderTela()
     await screen.findByText('1-100')
     const antes = listaChamadas().length

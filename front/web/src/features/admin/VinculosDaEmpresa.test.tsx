@@ -11,8 +11,8 @@ vi.mock('@/lib/api', async (orig) => ({ ...(await orig<typeof import('@/lib/api'
 vi.mock('@tanstack/react-router', () => ({ Link: ({ to, children }: { to: string; children: ReactNode }) => <a href={to}>{children}</a> }))
 
 const URL_V = '/admin/empresas/emp-1/vinculos'
-const ANA = { id: 'v1', usuario: { id: 'u1', nome: 'Ana Ribeiro', email: 'ana@x.com', ativo: true }, papel: 'administrador', ativo: true, dataCriacao: '2026-01-10T09:00:00' }
-const BRUNO = { id: 'v2', usuario: { id: 'u2', nome: 'Bruno Operador', email: 'bruno@x.com', ativo: true }, papel: 'operador', ativo: false, dataCriacao: '2026-02-03T14:30:00' }
+const ANA = { id: 'v1', usuario: { id: 'u1', nome: 'Ana Ribeiro', email: 'ana@x.com', ativo: true }, papel: 'ADMINISTRADOR', ativo: true, dataCriacao: '2026-01-10T09:00:00' }
+const BRUNO = { id: 'v2', usuario: { id: 'u2', nome: 'Bruno Operador', email: 'bruno@x.com', ativo: true }, papel: 'OPERADOR', ativo: false, dataCriacao: '2026-02-03T14:30:00' }
 const CARLA = { id: 'u3', nome: 'Carla Consulta', email: 'carla@x.com', ativo: true }
 
 type Opts = { method?: string; body?: unknown }
@@ -80,7 +80,7 @@ describe('VinculosDaEmpresa', () => {
     await user.click(await screen.findByRole('combobox', { name: 'Papel de Ana Ribeiro' }))
     await user.click(await screen.findByRole('option', { name: 'Consulta' }))
     await waitFor(() => expect(chamadas('PATCH')).toHaveLength(1))
-    expect(chamadas('PATCH')[0]).toEqual([`${URL_V}/v1`, { method: 'PATCH', body: { papel: 'consulta', ativo: undefined } }])
+    expect(chamadas('PATCH')[0]).toEqual([`${URL_V}/v1`, { method: 'PATCH', body: { papel: 'CONSULTA', ativo: undefined } }])
   })
 
   it('desativar pede confirmacao e so envia ao confirmar', async () => {
@@ -124,7 +124,7 @@ describe('VinculosDaEmpresa', () => {
     await escolheCarla(user)
     await user.click(screen.getByRole('button', { name: 'Vincular' }))
     await waitFor(() => expect(chamadas('POST')).toHaveLength(1))
-    expect(chamadas('POST')[0]).toEqual([URL_V, { method: 'POST', body: { usuarioId: 'u3', papel: 'operador', podeCancelarNfse: false } }])
+    expect(chamadas('POST')[0]).toEqual([URL_V, { method: 'POST', body: { usuarioId: 'u3', papel: 'OPERADOR', podeCancelarNfse: false } }])
   })
 
   it('coluna Pode cancelar: administrador sempre (marcado e travado), operador pela delegacao, e a dica', async () => {
@@ -160,7 +160,7 @@ describe('VinculosDaEmpresa', () => {
     await user.click(delegar)
     await user.click(screen.getByRole('button', { name: 'Vincular' }))
     await waitFor(() => expect(chamadas('POST')).toHaveLength(1))
-    expect(chamadas('POST')[0]![1].body).toEqual({ usuarioId: 'u3', papel: 'operador', podeCancelarNfse: true })
+    expect(chamadas('POST')[0]![1].body).toEqual({ usuarioId: 'u3', papel: 'OPERADOR', podeCancelarNfse: true })
   })
 
   it('409 mostra a mensagem de usuario ja vinculado', async () => {

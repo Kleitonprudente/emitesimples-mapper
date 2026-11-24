@@ -16,7 +16,7 @@ vi.mock('sonner', () => ({ toast: toastMock }))
 
 const URL_E = '/configuracao/empresa'
 const URL_C = '/configuracao/empresa/certificado'
-const NAO_ENVIADO = { situacao: 'nao_enviado', validade: null, pendenteDeEnvio: false, venceEmDias: null }
+const NAO_ENVIADO = { situacao: 'NAO_ENVIADO', validade: null, pendenteDeEnvio: false, venceEmDias: null }
 const EMPRESA = {
   razaoSocial: 'Horizonte Serviços Contábeis Ltda',
   nomeFantasia: 'Horizonte Contábil',
@@ -43,7 +43,7 @@ function prepara(get: unknown = EMPRESA, put?: Resposta, post?: Resposta) {
   const resolve = async (r: Resposta | undefined, padrao: unknown) => (typeof r === 'function' ? (r as () => Promise<unknown>)() : (r ?? padrao))
   apiMock.mockImplementation(async (p: string, opts?: { method?: string }) => {
     if (opts?.method === 'PUT') return resolve(put, get)
-    if (opts?.method === 'POST' && p === URL_C) return resolve(post, { ...NAO_ENVIADO, situacao: 'valido', avisos: [] })
+    if (opts?.method === 'POST' && p === URL_C) return resolve(post, { ...NAO_ENVIADO, situacao: 'VALIDO', avisos: [] })
     return get
   })
 }
@@ -83,13 +83,13 @@ async function enviaCertificado(user: ReturnType<typeof userEvent.setup>, nome =
 beforeEach(() => {
   apiMock.mockReset()
   toastMock.success.mockReset()
-  sessao.atual = comPapel('administrador')
+  sessao.atual = comPapel('ADMINISTRADOR')
 })
 
 describe('EmpresaConfig: dados', () => {
   it.each([
-    ['operador', comPapel('operador')],
-    ['consulta', comPapel('consulta')],
+    ['OPERADOR', comPapel('OPERADOR')],
+    ['CONSULTA', comPapel('CONSULTA')],
     ['plataforma sem empresa', comPapel(null, true)],
   ])('%s ve acesso restrito e nao chama a API', (_n, s) => {
     sessao.atual = s
@@ -229,7 +229,7 @@ describe('EmpresaConfig: certificado digital', () => {
   })
 
   it('valido: badge e validade formatada, sem aviso de vencimento longe', async () => {
-    prepara({ ...EMPRESA, certificado: { situacao: 'valido', validade: '2027-11-22', pendenteDeEnvio: false, venceEmDias: 365 } })
+    prepara({ ...EMPRESA, certificado: { situacao: 'VALIDO', validade: '2027-11-22', pendenteDeEnvio: false, venceEmDias: 365 } })
     renderTela()
     await razao()
     expect(screen.getByText('Certificado válido')).toBeInTheDocument()
@@ -238,9 +238,9 @@ describe('EmpresaConfig: certificado digital', () => {
   })
 
   it.each([
-    ['vencido', 'Certificado vencido'],
-    ['invalido', 'Certificado inválido'],
-    ['nao_pertence', 'Certificado de outro CNPJ'],
+    ['VENCIDO', 'Certificado vencido'],
+    ['INVALIDO', 'Certificado inválido'],
+    ['NAO_PERTENCE', 'Certificado de outro CNPJ'],
   ])('situacao %s aparece como tal', async (situacao, rotulo) => {
     prepara({ ...EMPRESA, certificado: { situacao, validade: '2026-01-10', pendenteDeEnvio: false, venceEmDias: -300 } })
     renderTela()
@@ -250,24 +250,24 @@ describe('EmpresaConfig: certificado digital', () => {
   })
 
   it('vence em N dias (<= 30) mostra alerta; 31 nao; 1 dia no singular', async () => {
-    prepara({ ...EMPRESA, certificado: { situacao: 'valido', validade: '2026-12-10', pendenteDeEnvio: false, venceEmDias: 18 } })
+    prepara({ ...EMPRESA, certificado: { situacao: 'VALIDO', validade: '2026-12-10', pendenteDeEnvio: false, venceEmDias: 18 } })
     renderTela()
     expect(await screen.findByText('O certificado vence em 18 dias.')).toBeInTheDocument()
   })
   it('31 dias nao alerta', async () => {
-    prepara({ ...EMPRESA, certificado: { situacao: 'valido', validade: '2026-12-23', pendenteDeEnvio: false, venceEmDias: 31 } })
+    prepara({ ...EMPRESA, certificado: { situacao: 'VALIDO', validade: '2026-12-23', pendenteDeEnvio: false, venceEmDias: 31 } })
     renderTela()
     await razao()
     expect(screen.queryByText(/O certificado vence/)).not.toBeInTheDocument()
   })
   it('1 dia no singular', async () => {
-    prepara({ ...EMPRESA, certificado: { situacao: 'valido', validade: '2026-11-23', pendenteDeEnvio: false, venceEmDias: 1 } })
+    prepara({ ...EMPRESA, certificado: { situacao: 'VALIDO', validade: '2026-11-23', pendenteDeEnvio: false, venceEmDias: 1 } })
     renderTela()
     expect(await screen.findByText('O certificado vence em 1 dia.')).toBeInTheDocument()
   })
 
   it('pendente de envio: badge e explicacao', async () => {
-    prepara({ ...EMPRESA, certificado: { situacao: 'nao_enviado', validade: '2027-11-22', pendenteDeEnvio: true, venceEmDias: 365 } })
+    prepara({ ...EMPRESA, certificado: { situacao: 'NAO_ENVIADO', validade: '2027-11-22', pendenteDeEnvio: true, venceEmDias: 365 } })
     renderTela()
     await razao()
     expect(screen.getByText('Aguardando habilitação da NFS-e')).toBeInTheDocument()
@@ -275,7 +275,7 @@ describe('EmpresaConfig: certificado digital', () => {
   })
 
   it('envia multipart com arquivo e senha, avisa, limpa o formulario e relê', async () => {
-    prepara(EMPRESA, undefined, { situacao: 'valido', validade: '2027-11-22', pendenteDeEnvio: false, venceEmDias: 365, avisos: [] })
+    prepara(EMPRESA, undefined, { situacao: 'VALIDO', validade: '2027-11-22', pendenteDeEnvio: false, venceEmDias: 365, avisos: [] })
     const user = userEvent.setup()
     renderTela()
     await enviaCertificado(user)
@@ -295,7 +295,7 @@ describe('EmpresaConfig: certificado digital', () => {
   })
 
   it('pendente: toast de certificado guardado', async () => {
-    prepara(EMPRESA, undefined, { situacao: 'nao_enviado', validade: '2027-11-22', pendenteDeEnvio: true, venceEmDias: 365, avisos: [] })
+    prepara(EMPRESA, undefined, { situacao: 'NAO_ENVIADO', validade: '2027-11-22', pendenteDeEnvio: true, venceEmDias: 365, avisos: [] })
     const user = userEvent.setup()
     renderTela()
     await enviaCertificado(user)
@@ -303,7 +303,7 @@ describe('EmpresaConfig: certificado digital', () => {
   })
 
   it('aviso conhecido vira Alert info; desconhecido e ignorado', async () => {
-    prepara(EMPRESA, undefined, { situacao: 'valido', validade: '2027-11-22', pendenteDeEnvio: false, venceEmDias: 365, avisos: ['nao_foi_possivel_conferir_cnpj', 'outro_aviso'] })
+    prepara(EMPRESA, undefined, { situacao: 'VALIDO', validade: '2027-11-22', pendenteDeEnvio: false, venceEmDias: 365, avisos: ['nao_foi_possivel_conferir_cnpj', 'outro_aviso'] })
     const user = userEvent.setup()
     renderTela()
     await enviaCertificado(user)
@@ -321,7 +321,7 @@ describe('EmpresaConfig: certificado digital', () => {
     expect(enviarBtn()).toBeDisabled()
     expect(campoArquivo()).toBeDisabled()
     expect(campoSenha()).toBeDisabled()
-    solta({ ...NAO_ENVIADO, situacao: 'valido', avisos: [] })
+    solta({ ...NAO_ENVIADO, situacao: 'VALIDO', avisos: [] })
     await waitFor(() => expect(screen.queryByText('Enviando…')).not.toBeInTheDocument())
   })
 

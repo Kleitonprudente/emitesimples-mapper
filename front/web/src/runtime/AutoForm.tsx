@@ -113,7 +113,7 @@ export interface CnpjResult {
   inscricaoEstadual?: string | null
   situacaoCadastral?: string | null
   dataInicioAtividade?: string | null
-  /** Quadro societario (QSA). Com um campo de lista `contatos` irmao, cada socio vira um contato do tipo 'socio'. */
+  /** Quadro societario (QSA). Com um campo de lista `contatos` irmao, cada socio vira um contato do tipo 'SOCIO'. */
   socios?: { nome?: string | null; tipo?: string | null; qualificacao?: string | null }[] | null
 }
 
@@ -339,7 +339,7 @@ export function AutoForm<T extends FieldValues>({
       text(names.has('razaoSocial') ? 'razaoSocial' : 'nome', r.razaoSocial)
       text('nomeFantasia', r.nomeFantasia)
       // Convencao: CNPJ consultado com sucesso e pessoa juridica, nao consumidor final.
-      put('tipoPessoa', 'juridica')
+      put('tipoPessoa', 'JURIDICA')
       put('consumidorFinal', false)
       text('email', r.email)
       text('telefone', onlyDigits(r.telefone))
@@ -355,18 +355,18 @@ export function AutoForm<T extends FieldValues>({
         if (r.municipio?.id) put(municipioName, r.municipio)
         else semMunicipio = true
       }
-      // Socios do QSA viram contatos do tipo 'socio' (sem duplicar nome ja presente; nunca apaga o que a pessoa preencheu).
+      // Socios do QSA viram contatos do tipo 'SOCIO' (sem duplicar nome ja presente; nunca apaga o que a pessoa preencheu).
       let socios = 0
       const contatos = listSpecs.find((s) => s.name === 'contatos')
       if (contatos?.list && r.socios?.length && flatten(contatos.list.item).some((s) => s.name === 'tipoContato')) {
         const atuais = (form.getValues('contatos' as Path<T>) as Record<string, unknown>[] | undefined) ?? []
-        const vistos = new Set(atuais.filter((c) => c?.tipoContato === 'socio').map((c) => normalizeName(String(c.nome ?? ''))))
+        const vistos = new Set(atuais.filter((c) => c?.tipoContato === 'SOCIO').map((c) => normalizeName(String(c.nome ?? ''))))
         const novos: Record<string, unknown>[] = []
         for (const s of r.socios) {
           const nome = s.nome?.trim()
           if (!nome || vistos.has(normalizeName(nome))) continue
           vistos.add(normalizeName(nome))
-          novos.push({ ...contatos.list.defaultItem, tipoContato: 'socio', nome })
+          novos.push({ ...contatos.list.defaultItem, tipoContato: 'SOCIO', nome })
         }
         if (novos.length) {
           form.setValue('contatos' as Path<T>, [...atuais, ...novos] as never, { shouldDirty: true })
@@ -382,7 +382,7 @@ export function AutoForm<T extends FieldValues>({
   const applyCpf = useCallback((): string | undefined => {
     if (!names.has('tipoPessoa') && !names.has('consumidorFinal')) return undefined
     const opts = { shouldDirty: true, shouldValidate: true }
-    if (names.has('tipoPessoa')) form.setValue('tipoPessoa' as Path<T>, 'fisica' as never, opts)
+    if (names.has('tipoPessoa')) form.setValue('tipoPessoa' as Path<T>, 'FISICA' as never, opts)
     if (names.has('consumidorFinal')) form.setValue('consumidorFinal' as Path<T>, true as never, opts)
     return AVISO_CPF
   }, [form, names])

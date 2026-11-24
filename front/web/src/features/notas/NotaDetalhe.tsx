@@ -175,7 +175,7 @@ function CancelamentoInfo({ notaId, c }: { notaId: string; c: NonNullable<Nota['
         <CardTitle>Cancelamento</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {c.estado === 'rascunho' && <CancelamentoRascunho notaId={notaId} c={c} />}
+        {c.estado === 'RASCUNHO' && <CancelamentoRascunho notaId={notaId} c={c} />}
         <dl className="grid gap-4 sm:grid-cols-2">
           <Linha rotulo="Situação" valor={CANCELAMENTO[c.estado].rotulo} />
           <Linha rotulo="Tipo do motivo" valor={rotuloMotivo(c.codigoMotivo)} />
@@ -288,12 +288,12 @@ function Conteudo({ id }: { id: string }) {
   if (q.isLoading) return <LoadingState label="Carregando nota…" />
   if (q.isError || !q.data) return <ErrorState error={q.error} title="Não foi possível carregar a nota." onRetry={() => void q.refetch()} />
   const n = q.data
-  const operador = canAct(session, 'operador')
+  const operador = canAct(session, 'OPERADOR')
   const estado = ESTADO[n.estado]
   const aguardando = aguardaPrefeitura(n.estado)
-  const conflito = n.estado === 'em_conflito'
-  const reenvio = operador && n.podeReenviar && (n.estado === 'rejeitada' || n.estado === 'falha_envio')
-  const rascunho = n.estado === 'rascunho'
+  const conflito = n.estado === 'EM_CONFLITO'
+  const reenvio = operador && n.podeReenviar && (n.estado === 'REJEITADA' || n.estado === 'FALHA_ENVIO')
+  const rascunho = n.estado === 'RASCUNHO'
   const acaoPendente = aprovar.isPending || descartar.isPending
   const erroAcao = aprovar.error ?? descartar.error
   const cancelando = cancelamentoEmProcessamento(n)
@@ -305,7 +305,7 @@ function Conteudo({ id }: { id: string }) {
     ) : null
   // So UX: o back decide (409 cancelamento_fora_do_mes). podeCancelar === false esconde o botao, salvo fora do mes (para mostrar o aviso).
   // Cancelar tambem exige a permissao delegada (sessao.podeCancelarNfse); sem ela o botao some e, no mes vigente, ha um texto discreto.
-  const cancelavel = operador && n.estado === 'autorizada' && !cancelando && n.cancelamento?.estado !== 'rascunho'
+  const cancelavel = operador && n.estado === 'AUTORIZADA' && !cancelando && n.cancelamento?.estado !== 'RASCUNHO'
   const delegado = podeCancelarNfse(session)
   const podeCancelar = cancelavel && delegado && (n.podeCancelar !== false || !dentroDoMesVigente(n.dataEmissao))
   const semDelegacao = cancelavel && !delegado && dentroDoMesVigente(n.dataEmissao)
@@ -374,20 +374,20 @@ function Conteudo({ id }: { id: string }) {
           <AlertDescription>{atualizar.error instanceof ApiError ? mensagemErroNota(atualizar.error) : errorMessage(atualizar.error)}</AlertDescription>
         </Alert>
       )}
-      {n.estado === 'autorizada' && !cancelando && (
+      {n.estado === 'AUTORIZADA' && !cancelando && (
         <Alert variant="success">
           <CircleCheck aria-hidden />
           <AlertDescription>NFS-e autorizada.</AlertDescription>
         </Alert>
       )}
-      {n.estado === 'falha_envio' && (
+      {n.estado === 'FALHA_ENVIO' && (
         <Alert variant="warning">
           <TriangleAlert aria-hidden />
           <AlertTitle>{n.mensagemRetorno ?? 'Não foi possível enviar a nota.'}</AlertTitle>
           <AlertDescription>A nota não chegou à prefeitura por uma falha no envio. Reenvie para tentar de novo.</AlertDescription>
         </Alert>
       )}
-      {n.estado === 'rejeitada' && (
+      {n.estado === 'REJEITADA' && (
         <Alert variant="destructive">
           <TriangleAlert aria-hidden />
           <AlertTitle>{n.mensagemRetorno ?? 'A nota não foi aceita.'}</AlertTitle>
@@ -446,7 +446,7 @@ function Conteudo({ id }: { id: string }) {
 
       {n.cancelamento && <CancelamentoInfo notaId={n.id} c={n.cancelamento} />}
 
-      {n.estado === 'autorizada' && (
+      {n.estado === 'AUTORIZADA' && (
         <div className="flex flex-wrap items-center gap-2">
           {n.temPdf ? (
             <Button onClick={abrir}>Visualizar PDF</Button>

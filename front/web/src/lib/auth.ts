@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { api, configureApi, refreshSession, setAccessToken, type LoginResponse, type Papel, type SessionData } from '@/lib/api'
+import { api, configureApi, refreshSession, setAccessToken, type LoginResponse, type PapelValor, type Papel, type SessionData } from '@/lib/api'
 import { queryClient } from '@/lib/query-client'
 
 /* Sessao do usuario: dados de exibicao em memoria (o token fica em lib/api.ts, tambem so em memoria).
@@ -76,7 +76,7 @@ export async function trocarSenha(input: { senhaAtual?: string; novaSenha: strin
   await api('/auth/senha', { method: 'POST', body: input })
 }
 
-const RANK: Record<Papel, number> = { consulta: 1, operador: 2, administrador: 3 }
+const RANK: Record<PapelValor, number> = { CONSULTA: 1, OPERADOR: 2, ADMINISTRADOR: 3 }
 
 /** Papel minimo exigido. So UX: o back decide. */
 export function hasRole(s: SessionData | null, min: Papel): boolean {
@@ -87,13 +87,13 @@ export function hasRole(s: SessionData | null, min: Papel): boolean {
 export function podeCancelarNfse(s: SessionData | null): boolean {
   if (!s) return false
   if (typeof s.podeCancelarNfse === 'boolean') return s.podeCancelarNfse
-  return s.plataformaAdmin || s.papel === 'administrador'
+  return s.plataformaAdmin || s.papel === 'ADMINISTRADOR'
 }
 
-export const PAPEL_LABEL: Record<Papel, string> = {
-  administrador: 'Administrador',
-  operador: 'Operador',
-  consulta: 'Consulta',
+export const PAPEL_LABEL: Record<PapelValor, string> = {
+  ADMINISTRADOR: 'Administrador',
+  OPERADOR: 'Operador',
+  CONSULTA: 'Consulta',
 }
 
 /**

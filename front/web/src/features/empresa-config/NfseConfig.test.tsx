@@ -18,11 +18,11 @@ const DESABILITADA = {
   serie: null,
   ultimoNumero: 0,
   proximoNumero: 1,
-  ambiente: 'homologacao',
-  statusCadastro: 'nao_cadastrado',
+  ambiente: 'HOMOLOGACAO',
+  statusCadastro: 'NAO_CADASTRADO',
   dataCadastroGateway: null,
   emitenteTokenConfigurado: false,
-  certificadoSituacao: 'nao_enviado',
+  certificadoSituacao: 'NAO_ENVIADO',
   validadeCertificado: null,
   integracaoDisponivel: true,
 }
@@ -32,10 +32,10 @@ const HABILITADA = {
   serie: '1',
   ultimoNumero: 41,
   proximoNumero: 42,
-  statusCadastro: 'cadastrado',
+  statusCadastro: 'CADASTRADO',
   dataCadastroGateway: '2026-11-01T10:30:00',
   emitenteTokenConfigurado: true,
-  certificadoSituacao: 'valido',
+  certificadoSituacao: 'VALIDO',
   validadeCertificado: '2027-05-20',
 }
 
@@ -71,13 +71,13 @@ async function preencheEHabilita(user: ReturnType<typeof userEvent.setup>, s: st
 beforeEach(() => {
   apiMock.mockReset()
   toastMock.success.mockReset()
-  sessao.atual = comPapel('administrador')
+  sessao.atual = comPapel('ADMINISTRADOR')
 })
 
 describe('NfseConfig', () => {
   it.each([
-    ['operador', comPapel('operador')],
-    ['consulta', comPapel('consulta')],
+    ['OPERADOR', comPapel('OPERADOR')],
+    ['CONSULTA', comPapel('CONSULTA')],
     ['plataforma sem empresa', comPapel(null, true)],
   ])('%s ve acesso restrito e nao chama a API', (_n, s) => {
     sessao.atual = s
@@ -105,7 +105,7 @@ describe('NfseConfig', () => {
   })
 
   it('desabilitada sem cadastro: badges neutros e ambiente producao como Producao', async () => {
-    prepara({ ...DESABILITADA, ambiente: 'producao' })
+    prepara({ ...DESABILITADA, ambiente: 'PRODUCAO' })
     renderTela()
     await serie()
     expect(screen.getByText('Emissão desabilitada')).toBeInTheDocument()
@@ -115,7 +115,7 @@ describe('NfseConfig', () => {
   })
 
   it('certificado vencido e cadastro com erro aparecem como tal', async () => {
-    prepara({ ...DESABILITADA, statusCadastro: 'erro', certificadoSituacao: 'vencido', validadeCertificado: '2026-01-10' })
+    prepara({ ...DESABILITADA, statusCadastro: 'ERRO', certificadoSituacao: 'VENCIDO', validadeCertificado: '2026-01-10' })
     renderTela()
     await serie()
     expect(screen.getByText('Cadastro no gateway: com erro')).toBeInTheDocument()

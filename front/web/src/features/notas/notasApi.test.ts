@@ -26,10 +26,10 @@ describe('cancelamento: regras do cliente', () => {
   })
 
   it('leitura tolerante: cancelamento e podeCancelar ausentes', () => {
-    const n = lerDetalhe({ id: 'x', estado: 'autorizada' })
+    const n = lerDetalhe({ id: 'x', estado: 'AUTORIZADA' })
     expect(n.cancelamento).toBeNull()
     expect(n.podeCancelar).toBeUndefined()
-    expect(lerDetalhe({ id: 'x', podeCancelar: false, cancelamento: { estado: 'processando', codigoMotivo: 2, motivo: 'm' } })).toMatchObject({ podeCancelar: false, cancelamento: { estado: 'processando', codigoMotivo: 2 } })
+    expect(lerDetalhe({ id: 'x', podeCancelar: false, cancelamento: { estado: 'PROCESSANDO', codigoMotivo: 2, motivo: 'm' } })).toMatchObject({ podeCancelar: false, cancelamento: { estado: 'PROCESSANDO', codigoMotivo: 2 } })
     expect(lerDetalhe({ id: 'x', cancelamento: { estado: 'desconhecido' } }).cancelamento).toBeNull()
   })
 
@@ -43,27 +43,27 @@ describe('cancelamento: regras do cliente', () => {
 
 describe('estados novos e delegacao', () => {
   it('rotulos e tons: falha_envio e aviso, rascunho e do assistente, descartada neutra', () => {
-    expect(ESTADO.falha_envio).toEqual({ rotulo: 'Falha no envio', tone: 'warning' })
-    expect(ESTADO.rascunho.rotulo).toBe('Rascunho (assistente)')
-    expect(ESTADO.descartada.rotulo).toBe('Descartada')
-    expect(ESTADOS).toEqual(expect.arrayContaining(['falha_envio', 'rascunho', 'descartada']))
-    expect(lerNota({ id: 'x', estado: 'falha_envio' }).estado).toBe('falha_envio')
+    expect(ESTADO.FALHA_ENVIO).toEqual({ rotulo: 'Falha no envio', tone: 'warning' })
+    expect(ESTADO.RASCUNHO.rotulo).toBe('Rascunho (assistente)')
+    expect(ESTADO.DESCARTADA.rotulo).toBe('Descartada')
+    expect(ESTADOS).toEqual(expect.arrayContaining(['FALHA_ENVIO', 'RASCUNHO', 'DESCARTADA']))
+    expect(lerNota({ id: 'x', estado: 'FALHA_ENVIO' }).estado).toBe('FALHA_ENVIO')
   })
 
   it('rotulos do cancelamento: rascunho, expirado e descartado', () => {
-    expect(CANCELAMENTO.expirado.rotulo).toBe('Expirado: sem confirmação')
-    expect(CANCELAMENTO.descartado.rotulo).toBe('Descartado')
-    expect(CANCELAMENTO.rascunho.rotulo).toBe('Rascunho (assistente)')
-    for (const estado of ['rascunho', 'processando', 'concluido', 'recusado', 'expirado', 'descartado']) expect(lerDetalhe({ id: 'x', cancelamento: { estado } }).cancelamento?.estado).toBe(estado)
+    expect(CANCELAMENTO.EXPIRADO.rotulo).toBe('Expirado: sem confirmação')
+    expect(CANCELAMENTO.DESCARTADO.rotulo).toBe('Descartado')
+    expect(CANCELAMENTO.RASCUNHO.rotulo).toBe('Rascunho (assistente)')
+    for (const estado of ['RASCUNHO', 'PROCESSANDO', 'CONCLUIDO', 'RECUSADO', 'EXPIRADO', 'DESCARTADO']) expect(lerDetalhe({ id: 'x', cancelamento: { estado } }).cancelamento?.estado).toBe(estado)
   })
 
   it('leitura tolerante de podeAprovar, podeDescartar e do id do cancelamento (ausente = false)', () => {
-    const vazio = lerDetalhe({ id: 'x', estado: 'rascunho' })
+    const vazio = lerDetalhe({ id: 'x', estado: 'RASCUNHO' })
     expect([vazio.podeAprovar, vazio.podeDescartar]).toEqual([false, false])
-    const cheio = lerDetalhe({ id: 'x', estado: 'rascunho', podeAprovar: true, podeDescartar: true, cancelamento: { id: 'c1', estado: 'rascunho', podeAprovar: true, podeDescartar: false } })
+    const cheio = lerDetalhe({ id: 'x', estado: 'RASCUNHO', podeAprovar: true, podeDescartar: true, cancelamento: { id: 'c1', estado: 'RASCUNHO', podeAprovar: true, podeDescartar: false } })
     expect([cheio.podeAprovar, cheio.podeDescartar]).toEqual([true, true])
     expect(cheio.cancelamento).toMatchObject({ id: 'c1', podeAprovar: true, podeDescartar: false })
-    expect(lerDetalhe({ id: 'x', cancelamento: { estado: 'rascunho' } }).cancelamento).toMatchObject({ id: undefined, podeAprovar: false, podeDescartar: false })
+    expect(lerDetalhe({ id: 'x', cancelamento: { estado: 'RASCUNHO' } }).cancelamento).toMatchObject({ id: undefined, podeAprovar: false, podeDescartar: false })
   })
 
   it('cancelamento_nao_delegado usa a mensagem do back, com padrao quando vazia', () => {
@@ -74,11 +74,11 @@ describe('estados novos e delegacao', () => {
   it('sessao: podeCancelarNfse explicito vence; ausente deriva do papel (administrador e plataforma sim)', () => {
     const base = { usuario: { id: 'u', nome: 'A', email: 'a@x.com' }, empresa: null, plataformaAdmin: false }
     expect(podeCancelarNfse(null)).toBe(false)
-    expect(podeCancelarNfse({ ...base, papel: 'operador', podeCancelarNfse: true })).toBe(true)
-    expect(podeCancelarNfse({ ...base, papel: 'administrador', podeCancelarNfse: false })).toBe(false)
-    expect(podeCancelarNfse({ ...base, papel: 'administrador' })).toBe(true)
-    expect(podeCancelarNfse({ ...base, papel: 'operador' })).toBe(false)
-    expect(podeCancelarNfse({ ...base, papel: 'consulta' })).toBe(false)
+    expect(podeCancelarNfse({ ...base, papel: 'OPERADOR', podeCancelarNfse: true })).toBe(true)
+    expect(podeCancelarNfse({ ...base, papel: 'ADMINISTRADOR', podeCancelarNfse: false })).toBe(false)
+    expect(podeCancelarNfse({ ...base, papel: 'ADMINISTRADOR' })).toBe(true)
+    expect(podeCancelarNfse({ ...base, papel: 'OPERADOR' })).toBe(false)
+    expect(podeCancelarNfse({ ...base, papel: 'CONSULTA' })).toBe(false)
     expect(podeCancelarNfse({ ...base, papel: null, plataformaAdmin: true })).toBe(true)
   })
 })

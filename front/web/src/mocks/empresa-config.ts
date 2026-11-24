@@ -1,4 +1,4 @@
-import type { Papel } from '@/lib/api'
+import type { PapelValor } from '@/lib/api'
 import { erro, json } from '@/mocks/http'
 import { getMunicipios } from '@/mocks/admin'
 import { nfseHabilitadaMock, vincularCertificadoNfse } from '@/mocks/nfse-config'
@@ -24,7 +24,7 @@ import { isValidCnpj } from '@/runtime/format'
 export const DOCUMENTO_DUPLICADO_MOCK = '11444777000161'
 const TAMANHO_MAXIMO = 256 * 1024
 
-type Situacao = 'nao_enviado' | 'valido' | 'vencido' | 'invalido' | 'nao_pertence'
+type Situacao = 'NAO_ENVIADO' | 'VALIDO' | 'VENCIDO' | 'INVALIDO' | 'NAO_PERTENCE'
 interface Municipio {
   id: string
   nome: string
@@ -71,7 +71,7 @@ const inicial = (): Estado => ({
   regimeTributario: 1,
   regimeIbsCbs: null,
   documentoBloqueado: false,
-  certificado: { situacao: 'nao_enviado', validade: null, pendenteDeEnvio: false },
+  certificado: { situacao: 'NAO_ENVIADO', validade: null, pendenteDeEnvio: false },
 })
 
 let estado = inicial()
@@ -97,7 +97,7 @@ const diasAte = (iso: string) => Math.round((Date.parse(`${iso}T00:00:00Z`) - ho
 
 function statusCertificado() {
   // Pendente + NFS-e habilitada: o certificado "segue" ao gateway e passa a valer.
-  if (estado.certificado.pendenteDeEnvio && nfseHabilitadaMock()) estado = { ...estado, certificado: { ...estado.certificado, situacao: 'valido', pendenteDeEnvio: false } }
+  if (estado.certificado.pendenteDeEnvio && nfseHabilitadaMock()) estado = { ...estado, certificado: { ...estado.certificado, situacao: 'VALIDO', pendenteDeEnvio: false } }
   const { situacao, validade, pendenteDeEnvio } = estado.certificado
   return { situacao, validade, pendenteDeEnvio, venceEmDias: validade ? diasAte(validade) : null }
 }
@@ -210,14 +210,14 @@ function enviarCertificado(body: unknown): Response {
 
   const validade = emDias(nome === 'vence15' ? 15 : 365)
   const pendenteDeEnvio = !nfseHabilitadaMock()
-  estado = { ...estado, certificado: { situacao: pendenteDeEnvio ? 'nao_enviado' : 'valido', validade, pendenteDeEnvio } }
+  estado = { ...estado, certificado: { situacao: pendenteDeEnvio ? 'NAO_ENVIADO' : 'VALIDO', validade, pendenteDeEnvio } }
   const { situacao, pendenteDeEnvio: pend, venceEmDias } = statusCertificado()
   return json(200, { situacao, validade, pendenteDeEnvio: pend, venceEmDias, avisos: nome === 'semcnpj' ? ['nao_foi_possivel_conferir_cnpj'] : [] })
 }
 
 export function empresaConfigRoutes(
   req: { method: string; path: string; body?: unknown },
-  ctx: { papel: Papel | null; empresaId: string | null },
+  ctx: { papel: PapelValor | null; empresaId: string | null },
 ): Response | null {
   const certificado = req.path === '/configuracao/empresa/certificado'
   if (req.path !== '/configuracao/empresa' && !certificado) return null
@@ -225,6 +225,6 @@ export function empresaConfigRoutes(
   if (!certificado && req.method === 'GET') return json(200, corpo())
   const esperado = certificado ? 'POST' : 'PUT'
   if (req.method !== esperado) return null
-  if (ctx.papel !== 'administrador') return erro(403, 'acesso_negado', 'Apenas o administrador da empresa altera estes dados.')
+  if (ctx.papel !== 'ADMINISTRADOR') return erro(403, 'acesso_negado', 'Apenas o administrador da empresa altera estes dados.')
   return certificado ? enviarCertificado(req.body) : salvar((req.body ?? {}) as Record<string, unknown>)
 }

@@ -14,7 +14,7 @@ export interface MenuItem {
   icon?: string
   group?: string
   order?: number
-  /** Papel MINIMO (administrador > operador > consulta). So UX: o back decide. */
+  /** Papel MINIMO (ADMINISTRADOR > OPERADOR > CONSULTA). So UX: o back decide. */
   role?: Papel
   /** Visivel so para administrador da plataforma. */
   platformOnly?: boolean
@@ -27,14 +27,14 @@ const doMapa: MenuItem[] = screens
 export const menu: MenuItem[] = [
   { name: 'Inicio', route: '/', title: 'Início', icon: 'home', order: 0 },
   ...doMapa,
-  { name: 'NotasNfse', route: '/notas', title: 'NFS-e', icon: 'file-text', group: 'Notas Fiscais', order: 30, role: 'consulta' },
+  { name: 'NotasNfse', route: '/notas', title: 'NFS-e', icon: 'file-text', group: 'Notas Fiscais', order: 30, role: 'CONSULTA' },
   { name: 'ImportarMunicipios', route: '/admin/municipios', title: 'Importar municípios', icon: 'upload', group: 'Administração', order: 80, platformOnly: true },
   { name: 'GuiaDeEstilo', route: '/admin/theme', title: 'Guia de estilo', icon: 'palette', group: 'Administração', order: 82, platformOnly: true },
   { name: 'UsuariosAdmin', route: '/admin/usuarios', title: 'Usuários', icon: 'user-cog', group: 'Administração', order: 81, platformOnly: true },
   { name: 'ConsultaCnpjAdmin', route: '/admin/consulta-cnpj', title: 'Consulta de CNPJ', icon: 'settings', group: 'Administração', order: 83, platformOnly: true },
   { name: 'IntegraNotasAdmin', route: '/admin/integranotas', title: 'Integração IntegraNotas', icon: 'settings', group: 'Administração', order: 84, platformOnly: true },
-  { name: 'NfseConfig', route: '/configuracao/nfse', title: 'NFS-e', icon: 'file-text', group: 'Configuração', order: 70, role: 'administrador' },
-  { name: 'EmpresaConfig', route: '/configuracao/empresa', title: 'Empresa', icon: 'settings', group: 'Configuração', order: 71, role: 'administrador' },
+  { name: 'NfseConfig', route: '/configuracao/nfse', title: 'NFS-e', icon: 'file-text', group: 'Configuração', order: 70, role: 'ADMINISTRADOR' },
+  { name: 'EmpresaConfig', route: '/configuracao/empresa', title: 'Empresa', icon: 'settings', group: 'Configuração', order: 71, role: 'ADMINISTRADOR' },
   { name: 'Perfil', route: '/perfil', title: 'Meu perfil', icon: 'user', group: 'Conta', order: 90 },
 ]
 

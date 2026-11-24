@@ -25,7 +25,7 @@ describe('mock de vinculos da empresa', () => {
     const r = await call('GET', URL_V, undefined, token)
     expect(r.status).toBe(200)
     expect(r.body).toHaveLength(2)
-    expect(r.body[0]).toMatchObject({ papel: 'administrador', ativo: true, usuario: { id: 'usu-1', nome: 'Ana Ribeiro', email: 'admin@exemplo.com.br', ativo: true } })
+    expect(r.body[0]).toMatchObject({ papel: 'ADMINISTRADOR', ativo: true, usuario: { id: 'usu-1', nome: 'Ana Ribeiro', email: 'admin@exemplo.com.br', ativo: true } })
   })
 
   it('exige plataforma (403) e empresa existente (404)', async () => {
@@ -36,19 +36,19 @@ describe('mock de vinculos da empresa', () => {
   })
 
   it('POST vincula (201) e valida 404, 400 e 409', async () => {
-    expect((await call('POST', URL_V, { usuarioId: 'usu-3', papel: 'consulta' }, token)).status).toBe(201)
+    expect((await call('POST', URL_V, { usuarioId: 'usu-3', papel: 'CONSULTA' }, token)).status).toBe(201)
     expect((await call('GET', URL_V, undefined, token)).body).toHaveLength(3)
-    expect((await call('POST', URL_V, { usuarioId: 'usu-3', papel: 'consulta' }, token)).body.codigo).toBe('vinculo_ja_existe')
-    expect((await call('POST', URL_V, { usuarioId: 'usu-3', papel: 'consulta' }, token)).status).toBe(409)
-    expect((await call('POST', URL_V, { usuarioId: 'nao-existe', papel: 'consulta' }, token)).body.codigo).toBe('usuario_nao_encontrado')
+    expect((await call('POST', URL_V, { usuarioId: 'usu-3', papel: 'CONSULTA' }, token)).body.codigo).toBe('vinculo_ja_existe')
+    expect((await call('POST', URL_V, { usuarioId: 'usu-3', papel: 'CONSULTA' }, token)).status).toBe(409)
+    expect((await call('POST', URL_V, { usuarioId: 'nao-existe', papel: 'CONSULTA' }, token)).body.codigo).toBe('usuario_nao_encontrado')
     expect((await call('POST', URL_V, { usuarioId: 'usu-4', papel: 'chefe' }, token)).status).toBe(400)
   })
 
   it('PATCH muda papel e ativo, parcialmente, sem excluir', async () => {
-    expect((await call('PATCH', `${URL_V}/vemp-2`, { papel: 'consulta' }, token)).status).toBe(200)
+    expect((await call('PATCH', `${URL_V}/vemp-2`, { papel: 'CONSULTA' }, token)).status).toBe(200)
     expect((await call('PATCH', `${URL_V}/vemp-2`, { ativo: false }, token)).status).toBe(200)
     const v = (await call('GET', URL_V, undefined, token)).body.find((x: { id: string }) => x.id === 'vemp-2')
-    expect(v).toMatchObject({ papel: 'consulta', ativo: false })
+    expect(v).toMatchObject({ papel: 'CONSULTA', ativo: false })
     expect((await call('PATCH', `${URL_V}/vemp-2`, { papel: 'x' }, token)).status).toBe(400)
     expect((await call('PATCH', `${URL_V}/nada`, { ativo: true }, token)).status).toBe(404)
   })
@@ -63,13 +63,13 @@ describe('mock de vinculos: delegacao de cancelar NFS-e (podeCancelarNfse)', () 
 
   it('lista traz podeCancelarNfse: administrador true, operador false por padrao', async () => {
     const r = await comoPlataforma('GET', URL_V)
-    expect(r.body.map((v: { papel: string; podeCancelarNfse: boolean }) => [v.papel, v.podeCancelarNfse])).toEqual([['administrador', true], ['operador', false]])
+    expect(r.body.map((v: { papel: string; podeCancelarNfse: boolean }) => [v.papel, v.podeCancelarNfse])).toEqual([['ADMINISTRADOR', true], ['OPERADOR', false]])
   })
 
   it('POST com podeCancelarNfse e PATCH delegam e retiram, e a sessao do usuario reflete (estado compartilhado)', async () => {
     expect(await sessaoDo('operador@exemplo.com.br')).toBe(false)
-    const novo = await comoPlataforma('POST', URL_V, { usuarioId: 'usu-3', papel: 'operador', podeCancelarNfse: true })
-    expect(novo.body).toMatchObject({ papel: 'operador', podeCancelarNfse: true })
+    const novo = await comoPlataforma('POST', URL_V, { usuarioId: 'usu-3', papel: 'OPERADOR', podeCancelarNfse: true })
+    expect(novo.body).toMatchObject({ papel: 'OPERADOR', podeCancelarNfse: true })
     expect((await comoPlataforma('PATCH', `${URL_V}/vemp-2`, { podeCancelarNfse: true })).body.podeCancelarNfse).toBe(true)
     expect(await sessaoDo('operador@exemplo.com.br')).toBe(true)
     expect((await comoPlataforma('PATCH', `${URL_V}/vemp-2`, { ativo: true })).body.podeCancelarNfse).toBe(true)
@@ -80,10 +80,10 @@ describe('mock de vinculos: delegacao de cancelar NFS-e (podeCancelarNfse)', () 
   it('o vinculo por usuario (/admin/usuarios/{id}/vinculos) tambem le e grava a delegacao', async () => {
     const lista = await comoPlataforma('GET', '/admin/usuarios/usu-4/vinculos')
     expect(lista.body.map((v: { empresaId: string; podeCancelarNfse: boolean }) => [v.empresaId, v.podeCancelarNfse])).toEqual([['emp-1', true], ['emp-2', true]])
-    const retirado = await comoPlataforma('PATCH', '/admin/usuarios/usu-4/vinculos/vin-usu-4-2', { papel: 'operador', ativo: true, podeCancelarNfse: false })
+    const retirado = await comoPlataforma('PATCH', '/admin/usuarios/usu-4/vinculos/vin-usu-4-2', { papel: 'OPERADOR', ativo: true, podeCancelarNfse: false })
     expect(retirado.body.podeCancelarNfse).toBe(false)
     expect(await sessaoDo('multi@exemplo.com.br', 'emp-2')).toBe(false)
-    const criado = await comoPlataforma('POST', '/admin/usuarios/usu-3/vinculos', { empresaId: 'emp-2', papel: 'operador', podeCancelarNfse: true })
+    const criado = await comoPlataforma('POST', '/admin/usuarios/usu-3/vinculos', { empresaId: 'emp-2', papel: 'OPERADOR', podeCancelarNfse: true })
     expect(criado.body).toMatchObject({ empresaId: 'emp-2', podeCancelarNfse: true })
   })
 })

@@ -24,13 +24,13 @@ export function GestaoPessoasScreen() {
   const columns = useMemo(
     () =>
       gestaoPessoasColumns({
-        editarPessoa: canAct(session, 'operador', false) ? (row) => void navigate({ to: '/pessoas/$id', params: { id: row.id } }) : undefined,
+        editarPessoa: canAct(session, 'OPERADOR', false) ? (row) => void navigate({ to: '/pessoas/$id', params: { id: row.id } }) : undefined,
       }),
     [session, navigate],
   )
   const [state, update] = useTableState({ sortBy: 'nome' })
   const result = usePessoas(state, 'nome')
-  const canCriar = canAct(session, 'operador', false)
+  const canCriar = canAct(session, 'OPERADOR', false)
   const novo = canCriar ? (
     <Button onClick={() => void navigate({ to: '/pessoas/$id', params: { id: 'novo' } })}>
       <CriarPessoaIcon /> Nova pessoa

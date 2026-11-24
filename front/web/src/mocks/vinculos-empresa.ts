@@ -1,4 +1,4 @@
-import type { Papel } from '@/lib/api'
+import type { PapelValor } from '@/lib/api'
 import { adminRoutes } from '@/mocks/admin'
 import { EMPRESAS_MOCK } from '@/mocks/fixtures'
 import { delegacaoDe, definirDelegacao } from '@/mocks/delegacao'
@@ -13,7 +13,7 @@ import { erro, json } from '@/mocks/http'
 interface Row {
   id: string
   usuarioId: string
-  papel: Papel
+  papel: PapelValor
   ativo: boolean
   dataCriacao: string
 }
@@ -24,12 +24,12 @@ interface UsuarioMin {
   ativo?: boolean
 }
 
-const PAPEIS: Papel[] = ['administrador', 'operador', 'consulta']
+const PAPEIS: PapelValor[] = ['ADMINISTRADOR', 'OPERADOR', 'CONSULTA']
 
 const seed = (): Record<string, Row[]> => ({
   'emp-1': [
-    { id: 'vemp-1', usuarioId: 'usu-1', papel: 'administrador', ativo: true, dataCriacao: '2026-01-10T09:00:00' },
-    { id: 'vemp-2', usuarioId: 'usu-2', papel: 'operador', ativo: true, dataCriacao: '2026-02-03T14:30:00' },
+    { id: 'vemp-1', usuarioId: 'usu-1', papel: 'ADMINISTRADOR', ativo: true, dataCriacao: '2026-01-10T09:00:00' },
+    { id: 'vemp-2', usuarioId: 'usu-2', papel: 'OPERADOR', ativo: true, dataCriacao: '2026-02-03T14:30:00' },
   ],
 })
 
@@ -60,14 +60,14 @@ export async function vinculosEmpresaRoutes(
   const todos = await usuarios()
   const completo = (r: Row) => {
     const u = todos.find((x) => x.id === r.usuarioId)
-    return { id: r.id, usuario: { id: r.usuarioId, nome: u?.nome ?? r.usuarioId, email: u?.email ?? '', ativo: u?.ativo !== false }, papel: r.papel, ativo: r.ativo, podeCancelarNfse: r.papel === 'administrador' || delegacaoDe(r.usuarioId, empresaId), dataCriacao: r.dataCriacao }
+    return { id: r.id, usuario: { id: r.usuarioId, nome: u?.nome ?? r.usuarioId, email: u?.email ?? '', ativo: u?.ativo !== false }, papel: r.papel, ativo: r.ativo, podeCancelarNfse: r.papel === 'ADMINISTRADOR' || delegacaoDe(r.usuarioId, empresaId), dataCriacao: r.dataCriacao }
   }
 
   if (!m[2] && req.method === 'GET') return json(200, lista.map(completo))
 
   if (!m[2] && req.method === 'POST') {
     const usuarioId = String(body.usuarioId ?? '')
-    const papel = body.papel as Papel
+    const papel = body.papel as PapelValor
     if (!todos.some((u) => u.id === usuarioId)) return erro(404, 'usuario_nao_encontrado', 'Usuário não encontrado.')
     if (!PAPEIS.includes(papel)) return erro(400, 'papel_invalido', 'Papel inválido.')
     if (lista.some((r) => r.usuarioId === usuarioId)) return erro(409, 'vinculo_ja_existe', 'Este usuário já está vinculado.')
@@ -81,8 +81,8 @@ export async function vinculosEmpresaRoutes(
     const r = lista.find((x) => x.id === m[2])
     if (!r) return erro(404, 'vinculo_nao_encontrado', 'Vínculo não encontrado.')
     if (body.papel !== undefined) {
-      if (!PAPEIS.includes(body.papel as Papel)) return erro(400, 'papel_invalido', 'Papel inválido.')
-      r.papel = body.papel as Papel
+      if (!PAPEIS.includes(body.papel as PapelValor)) return erro(400, 'papel_invalido', 'Papel inválido.')
+      r.papel = body.papel as PapelValor
     }
     if (typeof body.ativo === 'boolean') r.ativo = body.ativo
     if (typeof body.podeCancelarNfse === 'boolean') definirDelegacao(r.usuarioId, empresaId, body.podeCancelarNfse)

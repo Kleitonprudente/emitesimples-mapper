@@ -1,4 +1,4 @@
-import type { Papel } from '@/lib/api'
+import type { PapelValor } from '@/lib/api'
 import { EMPRESAS_MOCK, MOCK_USERS, MUNICIPIOS, type Municipio } from '@/mocks/fixtures'
 import { definirDelegacao, delegacaoDe } from '@/mocks/delegacao'
 import { erro, json } from '@/mocks/http'
@@ -27,7 +27,7 @@ interface UsuarioRow {
 interface VinculoRow {
   id: string
   empresaId: string
-  papel: Papel
+  papel: PapelValor
   ativo: boolean
 }
 interface ImportacaoRow {
@@ -42,7 +42,7 @@ interface ImportacaoRow {
   rejeitados: number
 }
 
-const PAPEIS: Papel[] = ['administrador', 'operador', 'consulta']
+const PAPEIS: PapelValor[] = ['ADMINISTRADOR', 'OPERADOR', 'CONSULTA']
 const NOMES_EXTRA = ['Fabio Contador', 'Gisele Fiscal', 'Hugo Financeiro', 'Isabela Suporte', 'Julio Atendimento', 'Karina Vendas', 'Leonardo Analista', 'Marta Gestora']
 
 function seedUsuarios(): { usuarios: UsuarioRow[]; vinculos: Record<string, VinculoRow[]> } {
@@ -80,7 +80,7 @@ let configCnpj = configCnpjInicial()
 
 /** Configuracao da integracao IntegraNotas (singleton). Os tokens ficam so aqui, em memoria: nunca saem nas respostas. */
 interface ConfigIntegraNotasRow {
-  ambienteAtivo: 'homologacao' | 'producao'
+  ambienteAtivo: 'HOMOLOGACAO' | 'PRODUCAO'
   urlHomologacao: string
   urlProducao: string
   urlPublicaWebhook: string | null
@@ -90,7 +90,7 @@ interface ConfigIntegraNotasRow {
   atualizadoPor: { id: string; nome: string } | null
 }
 const configIntegraNotasInicial = (): ConfigIntegraNotasRow => ({
-  ambienteAtivo: 'homologacao',
+  ambienteAtivo: 'HOMOLOGACAO',
   urlHomologacao: 'https://api.homologacao.integranotas.com.br',
   urlProducao: 'https://api.integranotas.com.br',
   urlPublicaWebhook: null,
@@ -124,8 +124,8 @@ const urlWebhookOk = (v: string): boolean => {
 function salvarIntegraNotas(body: Record<string, unknown>, nome: string): Response {
   const prox = { ...configIntegraNotas }
   if (body.ambienteAtivo !== undefined) {
-    if (body.ambienteAtivo !== 'homologacao' && body.ambienteAtivo !== 'producao') return erro(400, 'ambiente_invalido', 'Ambiente inválido.')
-    if (body.ambienteAtivo === 'producao' && !producaoPermitida) return erro(409, 'producao_bloqueada', 'Produção está bloqueada neste servidor.')
+    if (body.ambienteAtivo !== 'HOMOLOGACAO' && body.ambienteAtivo !== 'PRODUCAO') return erro(400, 'ambiente_invalido', 'Ambiente inválido.')
+    if (body.ambienteAtivo === 'PRODUCAO' && !producaoPermitida) return erro(409, 'producao_bloqueada', 'Produção está bloqueada neste servidor.')
     prox.ambienteAtivo = body.ambienteAtivo
   }
   for (const campo of ['urlHomologacao', 'urlProducao'] as const) {
@@ -230,7 +230,7 @@ function filtrar(q: Record<string, string | number | boolean | null | undefined>
   return rows
 }
 
-const comEmpresa = (uid: string, v: VinculoRow) => ({ ...v, podeCancelarNfse: v.papel === 'administrador' || delegacaoDe(uid, v.empresaId), empresa: { id: v.empresaId, razaoSocial: EMPRESAS_MOCK[v.empresaId]?.razaoSocial ?? v.empresaId } })
+const comEmpresa = (uid: string, v: VinculoRow) => ({ ...v, podeCancelarNfse: v.papel === 'ADMINISTRADOR' || delegacaoDe(uid, v.empresaId), empresa: { id: v.empresaId, razaoSocial: EMPRESAS_MOCK[v.empresaId]?.razaoSocial ?? v.empresaId } })
 
 async function importar(body: unknown, quem: string): Promise<Response> {
   const arquivo = body instanceof FormData ? body.get('arquivo') : null
@@ -265,7 +265,7 @@ async function importar(body: unknown, quem: string): Promise<Response> {
   const id = `imp-${++seq}`
   const linhasLidas = linhas.length - 1
   importacoes = [{ id, dataHora: new Date().toISOString().slice(0, 19), arquivo: (arquivo as File).name || 'arquivo', usuario: quem, linhasLidas, criados, atualizados, inalterados, rejeitados: rejeitados.length }, ...importacoes]
-  return json(200, { id, nomeArquivo: (arquivo as File).name || 'arquivo', estado: rejeitados.length ? 'concluida_com_rejeicoes' : 'concluida', linhasLidas, criados, atualizados, inalterados, totalRejeitados: rejeitados.length, rejeitados })
+  return json(200, { id, nomeArquivo: (arquivo as File).name || 'arquivo', estado: rejeitados.length ? 'CONCLUIDA_COM_REJEICOES' : 'CONCLUIDA', linhasLidas, criados, atualizados, inalterados, totalRejeitados: rejeitados.length, rejeitados })
 }
 
 /** Consulta de CNPJ (CNPJ.ws simulado): 400/409/404/502/429 ou o resultado. */
@@ -300,10 +300,10 @@ function consultarCnpj(cnpj: string): Response {
 }
 
 /** GET /consulta-cnpj/{cnpj}: rota para usuarios da empresa (administrador, operador) e plataforma; 403 para consulta. `null` se nao for esta rota. */
-export function consultaCnpjRoute(req: { method: string; path: string }, ctx: { plataformaAdmin: boolean; papel: Papel | null }): Response | null {
+export function consultaCnpjRoute(req: { method: string; path: string }, ctx: { plataformaAdmin: boolean; papel: PapelValor | null }): Response | null {
   const m = /^\/consulta-cnpj\/([^/]+)$/.exec(req.path)
   if (!m || req.method !== 'GET') return null
-  if (!ctx.plataformaAdmin && ctx.papel !== 'administrador' && ctx.papel !== 'operador') return erro(403, 'acesso_negado', 'Seu papel não permite consultar CNPJ.')
+  if (!ctx.plataformaAdmin && ctx.papel !== 'ADMINISTRADOR' && ctx.papel !== 'OPERADOR') return erro(403, 'acesso_negado', 'Seu papel não permite consultar CNPJ.')
   return consultarCnpj(m[1]!)
 }
 
@@ -375,7 +375,7 @@ export async function adminRoutes(req: { method: string; path: string; query?: R
     if (!nome || !/^\S+@\S+\.\S+$/.test(email)) return erro(400, 'dados_invalidos', 'Informe nome e e-mail válidos.')
     if (bytes(senha) < 8 || bytes(senha) > 72) return erro(400, 'senha_invalida', 'A senha deve ter de 8 a 72 caracteres.')
     if (usuarios.some((u) => u.email === email)) return erro(409, 'email_duplicado', 'Já existe um usuário com este e-mail.')
-    const novosVinculos = (Array.isArray(body.vinculos) ? body.vinculos : []) as { empresaId?: string; papel?: Papel }[]
+    const novosVinculos = (Array.isArray(body.vinculos) ? body.vinculos : []) as { empresaId?: string; papel?: PapelValor }[]
     for (const v of novosVinculos) {
       if (!v.empresaId || !EMPRESAS_MOCK[v.empresaId]) return erro(404, 'empresa_nao_encontrada', 'Empresa não encontrada.')
       if (!v.papel || !PAPEIS.includes(v.papel)) return erro(400, 'papel_invalido', 'Papel inválido.')
@@ -412,7 +412,7 @@ export async function adminRoutes(req: { method: string; path: string; query?: R
     if (!vins[2] && method === 'GET') return json(200, lista.map((v) => comEmpresa(uid, v)))
     if (!vins[2] && method === 'POST') {
       const empresaId = String(body.empresaId ?? '')
-      const papel = body.papel as Papel
+      const papel = body.papel as PapelValor
       if (!EMPRESAS_MOCK[empresaId]) return erro(404, 'empresa_nao_encontrada', 'Empresa não encontrada.')
       if (!PAPEIS.includes(papel)) return erro(400, 'papel_invalido', 'Papel inválido.')
       if (lista.some((v) => v.empresaId === empresaId)) return erro(409, 'vinculo_duplicado', 'O usuário já tem vínculo com esta empresa.')
@@ -424,7 +424,7 @@ export async function adminRoutes(req: { method: string; path: string; query?: R
     if (vins[2] && method === 'PATCH') {
       const v = lista.find((x) => x.id === vins[2])
       if (!v) return erro(404, 'vinculo_nao_encontrado', 'Vínculo não encontrado.')
-      const papel = body.papel as Papel
+      const papel = body.papel as PapelValor
       if (!PAPEIS.includes(papel)) return erro(400, 'papel_invalido', 'Papel inválido.')
       v.papel = papel
       v.ativo = body.ativo !== false

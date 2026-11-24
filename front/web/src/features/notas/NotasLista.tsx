@@ -80,7 +80,7 @@ export function NotasLista() {
   const columns = useMemo(() => colunas((n) => void navigate({ to: '/notas/$id', params: { id: n.id } })), [navigate])
   const [state, update] = useTableState()
   const result = useNotas(state)
-  const novo = canAct(session, 'operador') ? (
+  const novo = canAct(session, 'OPERADOR') ? (
     <Button onClick={() => void navigate({ to: '/notas/novo' })}>
       <NovaNotaIcon /> Nova nota
     </Button>

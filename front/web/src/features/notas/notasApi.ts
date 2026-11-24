@@ -17,8 +17,8 @@ import type { TableState } from '@/runtime/table-state'
  *   POST /nfse/notas/{id}/cancelar {codigoMotivo: 1|2|9, motivo: string 15..255 apos trim} (operador+) -> 200 NotaDetalhe
  *        Cancelar so vale para nota `autorizada`, dentro do MES VIGENTE da emissao (o back decide; o cliente so adianta o aviso).
  *        1 = Erro de emissao, 2 = Servico nao concluido, 9 = Outros. Concluido: estado `cancelada`; pendente: a nota segue `autorizada`
- *        com `cancelamento.estado = 'processando'` ate /atualizar (ou o webhook) concluir.
- *        NotaDetalhe ganha `cancelamento` ({estado: 'processando'|'concluido'|'recusado', codigoMotivo, motivo, codigoRetorno,
+ *        com `cancelamento.estado = 'PROCESSANDO'` ate /atualizar (ou o webhook) concluir.
+ *        NotaDetalhe ganha `cancelamento` ({estado: 'PROCESSANDO'|'CONCLUIDO'|'RECUSADO', codigoMotivo, motivo, codigoRetorno,
  *        mensagemRetorno, dataHoraEvento, solicitadoEm} | null) e `podeCancelar` (boolean; ausente = o cliente calcula).
  *        Delegacao: operador so cancela com `podeCancelarNfse` na sessao; sem ela 403 `cancelamento_nao_delegado` (mensagem do back).
  *   Assistente (a UI NAO prepara; so aprova ou descarta o que o assistente preparou):
@@ -33,20 +33,20 @@ import type { TableState } from '@/runtime/table-state'
  * ------------------------------------------------------------------------- */
 
 /** `rascunho` e SO do assistente de IA (nunca na emissao direta); `falha_envio` = falha de infraestrutura no envio direto (reenviavel, mesmo numero). */
-export type EstadoNota = 'rascunho' | 'falha_envio' | 'processando' | 'emitida_offline' | 'autorizada' | 'rejeitada' | 'em_conflito' | 'cancelada' | 'descartada'
+export type EstadoNota = 'RASCUNHO' | 'FALHA_ENVIO' | 'PROCESSANDO' | 'EMITIDA_OFFLINE' | 'AUTORIZADA' | 'REJEITADA' | 'EM_CONFLITO' | 'CANCELADA' | 'DESCARTADA'
 
-export const ESTADOS: readonly EstadoNota[] = ['rascunho', 'falha_envio', 'processando', 'emitida_offline', 'autorizada', 'rejeitada', 'em_conflito', 'cancelada', 'descartada']
+export const ESTADOS: readonly EstadoNota[] = ['RASCUNHO', 'FALHA_ENVIO', 'PROCESSANDO', 'EMITIDA_OFFLINE', 'AUTORIZADA', 'REJEITADA', 'EM_CONFLITO', 'CANCELADA', 'DESCARTADA']
 
 export const ESTADO: Record<EstadoNota, { rotulo: string; tone: BadgeTone }> = {
-  rascunho: { rotulo: 'Rascunho (assistente)', tone: 'neutral' },
-  falha_envio: { rotulo: 'Falha no envio', tone: 'warning' },
-  processando: { rotulo: 'Processando', tone: 'info' },
-  emitida_offline: { rotulo: 'Emitida offline', tone: 'info' },
-  autorizada: { rotulo: 'Autorizada', tone: 'success' },
-  rejeitada: { rotulo: 'Rejeitada', tone: 'danger' },
-  em_conflito: { rotulo: 'Em conflito', tone: 'warning' },
-  cancelada: { rotulo: 'Cancelada', tone: 'neutral' },
-  descartada: { rotulo: 'Descartada', tone: 'neutral' },
+  RASCUNHO: { rotulo: 'Rascunho (assistente)', tone: 'neutral' },
+  FALHA_ENVIO: { rotulo: 'Falha no envio', tone: 'warning' },
+  PROCESSANDO: { rotulo: 'Processando', tone: 'info' },
+  EMITIDA_OFFLINE: { rotulo: 'Emitida offline', tone: 'info' },
+  AUTORIZADA: { rotulo: 'Autorizada', tone: 'success' },
+  REJEITADA: { rotulo: 'Rejeitada', tone: 'danger' },
+  EM_CONFLITO: { rotulo: 'Em conflito', tone: 'warning' },
+  CANCELADA: { rotulo: 'Cancelada', tone: 'neutral' },
+  DESCARTADA: { rotulo: 'Descartada', tone: 'neutral' },
 }
 
 export interface NotaItem {
@@ -92,15 +92,15 @@ export interface NotaDetalhe extends NotaItem {
   podeDescartar: boolean
 }
 
-export type EstadoCancelamento = 'rascunho' | 'processando' | 'concluido' | 'recusado' | 'expirado' | 'descartado'
+export type EstadoCancelamento = 'RASCUNHO' | 'PROCESSANDO' | 'CONCLUIDO' | 'RECUSADO' | 'EXPIRADO' | 'DESCARTADO'
 
 export const CANCELAMENTO: Record<EstadoCancelamento, { rotulo: string; tone: BadgeTone }> = {
-  rascunho: { rotulo: 'Rascunho (assistente)', tone: 'neutral' },
-  processando: { rotulo: 'Em processamento', tone: 'info' },
-  concluido: { rotulo: 'Concluído', tone: 'success' },
-  recusado: { rotulo: 'Recusado', tone: 'danger' },
-  expirado: { rotulo: 'Expirado: sem confirmação', tone: 'warning' },
-  descartado: { rotulo: 'Descartado', tone: 'neutral' },
+  RASCUNHO: { rotulo: 'Rascunho (assistente)', tone: 'neutral' },
+  PROCESSANDO: { rotulo: 'Em processamento', tone: 'info' },
+  CONCLUIDO: { rotulo: 'Concluído', tone: 'success' },
+  RECUSADO: { rotulo: 'Recusado', tone: 'danger' },
+  EXPIRADO: { rotulo: 'Expirado: sem confirmação', tone: 'warning' },
+  DESCARTADO: { rotulo: 'Descartado', tone: 'neutral' },
 }
 export type CodigoMotivo = 1 | 2 | 9
 
@@ -137,7 +137,7 @@ export function lerNota(raw: unknown): NotaItem {
     id: String(r.id ?? ''),
     numero: num(r.numero),
     serie: str(r.serie) ?? '',
-    estado: ESTADOS.includes(r.estado as EstadoNota) ? (r.estado as EstadoNota) : 'rascunho',
+    estado: ESTADOS.includes(r.estado as EstadoNota) ? (r.estado as EstadoNota) : 'RASCUNHO',
     dataEmissao: str(r.dataEmissao),
     valorServicos: num(r.valorServicos),
     pessoa: { id: String(p.id ?? ''), nome: str(p.nome) ?? '', documento: str(p.documento) },
@@ -195,9 +195,9 @@ export function lerDetalhe(raw: unknown): NotaDetalhe {
   }
 }
 
-export const aguardaPrefeitura = (e: EstadoNota): boolean => e === 'processando' || e === 'emitida_offline'
+export const aguardaPrefeitura = (e: EstadoNota): boolean => e === 'PROCESSANDO' || e === 'EMITIDA_OFFLINE'
 
-export const cancelamentoEmProcessamento = (n: Pick<NotaDetalhe, 'cancelamento'>): boolean => n.cancelamento?.estado === 'processando'
+export const cancelamentoEmProcessamento = (n: Pick<NotaDetalhe, 'cancelamento'>): boolean => n.cancelamento?.estado === 'PROCESSANDO'
 
 /* ----- cancelamento: regras do cliente (so UX; o back decide) ----- */
 
@@ -261,7 +261,7 @@ export function useNotas(state: TableState) {
       return { data: data.map(lerNota), count: num(count?.count) }
     },
     placeholderData: keepPreviousData,
-    refetchInterval: (cq) => (cq.state.data?.data.some((n) => n.estado === 'processando') ? INTERVALO_LISTA_MS : false),
+    refetchInterval: (cq) => (cq.state.data?.data.some((n) => n.estado === 'PROCESSANDO') ? INTERVALO_LISTA_MS : false),
   })
   return { data: q.data?.data, count: q.data?.count, isLoading: q.isLoading, isFetching: q.isFetching, isError: q.isError, error: q.error, refetch: () => void q.refetch() }
 }

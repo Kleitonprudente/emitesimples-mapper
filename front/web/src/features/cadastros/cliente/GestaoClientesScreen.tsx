@@ -22,13 +22,13 @@ export function GestaoClientesScreen() {
   const columns = useMemo(
     () =>
       gestaoClientesColumns({
-        editarCliente: canAct(session, 'operador', false) ? (row) => void navigate({ to: '/clientes/$id', params: { id: row.id } }) : undefined,
+        editarCliente: canAct(session, 'OPERADOR', false) ? (row) => void navigate({ to: '/clientes/$id', params: { id: row.id } }) : undefined,
       }),
     [session, navigate],
   )
   const [state, update] = useTableState({ sortBy: 'nome' })
   const result = usePessoas(state, 'nome', { cliente: true })
-  const canCriar = canAct(session, 'operador', false)
+  const canCriar = canAct(session, 'OPERADOR', false)
   const novo = canCriar ? (
     <Button onClick={() => void navigate({ to: '/clientes/$id', params: { id: 'novo' } })}>
       <CriarClienteIcon /> Novo cliente

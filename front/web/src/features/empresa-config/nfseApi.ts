@@ -11,9 +11,9 @@ import { api } from '@/lib/api'
  * O token do emitente NUNCA vem do back. Leitura tolerante (campo ausente = padrao seguro).
  * ------------------------------------------------------------------------- */
 
-export type AmbienteNfse = 'homologacao' | 'producao'
-export type StatusCadastroNfse = 'nao_cadastrado' | 'cadastrado' | 'erro'
-export type CertificadoSituacao = 'nao_enviado' | 'valido' | 'vencido' | 'invalido' | 'nao_pertence'
+export type AmbienteNfse = 'HOMOLOGACAO' | 'PRODUCAO'
+export type StatusCadastroNfse = 'NAO_CADASTRADO' | 'CADASTRADO' | 'ERRO'
+export type CertificadoSituacao = 'NAO_ENVIADO' | 'VALIDO' | 'VENCIDO' | 'INVALIDO' | 'NAO_PERTENCE'
 
 export interface ConfigNfse {
   habilitada: boolean
@@ -48,11 +48,11 @@ export function lerConfigNfse(raw: unknown): ConfigNfse {
     serie: str(r.serie) ?? '',
     ultimoNumero: ultimo,
     proximoNumero: typeof r.proximoNumero === 'number' ? r.proximoNumero : ultimo + 1,
-    ambiente: oneOf(r.ambiente, ['homologacao', 'producao'] as const, 'homologacao'),
-    statusCadastro: oneOf(r.statusCadastro, ['nao_cadastrado', 'cadastrado', 'erro'] as const, 'nao_cadastrado'),
+    ambiente: oneOf(r.ambiente, ['HOMOLOGACAO', 'PRODUCAO'] as const, 'HOMOLOGACAO'),
+    statusCadastro: oneOf(r.statusCadastro, ['NAO_CADASTRADO', 'CADASTRADO', 'ERRO'] as const, 'NAO_CADASTRADO'),
     dataCadastroGateway: str(r.dataCadastroGateway),
     emitenteTokenConfigurado: r.emitenteTokenConfigurado === true,
-    certificadoSituacao: oneOf(r.certificadoSituacao, ['nao_enviado', 'valido', 'vencido', 'invalido', 'nao_pertence'] as const, 'nao_enviado'),
+    certificadoSituacao: oneOf(r.certificadoSituacao, ['NAO_ENVIADO', 'VALIDO', 'VENCIDO', 'INVALIDO', 'NAO_PERTENCE'] as const, 'NAO_ENVIADO'),
     validadeCertificado: str(r.validadeCertificado),
     integracaoDisponivel: r.integracaoDisponivel === true,
   }

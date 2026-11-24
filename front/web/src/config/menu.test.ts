@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { menu, visibleMenu, type MenuItem } from '@/config/menu'
 import type { SessionData } from '@/lib/api'
 
-const base: SessionData = { usuario: { id: '1', nome: 'A', email: 'a@x.com' }, empresa: null, papel: 'consulta', plataformaAdmin: false }
+const base: SessionData = { usuario: { id: '1', nome: 'A', email: 'a@x.com' }, empresa: null, papel: 'CONSULTA', plataformaAdmin: false }
 const items: MenuItem[] = [
   { name: 'Inicio', route: '/', title: 'Início', order: 0 },
-  { name: 'Notas', route: '/notas', title: 'Notas', group: 'Fiscal', order: 20, role: 'operador' },
-  { name: 'Config', route: '/config', title: 'Config', group: 'Fiscal', order: 10, role: 'administrador' },
+  { name: 'Notas', route: '/notas', title: 'Notas', group: 'Fiscal', order: 20, role: 'OPERADOR' },
+  { name: 'Config', route: '/config', title: 'Config', group: 'Fiscal', order: 10, role: 'ADMINISTRADOR' },
   { name: 'Painel', route: '/admin', title: 'Painel', group: 'Plataforma', platformOnly: true },
 ]
 const names = (s: SessionData | null) => visibleMenu(s, items).flatMap((g) => g.items.map((i) => i.name))
@@ -14,8 +14,8 @@ const names = (s: SessionData | null) => visibleMenu(s, items).flatMap((g) => g.
 describe('menu por papel (so UX)', () => {
   it('sem sessao nao mostra nada', () => expect(names(null)).toEqual([]))
   it('consulta ve so o que nao exige papel', () => expect(names(base)).toEqual(['Inicio']))
-  it('operador ve operador e abaixo, ordenado', () => expect(names({ ...base, papel: 'operador' })).toEqual(['Inicio', 'Notas']))
-  it('administrador ve tudo da empresa, em ordem', () => expect(names({ ...base, papel: 'administrador' })).toEqual(['Inicio', 'Config', 'Notas']))
+  it('operador ve operador e abaixo, ordenado', () => expect(names({ ...base, papel: 'OPERADOR' })).toEqual(['Inicio', 'Notas']))
+  it('administrador ve tudo da empresa, em ordem', () => expect(names({ ...base, papel: 'ADMINISTRADOR' })).toEqual(['Inicio', 'Config', 'Notas']))
   it('plataformaAdmin e flag separada do papel', () => {
     expect(names({ ...base, papel: null, plataformaAdmin: true })).toEqual(['Inicio', 'Painel'])
   })
@@ -30,7 +30,7 @@ describe('menu de administracao da plataforma', () => {
     expect(itens.map((i) => [i.group, i.platformOnly])).toEqual([['Administração', true], ['Administração', true], ['Administração', true], ['Administração', true]])
   })
   it('so o administrador da plataforma os ve', () => {
-    expect(rotas({ ...base, papel: 'administrador' })).not.toEqual(expect.arrayContaining(admins))
+    expect(rotas({ ...base, papel: 'ADMINISTRADOR' })).not.toEqual(expect.arrayContaining(admins))
     expect(rotas({ ...base, papel: null, plataformaAdmin: true })).toEqual(expect.arrayContaining(admins))
   })
 })
@@ -39,13 +39,13 @@ describe('menu Configuracao > NFS-e da empresa', () => {
 
   it('item no grupo Configuracao, ordem 70, papel administrador, nao platformOnly', () => {
     const item = menu.find((i) => i.route === '/configuracao/nfse')
-    expect(item).toMatchObject({ title: 'NFS-e', group: 'Configuração', order: 70, role: 'administrador' })
+    expect(item).toMatchObject({ title: 'NFS-e', group: 'Configuração', order: 70, role: 'ADMINISTRADOR' })
     expect(item?.platformOnly).toBeUndefined()
   })
   it('so o administrador da empresa ve; operador, consulta e plataforma sem empresa nao', () => {
-    expect(rotas({ ...base, papel: 'administrador' })).toContain('/configuracao/nfse')
-    expect(rotas({ ...base, papel: 'operador' })).not.toContain('/configuracao/nfse')
-    expect(rotas({ ...base, papel: 'consulta' })).not.toContain('/configuracao/nfse')
+    expect(rotas({ ...base, papel: 'ADMINISTRADOR' })).toContain('/configuracao/nfse')
+    expect(rotas({ ...base, papel: 'OPERADOR' })).not.toContain('/configuracao/nfse')
+    expect(rotas({ ...base, papel: 'CONSULTA' })).not.toContain('/configuracao/nfse')
     expect(rotas({ ...base, papel: null, plataformaAdmin: true })).not.toContain('/configuracao/nfse')
   })
 })
@@ -55,11 +55,11 @@ describe('menu Notas Fiscais > NFS-e', () => {
 
   it('item no grupo Notas Fiscais, ordem 30, papel consulta, icone file-text', () => {
     const item = menu.find((i) => i.route === '/notas')
-    expect(item).toMatchObject({ title: 'NFS-e', group: 'Notas Fiscais', order: 30, role: 'consulta', icon: 'file-text' })
+    expect(item).toMatchObject({ title: 'NFS-e', group: 'Notas Fiscais', order: 30, role: 'CONSULTA', icon: 'file-text' })
     expect(item?.platformOnly).toBeUndefined()
   })
   it('qualquer papel da empresa ve; plataforma sem empresa nao', () => {
-    for (const papel of ['consulta', 'operador', 'administrador'] as const) expect(rotas({ ...base, papel })).toContain('/notas')
+    for (const papel of ['CONSULTA', 'OPERADOR', 'ADMINISTRADOR'] as const) expect(rotas({ ...base, papel })).toContain('/notas')
     expect(rotas({ ...base, papel: null, plataformaAdmin: true })).not.toContain('/notas')
   })
 })
@@ -69,15 +69,15 @@ describe('menu Configuracao > Empresa da empresa', () => {
 
   it('item no grupo Configuracao, ordem 71, papel administrador, nao platformOnly', () => {
     const item = menu.find((i) => i.route === '/configuracao/empresa')
-    expect(item).toMatchObject({ title: 'Empresa', group: 'Configuração', order: 71, role: 'administrador' })
+    expect(item).toMatchObject({ title: 'Empresa', group: 'Configuração', order: 71, role: 'ADMINISTRADOR' })
     expect(item?.platformOnly).toBeUndefined()
   })
   it('so o administrador da empresa ve; fica logo depois de NFS-e', () => {
-    expect(rotas({ ...base, papel: 'administrador' })).toContain('/configuracao/empresa')
-    expect(rotas({ ...base, papel: 'operador' })).not.toContain('/configuracao/empresa')
-    expect(rotas({ ...base, papel: 'consulta' })).not.toContain('/configuracao/empresa')
+    expect(rotas({ ...base, papel: 'ADMINISTRADOR' })).toContain('/configuracao/empresa')
+    expect(rotas({ ...base, papel: 'OPERADOR' })).not.toContain('/configuracao/empresa')
+    expect(rotas({ ...base, papel: 'CONSULTA' })).not.toContain('/configuracao/empresa')
     expect(rotas({ ...base, papel: null, plataformaAdmin: true })).not.toContain('/configuracao/empresa')
-    const r = rotas({ ...base, papel: 'administrador' })
+    const r = rotas({ ...base, papel: 'ADMINISTRADOR' })
     expect(r.indexOf('/configuracao/empresa')).toBe(r.indexOf('/configuracao/nfse') + 1)
   })
 })

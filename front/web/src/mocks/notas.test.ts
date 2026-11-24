@@ -15,7 +15,7 @@ async function login(email: string) {
   return (await call('POST', '/auth/login', { email, senha: 'senha1234' })).body.accessToken as string
 }
 
-const habilita = () => ajustarNfseConfig({ habilitada: true, serie: '1', ultimoNumero: 99, statusCadastro: 'cadastrado', certificadoSituacao: 'valido' })
+const habilita = () => ajustarNfseConfig({ habilitada: true, serie: '1', ultimoNumero: 99, statusCadastro: 'CADASTRADO', certificadoSituacao: 'VALIDO' })
 const corpo = (extra: object = {}) => ({ pessoaId: 'pes-0001', servicoId: 'srv-0001', valorServicos: 100, ...extra })
 
 describe('mock de notas NFS-e', () => {
@@ -33,8 +33,8 @@ describe('mock de notas NFS-e', () => {
     const datas = l.body.map((n: { dataCriacao: string }) => n.dataCriacao)
     expect(datas).toEqual([...datas].sort().reverse())
     expect((await call('GET', '/nfse/notas/count', undefined, token)).body).toEqual({ count: 7 })
-    const rej = await call('GET', '/nfse/notas/0/9', undefined, token, { estado: 'rejeitada' })
-    expect(rej.body.map((n: { estado: string }) => n.estado)).toEqual(['rejeitada'])
+    const rej = await call('GET', '/nfse/notas/0/9', undefined, token, { estado: 'REJEITADA' })
+    expect(rej.body.map((n: { estado: string }) => n.estado)).toEqual(['REJEITADA'])
     const busca = await call('GET', '/nfse/notas/count', undefined, token, { busca: l.body[0].pessoa.nome.slice(0, 5) })
     expect(busca.body.count).toBeGreaterThan(0)
   })
@@ -63,7 +63,7 @@ describe('mock de notas NFS-e', () => {
     habilita()
     const r = await call('POST', '/nfse/notas', corpo(), token)
     expect(r.status).toBe(200)
-    expect(r.body).toMatchObject({ serie: '1', numero: 100, estado: 'processando', podeAtualizar: true, podeReenviar: false, discriminacao: 'Serviços de consultoria contábil prestados no período.' })
+    expect(r.body).toMatchObject({ serie: '1', numero: 100, estado: 'PROCESSANDO', podeAtualizar: true, podeReenviar: false, discriminacao: 'Serviços de consultoria contábil prestados no período.' })
     const outra = await call('POST', '/nfse/notas', corpo({ discriminacao: 'Minha descrição' }), token)
     expect(outra.body).toMatchObject({ numero: 101, discriminacao: 'Minha descrição' })
     expect((await call('GET', '/nfse/notas/count', undefined, token)).body.count).toBe(9)
@@ -72,9 +72,9 @@ describe('mock de notas NFS-e', () => {
   it('processando vira autorizada pelo tempo ou na 2a chamada de atualizar, com PDF valido', async () => {
     habilita()
     const a = (await call('POST', '/nfse/notas', corpo(), token)).body
-    expect((await call('POST', `/nfse/notas/${a.id}/atualizar`, undefined, token)).body.estado).toBe('processando')
+    expect((await call('POST', `/nfse/notas/${a.id}/atualizar`, undefined, token)).body.estado).toBe('PROCESSANDO')
     const dois = await call('POST', `/nfse/notas/${a.id}/atualizar`, undefined, token)
-    expect(dois.body).toMatchObject({ estado: 'autorizada', temPdf: true, podeAtualizar: false })
+    expect(dois.body).toMatchObject({ estado: 'AUTORIZADA', temPdf: true, podeAtualizar: false })
     const pdf = await call('GET', `/nfse/notas/${a.id}/pdf`, undefined, token)
     expect([pdf.status, pdf.type]).toEqual([200, 'application/pdf'])
     expect(pdf.body.startsWith('%PDF-1.4')).toBe(true)
@@ -83,7 +83,7 @@ describe('mock de notas NFS-e', () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     const b = (await call('POST', '/nfse/notas', corpo(), token)).body
     vi.setSystemTime(Date.now() + TEMPO_AUTORIZACAO_MS + 1)
-    expect((await call('GET', `/nfse/notas/${b.id}`, undefined, token)).body.estado).toBe('autorizada')
+    expect((await call('GET', `/nfse/notas/${b.id}`, undefined, token)).body.estado).toBe('AUTORIZADA')
   })
 
   it('PDF indisponivel: 404 pdf_indisponivel; nota inexistente: 404', async () => {
@@ -95,12 +95,12 @@ describe('mock de notas NFS-e', () => {
   it('valor magico rejeita (com errosRetorno) e conflita; reenviar corrigido mantem o numero', async () => {
     habilita()
     const rej = (await call('POST', '/nfse/notas', corpo({ valorServicos: VALOR_REJEICAO }), token)).body
-    expect(rej).toMatchObject({ estado: 'rejeitada', podeReenviar: true, mensagemRetorno: expect.any(String) })
+    expect(rej).toMatchObject({ estado: 'REJEITADA', podeReenviar: true, mensagemRetorno: expect.any(String) })
     expect(rej.errosRetorno.length).toBeGreaterThan(0)
     const ok = await call('POST', `/nfse/notas/${rej.id}/enviar`, corpo({ valorServicos: 120 }), token)
-    expect(ok.body).toMatchObject({ estado: 'processando', numero: rej.numero, valorServicos: 120, errosRetorno: null })
+    expect(ok.body).toMatchObject({ estado: 'PROCESSANDO', numero: rej.numero, valorServicos: 120, errosRetorno: null })
     const conf = (await call('POST', '/nfse/notas', corpo({ valorServicos: VALOR_CONFLITO }), token)).body
-    expect(conf).toMatchObject({ estado: 'em_conflito', podeReenviar: false, podeAtualizar: true })
+    expect(conf).toMatchObject({ estado: 'EM_CONFLITO', podeReenviar: false, podeAtualizar: true })
   })
 
   it('enviar respeita o estado: processando 409, conflito 409, autorizada 409', async () => {
@@ -118,14 +118,14 @@ describe('mock de notas NFS-e', () => {
     expect(inv.body.detalhes.campos.valorServicos).toBeTruthy()
     expect((await call('POST', '/nfse/notas', corpo({ servicoId: 'srv-0004' }), token)).body.codigo).toBe('servico_inativo')
     expect((await call('POST', '/nfse/notas', corpo({ servicoId: 'srv-0003' }), token)).body.codigo).toBe('discriminacao_obrigatoria')
-    ajustarNfseConfig({ certificadoSituacao: 'valido' })
-    ajustarNfseConfig({ statusCadastro: 'nao_cadastrado' })
+    ajustarNfseConfig({ certificadoSituacao: 'VALIDO' })
+    ajustarNfseConfig({ statusCadastro: 'NAO_CADASTRADO' })
     expect((await call('POST', '/nfse/notas', corpo(), token)).body.codigo).toBe('emitente_nao_cadastrado')
   })
 
   it('cliente sem documento: 422 tomador_incompleto com os campos', async () => {
     habilita()
-    await call('PUT', '/Pessoa/id/pes-0002', { nome: 'Sem Doc', tipoPessoa: 'fisica', documento: '' }, token)
+    await call('PUT', '/Pessoa/id/pes-0002', { nome: 'Sem Doc', tipoPessoa: 'FISICA', documento: '' }, token)
     const r = await call('POST', '/nfse/notas', corpo({ pessoaId: 'pes-0002' }), token)
     expect([r.status, r.body.codigo]).toEqual([422, 'tomador_incompleto'])
     expect(r.body.detalhes.campos[0].campo).toBe('documento')
@@ -141,8 +141,8 @@ describe('mock de notas NFS-e', () => {
   })
 
   it('o certificado enviado em Empresa passa a valer no GET /configuracao/nfse', async () => {
-    ajustarNfseConfig({ habilitada: true, serie: '1', statusCadastro: 'cadastrado' })
-    expect((await call('GET', '/configuracao/nfse', undefined, token)).body.certificadoSituacao).toBe('nao_enviado')
+    ajustarNfseConfig({ habilitada: true, serie: '1', statusCadastro: 'CADASTRADO' })
+    expect((await call('GET', '/configuracao/nfse', undefined, token)).body.certificadoSituacao).toBe('NAO_ENVIADO')
   })
 
   describe('cancelar', () => {
@@ -156,11 +156,11 @@ describe('mock de notas NFS-e', () => {
 
     it('nota autorizada do mes vigente vira cancelada com o bloco de cancelamento', async () => {
       const a = await autorizada()
-      expect([a.estado, a.podeCancelar]).toEqual(['autorizada', true])
+      expect([a.estado, a.podeCancelar]).toEqual(['AUTORIZADA', true])
       const r = await call('POST', `/nfse/notas/${a.id}/cancelar`, motivo, token)
       expect(r.status).toBe(200)
-      expect(r.body).toMatchObject({ estado: 'cancelada', podeCancelar: false, cancelamento: { estado: 'concluido', codigoMotivo: 1, motivo: motivo.motivo } })
-      expect((await call('GET', `/nfse/notas/${a.id}`, undefined, token)).body.estado).toBe('cancelada')
+      expect(r.body).toMatchObject({ estado: 'CANCELADA', podeCancelar: false, cancelamento: { estado: 'CONCLUIDO', codigoMotivo: 1, motivo: motivo.motivo } })
+      expect((await call('GET', `/nfse/notas/${a.id}`, undefined, token)).body.estado).toBe('CANCELADA')
     })
 
     it('valida o corpo (15 a 255 apos trim, codigo 1|2|9) com 400 e campos', async () => {
@@ -177,10 +177,10 @@ describe('mock de notas NFS-e', () => {
 
     it('fora do mes vigente: 409 cancelamento_fora_do_mes e a nota segue autorizada', async () => {
       const antes = (await call('GET', '/nfse/notas/nota-0002', undefined, token)).body
-      expect([antes.estado, antes.podeCancelar]).toEqual(['autorizada', false])
+      expect([antes.estado, antes.podeCancelar]).toEqual(['AUTORIZADA', false])
       const r = await call('POST', '/nfse/notas/nota-0002/cancelar', motivo, token)
       expect([r.status, r.body.codigo]).toEqual([409, 'cancelamento_fora_do_mes'])
-      expect((await call('GET', '/nfse/notas/nota-0002', undefined, token)).body.estado).toBe('autorizada')
+      expect((await call('GET', '/nfse/notas/nota-0002', undefined, token)).body.estado).toBe('AUTORIZADA')
     })
 
     it('nota que nao esta autorizada: 409 nota_nao_autorizada; consulta: 403; inexistente: 404', async () => {
@@ -196,10 +196,10 @@ describe('mock de notas NFS-e', () => {
     it('valor 888.88 fica processando (nota segue autorizada) e conclui na 2a consulta; repetir da 409', async () => {
       const a = await autorizada({ valorServicos: VALOR_CANCELAMENTO_PENDENTE })
       const r = await call('POST', `/nfse/notas/${a.id}/cancelar`, motivo, token)
-      expect(r.body).toMatchObject({ estado: 'autorizada', podeAtualizar: true, podeCancelar: false, cancelamento: { estado: 'processando' } })
+      expect(r.body).toMatchObject({ estado: 'AUTORIZADA', podeAtualizar: true, podeCancelar: false, cancelamento: { estado: 'PROCESSANDO' } })
       expect((await call('POST', `/nfse/notas/${a.id}/cancelar`, motivo, token)).body.codigo).toBe('cancelamento_em_andamento')
-      expect((await call('POST', `/nfse/notas/${a.id}/atualizar`, undefined, token)).body.estado).toBe('autorizada')
-      expect((await call('POST', `/nfse/notas/${a.id}/atualizar`, undefined, token)).body).toMatchObject({ estado: 'cancelada', cancelamento: { estado: 'concluido' } })
+      expect((await call('POST', `/nfse/notas/${a.id}/atualizar`, undefined, token)).body.estado).toBe('AUTORIZADA')
+      expect((await call('POST', `/nfse/notas/${a.id}/atualizar`, undefined, token)).body).toMatchObject({ estado: 'CANCELADA', cancelamento: { estado: 'CONCLUIDO' } })
     })
   })
 })
@@ -236,7 +236,7 @@ describe('mock de notas NFS-e: delegacao, estados novos e assistente', () => {
     expect((await dados('plataforma@exemplo.com.br')).podeCancelarNfse).toBe(true)
     expect((await dados('multi@exemplo.com.br', 'emp-1')).podeCancelarNfse).toBe(true)
     const d = await dados('multi@exemplo.com.br', 'emp-2')
-    expect([d.papel, d.podeCancelarNfse]).toEqual(['operador', true])
+    expect([d.papel, d.podeCancelarNfse]).toEqual(['OPERADOR', true])
     const me = await call('GET', '/auth/me', undefined, d.accessToken)
     expect(me.body.podeCancelarNfse).toBe(true)
     const renovada = await call('POST', '/auth/refresh')
@@ -244,15 +244,15 @@ describe('mock de notas NFS-e: delegacao, estados novos e assistente', () => {
   })
 
   it('seeds novos: falha_envio reenviavel com o mesmo numero e rascunho do assistente (nao reenviavel)', async () => {
-    const filtrada = await operador('GET', '/nfse/notas/0/9', undefined, { estado: 'falha_envio' })
+    const filtrada = await operador('GET', '/nfse/notas/0/9', undefined, { estado: 'FALHA_ENVIO' })
     expect(filtrada.body.map((n: { id: string }) => n.id)).toEqual(['nota-0007'])
     const falha = (await operador('GET', '/nfse/notas/nota-0007')).body
-    expect(falha).toMatchObject({ estado: 'falha_envio', podeReenviar: true, editavel: true, podeAprovar: false })
+    expect(falha).toMatchObject({ estado: 'FALHA_ENVIO', podeReenviar: true, editavel: true, podeAprovar: false })
     const reenviada = await operador('POST', '/nfse/notas/nota-0007/enviar', {})
     expect(reenviada.status).toBe(200)
-    expect(reenviada.body).toMatchObject({ estado: 'processando', numero: falha.numero, serie: falha.serie })
+    expect(reenviada.body).toMatchObject({ estado: 'PROCESSANDO', numero: falha.numero, serie: falha.serie })
     const rascunho = (await operador('GET', '/nfse/notas/nota-0006')).body
-    expect(rascunho).toMatchObject({ estado: 'rascunho', podeReenviar: false, podeAprovar: true, podeDescartar: true })
+    expect(rascunho).toMatchObject({ estado: 'RASCUNHO', podeReenviar: false, podeAprovar: true, podeDescartar: true })
     expect((await operador('POST', '/nfse/notas/nota-0006/enviar', {})).body.codigo).toBe('nota_nao_editavel')
   })
 
@@ -262,19 +262,19 @@ describe('mock de notas NFS-e: delegacao, estados novos e assistente', () => {
     const r = await operador('POST', `/nfse/notas/${a.id}/cancelar`, motivo)
     expect([r.status, r.body.codigo]).toEqual([403, 'cancelamento_nao_delegado'])
     expect(r.body.mensagem).toBe('Seu usuário não tem permissão para cancelar notas. Peça ao administrador.')
-    expect((await admin('GET', `/nfse/notas/${a.id}`)).body.estado).toBe('autorizada')
+    expect((await admin('GET', `/nfse/notas/${a.id}`)).body.estado).toBe('AUTORIZADA')
 
     expect((await delegado('GET', `/nfse/notas/${a.id}`)).body.podeCancelar).toBe(true)
-    expect((await delegado('POST', `/nfse/notas/${a.id}/cancelar`, motivo)).body.estado).toBe('cancelada')
+    expect((await delegado('POST', `/nfse/notas/${a.id}/cancelar`, motivo)).body.estado).toBe('CANCELADA')
     const b = await autorizada()
-    expect((await admin('POST', `/nfse/notas/${b.id}/cancelar`, motivo)).body.estado).toBe('cancelada')
+    expect((await admin('POST', `/nfse/notas/${b.id}/cancelar`, motivo)).body.estado).toBe('CANCELADA')
   })
 
   it('preparar cria o rascunho SEM numero, sem enviar; consulta 403; corpo invalido 400', async () => {
     const r = await operador('POST', '/nfse/notas/preparar', corpo())
     expect(r.status).toBe(200)
-    expect(r.body).toMatchObject({ estado: 'rascunho', podeAprovar: true, podeDescartar: true, podeReenviar: false, serie: '', numero: 0 })
-    expect((await operador('GET', '/nfse/notas/count', undefined, { estado: 'processando' })).body.count).toBe(0)
+    expect(r.body).toMatchObject({ estado: 'RASCUNHO', podeAprovar: true, podeDescartar: true, podeReenviar: false, serie: '', numero: 0 })
+    expect((await operador('GET', '/nfse/notas/count', undefined, { estado: 'PROCESSANDO' })).body.count).toBe(0)
     expect((await consulta('POST', '/nfse/notas/preparar', corpo())).status).toBe(403)
     expect((await operador('POST', '/nfse/notas/preparar', corpo({ valorServicos: 0 }))).body.codigo).toBe('requisicao_invalida')
   })
@@ -284,27 +284,27 @@ describe('mock de notas NFS-e: delegacao, estados novos e assistente', () => {
     expect((await consulta('POST', `/nfse/notas/${p.id}/aprovar`)).status).toBe(403)
     const r = await operador('POST', `/nfse/notas/${p.id}/aprovar`)
     expect(p.numero).toBe(0)
-    expect(r.body).toMatchObject({ estado: 'processando', serie: '1', podeAprovar: false, podeDescartar: false })
+    expect(r.body).toMatchObject({ estado: 'PROCESSANDO', serie: '1', podeAprovar: false, podeDescartar: false })
     expect(r.body.numero).toBeGreaterThan(0)
     expect((await operador('POST', `/nfse/notas/${p.id}/aprovar`)).body.codigo).toBe('nota_nao_editavel')
     const rej = (await operador('POST', '/nfse/notas/preparar', corpo({ valorServicos: VALOR_REJEICAO }))).body
-    expect((await operador('POST', `/nfse/notas/${rej.id}/aprovar`, {})).body.estado).toBe('rejeitada')
+    expect((await operador('POST', `/nfse/notas/${rej.id}/aprovar`, {})).body.estado).toBe('REJEITADA')
   })
 
   it('aprovar aceita corpo opcional com correcoes e revalida as pre-condicoes da empresa', async () => {
     const p = (await operador('POST', '/nfse/notas/preparar', corpo())).body
     const r = await operador('POST', `/nfse/notas/${p.id}/aprovar`, { valorServicos: 321 })
-    expect(r.body).toMatchObject({ estado: 'processando', valorServicos: 321 })
+    expect(r.body).toMatchObject({ estado: 'PROCESSANDO', valorServicos: 321 })
     const q = (await operador('POST', '/nfse/notas/preparar', corpo())).body
     ajustarNfseConfig({ habilitada: false })
     expect((await operador('POST', `/nfse/notas/${q.id}/aprovar`)).body.codigo).toBe('nfse_nao_habilitada')
-    expect((await operador('GET', `/nfse/notas/${q.id}`)).body.estado).toBe('rascunho')
+    expect((await operador('GET', `/nfse/notas/${q.id}`)).body.estado).toBe('RASCUNHO')
   })
 
   it('descartar leva o rascunho a descartada; so rascunho; consulta 403', async () => {
     const p = (await operador('POST', '/nfse/notas/preparar', corpo())).body
     expect((await consulta('POST', `/nfse/notas/${p.id}/descartar`)).status).toBe(403)
-    expect((await operador('POST', `/nfse/notas/${p.id}/descartar`)).body).toMatchObject({ estado: 'descartada', podeAprovar: false, podeDescartar: false })
+    expect((await operador('POST', `/nfse/notas/${p.id}/descartar`)).body).toMatchObject({ estado: 'DESCARTADA', podeAprovar: false, podeDescartar: false })
     expect((await operador('POST', `/nfse/notas/${p.id}/descartar`)).body.codigo).toBe('nota_nao_editavel')
     expect((await operador('POST', '/nfse/notas/nota-0001/descartar')).status).toBe(409)
   })
@@ -314,17 +314,17 @@ describe('mock de notas NFS-e: delegacao, estados novos e assistente', () => {
       const a = await autorizada()
       const r = await operador('POST', `/nfse/notas/${a.id}/cancelamentos/preparar`, motivo)
       expect(r.status).toBe(200)
-      expect(r.body.estado).toBe('autorizada')
-      expect(r.body.cancelamento).toMatchObject({ estado: 'rascunho', codigoMotivo: 1, podeAprovar: false, podeDescartar: true })
+      expect(r.body.estado).toBe('AUTORIZADA')
+      expect(r.body.cancelamento).toMatchObject({ estado: 'RASCUNHO', codigoMotivo: 1, podeAprovar: false, podeDescartar: true })
       expect(r.body.cancelamento.id).toMatch(/^canc-/)
       expect(r.body.podeCancelar).toBe(false)
       const id = r.body.cancelamento.id as string
       const negado = await operador('POST', `/nfse/cancelamentos/${id}/aprovar`)
       expect([negado.status, negado.body.codigo]).toEqual([403, 'cancelamento_nao_delegado'])
       const visto = (await admin('GET', `/nfse/notas/${a.id}`)).body
-      expect(visto.cancelamento).toMatchObject({ estado: 'rascunho', podeAprovar: true, podeDescartar: true })
+      expect(visto.cancelamento).toMatchObject({ estado: 'RASCUNHO', podeAprovar: true, podeDescartar: true })
       const ok = await admin('POST', `/nfse/cancelamentos/${id}/aprovar`)
-      expect(ok.body).toMatchObject({ estado: 'cancelada', cancelamento: { estado: 'concluido', id } })
+      expect(ok.body).toMatchObject({ estado: 'CANCELADA', cancelamento: { estado: 'CONCLUIDO', id } })
     })
 
     it('preparar valida o corpo e as regras: 400, nota nao autorizada, fora do mes, ja em andamento; consulta 403', async () => {
@@ -346,14 +346,14 @@ describe('mock de notas NFS-e: delegacao, estados novos e assistente', () => {
       vi.setSystemTime(new Date('2026-12-02T15:00:00Z'))
       const r = await admin('POST', `/nfse/cancelamentos/${id}/aprovar`)
       expect([r.status, r.body.codigo]).toEqual([409, 'cancelamento_fora_do_mes'])
-      expect((await admin('GET', `/nfse/notas/${a.id}`)).body.cancelamento.estado).toBe('rascunho')
+      expect((await admin('GET', `/nfse/notas/${a.id}`)).body.cancelamento.estado).toBe('RASCUNHO')
     })
 
     it('descartar leva a descartado e libera novo cancelamento; aprovar com 888.88 fica processando; so em rascunho', async () => {
       const a = await autorizada()
       const id = (await admin('POST', `/nfse/notas/${a.id}/cancelamentos/preparar`, motivo)).body.cancelamento.id as string
       const d = await operador('POST', `/nfse/cancelamentos/${id}/descartar`)
-      expect(d.body).toMatchObject({ estado: 'autorizada', podeCancelar: false, cancelamento: { estado: 'descartado', podeAprovar: false, podeDescartar: false } })
+      expect(d.body).toMatchObject({ estado: 'AUTORIZADA', podeCancelar: false, cancelamento: { estado: 'DESCARTADO', podeAprovar: false, podeDescartar: false } })
       expect((await admin('POST', `/nfse/cancelamentos/${id}/descartar`)).body.codigo).toBe('cancelamento_nao_editavel')
       expect((await admin('POST', `/nfse/cancelamentos/${id}/aprovar`)).status).toBe(409)
       expect((await admin('POST', '/nfse/cancelamentos/nao-existe/aprovar')).status).toBe(404)
@@ -364,9 +364,9 @@ describe('mock de notas NFS-e: delegacao, estados novos e assistente', () => {
       await admin('POST', `/nfse/notas/${p.id}/atualizar`)
       const id2 = (await admin('POST', `/nfse/notas/${p.id}/cancelamentos/preparar`, motivo)).body.cancelamento.id as string
       const ok = await admin('POST', `/nfse/cancelamentos/${id2}/aprovar`)
-      expect(ok.body).toMatchObject({ estado: 'autorizada', podeAtualizar: true, cancelamento: { estado: 'processando' } })
-      expect((await admin('POST', `/nfse/notas/${p.id}/atualizar`)).body.cancelamento.estado).toBe('processando')
-      expect((await admin('POST', `/nfse/notas/${p.id}/atualizar`)).body).toMatchObject({ estado: 'cancelada', cancelamento: { estado: 'concluido' } })
+      expect(ok.body).toMatchObject({ estado: 'AUTORIZADA', podeAtualizar: true, cancelamento: { estado: 'PROCESSANDO' } })
+      expect((await admin('POST', `/nfse/notas/${p.id}/atualizar`)).body.cancelamento.estado).toBe('PROCESSANDO')
+      expect((await admin('POST', `/nfse/notas/${p.id}/atualizar`)).body).toMatchObject({ estado: 'CANCELADA', cancelamento: { estado: 'CONCLUIDO' } })
     })
   })
 })

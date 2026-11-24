@@ -12,7 +12,7 @@ export type FormularioEmpresaValues = z.infer<typeof schema>
 export const FormularioEmpresaFieldNames: readonly string[] = Object.keys(schema.shape)
 
 const DEFAULTS: Partial<FormularioEmpresaValues> = {
-  situacao: 'pendente_confirmacao',
+  situacao: 'PENDENTE_CONFIRMACAO',
 }
 
 const FIELDS: FieldLayout = [

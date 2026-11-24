@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { api, type Papel } from '@/lib/api'
+import { api, type PapelValor } from '@/lib/api'
 import type { FkSource } from '@/runtime/Combobox'
 import type { TableState } from '@/runtime/table-state'
 
@@ -68,7 +68,7 @@ export interface Vinculo {
   id: string
   empresaId: string
   empresaNome: string
-  papel: Papel
+  papel: PapelValor
   ativo: boolean
   /** Delegacao de cancelar NFS-e ao operador (ausente = false). Administrador sempre pode. */
   podeCancelarNfse: boolean
@@ -82,16 +82,16 @@ export function lerVinculo(raw: unknown): Vinculo {
     id: String(r.id ?? ''),
     empresaId,
     empresaNome: str(empresa.razaoSocial) ?? str(r.empresaRazaoSocial) ?? str(r.razaoSocial) ?? empresaId,
-    papel: (str(r.papel) ?? 'consulta') as Papel,
+    papel: (str(r.papel) ?? 'CONSULTA') as PapelValor,
     ativo: r.ativo !== false,
     podeCancelarNfse: r.podeCancelarNfse === true,
   }
 }
 
-export const PAPEIS: { value: Papel; label: string }[] = [
-  { value: 'administrador', label: 'Administrador' },
-  { value: 'operador', label: 'Operador' },
-  { value: 'consulta', label: 'Consulta' },
+export const PAPEIS: { value: PapelValor; label: string }[] = [
+  { value: 'ADMINISTRADOR', label: 'Administrador' },
+  { value: 'OPERADOR', label: 'Operador' },
+  { value: 'CONSULTA', label: 'Consulta' },
 ]
 
 export const adminKeys = {
@@ -128,7 +128,7 @@ export interface NovoUsuario {
   whatsapp?: string
   senha: string
   ativo: boolean
-  vinculos?: { empresaId: string; papel: Papel }[]
+  vinculos?: { empresaId: string; papel: PapelValor }[]
 }
 
 export function useCriarUsuario() {
@@ -164,7 +164,7 @@ export function useVinculos(usuarioId: string) {
 export function useAdicionarVinculo(usuarioId: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (v: { empresaId: string; papel: Papel; podeCancelarNfse?: boolean }) => api<unknown>(`/admin/usuarios/${usuarioId}/vinculos`, { method: 'POST', body: v }),
+    mutationFn: (v: { empresaId: string; papel: PapelValor; podeCancelarNfse?: boolean }) => api<unknown>(`/admin/usuarios/${usuarioId}/vinculos`, { method: 'POST', body: v }),
     onSuccess: () => qc.invalidateQueries({ queryKey: adminKeys.vinculos(usuarioId) }),
   })
 }
@@ -172,7 +172,7 @@ export function useAdicionarVinculo(usuarioId: string) {
 export function useAtualizarVinculo(usuarioId: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (v: { vinculoId: string; papel: Papel; ativo: boolean; podeCancelarNfse?: boolean }) =>
+    mutationFn: (v: { vinculoId: string; papel: PapelValor; ativo: boolean; podeCancelarNfse?: boolean }) =>
       api<unknown>(`/admin/usuarios/${usuarioId}/vinculos/${v.vinculoId}`, { method: 'PATCH', body: { papel: v.papel, ativo: v.ativo, podeCancelarNfse: v.podeCancelarNfse } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: adminKeys.vinculos(usuarioId) }),
   })
@@ -286,7 +286,7 @@ export function useSalvarConfigConsultaCnpj() {
 
 /* ===================== configuracao da integracao IntegraNotas ===================== */
 
-export type AmbienteIntegraNotas = 'homologacao' | 'producao'
+export type AmbienteIntegraNotas = 'HOMOLOGACAO' | 'PRODUCAO'
 
 export interface ConfigIntegraNotas {
   ambienteAtivo: AmbienteIntegraNotas
@@ -305,7 +305,7 @@ export function lerConfigIntegraNotas(raw: unknown): ConfigIntegraNotas {
   const por = rec(r.atualizadoPor)
   const nome = str(por.nome)
   return {
-    ambienteAtivo: r.ambienteAtivo === 'producao' ? 'producao' : 'homologacao',
+    ambienteAtivo: r.ambienteAtivo === 'PRODUCAO' ? 'PRODUCAO' : 'HOMOLOGACAO',
     urlHomologacao: str(r.urlHomologacao) ?? '',
     urlProducao: str(r.urlProducao) ?? '',
     urlPublicaWebhook: str(r.urlPublicaWebhook) ?? '',

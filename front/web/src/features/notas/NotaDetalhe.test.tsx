@@ -16,7 +16,7 @@ vi.mock('@tanstack/react-router', async (orig) => ({ ...(await orig<typeof impor
 vi.mock('sonner', () => ({ toast: toastMock }))
 
 const BASE = {
-  id: 'n1', numero: 100, serie: '1', estado: 'autorizada', dataEmissao: '2026-11-10T14:30:00', valorServicos: 250,
+  id: 'n1', numero: 100, serie: '1', estado: 'AUTORIZADA', dataEmissao: '2026-11-10T14:30:00', valorServicos: 250,
   pessoa: { id: 'p1', nome: 'Ana Paula', documento: '12345678909' }, servico: { id: 's1', nome: 'Consultoria' },
   chave: null, numeroNfse: null, codigoRetorno: null, mensagemRetorno: null, temPdf: false, dataCriacao: '2026-11-10T14:00:00',
   informacoesComplementares: null, discriminacao: 'Serviço prestado.', descricao: null, codigoServico: '170101', errosRetorno: null,
@@ -24,7 +24,7 @@ const BASE = {
 }
 const nota = (o: object = {}) => ({ ...BASE, ...o })
 const REJEITADA = nota({
-  estado: 'rejeitada', mensagemRetorno: 'A prefeitura rejeitou a nota.', editavel: true, podeReenviar: true,
+  estado: 'REJEITADA', mensagemRetorno: 'A prefeitura rejeitou a nota.', editavel: true, podeReenviar: true,
   errosRetorno: [{ campo: 'tomador.cep', erro: 'E1', descricao: 'CEP inválido.' }, { campo: 'valorServicos', erro: 'E2', descricao: 'Valor não aceito.' }],
 })
 
@@ -56,7 +56,7 @@ beforeEach(() => {
   pdfMock.mockReset()
   navegar.mockReset()
   toastMock.success.mockReset()
-  sessao.atual = com('operador')
+  sessao.atual = com('OPERADOR')
 })
 afterEach(() => vi.useRealTimers())
 
@@ -86,9 +86,9 @@ describe('NotaDetalhe', () => {
 
   describe('processando', () => {
     it('Alert de espera, Atualizar agora chama POST /atualizar e atualiza a tela', async () => {
-      prepara(nota({ estado: 'processando', podeAtualizar: true }))
+      prepara(nota({ estado: 'PROCESSANDO', podeAtualizar: true }))
       aoPost = async () => {
-        atual = nota({ estado: 'autorizada' })
+        atual = nota({ estado: 'AUTORIZADA' })
         return atual
       }
       renderTela()
@@ -101,7 +101,7 @@ describe('NotaDetalhe', () => {
 
     it('consulta a cada 3 s e para quando a nota e autorizada', async () => {
       vi.useFakeTimers({ shouldAdvanceTime: true })
-      prepara(nota({ estado: 'processando', podeAtualizar: true }))
+      prepara(nota({ estado: 'PROCESSANDO', podeAtualizar: true }))
       renderTela()
       await screen.findByText('Aguardando a autorização da prefeitura…')
       const antes = gets().length
@@ -109,7 +109,7 @@ describe('NotaDetalhe', () => {
         await vi.advanceTimersByTimeAsync(3_200)
       })
       expect(gets().length).toBeGreaterThan(antes)
-      atual = nota({ estado: 'autorizada' })
+      atual = nota({ estado: 'AUTORIZADA' })
       await act(async () => {
         await vi.advanceTimersByTimeAsync(3_200)
       })
@@ -122,29 +122,29 @@ describe('NotaDetalhe', () => {
     })
 
     it('Atualizar agora so aparece com podeAtualizar e para operador', async () => {
-      prepara(nota({ estado: 'processando', podeAtualizar: false }))
+      prepara(nota({ estado: 'PROCESSANDO', podeAtualizar: false }))
       renderTela()
       await screen.findByText('Aguardando a autorização da prefeitura…')
       expect(screen.queryByRole('button', { name: 'Atualizar agora' })).not.toBeInTheDocument()
     })
 
     it('consulta nao ve Atualizar agora', async () => {
-      sessao.atual = com('consulta')
-      prepara(nota({ estado: 'processando', podeAtualizar: true }))
+      sessao.atual = com('CONSULTA')
+      prepara(nota({ estado: 'PROCESSANDO', podeAtualizar: true }))
       renderTela()
       await screen.findByText('Aguardando a autorização da prefeitura…')
       expect(screen.queryByRole('button', { name: 'Atualizar agora' })).not.toBeInTheDocument()
     })
 
     it('emitida_offline tambem aguarda a prefeitura', async () => {
-      prepara(nota({ estado: 'emitida_offline', podeAtualizar: true }))
+      prepara(nota({ estado: 'EMITIDA_OFFLINE', podeAtualizar: true }))
       renderTela()
       expect(await screen.findByText('Aguardando a autorização da prefeitura…')).toBeInTheDocument()
       expect(screen.getByText('Emitida offline')).toBeInTheDocument()
     })
 
     it('erro ao atualizar aparece no Alert com mensagem amigavel', async () => {
-      prepara(nota({ estado: 'processando', podeAtualizar: true }))
+      prepara(nota({ estado: 'PROCESSANDO', podeAtualizar: true }))
       aoPost = async () => {
         throw new ApiError(409, 'nota_nao_editavel', 'x')
       }
@@ -207,7 +207,7 @@ describe('NotaDetalhe', () => {
 
     it('Corrigir e reenviar envia o corpo editado ao mesmo id e avisa', async () => {
       prepara(REJEITADA)
-      aoPost = async () => nota({ estado: 'processando', podeAtualizar: true, valorServicos: 300 })
+      aoPost = async () => nota({ estado: 'PROCESSANDO', podeAtualizar: true, valorServicos: 300 })
       const user = userEvent.setup()
       renderTela()
       const valor = await screen.findByLabelText(/Valor dos serviços/)
@@ -234,7 +234,7 @@ describe('NotaDetalhe', () => {
     })
 
     it('consulta ve os erros mas nao o formulario de reenvio', async () => {
-      sessao.atual = com('consulta')
+      sessao.atual = com('CONSULTA')
       prepara(REJEITADA)
       renderTela()
       expect(await screen.findByText('tomador.cep: CEP inválido.')).toBeInTheDocument()
@@ -250,11 +250,11 @@ describe('NotaDetalhe', () => {
   })
 
   describe('falha no envio', () => {
-    const FALHA = nota({ estado: 'falha_envio', mensagemRetorno: 'Falha de comunicação com o gateway.', podeReenviar: true, editavel: true })
+    const FALHA = nota({ estado: 'FALHA_ENVIO', mensagemRetorno: 'Falha de comunicação com o gateway.', podeReenviar: true, editavel: true })
 
     it('badge de aviso, explica a falha e reenvia como rejeitada (mesmo numero)', async () => {
       prepara(FALHA)
-      aoPost = async () => nota({ estado: 'processando', podeAtualizar: true })
+      aoPost = async () => nota({ estado: 'PROCESSANDO', podeAtualizar: true })
       renderTela()
       expect(await screen.findByText('Falha no envio')).toBeInTheDocument()
       expect(screen.getByText('Falha de comunicação com o gateway.')).toBeInTheDocument()
@@ -273,7 +273,7 @@ describe('NotaDetalhe', () => {
     })
 
     it('consulta nao ve o formulario de reenvio', async () => {
-      sessao.atual = com('consulta')
+      sessao.atual = com('CONSULTA')
       prepara(FALHA)
       renderTela()
       await screen.findByText('Falha de comunicação com o gateway.')
@@ -282,11 +282,11 @@ describe('NotaDetalhe', () => {
   })
 
   describe('rascunho do assistente', () => {
-    const RASCUNHO = nota({ estado: 'rascunho', podeAprovar: true, podeDescartar: true })
-    const APROVADA = nota({ estado: 'processando', podeAtualizar: true })
+    const RASCUNHO = nota({ estado: 'RASCUNHO', podeAprovar: true, podeDescartar: true })
+    const APROVADA = nota({ estado: 'PROCESSANDO', podeAtualizar: true })
 
     it('mostra o aviso e o badge, e nunca o formulario de reenvio nem o antigo "ainda nao foi enviada"', async () => {
-      prepara(nota({ estado: 'rascunho', podeReenviar: true, editavel: true, podeAprovar: true, podeDescartar: true }))
+      prepara(nota({ estado: 'RASCUNHO', podeReenviar: true, editavel: true, podeAprovar: true, podeDescartar: true }))
       renderTela()
       expect(await screen.findByText('Preparada pelo assistente. Revise e aprove para emitir.')).toBeInTheDocument()
       expect(screen.getByText('Rascunho (assistente)')).toBeInTheDocument()
@@ -297,7 +297,7 @@ describe('NotaDetalhe', () => {
     })
 
     it('os botoes seguem podeAprovar e podeDescartar', async () => {
-      prepara(nota({ estado: 'rascunho', podeAprovar: false, podeDescartar: true }))
+      prepara(nota({ estado: 'RASCUNHO', podeAprovar: false, podeDescartar: true }))
       renderTela()
       await screen.findByText('Preparada pelo assistente. Revise e aprove para emitir.')
       expect(screen.queryByRole('button', { name: 'Aprovar e emitir' })).not.toBeInTheDocument()
@@ -305,7 +305,7 @@ describe('NotaDetalhe', () => {
     })
 
     it('sem as permissoes nao ha botoes (leitura)', async () => {
-      prepara(nota({ estado: 'rascunho' }))
+      prepara(nota({ estado: 'RASCUNHO' }))
       renderTela()
       await screen.findByText('Rascunho (assistente)')
       expect(screen.queryByRole('button', { name: /Aprovar|Descartar/ })).not.toBeInTheDocument()
@@ -338,7 +338,7 @@ describe('NotaDetalhe', () => {
     it('Descartar pede confirmacao, chama /descartar e a nota vira Descartada', async () => {
       prepara(RASCUNHO)
       aoPost = async () => {
-        atual = nota({ estado: 'descartada' })
+        atual = nota({ estado: 'DESCARTADA' })
         return atual
       }
       const user = userEvent.setup()
@@ -378,7 +378,7 @@ describe('NotaDetalhe', () => {
   describe('cancelamento preparado pelo assistente', () => {
     const MOTIVO = 'Valor emitido errado, nota refeita.'
     const COM_RASCUNHO = (extra: object = {}) =>
-      nota({ cancelamento: { id: 'c1', estado: 'rascunho', codigoMotivo: 1, motivo: MOTIVO, solicitadoEm: '2026-11-23T11:00:00', podeAprovar: true, podeDescartar: true, ...extra } })
+      nota({ cancelamento: { id: 'c1', estado: 'RASCUNHO', codigoMotivo: 1, motivo: MOTIVO, solicitadoEm: '2026-11-23T11:00:00', podeAprovar: true, podeDescartar: true, ...extra } })
 
     beforeEach(() => {
       vi.useFakeTimers({ toFake: ['Date'] })
@@ -386,7 +386,7 @@ describe('NotaDetalhe', () => {
     })
 
     it('mostra o bloco com os botoes, a situacao e esconde Cancelar NFS-e', async () => {
-      sessao.atual = com('administrador')
+      sessao.atual = com('ADMINISTRADOR')
       prepara(COM_RASCUNHO())
       renderTela()
       expect(await screen.findByText('Cancelamento preparado pelo assistente')).toBeInTheDocument()
@@ -407,7 +407,7 @@ describe('NotaDetalhe', () => {
     it('Aprovar cancelamento confirma e chama /nfse/cancelamentos/{id}/aprovar', async () => {
       prepara(COM_RASCUNHO())
       aoPost = async () => {
-        atual = nota({ estado: 'cancelada', cancelamento: { id: 'c1', estado: 'concluido', codigoMotivo: 1, motivo: MOTIVO } })
+        atual = nota({ estado: 'CANCELADA', cancelamento: { id: 'c1', estado: 'CONCLUIDO', codigoMotivo: 1, motivo: MOTIVO } })
         return atual
       }
       const user = userEvent.setup()
@@ -423,10 +423,10 @@ describe('NotaDetalhe', () => {
     })
 
     it('Descartar o cancelamento chama /descartar e a nota volta a poder cancelar', async () => {
-      sessao.atual = com('administrador')
+      sessao.atual = com('ADMINISTRADOR')
       prepara(COM_RASCUNHO())
       aoPost = async () => {
-        atual = nota({ cancelamento: { id: 'c1', estado: 'descartado', codigoMotivo: 1, motivo: MOTIVO } })
+        atual = nota({ cancelamento: { id: 'c1', estado: 'DESCARTADO', codigoMotivo: 1, motivo: MOTIVO } })
         return atual
       }
       const user = userEvent.setup()
@@ -452,8 +452,8 @@ describe('NotaDetalhe', () => {
     })
 
     it.each([
-      ['expirado', 'Expirado: sem confirmação'],
-      ['descartado', 'Descartado'],
+      ['EXPIRADO', 'Expirado: sem confirmação'],
+      ['DESCARTADO', 'Descartado'],
     ])('cancelamento %s mostra o rotulo %s e nenhum botao do assistente', async (estado, rotulo) => {
       prepara(nota({ cancelamento: { id: 'c9', estado, codigoMotivo: 1, motivo: MOTIVO } }))
       renderTela()
@@ -464,7 +464,7 @@ describe('NotaDetalhe', () => {
 
   describe('em conflito', () => {
     it('avisa para nao reenviar, oferece Atualizar agora e nunca o formulario de reenvio', async () => {
-      prepara(nota({ estado: 'em_conflito', podeAtualizar: true, podeReenviar: true }))
+      prepara(nota({ estado: 'EM_CONFLITO', podeAtualizar: true, podeReenviar: true }))
       renderTela()
       expect(await screen.findByText('A prefeitura indicou conflito. Não reenvie: use Atualizar agora.')).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Atualizar agora' })).toBeInTheDocument()
@@ -473,7 +473,7 @@ describe('NotaDetalhe', () => {
   })
 
   describe('cancelada e descartada', () => {
-    it.each([['cancelada', 'Cancelada'], ['descartada', 'Descartada']])('%s e somente leitura', async (estado, rotulo) => {
+    it.each([['CANCELADA', 'Cancelada'], ['DESCARTADA', 'Descartada']])('%s e somente leitura', async (estado, rotulo) => {
       prepara(nota({ estado }))
       renderTela()
       await screen.findByText(rotulo)
@@ -492,10 +492,10 @@ describe('NotaDetalhe', () => {
   describe('cancelar NFS-e', () => {
     const JUSTIFICATIVA = 'Valor emitido errado, nota refeita.'
     const CANCELADA = nota({
-      estado: 'cancelada',
-      cancelamento: { estado: 'concluido', codigoMotivo: 1, motivo: JUSTIFICATIVA, mensagemRetorno: 'Cancelamento homologado.', solicitadoEm: '2026-11-23T11:00:00', dataHoraEvento: '2026-11-23T11:00:05' },
+      estado: 'CANCELADA',
+      cancelamento: { estado: 'CONCLUIDO', codigoMotivo: 1, motivo: JUSTIFICATIVA, mensagemRetorno: 'Cancelamento homologado.', solicitadoEm: '2026-11-23T11:00:00', dataHoraEvento: '2026-11-23T11:00:05' },
     })
-    const PENDENTE = nota({ cancelamento: { estado: 'processando', codigoMotivo: 1, motivo: JUSTIFICATIVA, solicitadoEm: '2026-11-23T11:00:00' }, podeAtualizar: true })
+    const PENDENTE = nota({ cancelamento: { estado: 'PROCESSANDO', codigoMotivo: 1, motivo: JUSTIFICATIVA, solicitadoEm: '2026-11-23T11:00:00' }, podeAtualizar: true })
     const botaoCancelar = () => screen.queryByRole('button', { name: 'Cancelar NFS-e' })
     const abrirModal = async () => {
       await userEvent.setup().click(await screen.findByRole('button', { name: 'Cancelar NFS-e' }))
@@ -507,7 +507,7 @@ describe('NotaDetalhe', () => {
     beforeEach(() => {
       vi.useFakeTimers({ toFake: ['Date'] })
       vi.setSystemTime(new Date('2026-11-23T15:00:00Z'))
-      sessao.atual = com('operador', true)
+      sessao.atual = com('OPERADOR', true)
     })
 
     it('operador delegado ve o botao em nota autorizada do mes vigente', async () => {
@@ -517,12 +517,12 @@ describe('NotaDetalhe', () => {
     })
 
     it.each([
-      ['consulta', 'autorizada', {}],
-      ['operador', 'rejeitada', {}],
-      ['operador', 'processando', {}],
-      ['operador', 'cancelada', {}],
-      ['operador', 'autorizada', { podeCancelar: false }],
-      ['operador', 'autorizada', { cancelamento: { estado: 'processando' } }],
+      ['CONSULTA', 'AUTORIZADA', {}],
+      ['OPERADOR', 'REJEITADA', {}],
+      ['OPERADOR', 'PROCESSANDO', {}],
+      ['OPERADOR', 'CANCELADA', {}],
+      ['OPERADOR', 'AUTORIZADA', { podeCancelar: false }],
+      ['OPERADOR', 'AUTORIZADA', { cancelamento: { estado: 'PROCESSANDO' } }],
     ])('%s com nota %s %j: sem botao Cancelar', async (papel, estado, extra) => {
       sessao.atual = com(papel, true)
       prepara(nota({ estado, ...extra }))
@@ -532,7 +532,7 @@ describe('NotaDetalhe', () => {
     })
 
     it('operador SEM delegacao nao ve o botao, mas ve o texto discreto no mes vigente', async () => {
-      sessao.atual = com('operador', false)
+      sessao.atual = com('OPERADOR', false)
       prepara(nota({ podeCancelar: false }))
       renderTela()
       expect(await screen.findByText('Cancelamento depende de permissão delegada pelo administrador.')).toBeInTheDocument()
@@ -540,7 +540,7 @@ describe('NotaDetalhe', () => {
     })
 
     it('sessao sem o campo podeCancelarNfse (leitura tolerante): operador nao cancela', async () => {
-      sessao.atual = com('operador')
+      sessao.atual = com('OPERADOR')
       prepara(nota())
       renderTela()
       expect(await screen.findByText('Cancelamento depende de permissão delegada pelo administrador.')).toBeInTheDocument()
@@ -548,7 +548,7 @@ describe('NotaDetalhe', () => {
     })
 
     it('administrador sem o campo na sessao ve o botao e nao ve o texto', async () => {
-      sessao.atual = com('administrador')
+      sessao.atual = com('ADMINISTRADOR')
       prepara(nota())
       renderTela()
       expect(await screen.findByRole('button', { name: 'Cancelar NFS-e' })).toBeInTheDocument()
@@ -556,7 +556,7 @@ describe('NotaDetalhe', () => {
     })
 
     it('sem delegacao e fora do mes vigente nao mostra o texto (nada a delegar)', async () => {
-      sessao.atual = com('operador', false)
+      sessao.atual = com('OPERADOR', false)
       prepara(nota({ dataEmissao: '2026-10-20T14:00:00', podeCancelar: false }))
       renderTela()
       await screen.findByRole('heading', { name: 'Nota 1-100' })
@@ -726,7 +726,7 @@ describe('NotaDetalhe', () => {
     })
 
     it('cancelamento recusado aparece no bloco e a nota autorizada pode tentar de novo', async () => {
-      prepara(nota({ cancelamento: { estado: 'recusado', codigoMotivo: 2, motivo: JUSTIFICATIVA, mensagemRetorno: 'Prazo expirado.' } }))
+      prepara(nota({ cancelamento: { estado: 'RECUSADO', codigoMotivo: 2, motivo: JUSTIFICATIVA, mensagemRetorno: 'Prazo expirado.' } }))
       renderTela()
       expect(await screen.findByText('Recusado')).toBeInTheDocument()
       expect(screen.getByText('Serviço não concluído')).toBeInTheDocument()

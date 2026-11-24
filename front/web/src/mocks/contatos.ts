@@ -1,4 +1,4 @@
-import type { Papel } from '@/lib/api'
+import type { PapelValor } from '@/lib/api'
 import { erro, json } from '@/mocks/http'
 
 /* ---------------------------------------------------------------------------
@@ -10,7 +10,7 @@ import { erro, json } from '@/mocks/http'
  * 404 se a pessoa nao existe.
  * ------------------------------------------------------------------------- */
 
-export const TIPOS_CONTATO = ['socio', 'financeiro', 'comercial', 'fiscal', 'outro'] as const
+export const TIPOS_CONTATO = ['SOCIO', 'FINANCEIRO', 'COMERCIAL', 'FISCAL', 'OUTRO'] as const
 export type TipoContato = (typeof TIPOS_CONTATO)[number]
 
 export interface Contato {
@@ -24,8 +24,8 @@ export interface Contato {
 /** Duas sementes para a primeira pessoa mock. */
 const seed = (): Record<string, Contato[]> => ({
   'pes-0001': [
-    { id: 'con-0001', tipoContato: 'financeiro', nome: 'Marta Lima', whatsapp: '11987654321', email: 'marta.lima@exemplo.com.br' },
-    { id: 'con-0002', tipoContato: 'comercial', nome: 'Paulo Nunes', whatsapp: '11912345678', email: 'paulo.nunes@exemplo.com.br' },
+    { id: 'con-0001', tipoContato: 'FINANCEIRO', nome: 'Marta Lima', whatsapp: '11987654321', email: 'marta.lima@exemplo.com.br' },
+    { id: 'con-0002', tipoContato: 'COMERCIAL', nome: 'Paulo Nunes', whatsapp: '11912345678', email: 'paulo.nunes@exemplo.com.br' },
   ],
 })
 
@@ -43,13 +43,13 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 /** Devolve `null` se o caminho nao for de contatos de pessoa. */
 export function contatosRoutes(
   req: { method: string; path: string; body?: unknown },
-  ctx: { papel: Papel | null; plataformaAdmin: boolean; pessoaExiste: (id: string) => boolean },
+  ctx: { papel: PapelValor | null; plataformaAdmin: boolean; pessoaExiste: (id: string) => boolean },
 ): Response | null {
   const m = /^\/Pessoa\/([^/]+)\/contatos$/.exec(req.path)
   if (!m) return null
   const pessoaId = decodeURIComponent(m[1]!)
 
-  if (req.method === 'PUT' && !ctx.plataformaAdmin && ctx.papel !== 'administrador' && ctx.papel !== 'operador') {
+  if (req.method === 'PUT' && !ctx.plataformaAdmin && ctx.papel !== 'ADMINISTRADOR' && ctx.papel !== 'OPERADOR') {
     return erro(403, 'acesso_negado', 'Seu papel não permite alterar contatos.')
   }
   if (!ctx.pessoaExiste(pessoaId)) return erro(404, 'nao_encontrado', 'Registro não encontrado.')

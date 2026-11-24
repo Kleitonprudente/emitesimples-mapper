@@ -233,11 +233,11 @@ function DadosEmpresa({ config }: { config: Empresa }) {
 /* ===================== Parte 2: certificado ===================== */
 
 const SITUACAO: Record<CertificadoSituacao, { rotulo: string; tone: BadgeTone }> = {
-  nao_enviado: { rotulo: 'Certificado não enviado', tone: 'neutral' },
-  valido: { rotulo: 'Certificado válido', tone: 'success' },
-  vencido: { rotulo: 'Certificado vencido', tone: 'danger' },
-  invalido: { rotulo: 'Certificado inválido', tone: 'danger' },
-  nao_pertence: { rotulo: 'Certificado de outro CNPJ', tone: 'danger' },
+  NAO_ENVIADO: { rotulo: 'Certificado não enviado', tone: 'neutral' },
+  VALIDO: { rotulo: 'Certificado válido', tone: 'success' },
+  VENCIDO: { rotulo: 'Certificado vencido', tone: 'danger' },
+  INVALIDO: { rotulo: 'Certificado inválido', tone: 'danger' },
+  NAO_PERTENCE: { rotulo: 'Certificado de outro CNPJ', tone: 'danger' },
 }
 
 const AVISOS: Record<string, string> = {
@@ -277,12 +277,12 @@ function mensagemCertificado(e: unknown): string {
 
 function StatusCertificado({ c }: { c: CertificadoStatus }) {
   const s = SITUACAO[c.situacao]
-  const vence = c.situacao !== 'vencido' && c.venceEmDias !== undefined && c.venceEmDias >= 0 && c.venceEmDias <= 30 ? c.venceEmDias : undefined
+  const vence = c.situacao !== 'VENCIDO' && c.venceEmDias !== undefined && c.venceEmDias >= 0 && c.venceEmDias <= 30 ? c.venceEmDias : undefined
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <Badge tone={s.tone}>{s.rotulo}</Badge>
-        {c.validade && <Badge tone="outline">{`${c.situacao === 'vencido' ? 'Venceu em' : 'Válido até'} ${formatDate(c.validade)}`}</Badge>}
+        {c.validade && <Badge tone="outline">{`${c.situacao === 'VENCIDO' ? 'Venceu em' : 'Válido até'} ${formatDate(c.validade)}`}</Badge>}
         {c.pendenteDeEnvio && <Badge tone="warning">Aguardando habilitação da NFS-e</Badge>}
       </div>
       {c.pendenteDeEnvio && (
@@ -445,6 +445,6 @@ function Conteudo() {
 export function EmpresaConfig() {
   const session = useSession()
   // A tela e da empresa da sessao: administrador da plataforma sem empresa (sem papel) tambem fica de fora. So UX: o back decide.
-  if (!canAct(session, 'administrador')) return <ErrorState title="Acesso restrito ao administrador da empresa." />
+  if (!canAct(session, 'ADMINISTRADOR')) return <ErrorState title="Acesso restrito ao administrador da empresa." />
   return <Conteudo />
 }

@@ -32,12 +32,16 @@ export class ApiError extends Error {
   }
 }
 
-export type Papel = 'administrador' | 'operador' | 'consulta'
+/** Papel como a API devolve e aceita (valor tecnico, maiusculo). */
+export type PapelValor = 'ADMINISTRADOR' | 'OPERADOR' | 'CONSULTA'
+
+/** Papel minimo aceito por hasRole/canAct e pelo menu (as telas geradas e o menu emitem o valor tecnico maiusculo). */
+export type Papel = PapelValor
 
 export interface SessionData {
   usuario: { id: string; nome: string; email: string }
   empresa: { id: string; razaoSocial: string; nomeFantasia: string | null } | null
-  papel: Papel | null
+  papel: PapelValor | null
   plataformaAdmin: boolean
   /** Permissao efetiva de cancelar NFS-e (administrador e plataforma sempre true). Ausente = derive do papel (veja `podeCancelarNfse` em lib/auth). */
   podeCancelarNfse?: boolean

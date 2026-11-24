@@ -17,11 +17,11 @@ vi.mock('@tanstack/react-router', () => ({ useNavigate: () => navigateMock }))
 vi.mock('sonner', () => ({ toast: toastMock, Toaster: () => null }))
 
 const PESSOA = {
-  id: 'p1', version: '2026-11-22T10:00:00', tipoPessoa: 'juridica', documento: '11444777000161', nome: 'ACME LTDA', consumidorFinal: false,
+  id: 'p1', version: '2026-11-22T10:00:00', tipoPessoa: 'JURIDICA', documento: '11444777000161', nome: 'ACME LTDA', consumidorFinal: false,
   cliente: true, fornecedor: true, logradouro: 'Rua A', numeroEndereco: '10', bairro: 'Centro', referenciaQualquer: 'preservar-me',
   dataCriacao: '2026-11-01T10:00:00', dataAtualizacao: '2026-11-02T11:00:00',
 }
-const CONTATOS = [{ id: 'c1', tipoContato: 'financeiro', nome: 'Ana Souza', whatsapp: '44999990000', email: 'ana@acme.test' }]
+const CONTATOS = [{ id: 'c1', tipoContato: 'FINANCEIRO', nome: 'Ana Souza', whatsapp: '44999990000', email: 'ana@acme.test' }]
 
 function prepara(opts: { contatosPut?: () => Promise<unknown> } = {}) {
   apiMock.mockImplementation(async (path: string, o?: { method?: string; body?: unknown }) => {
@@ -72,7 +72,7 @@ describe('tela de Cliente: salvar pessoa + contatos', () => {
     expect(pessoaPut.fornecedor).toBe(true) // edicao nao mexe nos papeis
     expect(pessoaPut).not.toHaveProperty('contatos') // a lista vai ao endpoint do pai, nao no corpo da Pessoa
     const itens = (chamadas('PUT', '/Pessoa/p1/contatos')[0]![1].body as { id: string; nome: string }[])
-    expect(itens).toEqual([expect.objectContaining({ id: 'c1', nome: 'Ana Souza', tipoContato: 'financeiro' })])
+    expect(itens).toEqual([expect.objectContaining({ id: 'c1', nome: 'Ana Souza', tipoContato: 'FINANCEIRO' })])
     await waitFor(() => expect(navigateMock).toHaveBeenCalledWith({ to: '/clientes' }))
     expect(toastMock.error).not.toHaveBeenCalled()
   })

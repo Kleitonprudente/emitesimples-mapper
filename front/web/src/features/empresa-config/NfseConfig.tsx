@@ -38,17 +38,17 @@ const schema = z
 type Valores = z.infer<typeof schema>
 
 const STATUS_CADASTRO: Record<StatusCadastroNfse, { rotulo: string; tone: BadgeTone }> = {
-  cadastrado: { rotulo: 'cadastrado', tone: 'success' },
-  nao_cadastrado: { rotulo: 'não cadastrado', tone: 'neutral' },
-  erro: { rotulo: 'com erro', tone: 'danger' },
+  CADASTRADO: { rotulo: 'cadastrado', tone: 'success' },
+  NAO_CADASTRADO: { rotulo: 'não cadastrado', tone: 'neutral' },
+  ERRO: { rotulo: 'com erro', tone: 'danger' },
 }
 
 const CERTIFICADO: Record<CertificadoSituacao, string> = {
-  nao_enviado: 'não enviado',
-  valido: 'válido',
-  vencido: 'vencido',
-  invalido: 'inválido',
-  nao_pertence: 'de outra empresa',
+  NAO_ENVIADO: 'não enviado',
+  VALIDO: 'válido',
+  VENCIDO: 'vencido',
+  INVALIDO: 'inválido',
+  NAO_PERTENCE: 'de outra empresa',
 }
 
 const CAMPOS: Record<string, string> = {
@@ -115,7 +115,7 @@ function Formulario({ config }: { config: ConfigNfse }) {
   const salvar = useSalvarConfigNfse()
   const fields = useMemo(() => layout(config), [config])
   const values = useMemo<Valores>(() => ({ habilitada: config.habilitada, serie: config.serie, ultimoNumero: config.ultimoNumero }), [config])
-  const primeiraHabilitacao = !config.habilitada && config.statusCadastro !== 'cadastrado'
+  const primeiraHabilitacao = !config.habilitada && config.statusCadastro !== 'CADASTRADO'
   const cadastrando = salvar.isPending && salvar.variables?.habilitada === true && !config.habilitada
 
   return (
@@ -178,11 +178,11 @@ function Conteudo() {
           Cadastro no gateway: {cadastro.rotulo}
           {c.dataCadastroGateway ? ` em ${formatDateTime(c.dataCadastroGateway)}` : ''}
         </Badge>
-        <Badge tone={c.certificadoSituacao === 'valido' ? 'success' : c.certificadoSituacao === 'nao_enviado' ? 'neutral' : 'danger'}>
+        <Badge tone={c.certificadoSituacao === 'VALIDO' ? 'success' : c.certificadoSituacao === 'NAO_ENVIADO' ? 'neutral' : 'danger'}>
           Certificado: {CERTIFICADO[c.certificadoSituacao]}
           {c.validadeCertificado ? ` (validade ${formatDate(c.validadeCertificado)})` : ''}
         </Badge>
-        <Badge tone={c.ambiente === 'producao' ? 'info' : 'warning'}>{c.ambiente === 'producao' ? 'Produção' : 'Homologação'}</Badge>
+        <Badge tone={c.ambiente === 'PRODUCAO' ? 'info' : 'warning'}>{c.ambiente === 'PRODUCAO' ? 'Produção' : 'Homologação'}</Badge>
       </div>
       <Formulario config={c} />
     </div>
@@ -192,6 +192,6 @@ function Conteudo() {
 export function NfseConfig() {
   const session = useSession()
   // A tela e da empresa da sessao: administrador da plataforma sem empresa (sem papel) tambem fica de fora. So UX: o back decide.
-  if (!canAct(session, 'administrador')) return <ErrorState title="Acesso restrito ao administrador da empresa." />
+  if (!canAct(session, 'ADMINISTRADOR')) return <ErrorState title="Acesso restrito ao administrador da empresa." />
   return <Conteudo />
 }

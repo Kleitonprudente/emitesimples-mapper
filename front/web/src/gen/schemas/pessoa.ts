@@ -1,16 +1,16 @@
 // GERADO por frontend/zodSchema a partir de Pessoa. Nao edite: a saida e sobrescrita por inteiro.
 import { z } from 'zod'
 
-export const tipoPessoaValues = ['fisica', 'juridica'] as const
+export const tipoPessoaValues = ['FISICA', 'JURIDICA'] as const
 export const tipoPessoaLabels: Record<string, string> = {
-    'fisica': 'Pessoa física (documento CPF, 11 dígitos)',
-    'juridica': 'Pessoa jurídica (documento CNPJ, 14 dígitos)',
+    'FISICA': 'Pessoa física',
+    'JURIDICA': 'Pessoa jurídica',
 }
 
 export const tipoDestinatarioValues = [0, 1] as const
 export const tipoDestinatarioLabels: Record<string, string> = {
-    '0': 'O destinatário é o próprio tomador/adquirente (padrão)',
-    '1': 'O destinatário não é o próprio adquirente (outra pessoa ou outro estabelecimento)',
+    '0': 'Próprio tomador',
+    '1': 'Outro destinatário',
 }
 
 export const pessoaSchema = z.object({

@@ -26,8 +26,8 @@ describe('mock de configuracao da NFS-e', () => {
     const r = await call('GET', URL_N, undefined, token)
     expect(r.status).toBe(200)
     expect(r.body).toEqual({
-      habilitada: false, serie: null, ultimoNumero: 0, proximoNumero: 1, ambiente: 'homologacao', statusCadastro: 'nao_cadastrado',
-      dataCadastroGateway: null, emitenteTokenConfigurado: false, certificadoSituacao: 'nao_enviado', validadeCertificado: null, integracaoDisponivel: true,
+      habilitada: false, serie: null, ultimoNumero: 0, proximoNumero: 1, ambiente: 'HOMOLOGACAO', statusCadastro: 'NAO_CADASTRADO',
+      dataCadastroGateway: null, emitenteTokenConfigurado: false, certificadoSituacao: 'NAO_ENVIADO', validadeCertificado: null, integracaoDisponivel: true,
     })
   })
 
@@ -43,7 +43,7 @@ describe('mock de configuracao da NFS-e', () => {
   it('habilitar cadastra no gateway e devolve o corpo do GET', async () => {
     const r = await call('PUT', URL_N, { habilitada: true, serie: '1', ultimoNumero: 10 }, token)
     expect(r.status).toBe(200)
-    expect(r.body).toMatchObject({ habilitada: true, serie: '1', ultimoNumero: 10, proximoNumero: 11, statusCadastro: 'cadastrado', emitenteTokenConfigurado: true })
+    expect(r.body).toMatchObject({ habilitada: true, serie: '1', ultimoNumero: 10, proximoNumero: 11, statusCadastro: 'CADASTRADO', emitenteTokenConfigurado: true })
     expect(r.body.dataCadastroGateway).toBeTruthy()
     expect(JSON.stringify(r.body)).not.toMatch(/"token"/i)
   })
@@ -51,7 +51,7 @@ describe('mock de configuracao da NFS-e', () => {
   it('desabilitar mantem o cadastro e a numeracao', async () => {
     await call('PUT', URL_N, { habilitada: true, serie: '1', ultimoNumero: 10 }, token)
     const r = await call('PUT', URL_N, { habilitada: false }, token)
-    expect(r.body).toMatchObject({ habilitada: false, serie: '1', ultimoNumero: 10, statusCadastro: 'cadastrado' })
+    expect(r.body).toMatchObject({ habilitada: false, serie: '1', ultimoNumero: 10, statusCadastro: 'CADASTRADO' })
   })
 
   it('valida payload (400 dados_invalidos)', async () => {

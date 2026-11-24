@@ -1,4 +1,4 @@
-import type { Papel } from '@/lib/api'
+import type { PapelValor } from '@/lib/api'
 
 /* Dados de exemplo realistas e deterministicos. CPF/CNPJ com digitos verificadores VALIDOS (fictícios). */
 
@@ -43,7 +43,7 @@ export type Municipio = (typeof MUNICIPIOS)[number]
 
 export interface Pessoa {
   id: string
-  tipoPessoa: 'fisica' | 'juridica'
+  tipoPessoa: 'FISICA' | 'JURIDICA'
   documento: string
   nome: string
   nomeFantasia?: string
@@ -77,7 +77,7 @@ export function buildPessoas(): Pessoa[] {
     const dia = String((i % 27) + 1).padStart(2, '0')
     out.push({
       id: `pes-${String(i + 1).padStart(4, '0')}`,
-      tipoPessoa: fisica ? 'fisica' : 'juridica',
+      tipoPessoa: fisica ? 'FISICA' : 'JURIDICA',
       documento: fisica ? cpfFrom(base) : cnpjFrom(`${String(10234567 + i * 31).slice(0, 8)}0001`),
       nome: fisica ? nome : `${nome} ${i % 2 ? 'Ltda' : 'ME'}`,
       nomeFantasia: fisica ? undefined : nome,
@@ -117,21 +117,21 @@ export interface MockUser {
   id: string
   nome: string
   email: string
-  vinculos: { empresaId: string; papel: Papel }[]
+  vinculos: { empresaId: string; papel: PapelValor }[]
   plataformaAdmin?: boolean
 }
 
 export const MOCK_USERS: MockUser[] = [
-  { id: 'usu-1', nome: 'Ana Ribeiro', email: 'admin@exemplo.com.br', vinculos: [{ empresaId: 'emp-1', papel: 'administrador' }] },
-  { id: 'usu-2', nome: 'Bruno Operador', email: 'operador@exemplo.com.br', vinculos: [{ empresaId: 'emp-1', papel: 'operador' }] },
-  { id: 'usu-3', nome: 'Carla Consulta', email: 'consulta@exemplo.com.br', vinculos: [{ empresaId: 'emp-1', papel: 'consulta' }] },
+  { id: 'usu-1', nome: 'Ana Ribeiro', email: 'admin@exemplo.com.br', vinculos: [{ empresaId: 'emp-1', papel: 'ADMINISTRADOR' }] },
+  { id: 'usu-2', nome: 'Bruno Operador', email: 'operador@exemplo.com.br', vinculos: [{ empresaId: 'emp-1', papel: 'OPERADOR' }] },
+  { id: 'usu-3', nome: 'Carla Consulta', email: 'consulta@exemplo.com.br', vinculos: [{ empresaId: 'emp-1', papel: 'CONSULTA' }] },
   {
     id: 'usu-4',
     nome: 'Diego Multiempresa',
     email: 'multi@exemplo.com.br',
     vinculos: [
-      { empresaId: 'emp-1', papel: 'administrador' },
-      { empresaId: 'emp-2', papel: 'operador' },
+      { empresaId: 'emp-1', papel: 'ADMINISTRADOR' },
+      { empresaId: 'emp-2', papel: 'OPERADOR' },
     ],
   },
   { id: 'usu-5', nome: 'Eva Plataforma', email: 'plataforma@exemplo.com.br', vinculos: [], plataformaAdmin: true },

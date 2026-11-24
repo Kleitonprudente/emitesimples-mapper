@@ -127,7 +127,7 @@ Todo cadastro tem **duas telas e um formulário**:
 
 ## 4. Papéis e visibilidade (só UX, o back decide)
 
-- Papéis de empresa: `consulta` < `operador` < `administrador`. A janela declara o papel mínimo (`role`); ações de criar e
+- Papéis de empresa: `CONSULTA` < `OPERADOR` < `ADMINISTRADOR` (valor técnico em maiúsculo, como a API devolve na sessão e nos vínculos; os rótulos de tela seguem 'Consulta', 'Operador', 'Administrador'). `hasRole`/`canAct` também aceitam o `role` em minúsculo, porque as telas geradas ainda o emitem. A janela declara o papel mínimo (`role`); ações de criar e
   editar só aparecem para quem tem o papel (`canAct`).
 - **Telas só da plataforma** (`platformOnly`): aparecem no menu e agem só para o administrador da plataforma, que **não tem
   papel de empresa**. Grupo **Administração** do menu.

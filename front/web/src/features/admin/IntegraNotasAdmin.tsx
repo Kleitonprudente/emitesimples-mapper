@@ -21,7 +21,7 @@ const urlHttps = (msg: string) => z.string().trim().min(1, 'Informe a URL.').max
 
 const schema = z
   .object({
-    ambienteAtivo: z.enum(['homologacao', 'producao']),
+    ambienteAtivo: z.enum(['HOMOLOGACAO', 'PRODUCAO']),
     urlHomologacao: urlHttps('A URL deve começar com https://'),
     urlProducao: urlHttps('A URL deve começar com https://'),
     urlPublicaWebhook: z
@@ -41,8 +41,8 @@ const schema = z
 type Valores = z.infer<typeof schema>
 
 const AMBIENTES = [
-  { value: 'homologacao', label: 'Homologação' },
-  { value: 'producao', label: 'Produção' },
+  { value: 'HOMOLOGACAO', label: 'Homologação' },
+  { value: 'PRODUCAO', label: 'Produção' },
 ]
 
 const hintToken = (configurado: boolean) => (configurado ? 'Token configurado. Deixe em branco para manter.' : 'Cole o token da softhouse neste ambiente.')
@@ -114,7 +114,7 @@ function Formulario({ config }: { config: ConfigIntegraNotas }) {
     <AutoForm
       schema={schema}
       fields={fields}
-      defaults={{ ambienteAtivo: 'homologacao', urlHomologacao: '', urlProducao: '', urlPublicaWebhook: '', tokenHomologacao: '', removerTokenHomologacao: false, tokenProducao: '', removerTokenProducao: false }}
+      defaults={{ ambienteAtivo: 'HOMOLOGACAO', urlHomologacao: '', urlProducao: '', urlPublicaWebhook: '', tokenHomologacao: '', removerTokenHomologacao: false, tokenProducao: '', removerTokenProducao: false }}
       values={values}
       clearAfterSubmit={['tokenHomologacao', 'tokenProducao', 'removerTokenHomologacao', 'removerTokenProducao']}
       isSubmitting={salvar.isPending}

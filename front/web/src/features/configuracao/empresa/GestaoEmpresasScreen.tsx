@@ -22,13 +22,13 @@ export function GestaoEmpresasScreen() {
   const columns = useMemo(
     () =>
       gestaoEmpresasColumns({
-        editarEmpresa: canAct(session, 'consulta', true) ? (row) => void navigate({ to: '/empresas/$id', params: { id: row.id } }) : undefined,
+        editarEmpresa: canAct(session, 'CONSULTA', true) ? (row) => void navigate({ to: '/empresas/$id', params: { id: row.id } }) : undefined,
       }),
     [session, navigate],
   )
   const [state, update] = useTableState({ sortBy: 'razaoSocial' })
   const result = useEmpresas(state, 'razaoSocial')
-  const canCriar = canAct(session, 'consulta', true)
+  const canCriar = canAct(session, 'CONSULTA', true)
   const novo = canCriar ? (
     <Button onClick={() => void navigate({ to: '/empresas/$id', params: { id: 'novo' } })}>
       <CriarEmpresaIcon /> Nova empresa

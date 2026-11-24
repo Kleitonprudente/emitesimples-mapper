@@ -1,4 +1,4 @@
-import type { Papel } from '@/lib/api'
+import type { PapelValor } from '@/lib/api'
 import { erro, json } from '@/mocks/http'
 
 /* ---------------------------------------------------------------------------
@@ -15,11 +15,11 @@ interface Estado {
   habilitada: boolean
   serie: string | null
   ultimoNumero: number
-  ambiente: 'homologacao' | 'producao'
-  statusCadastro: 'nao_cadastrado' | 'cadastrado' | 'erro'
+  ambiente: 'HOMOLOGACAO' | 'PRODUCAO'
+  statusCadastro: 'NAO_CADASTRADO' | 'CADASTRADO' | 'ERRO'
   dataCadastroGateway: string | null
   emitenteTokenConfigurado: boolean
-  certificadoSituacao: 'nao_enviado' | 'valido' | 'vencido' | 'invalido' | 'nao_pertence'
+  certificadoSituacao: 'NAO_ENVIADO' | 'VALIDO' | 'VENCIDO' | 'INVALIDO' | 'NAO_PERTENCE'
   validadeCertificado: string | null
   integracaoDisponivel: boolean
 }
@@ -28,11 +28,11 @@ const inicial = (): Estado => ({
   habilitada: false,
   serie: null,
   ultimoNumero: 0,
-  ambiente: 'homologacao',
-  statusCadastro: 'nao_cadastrado',
+  ambiente: 'HOMOLOGACAO',
+  statusCadastro: 'NAO_CADASTRADO',
   dataCadastroGateway: null,
   emitenteTokenConfigurado: false,
-  certificadoSituacao: 'nao_enviado',
+  certificadoSituacao: 'NAO_ENVIADO',
   validadeCertificado: null,
   integracaoDisponivel: true,
 })
@@ -88,12 +88,12 @@ const FALHAS_GATEWAY: Record<string, () => Response> = {
   '504': () => erro(504, 'integranotas_indisponivel', 'A IntegraNotas não respondeu.'),
 }
 
-export function nfseConfigRoutes(req: { method: string; path: string; body?: unknown }, ctx: { papel: Papel | null; empresaId: string | null }): Response | null {
+export function nfseConfigRoutes(req: { method: string; path: string; body?: unknown }, ctx: { papel: PapelValor | null; empresaId: string | null }): Response | null {
   if (req.path !== '/configuracao/nfse') return null
   if (!ctx.empresaId || !ctx.papel) return erro(403, 'acesso_negado', 'Acesso negado.')
   if (req.method === 'GET') return json(200, corpo())
   if (req.method !== 'PUT') return null
-  if (ctx.papel !== 'administrador') return erro(403, 'acesso_negado', 'Apenas o administrador da empresa altera a configuração da NFS-e.')
+  if (ctx.papel !== 'ADMINISTRADOR') return erro(403, 'acesso_negado', 'Apenas o administrador da empresa altera a configuração da NFS-e.')
 
   const b = (req.body ?? {}) as { habilitada?: unknown; serie?: unknown; ultimoNumero?: unknown }
   if (typeof b.habilitada !== 'boolean') return erro(400, 'dados_invalidos', 'Informe se a emissão fica habilitada.')
@@ -106,13 +106,13 @@ export function nfseConfigRoutes(req: { method: string; path: string; body?: unk
   if (ultimo !== undefined && ultimo < estado.ultimoNumero) return erro(409, 'numeracao_invalida', 'A numeração conflita com notas já emitidas.')
 
   const serieFinal = (serie as string | undefined) ?? estado.serie
-  if (b.habilitada && !estado.habilitada && estado.statusCadastro !== 'cadastrado') {
+  if (b.habilitada && !estado.habilitada && estado.statusCadastro !== 'CADASTRADO') {
     const falha = serieFinal ? FALHAS_GATEWAY[serieFinal] : undefined
     if (falha) {
-      estado = { ...estado, statusCadastro: serieFinal === '422' ? 'nao_cadastrado' : 'erro' }
+      estado = { ...estado, statusCadastro: serieFinal === '422' ? 'NAO_CADASTRADO' : 'ERRO' }
       return falha()
     }
-    estado = { ...estado, statusCadastro: 'cadastrado', dataCadastroGateway: new Date().toISOString().slice(0, 19), emitenteTokenConfigurado: true }
+    estado = { ...estado, statusCadastro: 'CADASTRADO', dataCadastroGateway: new Date().toISOString().slice(0, 19), emitenteTokenConfigurado: true }
   }
   estado = { ...estado, habilitada: b.habilitada, serie: serieFinal ?? null, ultimoNumero: (ultimo as number | undefined) ?? estado.ultimoNumero }
   return json(200, corpo())

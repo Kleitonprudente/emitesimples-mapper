@@ -24,7 +24,7 @@ describe('telas geradas de Cliente (fumaca de renderizacao)', () => {
   })
 
   it('colunas renderizam o rotulo longo do enum e o botao Editar so com callback', () => {
-    const row = { id: 'p1', tipoPessoa: 'juridica', nome: 'ACME', documento: '11222333000181' } as PessoaRow
+    const row = { id: 'p1', tipoPessoa: 'JURIDICA', nome: 'ACME', documento: '11222333000181' } as PessoaRow
     function Tabela({ editar }: { editar?: (r: PessoaRow) => void }) {
       const t = useReactTable({ data: [row], columns: gestaoClientesColumns({ editarCliente: editar }), getCoreRowModel: getCoreRowModel() })
       return (
@@ -38,7 +38,7 @@ describe('telas geradas de Cliente (fumaca de renderizacao)', () => {
       )
     }
     const { rerender } = render(<Tabela />)
-    expect(screen.getByText('Pessoa jurídica (documento CNPJ, 14 dígitos)')).toBeInTheDocument()
+    expect(screen.getByText('Pessoa jurídica')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Editar' })).toBeNull()
     const editar = vi.fn()
     rerender(<Tabela editar={editar} />)

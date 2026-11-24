@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { EnvBadge } from '@/components/EnvBadge'
 import { ThemeToggle } from '@/components/ThemeToggle'
-import { ApiError, type Papel } from '@/lib/api'
+import { ApiError, type PapelValor } from '@/lib/api'
 import { PAPEL_LABEL, login, restoreSession } from '@/lib/auth'
 import { AutoForm } from '@/runtime/AutoForm'
 import type { FieldSpec } from '@/runtime/FormField'
@@ -40,7 +40,7 @@ const FIELDS: FieldSpec[] = [
 interface EmpresaOpcao {
   id: string
   razaoSocial: string
-  papel: Papel
+  papel: PapelValor
 }
 
 /** Contagem regressiva em segundos: start(n) inicia; `left` cai 1 por segundo ate 0. */

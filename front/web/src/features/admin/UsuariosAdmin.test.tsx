@@ -14,7 +14,7 @@ const USUARIOS = [
   { id: 'u1', nome: 'Ana Ribeiro', email: 'ana@exemplo.com.br', whatsapp: '11980001234', ativo: true },
   { id: 'u2', nome: 'Bruno Lima', email: 'bruno@exemplo.com.br', ativo: false },
 ]
-const VINCULOS = [{ id: 'v1', empresaId: 'emp-1', empresa: { razaoSocial: 'Horizonte Contábil Ltda' }, papel: 'operador', ativo: true }]
+const VINCULOS = [{ id: 'v1', empresaId: 'emp-1', empresa: { razaoSocial: 'Horizonte Contábil Ltda' }, papel: 'OPERADOR', ativo: true }]
 const EMPRESAS = [{ id: 'emp-2', razaoSocial: 'Studio Bella ME' }]
 
 function rotas(extra: (path: string, opts: Record<string, unknown>) => unknown = () => undefined) {
@@ -142,7 +142,7 @@ describe('UsuariosAdmin', () => {
     await user.click(await screen.findByRole('option', { name: 'Operador' }))
     await user.click(within(dlg).getByRole('button', { name: 'Criar usuário' }))
     await waitFor(() => expect(chamadas('POST', '/admin/usuarios')).toHaveLength(1))
-    expect(chamadas('POST', '/admin/usuarios')[0]![1].body).toMatchObject({ vinculos: [{ empresaId: 'emp-2', papel: 'operador' }] })
+    expect(chamadas('POST', '/admin/usuarios')[0]![1].body).toMatchObject({ vinculos: [{ empresaId: 'emp-2', papel: 'OPERADOR' }] })
   })
 
   it('editar: preenche, valida e envia PATCH {nome, whatsapp, ativo}', async () => {
@@ -197,11 +197,11 @@ describe('UsuariosAdmin', () => {
     await user.click(within(dlg).getByRole('combobox', { name: 'Papel em Horizonte Contábil Ltda' }))
     await user.click(await screen.findByRole('option', { name: 'Consulta' }))
     await waitFor(() => expect(chamadas('PATCH', '/admin/usuarios/u1/vinculos/v1')).toHaveLength(1))
-    expect(chamadas('PATCH', '/admin/usuarios/u1/vinculos/v1')[0]![1].body).toEqual({ papel: 'consulta', ativo: true })
+    expect(chamadas('PATCH', '/admin/usuarios/u1/vinculos/v1')[0]![1].body).toEqual({ papel: 'CONSULTA', ativo: true })
 
     await user.click(within(dlg).getByRole('button', { name: /Desativar/ }))
     await waitFor(() => expect(chamadas('PATCH', '/admin/usuarios/u1/vinculos/v1')).toHaveLength(2))
-    expect(chamadas('PATCH', '/admin/usuarios/u1/vinculos/v1')[1]![1].body).toEqual({ papel: 'operador', ativo: false })
+    expect(chamadas('PATCH', '/admin/usuarios/u1/vinculos/v1')[1]![1].body).toEqual({ papel: 'OPERADOR', ativo: false })
 
     await user.click(within(dlg).getByRole('button', { name: 'Adicionar vínculo' })) // vazio: valida
     expect((await within(dlg).findAllByText('Campo obrigatório')).length).toBeGreaterThanOrEqual(1)
@@ -211,7 +211,7 @@ describe('UsuariosAdmin', () => {
     await user.click(await screen.findByRole('option', { name: 'Administrador' }))
     await user.click(within(dlg).getByRole('button', { name: 'Adicionar vínculo' }))
     await waitFor(() => expect(chamadas('POST', '/admin/usuarios/u1/vinculos')).toHaveLength(1))
-    expect(chamadas('POST', '/admin/usuarios/u1/vinculos')[0]![1].body).toEqual({ empresaId: 'emp-2', papel: 'administrador', podeCancelarNfse: false })
+    expect(chamadas('POST', '/admin/usuarios/u1/vinculos')[0]![1].body).toEqual({ empresaId: 'emp-2', papel: 'ADMINISTRADOR', podeCancelarNfse: false })
   })
 
   it('vinculos: coluna Pode cancelar delega ao operador (PATCH) e o formulario de adicionar leva o campo com a dica', async () => {
@@ -225,7 +225,7 @@ describe('UsuariosAdmin', () => {
     expect(interruptor).not.toBeChecked()
     await user.click(interruptor)
     await waitFor(() => expect(chamadas('PATCH', '/admin/usuarios/u1/vinculos/v1')).toHaveLength(1))
-    expect(chamadas('PATCH', '/admin/usuarios/u1/vinculos/v1')[0]![1].body).toEqual({ papel: 'operador', ativo: true, podeCancelarNfse: true })
+    expect(chamadas('PATCH', '/admin/usuarios/u1/vinculos/v1')[0]![1].body).toEqual({ papel: 'OPERADOR', ativo: true, podeCancelarNfse: true })
 
     expect(within(dlg).getByText('Administradores sempre podem; operadores só com esta permissão.')).toBeInTheDocument()
     await user.click(within(dlg).getByRole('combobox', { name: /^Empresa/ }))
@@ -235,12 +235,12 @@ describe('UsuariosAdmin', () => {
     await user.click(within(dlg).getByRole('switch', { name: /Pode cancelar NFS-e \(delegar ao operador\)/ }))
     await user.click(within(dlg).getByRole('button', { name: 'Adicionar vínculo' }))
     await waitFor(() => expect(chamadas('POST', '/admin/usuarios/u1/vinculos')).toHaveLength(1))
-    expect(chamadas('POST', '/admin/usuarios/u1/vinculos')[0]![1].body).toEqual({ empresaId: 'emp-2', papel: 'operador', podeCancelarNfse: true })
+    expect(chamadas('POST', '/admin/usuarios/u1/vinculos')[0]![1].body).toEqual({ empresaId: 'emp-2', papel: 'OPERADOR', podeCancelarNfse: true })
   })
 
   it('vinculos: administrador sempre pode (interruptor marcado e travado)', async () => {
     rotas((path, opts) => {
-      if (path === '/admin/usuarios/u1/vinculos' && !opts.method) return [{ ...VINCULOS[0], papel: 'administrador' }]
+      if (path === '/admin/usuarios/u1/vinculos' && !opts.method) return [{ ...VINCULOS[0], papel: 'ADMINISTRADOR' }]
     })
     const user = userEvent.setup()
     renderTela()

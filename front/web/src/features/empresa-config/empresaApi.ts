@@ -15,7 +15,7 @@ import { api } from '@/lib/api'
  * O arquivo e a senha NUNCA voltam do back. Leitura tolerante (campo ausente = padrao seguro).
  * ------------------------------------------------------------------------- */
 
-export type CertificadoSituacao = 'nao_enviado' | 'valido' | 'vencido' | 'invalido' | 'nao_pertence'
+export type CertificadoSituacao = 'NAO_ENVIADO' | 'VALIDO' | 'VENCIDO' | 'INVALIDO' | 'NAO_PERTENCE'
 
 export interface MunicipioRef {
   id: string
@@ -82,7 +82,7 @@ export interface EnviarCertificadoInput {
   senha: string
 }
 
-const SITUACOES = ['nao_enviado', 'valido', 'vencido', 'invalido', 'nao_pertence'] as const
+const SITUACOES = ['NAO_ENVIADO', 'VALIDO', 'VENCIDO', 'INVALIDO', 'NAO_PERTENCE'] as const
 
 const rec = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' ? (v as Record<string, unknown>) : {})
 const str = (v: unknown): string | undefined => (typeof v === 'string' && v !== '' ? v : undefined)
@@ -92,7 +92,7 @@ const intOrUndef = (v: unknown): number | undefined => (typeof v === 'number' &&
 function lerStatus(raw: unknown): CertificadoStatus {
   const r = rec(raw)
   return {
-    situacao: SITUACOES.includes(r.situacao as CertificadoSituacao) ? (r.situacao as CertificadoSituacao) : 'nao_enviado',
+    situacao: SITUACOES.includes(r.situacao as CertificadoSituacao) ? (r.situacao as CertificadoSituacao) : 'NAO_ENVIADO',
     validade: str(r.validade),
     pendenteDeEnvio: r.pendenteDeEnvio === true,
     venceEmDias: intOrUndef(r.venceEmDias),

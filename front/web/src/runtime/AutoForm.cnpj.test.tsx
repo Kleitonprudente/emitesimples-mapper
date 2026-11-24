@@ -24,7 +24,7 @@ const schema = z.object({
   regimeTributario: z.number().optional(),
   rgInscricaoEstadual: z.string().optional(),
   nome: z.string().optional(),
-  tipoPessoa: z.enum(['fisica', 'juridica']).optional(),
+  tipoPessoa: z.enum(['FISICA', 'JURIDICA']).optional(),
   consumidorFinal: z.boolean().optional(),
 })
 type V = z.infer<typeof schema>
@@ -50,7 +50,7 @@ const FIELDS: FieldLayout = [
 /** Layout no estilo Cliente/Fornecedor: sem razaoSocial; com nome, tipoPessoa e consumidorFinal. */
 const FIELDS_PESSOA: FieldLayout = [
   { name: 'documento', label: 'CNPJ', mask: 'documento', lookup: 'cnpj' },
-  { name: 'tipoPessoa', label: 'Tipo de pessoa', options: [{ value: 'fisica', label: 'Pessoa física' }, { value: 'juridica', label: 'Pessoa jurídica' }] },
+  { name: 'tipoPessoa', label: 'Tipo de pessoa', options: [{ value: 'FISICA', label: 'Pessoa física' }, { value: 'JURIDICA', label: 'Pessoa jurídica' }] },
   { name: 'consumidorFinal', label: 'Consumidor final', kind: 'boolean' },
   { name: 'nome', label: 'Nome' },
   { name: 'nomeFantasia', label: 'Nome fantasia' },

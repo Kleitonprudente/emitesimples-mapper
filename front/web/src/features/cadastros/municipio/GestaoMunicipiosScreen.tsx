@@ -21,13 +21,13 @@ export function GestaoMunicipiosScreen() {
   const columns = useMemo(
     () =>
       gestaoMunicipiosColumns({
-        editarMunicipio: canAct(session, 'consulta', true) ? (row) => void navigate({ to: '/municipios/$id', params: { id: row.id } }) : undefined,
+        editarMunicipio: canAct(session, 'CONSULTA', true) ? (row) => void navigate({ to: '/municipios/$id', params: { id: row.id } }) : undefined,
       }),
     [session, navigate],
   )
   const [state, update] = useTableState({ sortBy: 'nome' })
   const result = useMunicipios(state, 'nome')
-  const canCriar = canAct(session, 'consulta', true)
+  const canCriar = canAct(session, 'CONSULTA', true)
   const novo = canCriar ? (
     <Button onClick={() => void navigate({ to: '/municipios/$id', params: { id: 'novo' } })}>
       <CriarMunicipioIcon /> Novo município
