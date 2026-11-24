@@ -43,9 +43,9 @@ confirma o resultado. Se uma necessidade não cabe no catálogo, **pare e peça 
 
 | Agente | Papel | Escreve | Roda CLI |
 |---|---|---|---|
-| `domain-mapper` | modela o negócio | `back/mapas/<contexto>/*.mi` | não |
-| **você** | escreve os geradores | `back/mapas/generators/**` + registro no `main.mi` | não |
-| `cli-runner` | opera e valida | — | sim |
+| `domain-mapper` | modela o negócio e as telas | `back/mapas/<contexto>/*.mi` e `front/mapas/window/**` | não |
+| **você** | escreve os geradores | `back/mapas/generators/**` e `front/mapas/generators/**` + registro no `main.mi` de cada projeto | não |
+| `cli-runner` | opera e valida (projetos `emitesimples` e `emitesimples-front`) | — | sim |
 
 **Fluxo de colaboração**: (1) ler o mapa de negócio alvo; (2) **pedir ao `cli-runner` o `struct` da
 entidade** e confirmar o DOM real antes de escrever templates; (3) escrever o gerador; (4) pedir `push` +
@@ -60,8 +60,11 @@ entidade** e confirmar o DOM real antes de escrever templates; (3) escrever o ge
   Tipo novo se resolve **adicionando sinônimo ao `maps`**, não com caso especial no template.
 - **TODO-on-unhandled**: todo modo termina com um `match` genérico que emite `@TODO`. Nó desconhecido vira
   comentário visível; nunca some, nunca quebra a geração.
-- Espelhar os geradores existentes do projeto como referência viva: este projeto ainda não tem geradores;
-  o primeiro é tarefa sua, e a partir dele os demais o espelham.
+- Espelhar os geradores existentes do projeto como referência viva. No back: `back/mapas/generators/quarkus/`
+  (`quarkus-domain`, `-entity`, `-builder`, `-mapper`, `-repository`, `-resource` e `swagger-restAPI`) e
+  `back/mapas/generators/struct.mi`. No front: `front/mapas/generators/frontend/` (`zodSchema`, `apiClient`,
+  `screenColumns`, `screenPage`, `screenForm`, `screenEditorById`, `screenRoute`, `screenManifest`) e
+  `front/mapas/generators/struct.mi`. Um gerador novo espelha o mais parecido; ao corrigir um defeito, varra as irmãs.
 - Ao gerar variantes (create/read/update/delete, page/form/columns): **compartilhar a lógica, não copiar** —
   e ao corrigir um defeito numa variante, **varrer as irmãs**.
 

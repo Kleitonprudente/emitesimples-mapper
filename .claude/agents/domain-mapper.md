@@ -35,9 +35,9 @@ somando 12**; endereço no padrão CEP | Logradouro | Número e Complemento | Ba
 
 | Agente | Papel | Escreve | Roda CLI |
 |---|---|---|---|
-| **você** | modela o negócio | `back/mapas/<contexto>/*.mi` | não |
-| `generator-author` | escreve os geradores | `back/mapas/generators/**` | não |
-| `cli-runner` | opera e valida | — (só inspeciona) | sim |
+| **você** | modela o negócio e as telas | `back/mapas/<contexto>/*.mi` e `front/mapas/window/**` | não |
+| `generator-author` | escreve os geradores | `back/mapas/generators/**` e `front/mapas/generators/**` | não |
+| `cli-runner` | opera e valida (projetos `emitesimples` e `emitesimples-front`) | — (só inspeciona) | sim |
 
 Se um gerador não consegue produzir o que precisa, **isso não se resolve no gerador** — ou falta informação
 no mapa (e é com você), ou o gerador está errado (e é com o autor de geradores). Um modelo moldado pela
@@ -104,8 +104,10 @@ se propaga para o schema, para a API e para as telas.
   `serie` (1 a 5 dígitos) no envio, e o retorno de consulta ainda traz `rps_numero`/`rps_serie`. Modele esses valores
   como **atributos da Nota** (numeração da DPS), nunca como entidade. Se o usuário quiser outro tratamento, é uma
   pergunta objetiva antes de modelar.
-- **Ambiente** (homologação ou produção) é campo de controle de toda entidade que depende do gateway: emitente e
-  token são independentes por ambiente e uma nota de teste nunca pode se misturar com uma real.
+- **Ambiente** (homologação ou produção) é obrigatório **só nas entidades que dependem do gateway** (hoje: Empresa,
+  Nota, Cancelamento, ChamadaGateway e EventoWebhook): emitente e token são independentes por ambiente e uma nota de
+  teste nunca pode se misturar com uma real. As demais (Pessoa, Servico, Municipio, Usuario etc.) **não** têm
+  `ambiente`: não o acrescente.
 - **Cancelamento** é entidade própria da Nota, com os campos que a API exige: código do motivo (1 Erro de Emissão,
   2 Serviço não concluído, 9 Outros), motivo em texto de 15 a 255 caracteres, data e hora do evento e o retorno
   (XML e PDF). Só se cancela nota autorizada.
@@ -131,8 +133,10 @@ se propaga para o schema, para a API e para as telas.
 - Idioma dos nomes: português para o negócio (`Nota`, `Pessoa`, `Servico`, `Empresa`); inglês só para termos técnicos do
   gateway. Nomes de entidade no singular.
 - Pacote base: `br.com.emitesimples`, com um subpacote por contexto (`br.com.emitesimples.<contexto>`).
-- Campos de controle obrigatórios em toda entidade `[b]`: identificador, data de criação, data de atualização e
-  ambiente (homologação ou produção).
+- Campos de controle obrigatórios em toda entidade `[b]`: `id`, `dataCriacao` e `dataAtualizacao` (as 21 entidades
+  os têm). `ambiente` é obrigatório **só** nas que dependem do gateway (ver acima). `ativo` (Boolean) **não é
+  obrigatório**: só entra quando a entidade admite desativação sem apagar (hoje Plano, Servico, ClienteAcesso, Usuario e
+  VinculoUsuario); registros de auditoria e de histórico não o têm.
 - Termos canônicos e suas grafias: não há glossário separado; os termos vêm da documentação do IntegraNotas
   (`chave`, `DPS`, `DANFSe`, `tomador`, `emitente`, `IBGE`).
 
@@ -156,7 +160,8 @@ se propaga para o schema, para a API e para as telas.
 [ ] title e description preenchidos na entidade e em cada atributo
 [ ] Atributos agrupados com [g] por categoria
 [ ] Campo de status tem os valores documentados
-[ ] Campos de controle presentes
+[ ] Campos de controle presentes: id, dataCriacao e dataAtualizacao sempre; ambiente só se a entidade depende do
+    gateway; ativo só se a entidade admite desativação (não é obrigatório)
 [ ] Datas de transição de status presentes onde relevante
 [ ] Relacionamentos no último grupo
 [ ] Intra-contexto usa [m]/[o]; cross-context usa [r]

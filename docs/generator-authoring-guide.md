@@ -429,7 +429,7 @@ todo mundo mexe, e o que considerar em cada um:
   saída é convenção deste pack, não regra do DSL. Mantenha *alguma* convenção: geradores grandes viram
   ilegíveis sem ela.
 
-## 12. Geradores do front: o padrão de UI é parte do contrato
+## 14. Geradores do front: o padrão de UI é parte do contrato
 
 Os geradores de `front/mapas/generators/frontend/**` não são livres: eles materializam o padrão de UI de
 `front/docs/padroes-de-ui.md` e **só podem usar componentes do catálogo** (`front/docs/catalogo-componentes.md`). Vale

@@ -200,7 +200,7 @@ Esta discussão evita retrabalho e revela decisões que precisam ser registradas
 Comece pela entidade mais central do contexto. Defina:
 - Atributos de identificação (o que a torna única)
 - Atributos de valor (o que ela carrega de informação de negócio)
-- Atributos de controle (ativo, dataCriacao — padrão em todas as entidades)
+- Atributos de controle (`id`, `dataCriacao` e `dataAtualizacao` em todas as entidades; `ativo` só se admite desativação; `ambiente` só se depende do gateway)
 - Status e seu ciclo de vida (se aplicável)
 
 #### Etapa 3 — Modele as entidades dependentes
@@ -298,7 +298,7 @@ Esta ordem garante que ao modelar um contexto, as entidades que ele referencia j
 - `valores` — campos numéricos e monetários
 - `datas` — campos de data e hora relevantes ao negócio
 - `status` — campo de status com enum documentado na description
-- `controle` — `ativo` e `dataCriacao` (padrão em todas as entidades)
+- `controle` — `id`, `dataCriacao` e `dataAtualizacao` (padrão em todas as entidades), mais `ativo` (se a entidade admite desativação) e `ambiente` (se depende do gateway)
 - `relenvios` — sempre o último grupo
 
 ### Convenções de nomenclatura (CN)
@@ -442,7 +442,7 @@ Validar consistência, completude e coerência semântica de todo o modelo antes
 #### Consistência
 - [ ] Nomes de campos equivalentes são consistentes entre entidades? (ex: `dataCriacao` em todas — não `dataCriacao` em uma e `criadoEm` em outra)
 - [ ] Tipos de dados são consistentes? (ex: documentos sempre como `Texto(14)`)
-- [ ] Campos `ativo` e `dataCriacao` presentes em todas as entidades persistíveis?
+- [ ] Campos `id`, `dataCriacao` e `dataAtualizacao` presentes em todas as entidades persistíveis? (`ativo` e `ambiente` só quando se aplicam)
 
 #### Dependências cross-context
 - [ ] Referências cross-context usam `[r]` e não `[m]`?
@@ -1071,8 +1071,9 @@ Use este checklist ao criar ou revisar qualquer entidade:
 [ ] Todos os atributos têm title e description em pt e en
 [ ] Campo status tem enum documentado na description (se aplicável)
 [ ] Atributos com enum têm [e] values no @ com title e description em pt e en por valor (seção 9.7)
-[ ] Campo ativo presente (Boolean)
-[ ] Campo dataCriacao presente (DataHora)
+[ ] Campos id, dataCriacao e dataAtualizacao presentes (DataHora)
+[ ] Campo ativo (Boolean) só se a entidade admite desativação; NÃO é obrigatório
+[ ] Campo ambiente só se a entidade depende do gateway (hoje Empresa, Nota, Cancelamento, ChamadaGateway, EventoWebhook)
 [ ] Datas de transição de status presentes onde relevante
 [ ] Relenvios no último grupo [g]
 [ ] Campos de relenvio ([r], [o], [m]) não usam prefixo id no nome (CN-REL-001)

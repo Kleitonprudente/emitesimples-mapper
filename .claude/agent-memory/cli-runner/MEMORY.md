@@ -3,9 +3,11 @@
 Tier B. Fatos verificados em 2026-11-20.
 
 - Projeto no CLI: `emitesimples`. **Inicializado e enviado em 2026-11-20**: `mi init` em `back/mapas/` (a home do projeto), `push` autorizado pelo usuário. A escada check, load, compile dos 8 sub-geradores, struct e generate passou para `Municipio` e `CurrentSchema`, sem `EMI`. Todo novo `push` ainda publica na nuvem: avise.
-  Mapa principal: `back/mapas/main.mi` (existe). 12 entidades em 5 contextos sob `domain`: configuracao (Empresa),
-  cadastros (Municipio, Pessoa, Servico), usuarios (Usuario, VinculoUsuario, ClienteAcesso, TokenRenovacao), nfse (Nota,
-  Cancelamento), integranotas (ChamadaGateway, EventoWebhook). Renomeado em 2026-11-20 (era Emitente/Tomador e os
+  Mapa principal: `back/mapas/main.mi` (existe). **21 entidades em 6 contextos** sob `domain` (estado de 2026-11-23): admin (AssinaturaEmpresa, FaturaCrm,
+  HistoricoSituacaoEmpresa, Plano), cadastros (Contato, ImportacaoMunicipio, Municipio, Pessoa, Servico), configuracao
+  (AtividadeEmpresa, Empresa, QsaEmpresa), integranotas (ChamadaGateway, EventoWebhook), nfse (Cancelamento, Nota),
+  usuarios (ClienteAcesso, ConfirmacaoCadastro, TokenRenovacao, Usuario, VinculoUsuario). O front é outro projeto no CLI
+  (`emitesimples-front`, home `front/mapas/`, com cópia do domínio em `front/mapas/dominio`). Renomeado em 2026-11-20 (era Emitente/Tomador e os
   contextos cadastro/emissao/integracao/acesso); a nuvem só reflete o renome depois de um novo `push`.
 - CLI instalado em `C:\Program Files\mapperidea\mapperidea-cli-1.0.8\mi.exe` (reporta `mi version 1.0.9`).
   O Git Bash o encontra no PATH. Comandos: `authorize`, `check`, `compile`, `generate`, `init`, `load`, `push`.
