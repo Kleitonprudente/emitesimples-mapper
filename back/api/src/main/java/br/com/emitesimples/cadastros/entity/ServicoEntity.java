@@ -24,6 +24,12 @@ import br.com.emitesimples.configuracao.entity.EmpresaEntity;
  * Vive no contexto cadastros (domain.cadastros), que referencia a Empresa 
 * (configuracao) e tem dependência mútua com ele, pois a Empresa referencia o 
 * Municipio, que está em cadastros.
+ * Os padrões tributários (ISS, PIS/COFINS, retenções) são só sugestão para a nota 
+* e todos opcionais. Nenhum agente de IA informa tributo: esses campos só se 
+* preenchem pela tela. Dinheiro em ValorMonetario(15,2) e alíquotas em 
+* Decimal(5,2); deduções, previdência, CNAE, inscrição estadual e tipo de ente não 
+* existem aqui. As validações de coerência estão nas description dos atributos e 
+* são implementadas à mão.
 
 */
 @Entity
@@ -72,6 +78,15 @@ public class ServicoEntity {
     @Column(name="CST_PIS_COFINS", length=2)
     private String cstPisCofins;
 
+    @Column(name="TIPO_RETENCAO", precision = 1)
+    private Integer tipoRetencao;
+
+    @Column(name="ALIQUOTA_PIS", precision = 5, scale = 2)
+    private BigDecimal aliquotaPis;
+
+    @Column(name="ALIQUOTA_COFINS", precision = 5, scale = 2)
+    private BigDecimal aliquotaCofins;
+
     @Column(name="PERCENTUAL_TRIBUTOS_SIMPLES", precision = 5, scale = 2)
     private BigDecimal percentualTributosSimples;
     @Id
@@ -106,6 +121,9 @@ public class ServicoEntity {
         Boolean issRetido,
         Integer tipoOperacaoIss,
         String cstPisCofins,
+        Integer tipoRetencao,
+        BigDecimal aliquotaPis,
+        BigDecimal aliquotaCofins,
         BigDecimal percentualTributosSimples,
         String id,
         LocalDateTime dataCriacao,
@@ -125,6 +143,9 @@ public class ServicoEntity {
         this.issRetido = issRetido;
         this.tipoOperacaoIss = tipoOperacaoIss;
         this.cstPisCofins = cstPisCofins;
+        this.tipoRetencao = tipoRetencao;
+        this.aliquotaPis = aliquotaPis;
+        this.aliquotaCofins = aliquotaCofins;
         this.percentualTributosSimples = percentualTributosSimples;
         this.id = id;
         this.dataCriacao = dataCriacao;
@@ -147,6 +168,9 @@ public class ServicoEntity {
         this.issRetido = builder.issRetido;
         this.tipoOperacaoIss = builder.tipoOperacaoIss;
         this.cstPisCofins = builder.cstPisCofins;
+        this.tipoRetencao = builder.tipoRetencao;
+        this.aliquotaPis = builder.aliquotaPis;
+        this.aliquotaCofins = builder.aliquotaCofins;
         this.percentualTributosSimples = builder.percentualTributosSimples;
         this.id = builder.id;
         this.dataCriacao = builder.dataCriacao;
@@ -263,6 +287,26 @@ public class ServicoEntity {
 
     public String getCstPisCofins() {
         return this.cstPisCofins;
+    }
+
+    public void setTipoRetencao(Integer tipoRetencao) {
+        this.tipoRetencao = tipoRetencao;
+    }
+
+    public Integer getTipoRetencao() {
+        return this.tipoRetencao;
+    }
+    public void setAliquotaPis(BigDecimal aliquotaPis) {
+        this.aliquotaPis = aliquotaPis;
+    }
+    public BigDecimal getAliquotaPis() {
+        return this.aliquotaPis;
+    }
+    public void setAliquotaCofins(BigDecimal aliquotaCofins) {
+        this.aliquotaCofins = aliquotaCofins;
+    }
+    public BigDecimal getAliquotaCofins() {
+        return this.aliquotaCofins;
     }
     public void setPercentualTributosSimples(BigDecimal percentualTributosSimples) {
         this.percentualTributosSimples = percentualTributosSimples;

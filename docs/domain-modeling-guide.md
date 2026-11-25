@@ -650,13 +650,51 @@ Quando o atributo é `Inteiro(n)` e o gateway ou o contrato exige um **código n
 ```
 
 Regras:
-- `codigo` é **obrigatório em todo valor de enum Inteiro** e **não existe em enum Texto** (lá o nome já é o valor).
+- `codigo` é **obrigatório em todo valor de enum Inteiro**. Em enum Texto é **opcional**: só entra na convenção "Enums de tipo Texto com código" (abaixo); fora dela, em enum Texto o nome já é o valor.
 - Os códigos de um mesmo enum são inteiros e **únicos**. Não precisam ser contíguos (ex: 1, 2, 9).
 - `defaultValue` de um enum Inteiro continua sendo o **número** (o valor gravado), nunca o rótulo.
 - Nas condições (`pre`/`do`) pode-se comparar com o rótulo (`regimeTributario = MEI`); a `description` do atributo ou do valor deve dizer que o código gravado é o número.
 - Geradores leem o código em `properties/values/*/codigo/value` e o rótulo no nome do elemento.
 
 **Por que o nome não pode ser o número:** em Mapper Idea o nome de um elemento é um identificador (vira nó do DOM, nome de constante e chave de XPath), e identificador não começa com dígito nem é um número. Por isso o número vive em `codigo`, como dado, e o nome carrega o significado. Os dados e o contrato com o gateway não mudam: continua-se gravando e enviando 1, 2, 9.
+
+#### Enums de tipo Texto com código
+
+Quando o atributo é `Texto(n)` e o contrato exige um **código textual com zero à esquerda** ("01", "49", "99": lista fechada do gateway, como o CST do PIS/COFINS), o nome do `[e]` não pode ser o valor (nome de elemento não é numérico) e `Inteiro` perderia o zero. A lista fica **no mapa**, assim:
+
+- o atributo é `Texto(n)`, com `n` suficiente para o código;
+- o **nome** do `[e]` filho de `values` é um **rótulo técnico** em `SNAKE_CASE_MAIUSCULO` que descreve o conceito e **não repete o código** (`TRIBUTAVEL_ALIQUOTA_NORMAL`, nunca `VALOR_01`);
+- o filho `[e] codigo` com um `[v]` guarda o valor gravado e enviado, como **texto exato**, mantendo o zero (`01`); depois `title` e `description` em `pt` e `en`, como no enum Inteiro;
+- o **tipo do atributo** decide a leitura: `Texto` gera string (`'01'`), `Inteiro` gera número. Os geradores usam a mesma regra para os dois: `exists(codigo)` => valor = `normalize-space(codigo/value)`.
+
+```
+[d] cstPisCofins: Texto(2)
+    @
+        [e] values
+            [e] TRIBUTAVEL_ALIQUOTA_NORMAL
+                [e] codigo
+                    [v] 01
+                [e] title
+                    [e] pt
+                        [v] Tributável (alíquota normal)
+                    [e] en
+                        [v] Taxable (standard rate)
+                [e] description
+                    [e] pt
+                        [v] Operação tributável com alíquota básica (CST 01).
+                    [e] en
+                        [v] Taxable operation at the standard rate (CST 01).
+            [e] OUTRAS_OPERACOES_SAIDA
+                [e] codigo
+                    [v] 49
+                ...
+```
+
+Regras:
+- Os códigos de um mesmo enum são textos **únicos**; `codigo` é obrigatório em todos os valores do enum (não misture com valores sem `codigo`).
+- `defaultValue` é o **texto** gravado (`01`), nunca o rótulo.
+- Na API (OpenAPI) o código sai entre aspas (`- '01'`), para o YAML não ler `01` como número; no front, `Values` e `Labels` usam a string.
+- Enum Texto **sem** `codigo` (nome = valor) e enum Inteiro seguem como antes.
 
 ### 9.8 Campos de data associados a transições de status
 
@@ -1114,6 +1152,7 @@ Use este checklist ao criar ou revisar qualquer entidade:
 [ ] Campo status tem enum documentado na description (se aplicável)
 [ ] Atributos com enum têm [e] values no @ com title e description em pt e en por valor (seção 9.7)
 [ ] Enum Texto: nome do [e] é o valor gravado. Enum Inteiro: nome é rótulo SNAKE_CASE_MAIUSCULO, com [e] codigo (inteiro único, obrigatório) antes de title e description; defaultValue é o número (seção 9.7)
+[ ] Enum Texto de código (CST "01", "49"): atributo Texto(n); nome do [e] é rótulo SNAKE_CASE_MAIUSCULO sem repetir o código; [e] codigo com o texto exato (zero à esquerda) antes de title e description; defaultValue é o texto (seção 9.7)
 [ ] Campos id, dataCriacao e dataAtualizacao presentes (DataHora)
 [ ] Campo ativo (Boolean) só se a entidade admite desativação; NÃO é obrigatório
 [ ] Campo ambiente só se a entidade depende do gateway (hoje Empresa, Nota, Cancelamento, ChamadaGateway, EventoWebhook)

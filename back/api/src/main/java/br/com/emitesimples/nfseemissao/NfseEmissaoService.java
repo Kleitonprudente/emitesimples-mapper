@@ -86,7 +86,8 @@ public class NfseEmissaoService {
     NfseChamadaLog chamadas;
 
     /** Campos ja validados; {@code null} = nao informado (na criacao, so info/discriminacao podem faltar). */
-    private record Campos(String pessoaId, String servicoId, BigDecimal valor, String info, String discriminacao) {
+    private record Campos(String pessoaId, String servicoId, BigDecimal valor, String info, String discriminacao,
+            Tributos tributos) {
     }
 
     private record Pre(NfsePayloadMapper.Montado montado, String tokenRef, String ambiente) {
@@ -101,7 +102,7 @@ public class NfseEmissaoService {
             throw invalido(List.of(erro("corpo", "Informe os dados da nota.")));
         }
         Campos c = validar(in.pessoaId(), in.servicoId(), in.valorServicos(), in.informacoesComplementares(),
-                in.discriminacao(), true);
+                in.discriminacao(), in.tributos(), true);
         String ativo = config.ambienteAtivo();
         String usuarioId = jwt.getSubject();
         String notaId = QuarkusTransaction.requiringNew().call(() -> criarNota(emp, c, ativo, usuarioId));
@@ -111,9 +112,9 @@ public class NfseEmissaoService {
     public NotaDetalhe enviar(String id, EnviarEntrada in) {
         limite.consumir(jwt.getSubject());
         String emp = empresaDaSessao();
-        Campos c = in == null ? new Campos(null, null, null, null, null)
+        Campos c = in == null ? new Campos(null, null, null, null, null, null)
                 : validar(in.pessoaId(), in.servicoId(), in.valorServicos(), in.informacoesComplementares(),
-                        in.discriminacao(), false);
+                        in.discriminacao(), in.tributos(), false);
         String ativo = config.ambienteAtivo();
         String usuarioId = jwt.getSubject();
         QuarkusTransaction.requiringNew().run(() -> prepararReenvio(emp, id, c, ativo, usuarioId));
@@ -148,6 +149,7 @@ public class NfseEmissaoService {
                 .withDataCriacao(agora).withDataAtualizacao(agora)
                 .build();
         snapshot(n, s, discriminacao, c.valor());
+        tributar(n, e, c.tributos());
         em.persist(n);
         em.flush();
         return n.getId();
@@ -194,8 +196,12 @@ public class NfseEmissaoService {
             snapshot(n, s, discriminacaoFinal(c.discriminacao(), s), c.valor() != null ? c.valor() : n.getValorServicos());
         } else {
             exigirTributosAproximados(e, n.getServico());
-            if (c.valor() != null) {
+            if (c.valor() != null && (n.getValorServicos() == null || c.valor().compareTo(n.getValorServicos()) != 0)) {
                 n.setValorServicos(c.valor());
+                if (c.tributos() == null) {
+                    // valor mudou sem a tela mandar os tributos: base e ISS calculados antes ficariam errados; refaz do servico
+                    TributacaoNota.copiarPadroesDoServico(n, n.getServico(), c.valor());
+                }
             }
             if (c.discriminacao() != null) {
                 n.setDiscriminacao(discriminacaoFinal(c.discriminacao(), n.getServico()));
@@ -203,6 +209,31 @@ public class NfseEmissaoService {
         }
         if (c.info() != null) {
             n.setInformacoesComplementares(c.info().isBlank() ? null : c.info().strip());
+        }
+        tributar(n, e, c.tributos());
+    }
+
+    /**
+     * Tributacao da nota (TributacaoNota): aplica o que a tela mandou (se mandou), completa base e ISS calculados, grava o
+     * regime de apuracao e recusa a nota com os problemas no campo. {@code tributos == null}: ficam os valores ja copiados.
+     */
+    private static void tributar(NotaEntity n, EmpresaEntity e, Tributos tributos) {
+        tributar(n, e, tributos, true);
+    }
+
+    private static void tributar(NotaEntity n, EmpresaEntity e, Tributos tributos, boolean validar) {
+        if (tributos != null) {
+            TributacaoNota.aplicarEntrada(n, tributos);
+        }
+        if (n.getRegimeApuracao() == null) {
+            n.setRegimeApuracao(NfsePayloadMapper.regimeApuracaoPadrao(e.getRegimeTributario()));
+        }
+        TributacaoNota.completar(n);
+        if (validar) {
+            List<Map<String, String>> f = TributacaoNota.problemas(n, n.getRegimeApuracao());
+            if (!f.isEmpty()) {
+                throw invalido(f);
+            }
         }
     }
 
@@ -220,8 +251,12 @@ public class NfseEmissaoService {
         if (in == null) {
             throw invalido(List.of(erro("corpo", "Informe os dados da nota.")));
         }
+        if (in.tributos() != null) {
+            // o preparo e o caminho do assistente (IA): tributo so pela tela, por uma pessoa (na aprovacao)
+            throw invalido(List.of(erro("tributos", "Os tributos só podem ser informados pela tela, por uma pessoa.")));
+        }
         Campos c = validar(in.pessoaId(), in.servicoId(), in.valorServicos(), in.informacoesComplementares(),
-                in.discriminacao(), true);
+                in.discriminacao(), null, true);
         String usuarioId = jwt.getSubject();
         String notaId = QuarkusTransaction.requiringNew().call(() -> gravarRascunho(emp, c, usuarioId));
         return detalhe(emp, notaId);
@@ -246,6 +281,8 @@ public class NfseEmissaoService {
                 .withDataCriacao(agora).withDataAtualizacao(agora)
                 .build();
         snapshot(n, s, discriminacao, c.valor());
+        // rascunho: so os padroes do servico (o assistente nao informa tributo); a regra E0625 e checada na aprovacao
+        tributar(n, e, null, false);
         em.persist(n);
         em.flush();
         return n.getId();
@@ -255,9 +292,9 @@ public class NfseEmissaoService {
     public NotaDetalhe aprovar(String id, EnviarEntrada in) {
         limite.consumir(jwt.getSubject());
         String emp = empresaDaSessao();
-        Campos c = in == null ? new Campos(null, null, null, null, null)
+        Campos c = in == null ? new Campos(null, null, null, null, null, null)
                 : validar(in.pessoaId(), in.servicoId(), in.valorServicos(), in.informacoesComplementares(),
-                        in.discriminacao(), false);
+                        in.discriminacao(), in.tributos(), false);
         String ativo = config.ambienteAtivo();
         String usuarioId = jwt.getSubject();
         QuarkusTransaction.requiringNew().run(() -> aprovarRascunho(emp, id, c, ativo, usuarioId));
@@ -330,11 +367,9 @@ public class NfseEmissaoService {
         n.setCodigoNbs(s.getCodigoNbs());
         n.setDescricao(s.getDescricaoCurta());
         n.setDiscriminacao(discriminacao);
-        n.setAliquotaIss(s.getAliquotaIss());
-        n.setIssRetido(s.getIssRetido() == null ? Boolean.FALSE : s.getIssRetido());
         n.setTipoOperacaoIss(s.getTipoOperacaoIss() == null ? 1 : s.getTipoOperacaoIss());
-        n.setCstPisCofins(s.getCstPisCofins() == null || s.getCstPisCofins().isBlank() ? "00" : s.getCstPisCofins());
         n.setValorServicos(valor);
+        TributacaoNota.copiarPadroesDoServico(n, s, valor);
     }
 
     private void preCondicoes(EmpresaEntity e, String ativo) {
@@ -808,8 +843,18 @@ public class NfseEmissaoService {
             List<CancelamentoEntity> cs = em.createQuery("select c from CancelamentoEntity c where c.nota.id = :n and c.empresa.id = :e "
                     + "order by c.dataCriacao desc", CancelamentoEntity.class).setParameter("n", id).setParameter("e", emp)
                     .setMaxResults(1).getResultList();
-            return detalhe(l.get(0), cs.isEmpty() ? null : cs.get(0), podeCancelarSessao(emp), podeEscreverSessao());
+            NotaEntity n = em.find(NotaEntity.class, id);
+            return detalhe(l.get(0), cs.isEmpty() ? null : cs.get(0), podeCancelarSessao(emp), podeEscreverSessao(),
+                    tributos(n));
         });
+    }
+
+    /** Os tributos gravados na nota, para a tela (o "00" das notas antigas aparece como sem CST). */
+    private static Tributos tributos(NotaEntity n) {
+        return new Tributos(Boolean.TRUE.equals(n.getIssRetido()), n.getAliquotaIss(), n.getValorBaseCalculoIss(),
+                n.getValorIssRetido(), TributacaoNota.cst(n), n.getTipoRetencao(), n.getValorBaseCalculo(), n.getAliquotaPis(),
+                n.getAliquotaCofins(), n.getValorPis(), n.getValorCofins(), n.getValorInss(), n.getValorIr(), n.getValorCsll(),
+                n.getValorDescontoIncondicionado());
     }
 
     public NotaDetalhe detalhe(String id) {
@@ -837,7 +882,8 @@ public class NfseEmissaoService {
                 (String) l[14], Boolean.TRUE.equals(l[15]), (LocalDateTime) l[16]);
     }
 
-    private static NotaDetalhe detalhe(Object[] l, CancelamentoEntity c, boolean sessaoPode, boolean sessaoEscreve) {
+    private static NotaDetalhe detalhe(Object[] l, CancelamentoEntity c, boolean sessaoPode, boolean sessaoEscreve,
+            Tributos tributos) {
         NotaItem i = item(l);
         String estado = i.estado();
         boolean editavel = EstadosNfse.FALHA_ENVIO.equals(estado) || EstadosNfse.REJEITADA.equals(estado);
@@ -853,7 +899,7 @@ public class NfseEmissaoService {
         return new NotaDetalhe(i.id(), i.numero(), i.serie(), estado, i.dataEmissao(), i.valorServicos(), i.pessoa(),
                 i.servico(), i.chave(), i.numeroNfse(), i.codigoRetorno(), i.mensagemRetorno(), i.temPdf(),
                 i.dataCriacao(), (String) l[17], (String) l[18], (String) l[19], (String) l[20], erros((String) l[21]),
-                (String) l[22], (String) l[23], (LocalDateTime) l[24], editavel, editavel, atualizar, info, podeCancelar, rascunho, rascunho);
+                (String) l[22], (String) l[23], (LocalDateTime) l[24], editavel, editavel, atualizar, info, podeCancelar, rascunho, rascunho, tributos);
     }
 
     /** Parse tolerante do texto salvo: array JSON de {campo, erro, descricao}; qualquer outro texto vira uma descricao. */
@@ -880,7 +926,7 @@ public class NfseEmissaoService {
     // ------------------------------------------------------------------------------------------- validacao
 
     private Campos validar(String pessoaId, String servicoId, BigDecimal valor, String info, String discriminacao,
-            boolean criacao) {
+            Tributos tributos, boolean criacao) {
         List<Map<String, String>> f = new ArrayList<>();
         if (criacao && (pessoaId == null || pessoaId.isBlank())) {
             f.add(erro("pessoaId", "Informe o tomador."));
@@ -905,7 +951,8 @@ public class NfseEmissaoService {
         if (!f.isEmpty()) {
             throw invalido(f);
         }
-        return new Campos(blank(pessoaId), blank(servicoId), valor == null ? null : valor.setScale(2), info, discriminacao);
+        return new Campos(blank(pessoaId), blank(servicoId), valor == null ? null : valor.setScale(2), info, discriminacao,
+                tributos);
     }
 
     private static String discriminacaoFinal(String informada, ServicoEntity s) {

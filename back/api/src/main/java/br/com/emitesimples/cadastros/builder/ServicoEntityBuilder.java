@@ -26,6 +26,9 @@ public class ServicoEntityBuilder {
     public Boolean issRetido;
     public Integer tipoOperacaoIss;
     public String cstPisCofins;
+    public Integer tipoRetencao;
+    public BigDecimal aliquotaPis;
+    public BigDecimal aliquotaCofins;
     public BigDecimal percentualTributosSimples;
     public String id;
     public LocalDateTime dataCriacao;
@@ -101,6 +104,19 @@ public class ServicoEntityBuilder {
         this.cstPisCofins = cstPisCofins;
         return this;
     }
+
+    public ServicoEntityBuilder withTipoRetencao(Integer tipoRetencao) {
+        this.tipoRetencao = tipoRetencao;
+        return this;
+    }
+    public ServicoEntityBuilder withAliquotaPis(BigDecimal aliquotaPis) {
+        this.aliquotaPis = aliquotaPis;
+        return this;
+    }
+    public ServicoEntityBuilder withAliquotaCofins(BigDecimal aliquotaCofins) {
+        this.aliquotaCofins = aliquotaCofins;
+        return this;
+    }
     public ServicoEntityBuilder withPercentualTributosSimples(BigDecimal percentualTributosSimples) {
         this.percentualTributosSimples = percentualTributosSimples;
         return this;
@@ -145,6 +161,9 @@ public class ServicoEntityBuilder {
                 .withIssRetido(servico.getIssRetido())
                 .withTipoOperacaoIss(servico.getTipoOperacaoIss())
                 .withCstPisCofins(servico.getCstPisCofins())
+                .withTipoRetencao(servico.getTipoRetencao())
+                .withAliquotaPis(servico.getAliquotaPis())
+                .withAliquotaCofins(servico.getAliquotaCofins())
                 .withPercentualTributosSimples(servico.getPercentualTributosSimples())
                 .withId(servico.getId())
                 .withDataCriacao(servico.getDataCriacao())

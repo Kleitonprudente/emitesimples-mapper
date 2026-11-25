@@ -79,6 +79,10 @@ public class ErrosHandler {
 
     @ServerExceptionMapper
     public Response webApplication(WebApplicationException e) {
+        ApiException embrulhada = apiEmbrulhada(e);
+        if (embrulhada != null) {
+            return apiException(embrulhada);
+        }
         int status = e.getResponse().getStatus();
         if (violacaoRls(e)) {
             return negadoPeloBanco(e);
@@ -104,6 +108,10 @@ public class ErrosHandler {
 
     @ServerExceptionMapper
     public Response inesperado(Throwable e) {
+        ApiException embrulhada = apiEmbrulhada(e);
+        if (embrulhada != null) {
+            return apiException(embrulhada);
+        }
         if (violacaoRls(e)) {
             return negadoPeloBanco(e);
         }
@@ -112,6 +120,19 @@ public class ErrosHandler {
         }
         LOG.error("Erro inesperado", e);
         return resposta(500, "erro_interno", "Erro interno. Tente novamente mais tarde.", null);
+    }
+
+    /**
+     * ApiException lancada dentro da persistencia (ex.: listener JPA escrito a mao, como o da tributacao do servico) chega embrulhada
+     * pelo Hibernate ou pelo repositorio gerado: responde com o codigo e os campos dela, nunca com um erro generico.
+     */
+    static ApiException apiEmbrulhada(Throwable e) {
+        for (Throwable t = e == null ? null : e.getCause(); t != null; t = t.getCause() == t ? null : t.getCause()) {
+            if (t instanceof ApiException a) {
+                return a;
+            }
+        }
+        return null;
     }
 
     /** CHECK ck_pessoa_papel (V7, SQLSTATE 23514): a pessoa precisa ser cliente, fornecedor ou as duas coisas. */

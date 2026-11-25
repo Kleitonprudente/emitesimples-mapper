@@ -215,7 +215,7 @@ describe('NotaDetalhe', () => {
       await user.type(valor, '300')
       await user.click(screen.getByRole('button', { name: 'Corrigir e reenviar' }))
       await waitFor(() => expect(posts()).toHaveLength(1))
-      expect(posts()[0]).toEqual(['/nfse/notas/n1/enviar', { method: 'POST', body: { pessoaId: 'p1', servicoId: 's1', valorServicos: 300, discriminacao: 'Serviço prestado.' } }])
+      expect(posts()[0]).toEqual(['/nfse/notas/n1/enviar', { method: 'POST', body: { pessoaId: 'p1', servicoId: 's1', valorServicos: 300, discriminacao: 'Serviço prestado.', tributos: { issRetido: false, cstPisCofins: null, aliquotaIss: null, valorBaseCalculoIss: null, valorIssRetido: null, tipoRetencao: null, valorBaseCalculo: null, aliquotaPis: null, aliquotaCofins: null, valorPis: null, valorCofins: null, valorInss: null, valorIr: null, valorCsll: null, valorDescontoIncondicionado: null } } }])
       await waitFor(() => expect(toastMock.success).toHaveBeenCalledWith('Nota reenviada.'))
       expect(await screen.findByRole('heading', { name: 'Nota 1-100' })).toBeInTheDocument()
       expect(await screen.findByText('Aguardando a autorização da prefeitura…')).toBeInTheDocument()

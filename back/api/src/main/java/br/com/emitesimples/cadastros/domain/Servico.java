@@ -17,6 +17,12 @@ import br.com.emitesimples.configuracao.domain.Empresa;
  * Vive no contexto cadastros (domain.cadastros), que referencia a Empresa 
 * (configuracao) e tem dependência mútua com ele, pois a Empresa referencia o 
 * Municipio, que está em cadastros.
+ * Os padrões tributários (ISS, PIS/COFINS, retenções) são só sugestão para a nota 
+* e todos opcionais. Nenhum agente de IA informa tributo: esses campos só se 
+* preenchem pela tela. Dinheiro em ValorMonetario(15,2) e alíquotas em 
+* Decimal(5,2); deduções, previdência, CNAE, inscrição estadual e tipo de ente não 
+* existem aqui. As validações de coerência estão nas description dos atributos e 
+* são implementadas à mão.
 
 */
 public class Servico {
@@ -63,6 +69,12 @@ public class Servico {
     @Size(max = 2, message = "Attribute cstPisCofins must have 2 characters maximum.")
     private String cstPisCofins;
 
+    private Integer tipoRetencao;
+
+    private BigDecimal aliquotaPis;
+
+    private BigDecimal aliquotaCofins;
+
     private BigDecimal percentualTributosSimples;
 
     @NotEmpty(message = "The attribute id can't be empty.")
@@ -95,6 +107,9 @@ public class Servico {
         this.issRetido = null;
         this.tipoOperacaoIss = null;
         this.cstPisCofins = null;
+        this.tipoRetencao = null;
+        this.aliquotaPis = null;
+        this.aliquotaCofins = null;
         this.percentualTributosSimples = null;
         this.id = null;
         this.dataCriacao = null;
@@ -116,6 +131,9 @@ public class Servico {
         Boolean issRetido,
         Integer tipoOperacaoIss,
         String cstPisCofins,
+        Integer tipoRetencao,
+        BigDecimal aliquotaPis,
+        BigDecimal aliquotaCofins,
         BigDecimal percentualTributosSimples,
         String id,
         LocalDateTime dataCriacao,
@@ -136,6 +154,9 @@ public class Servico {
         this.issRetido = issRetido;
         this.tipoOperacaoIss = tipoOperacaoIss;
         this.cstPisCofins = cstPisCofins;
+        this.tipoRetencao = tipoRetencao;
+        this.aliquotaPis = aliquotaPis;
+        this.aliquotaCofins = aliquotaCofins;
         this.percentualTributosSimples = percentualTributosSimples;
         this.id = id;
         this.dataCriacao = dataCriacao;
@@ -249,6 +270,26 @@ public class Servico {
     public String getCstPisCofins() {
         return this.cstPisCofins;
     }
+
+    public void setTipoRetencao(Integer tipoRetencao) {
+        this.tipoRetencao = tipoRetencao;
+    }
+
+    public Integer getTipoRetencao() {
+        return this.tipoRetencao;
+    }
+    public void setAliquotaPis(BigDecimal aliquotaPis) {
+        this.aliquotaPis = aliquotaPis;
+    }
+    public BigDecimal getAliquotaPis() {
+        return this.aliquotaPis;
+    }
+    public void setAliquotaCofins(BigDecimal aliquotaCofins) {
+        this.aliquotaCofins = aliquotaCofins;
+    }
+    public BigDecimal getAliquotaCofins() {
+        return this.aliquotaCofins;
+    }
     public void setPercentualTributosSimples(BigDecimal percentualTributosSimples) {
         this.percentualTributosSimples = percentualTributosSimples;
     }
@@ -316,6 +357,9 @@ public class Servico {
             this.issRetido != null || 
             this.tipoOperacaoIss != null || 
             this.cstPisCofins != null || 
+            this.tipoRetencao != null || 
+            this.aliquotaPis != null || 
+            this.aliquotaCofins != null || 
             this.percentualTributosSimples != null || 
             this.dataCriacao != null || 
             this.dataAtualizacao != null || 

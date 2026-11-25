@@ -129,7 +129,7 @@ public class NfseEmpresaService {
         String novoSegredo = plano.garantir() ? garantirEmitente(empresaId, plano, avisos) : null;
         NfseDto gravado;
         try {
-            gravado = gravar(empresaId, serie, ultimo, plano.ambiente(), novoSegredo, integracao);
+            gravado = gravar(empresaId, serie, ultimo, plano.ambiente(), novoSegredo, plano.garantir(), integracao);
         } catch (RuntimeException e) {
             if (novoSegredo != null) {
                 // o emitente JA existe no gateway: o segredo fica no cofre (recuperavel pelo suporte); nada do valor no log
@@ -315,8 +315,13 @@ public class NfseEmpresaService {
     }
 
     /** Transacao 3 (com lock): grava habilitacao, numeracao e, se criou, a referencia do token e o status. */
+    /**
+     * {@code confirmado}: o emitente acabou de ser garantido no gateway (criado, recuperado ou sincronizado com o token do
+     * cofre). Sem token novo, marca {@code CADASTRADO} assim mesmo: cobre o token do emitente informado pela plataforma
+     * ({@code TokenEmitenteAdminResource}), que fica {@code NAO_CADASTRADO} ate a primeira sincronizacao.
+     */
     private NfseDto gravar(String empresaId, String serie, long ultimo, String ambiente, String novoSegredo,
-            boolean integracao) {
+            boolean confirmado, boolean integracao) {
         String[] antigo = new String[1];
         NfseDto dto = QuarkusTransaction.requiringNew().call(() -> {
             EmpresaEntity e = carregar(empresaId, true);
@@ -325,6 +330,12 @@ public class NfseEmpresaService {
             if (novoSegredo != null) {
                 antigo[0] = e.getReferenciaTokenEmpresa();
                 aplicarToken(e, novoSegredo, ambiente, agora);
+            } else if (confirmado && e.getReferenciaTokenEmpresa() != null && ambiente.equals(e.getAmbiente())
+                    && !StatusCadastro.CADASTRADO.equals(e.getStatusCadastro())) {
+                e.setStatusCadastro(StatusCadastro.CADASTRADO);
+                if (e.getDataCadastroGateway() == null) {
+                    e.setDataCadastroGateway(agora);
+                }
             }
             e.setNfseHabilitada(true);
             e.setSerieNfse(serie);

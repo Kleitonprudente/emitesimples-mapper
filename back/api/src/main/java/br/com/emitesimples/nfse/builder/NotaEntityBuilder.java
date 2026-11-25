@@ -37,6 +37,8 @@ public class NotaEntityBuilder {
     public BigDecimal valorDescontoIncondicionado;
     public Integer tipoOperacaoIss;
     public BigDecimal aliquotaIss;
+    public BigDecimal valorBaseCalculoIss;
+    public BigDecimal valorIssRetido;
     public Boolean issRetido;
     public Integer responsavelRetencao;
     public String cstPisCofins;
@@ -166,6 +168,14 @@ public class NotaEntityBuilder {
     }
     public NotaEntityBuilder withAliquotaIss(BigDecimal aliquotaIss) {
         this.aliquotaIss = aliquotaIss;
+        return this;
+    }
+    public NotaEntityBuilder withValorBaseCalculoIss(BigDecimal valorBaseCalculoIss) {
+        this.valorBaseCalculoIss = valorBaseCalculoIss;
+        return this;
+    }
+    public NotaEntityBuilder withValorIssRetido(BigDecimal valorIssRetido) {
+        this.valorIssRetido = valorIssRetido;
         return this;
     }
 
@@ -380,6 +390,8 @@ public class NotaEntityBuilder {
                 .withValorDescontoIncondicionado(nota.getValorDescontoIncondicionado())
                 .withTipoOperacaoIss(nota.getTipoOperacaoIss())
                 .withAliquotaIss(nota.getAliquotaIss())
+                .withValorBaseCalculoIss(nota.getValorBaseCalculoIss())
+                .withValorIssRetido(nota.getValorIssRetido())
                 .withIssRetido(nota.getIssRetido())
                 .withResponsavelRetencao(nota.getResponsavelRetencao())
                 .withCstPisCofins(nota.getCstPisCofins())

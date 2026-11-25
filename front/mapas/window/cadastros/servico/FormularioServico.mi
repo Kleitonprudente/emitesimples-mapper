@@ -37,7 +37,7 @@
                             [e] pt
                                 [v] Código de tributação nacional
                         [e] size
-                            [v] m
+                            [v] s
                         [e] hint
                             [e] pt
                                 [v] 6 dígitos, ex.: 010401.
@@ -48,7 +48,7 @@
                             [e] pt
                                 [v] Código NBS
                         [e] size
-                            [v] m
+                            [v] s
                         [e] hint
                             [e] pt
                                 [v] 9 dígitos, ex.: 115021000.
@@ -59,10 +59,21 @@
                             [e] pt
                                 [v] Tributos aprox. Simples (%)
                         [e] size
-                            [v] m
+                            [v] s
                         [e] hint
                             [e] pt
                                 [v] Ex.: 13,75.
+                [e] field
+                    [v] .valorPadrao
+                    @
+                        [e] label
+                            [e] pt
+                                [v] Valor padrão (R$)
+                        [e] size
+                            [v] s
+                        [e] hint
+                            [e] pt
+                                [v] Sugerido na nota; ela pode mudar.
             [e] row
                 [e] field
                     [v] .discriminacaoPadrao
@@ -72,6 +83,93 @@
                                 [v] Descrição do serviço para a nota
                         [e] size
                             [v] full
+            [e] section
+                [v] ISS da prefeitura (opcional)
+                @
+                    [e] description
+                        [e] pt
+                            [v] Padrões que a nota copia ao escolher este serviço. Tudo opcional: em branco, a nota sai sem o ISS. Confirme com seu contador.
+                    [e] collapsible
+                        [v] true
+            [e] row
+                [e] field
+                    [v] .issRetido
+                    @
+                        [e] label
+                            [e] pt
+                                [v] O cliente retém o ISS
+                        [e] size
+                            [v] m
+                [e] field
+                    [v] .aliquotaIss
+                    @
+                        [e] label
+                            [e] pt
+                                [v] Alíquota do ISS (%)
+                        [e] size
+                            [v] m
+                        [e] hint
+                            [e] pt
+                                [v] Ex.: 5,00. No Simples Nacional, só vai na nota quando o cliente retém o ISS (regra do governo). Obrigatória com ISS retido.
+                [e] field
+                    [v] .codigoTributacaoMunicipio
+                    @
+                        [e] label
+                            [e] pt
+                                [v] Código de tributação municipal
+                        [e] size
+                            [v] m
+                        [e] hint
+                            [e] pt
+                                [v] 3 dígitos, só se a sua prefeitura tiver código próprio; se não tiver, deixe em branco (o governo recusa o 000).
+            [e] section
+                [v] Impostos federais retidos pelo cliente (opcional)
+                @
+                    [e] description
+                        [e] pt
+                            [v] Ex.: uma empresa contrata seu serviço de R$ 1.000,00 e te paga R$ 890,00, porque descontou R$ 110,00 de INSS (11%). Os valores retidos são informados na nota. Confirme com seu contador.
+                    [e] collapsible
+                        [v] true
+            [e] row
+                [e] field
+                    [v] .cstPisCofins
+                    @
+                        [e] label
+                            [e] pt
+                                [v] CST do PIS/COFINS
+                        [e] size
+                            [v] l
+                        [e] hint
+                            [e] pt
+                                [v] Obrigatório com tipo de retenção ou alíquota de PIS/COFINS. Confirme o código com seu contador.
+                [e] field
+                    [v] .tipoRetencao
+                    @
+                        [e] label
+                            [e] pt
+                                [v] Tipo de retenção
+                        [e] size
+                            [v] l
+                        [e] hint
+                            [e] pt
+                                [v] Em branco, vale "PIS/COFINS não retidos".
+            [e] row
+                [e] field
+                    [v] .aliquotaPis
+                    @
+                        [e] label
+                            [e] pt
+                                [v] Alíquota do PIS (%)
+                        [e] size
+                            [v] l
+                [e] field
+                    [v] .aliquotaCofins
+                    @
+                        [e] label
+                            [e] pt
+                                [v] Alíquota da COFINS (%)
+                        [e] size
+                            [v] l
     [e] actions
         [e] action
             [v] salvar

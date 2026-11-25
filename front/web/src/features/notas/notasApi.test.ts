@@ -1,5 +1,21 @@
 import { describe, expect, it } from 'vitest'
-import { CANCELAMENTO, ESTADO, ESTADOS, cancelarSchema, dentroDoMesVigente, lerDetalhe, lerNota, mensagemErroNota } from '@/features/notas/notasApi'
+import {
+  CANCELAMENTO,
+  ESTADO,
+  ESTADOS,
+  baseIssPadrao,
+  cancelarSchema,
+  contasDaNota,
+  corpoDaNota,
+  dentroDoMesVigente,
+  issRetidoPadrao,
+  lerDetalhe,
+  lerNota,
+  mensagemErroNota,
+  tributosDoServico,
+  valoresDaNota,
+  type NotaValues,
+} from '@/features/notas/notasApi'
 import { podeCancelarNfse } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
 
@@ -80,5 +96,45 @@ describe('estados novos e delegacao', () => {
     expect(podeCancelarNfse({ ...base, papel: 'OPERADOR' })).toBe(false)
     expect(podeCancelarNfse({ ...base, papel: 'CONSULTA' })).toBe(false)
     expect(podeCancelarNfse({ ...base, papel: null, plataformaAdmin: true })).toBe(true)
+  })
+})
+
+describe('tributacao da nota: contas e padroes (mesmas regras do back)', () => {
+  it('base do ISS = valor - desconto, nunca negativa (a conta do governo)', () => {
+    expect(baseIssPadrao(1000, 50)).toBe(950)
+    expect(baseIssPadrao(333.33)).toBe(333.33)
+    expect(baseIssPadrao(10, 20)).toBe(0)
+    expect(baseIssPadrao(undefined, 5)).toBeUndefined()
+  })
+
+  it('ISS retido = base x aliquota, meio para cima em centavos', () => {
+    expect(issRetidoPadrao(950, 5)).toBe(47.5)
+    expect(issRetidoPadrao(0.3, 5)).toBe(0.02)
+    expect(issRetidoPadrao(100.1, 2.5)).toBe(2.5)
+    expect(issRetidoPadrao(125, 2.5)).toBe(3.13)
+    expect(issRetidoPadrao(100, undefined)).toBeUndefined()
+  })
+
+  it('contas em cinza: ISS retido so com ISS retido ligado; base federal = valor cheio', () => {
+    expect(contasDaNota({ valorServicos: 1000, valorDescontoIncondicionado: 50, issRetido: true, aliquotaIss: 5 })).toEqual({ baseIss: 950, issRetido: 47.5, baseFederal: 1000 })
+    expect(contasDaNota({ valorServicos: 1000, aliquotaIss: 5 })).toEqual({ baseIss: 1000, issRetido: undefined, baseFederal: 1000 })
+    expect(contasDaNota({ valorServicos: 1000 }).baseIss).toBeUndefined() // sem dado de ISS, sem base
+    expect(contasDaNota({ valorServicos: 1000, aliquotaIss: 5 }).issRetido).toBeUndefined()
+  })
+
+  it('padroes do servico: retencao, aliquota e federais; base e ISS nunca vem do servico', () => {
+    const s = { discriminacaoPadrao: 'x', valorPadrao: 200, issRetido: true, aliquotaIss: 5, cstPisCofins: '01', tipoRetencao: 3, aliquotaPis: 0.65, aliquotaCofins: 3 }
+    expect(tributosDoServico(s)).toMatchObject({ issRetido: true, aliquotaIss: 5, valorIssRetido: undefined, cstPisCofins: '01', tipoRetencao: 3 })
+  })
+
+  it('o corpo leva SEMPRE todos os tributos (em branco = null) e o detalhe volta para o formulario', () => {
+    const v = { pessoa: { id: 'p' }, servico: { id: 's' }, valorServicos: 1000, discriminacao: ' d ', issRetido: true, aliquotaIss: 5, valorBaseCalculoIss: 999, valorIssRetido: 49.95, cstPisCofins: '01', valorInss: 110 } as NotaValues
+    const c = corpoDaNota(v)
+    expect(c.tributos).toMatchObject({ issRetido: true, aliquotaIss: 5, cstPisCofins: '01', valorInss: 110, valorBaseCalculoIss: null, valorIssRetido: null, tipoRetencao: null, valorDescontoIncondicionado: null })
+    const d = lerDetalhe({ id: 'n', estado: 'REJEITADA', pessoa: { id: 'p', nome: 'P' }, servico: { id: 's', nome: 'S' }, valorServicos: 1000, discriminacao: 'd',
+      tributos: { issRetido: true, aliquotaIss: 5, valorBaseCalculoIss: 950, cstPisCofins: '01', tipoRetencao: 2, valorInss: 110, valorDescontoIncondicionado: 50 } })
+    expect(d.tributos).toMatchObject({ issRetido: true, aliquotaIss: 5, valorBaseCalculoIss: 950, cstPisCofins: '01', tipoRetencao: 2, valorInss: 110, valorDescontoIncondicionado: 50 })
+    expect(valoresDaNota(d)).toMatchObject({ issRetido: true, valorBaseCalculoIss: 950, cstPisCofins: '01', valorDescontoIncondicionado: 50 })
+    expect(lerDetalhe({ id: 'n' }).tributos).toEqual(expect.objectContaining({ issRetido: false, aliquotaIss: undefined }))
   })
 })
