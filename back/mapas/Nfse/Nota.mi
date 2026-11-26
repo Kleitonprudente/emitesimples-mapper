@@ -17,6 +17,7 @@
                   | A numeração da DPS (numero e serie) é atributo da nota, não existe entidade RPS. O prestador não vai no envio, vem do token da empresa (emitente no IntegraNotas).
                   | Regra de unicidade para a camada de banco: a combinação (empresa, ambiente, serie, numero) deve ser única. O rascunho do assistente tem numero e serie vazios e não conflita: no PostgreSQL valores nulos não colidem em índice único.
                   | O mapa não expressa unicidade composta, ela precisa virar constraint no banco.
+                  | Tributação: o grupo tributos_municipais SÓ vai no envio quando há dado de ISS (ISS retido ligado, alíquota, base ou valor retido; iss_retido = false sozinho não conta) E (regime de apuração diferente de 1 OU ISS retido); sem regime, vale 1 (regra E0625). Quando vai, leva sempre aliquota_iss (obrigatória, nunca deduzida) e valor_base_calculo_iss (em branco = valor dos serviços menos desconto incondicionado, mínimo 0). Uma nota simples, sem dado de ISS, sai sem o grupo tributos_municipais (a confirmar em homologação). O campo tipo_operacao não é mais enviado (não existe no schema de 2026-11-24). O grupo tributos_nacionais só vai com dado, e então exige o CST. Nenhum agente de IA informa tributo: só a pessoa, pela tela. As validações de coerência estão nas description dos atributos e são implementadas à mão.
                   | Fora do modelo por ora, a modelar sob demanda: obra, evento, locação, exterior, intermediário, deduções, contingência, emissão pelo tomador e o bloco ibs_cbs.
             [e] en
                 [v] Company NFS-e and its life cycle. There are two entry paths.
@@ -29,6 +30,7 @@
                   | The DPS numbering (numero and serie) is a note attribute, there is no RPS entity. The provider is not in the submission, it comes from the company token (emitente at IntegraNotas).
                   | Uniqueness rule for the database layer: the combination (company, environment, serie, numero) must be unique. The assistant draft has empty numero and serie and does not conflict: in PostgreSQL null values do not collide in a unique index.
                   | The map cannot express composite uniqueness, it must become a database constraint.
+                  | Taxation: the tributos_municipais group is ONLY sent when there is ISS data (ISS withheld on, rate, base or withheld amount; iss_retido = false alone does not count) AND (assessment regime different from 1 OR ISS withheld); with no regime, 1 applies (rule E0625). When sent, it always carries aliquota_iss (required, never inferred) and valor_base_calculo_iss (blank = services amount minus unconditional discount, minimum 0). A simple note, with no ISS data, goes out without the tributos_municipais group (to be confirmed in homologation). The tipo_operacao field is no longer sent (it does not exist in the 2026-11-24 schema). The tributos_nacionais group is only sent with data, and then requires the CST. No AI agent fills in taxes: only the person, through the screen. The coherence validations are in the attribute descriptions and are implemented by hand.
                   | Out of the model for now, to be modeled on demand: works, event, lease, abroad, intermediary, deductions, contingency, issuing by the taker and the ibs_cbs block.
     [g] envio
         [d] numero: Texto(9)
@@ -280,9 +282,11 @@
                         [v] ISS Operation Type
                 [e] description
                     [e] pt
-                        [v] Tipo da operação para o ISS (campo tributos_municipais.tipo_operacao do envio). Padrão 1, tributável.
+                        [v] Tipo da operação para o ISS. NÃO vai mais no envio v2: o campo tributos_municipais.tipo_operacao não existe no schema de 2026-11-24.
+                          | O atributo é mantido na nota, sem efeito no envio. Padrão 1, tributável.
                     [e] en
-                        [v] Operation type for ISS (the tributos_municipais.tipo_operacao field of the submission). Default 1, taxable.
+                        [v] Operation type for ISS. It is NO LONGER sent in v2: the tributos_municipais.tipo_operacao field does not exist in the 2026-11-24 schema.
+                          | The attribute is kept on the note, with no effect on the submission. Default 1, taxable.
                 [e] required
                     [v] true
                 [e] defaultValue
@@ -351,9 +355,45 @@
                         [v] ISS Rate
                 [e] description
                     [e] pt
-                        [v] Alíquota do ISS em pontos percentuais, de 0 a 100 (5.00 significa 5%). Opcional.
+                        [v] Alíquota do ISS em pontos percentuais, de 0 a 100 (5.00 significa 5%; campo aliquota_iss do envio). Opcional na nota, mas obrigatória quando o grupo
+                          | tributos_municipais vai no envio (regra E0625); nunca é deduzida pelo sistema. Validar à mão ao enviar.
                     [e] en
-                        [v] ISS rate in percentage points, from 0 to 100 (5.00 means 5%). Optional.
+                        [v] ISS rate in percentage points, from 0 to 100 (5.00 means 5%; the aliquota_iss field of the submission). Optional on the note, but required when the
+                          | tributos_municipais group is sent (rule E0625); never inferred by the system. Validate by hand on submission.
+        [d] valorBaseCalculoIss: ValorMonetario(15,2)
+            @
+                [e] cn
+                    [v] valor_base_calculo_iss
+                [e] title
+                    [e] pt
+                        [v] Base de Cálculo do ISS
+                    [e] en
+                        [v] ISS Calculation Base
+                [e] description
+                    [e] pt
+                        [v] Base de cálculo do ISS em R$ (campo valor_base_calculo_iss do envio, obrigatório quando o grupo tributos_municipais vai). CALCULADA pelo
+                          | sistema, nunca digitada: valor dos serviços − desconto incondicionado (mínimo 0), a mesma conta do governo (vBC = vServ − vDescIncond).
+                          | Decisão do dono (2026-11-25): a homologação mostrou que o governo ignora base informada e recalcula.
+                    [e] en
+                        [v] ISS calculation base in BRL (the valor_base_calculo_iss field of the submission, required when the tributos_municipais group is sent). COMPUTED
+                          | by the system, never typed: services amount − unconditional discount (minimum 0), the same as the government (vBC = vServ − vDescIncond).
+                          | Owner decision (2026-11-25): homologation showed the government ignores an informed base and recomputes it.
+        [d] valorIssRetido: ValorMonetario(15,2)
+            @
+                [e] cn
+                    [v] valor_iss_retido
+                [e] title
+                    [e] pt
+                        [v] Valor do ISS Retido
+                    [e] en
+                        [v] Withheld ISS Amount
+                [e] description
+                    [e] pt
+                        [v] Valor do ISS retido em R$ (campo valor_iss_retido do envio). CALCULADO pelo sistema, nunca digitado: só com ISS retido ligado e alíquota,
+                          | base de cálculo × alíquota / 100, 2 casas, meio para cima (vISSQN = vBC × pAliq, como o governo calcula).
+                    [e] en
+                        [v] Withheld ISS amount in BRL (the valor_iss_retido field of the submission). COMPUTED by the system, never typed: only with ISS withheld on and
+                          | a rate, calculation base × rate / 100, 2 places, half up (vISSQN = vBC × pAliq, as the government computes).
         [d] issRetido: Boolean()
             @
                 [e] cn
@@ -365,9 +405,11 @@
                         [v] ISS Withheld
                 [e] description
                     [e] pt
-                        [v] Indica se o ISS é retido pelo tomador (campo iss_retido do envio). Padrão não.
+                        [v] Indica se o ISS é retido pelo tomador (campo iss_retido do envio). Padrão não. Sozinho com valor falso não conta como dado de ISS
+                          | para decidir se o grupo tributos_municipais vai no envio (regra E0625).
                     [e] en
-                        [v] Tells whether ISS is withheld by the taker (the iss_retido field of the submission). Default no.
+                        [v] Tells whether ISS is withheld by the taker (the iss_retido field of the submission). Default no. Alone with a false value it does not count as ISS data
+                          | when deciding whether the tributos_municipais group is sent (rule E0625).
                 [e] required
                     [v] true
                 [e] defaultValue
@@ -425,11 +467,443 @@
                         [v] PIS/COFINS CST
                 [e] description
                     [e] pt
-                        [v] CST do PIS/COFINS, 2 dígitos (campo tributos_nacionais.cst do envio). Obrigatório na nota.
+                        [v] CST do PIS/COFINS, 2 dígitos com zero à esquerda (campo tributos_nacionais.cst do envio). Lista fechada com os 33 códigos do schema do IntegraNotas
+                          | (valores em [e] values; o código gravado é o filho codigo). Opcional na nota: o grupo tributos_nacionais só vai com dado, e então o CST é obrigatório
+                          | (validar à mão ao enviar). O sistema nunca escolhe o CST.
                     [e] en
-                        [v] PIS/COFINS CST, 2 digits (the tributos_nacionais.cst field of the submission). Required on the note.
-                [e] required
-                    [v] true
+                        [v] PIS/COFINS CST, 2 digits with leading zero (the tributos_nacionais.cst field of the submission). Closed list with the 33 codes of the IntegraNotas schema
+                          | (values in [e] values; the stored code is the codigo child). Optional on the note: the tributos_nacionais group is only sent with data, and then the CST is required
+                          | (validate by hand on submission). The system never chooses the CST.
+                [e] values
+                    [e] ALIQUOTA_NORMAL
+                        [e] codigo
+                            [v] 01
+                        [e] title
+                            [e] pt
+                                [v] Alíquota normal
+                            [e] en
+                                [v] Normal rate
+                        [e] description
+                            [e] pt
+                                [v] Operação tributável: base de cálculo = valor da operação (alíquota normal, cumulativo ou não cumulativo). Código gravado: 01.
+                            [e] en
+                                [v] Taxable operation: calculation base = operation amount (normal rate, cumulative or non-cumulative). Stored code: 01.
+                    [e] ALIQUOTA_DIFERENCIADA
+                        [e] codigo
+                            [v] 02
+                        [e] title
+                            [e] pt
+                                [v] Alíquota diferenciada
+                            [e] en
+                                [v] Differentiated rate
+                        [e] description
+                            [e] pt
+                                [v] Operação tributável: base de cálculo = valor da operação (alíquota diferenciada). Código gravado: 02.
+                            [e] en
+                                [v] Taxable operation: calculation base = operation amount (differentiated rate). Stored code: 02.
+                    [e] ALIQUOTA_POR_UNIDADE
+                        [e] codigo
+                            [v] 03
+                        [e] title
+                            [e] pt
+                                [v] Alíquota por unidade
+                            [e] en
+                                [v] Rate per unit
+                        [e] description
+                            [e] pt
+                                [v] Operação tributável: base de cálculo = quantidade vendida × alíquota por unidade de produto. Código gravado: 03.
+                            [e] en
+                                [v] Taxable operation: calculation base = quantity sold × rate per product unit. Stored code: 03.
+                    [e] MONOFASICA_ALIQUOTA_ZERO
+                        [e] codigo
+                            [v] 04
+                        [e] title
+                            [e] pt
+                                [v] Monofásica (alíquota zero)
+                            [e] en
+                                [v] Single-phase (zero rate)
+                        [e] description
+                            [e] pt
+                                [v] Operação tributável: tributação monofásica (alíquota zero). Código gravado: 04.
+                            [e] en
+                                [v] Taxable operation: single-phase taxation (zero rate). Stored code: 04.
+                    [e] SUBSTITUICAO_TRIBUTARIA
+                        [e] codigo
+                            [v] 05
+                        [e] title
+                            [e] pt
+                                [v] Substituição tributária
+                            [e] en
+                                [v] Tax substitution
+                        [e] description
+                            [e] pt
+                                [v] Operação tributável: substituição tributária. Código gravado: 05.
+                            [e] en
+                                [v] Taxable operation: tax substitution. Stored code: 05.
+                    [e] ALIQUOTA_ZERO
+                        [e] codigo
+                            [v] 06
+                        [e] title
+                            [e] pt
+                                [v] Alíquota zero
+                            [e] en
+                                [v] Zero rate
+                        [e] description
+                            [e] pt
+                                [v] Operação tributável: alíquota zero. Código gravado: 06.
+                            [e] en
+                                [v] Taxable operation: zero rate. Stored code: 06.
+                    [e] ISENTA
+                        [e] codigo
+                            [v] 07
+                        [e] title
+                            [e] pt
+                                [v] Isenta da contribuição
+                            [e] en
+                                [v] Exempt from the contribution
+                        [e] description
+                            [e] pt
+                                [v] Operação isenta da contribuição. Código gravado: 07.
+                            [e] en
+                                [v] Operation exempt from the contribution. Stored code: 07.
+                    [e] SEM_INCIDENCIA
+                        [e] codigo
+                            [v] 08
+                        [e] title
+                            [e] pt
+                                [v] Sem incidência
+                            [e] en
+                                [v] No incidence
+                        [e] description
+                            [e] pt
+                                [v] Operação sem incidência da contribuição. Código gravado: 08.
+                            [e] en
+                                [v] Operation with no incidence of the contribution. Stored code: 08.
+                    [e] COM_SUSPENSAO
+                        [e] codigo
+                            [v] 09
+                        [e] title
+                            [e] pt
+                                [v] Com suspensão
+                            [e] en
+                                [v] With suspension
+                        [e] description
+                            [e] pt
+                                [v] Operação com suspensão da contribuição. Código gravado: 09.
+                            [e] en
+                                [v] Operation with suspension of the contribution. Stored code: 09.
+                    [e] OUTRAS_SAIDAS
+                        [e] codigo
+                            [v] 49
+                        [e] title
+                            [e] pt
+                                [v] Outras operações de saída
+                            [e] en
+                                [v] Other output operations
+                        [e] description
+                            [e] pt
+                                [v] Outras operações de saída. Código gravado: 49.
+                            [e] en
+                                [v] Other output operations. Stored code: 49.
+                    [e] CREDITO_TRIBUTADA_MERCADO_INTERNO
+                        [e] codigo
+                            [v] 50
+                        [e] title
+                            [e] pt
+                                [v] Crédito: tributada no mercado interno
+                            [e] en
+                                [v] Credit: taxed in the domestic market
+                        [e] description
+                            [e] pt
+                                [v] Operação com direito a crédito: vinculada exclusivamente a receita tributada no mercado interno. Código gravado: 50.
+                            [e] en
+                                [v] Operation with right to credit: linked exclusively to revenue taxed in the domestic market. Stored code: 50.
+                    [e] CREDITO_NAO_TRIBUTADA_MERCADO_INTERNO
+                        [e] codigo
+                            [v] 51
+                        [e] title
+                            [e] pt
+                                [v] Crédito: não tributada no mercado interno
+                            [e] en
+                                [v] Credit: untaxed in the domestic market
+                        [e] description
+                            [e] pt
+                                [v] Operação com direito a crédito: vinculada exclusivamente a receita não tributada no mercado interno. Código gravado: 51.
+                            [e] en
+                                [v] Operation with right to credit: linked exclusively to revenue not taxed in the domestic market. Stored code: 51.
+                    [e] CREDITO_EXPORTACAO
+                        [e] codigo
+                            [v] 52
+                        [e] title
+                            [e] pt
+                                [v] Crédito: exportação
+                            [e] en
+                                [v] Credit: export
+                        [e] description
+                            [e] pt
+                                [v] Operação com direito a crédito: vinculada exclusivamente a receita de exportação. Código gravado: 52.
+                            [e] en
+                                [v] Operation with right to credit: linked exclusively to export revenue. Stored code: 52.
+                    [e] CREDITO_TRIBUTADA_E_NAO_TRIBUTADA_MERCADO_INTERNO
+                        [e] codigo
+                            [v] 53
+                        [e] title
+                            [e] pt
+                                [v] Crédito: tributada e não tributada no mercado interno
+                            [e] en
+                                [v] Credit: taxed and untaxed in the domestic market
+                        [e] description
+                            [e] pt
+                                [v] Operação com direito a crédito: vinculada a receitas tributadas e não tributadas no mercado interno. Código gravado: 53.
+                            [e] en
+                                [v] Operation with right to credit: linked to taxed and untaxed revenue in the domestic market. Stored code: 53.
+                    [e] CREDITO_TRIBUTADA_MERCADO_INTERNO_E_EXPORTACAO
+                        [e] codigo
+                            [v] 54
+                        [e] title
+                            [e] pt
+                                [v] Crédito: tributada no mercado interno e exportação
+                            [e] en
+                                [v] Credit: taxed in the domestic market and export
+                        [e] description
+                            [e] pt
+                                [v] Operação com direito a crédito: vinculada a receitas tributadas no mercado interno e de exportação. Código gravado: 54.
+                            [e] en
+                                [v] Operation with right to credit: linked to revenue taxed in the domestic market and export revenue. Stored code: 54.
+                    [e] CREDITO_NAO_TRIBUTADA_MERCADO_INTERNO_E_EXPORTACAO
+                        [e] codigo
+                            [v] 55
+                        [e] title
+                            [e] pt
+                                [v] Crédito: não tributada no mercado interno e exportação
+                            [e] en
+                                [v] Credit: untaxed in the domestic market and export
+                        [e] description
+                            [e] pt
+                                [v] Operação com direito a crédito: vinculada a receitas não tributadas no mercado interno e de exportação. Código gravado: 55.
+                            [e] en
+                                [v] Operation with right to credit: linked to revenue not taxed in the domestic market and export revenue. Stored code: 55.
+                    [e] CREDITO_TRIBUTADA_E_NAO_TRIBUTADA_MERCADO_INTERNO_E_EXPORTACAO
+                        [e] codigo
+                            [v] 56
+                        [e] title
+                            [e] pt
+                                [v] Crédito: tributada e não tributada no mercado interno e exportação
+                            [e] en
+                                [v] Credit: taxed and untaxed in the domestic market and export
+                        [e] description
+                            [e] pt
+                                [v] Operação com direito a crédito: vinculada a receitas tributadas e não tributadas no mercado interno e de exportação. Código gravado: 56.
+                            [e] en
+                                [v] Operation with right to credit: linked to taxed and untaxed revenue in the domestic market and export revenue. Stored code: 56.
+                    [e] CREDITO_PRESUMIDO_TRIBUTADA_MERCADO_INTERNO
+                        [e] codigo
+                            [v] 60
+                        [e] title
+                            [e] pt
+                                [v] Crédito presumido: tributada no mercado interno
+                            [e] en
+                                [v] Presumed credit: taxed in the domestic market
+                        [e] description
+                            [e] pt
+                                [v] Crédito presumido: operação de aquisição vinculada exclusivamente a receita tributada no mercado interno. Código gravado: 60.
+                            [e] en
+                                [v] Presumed credit: acquisition operation linked exclusively to revenue taxed in the domestic market. Stored code: 60.
+                    [e] CREDITO_PRESUMIDO_NAO_TRIBUTADA_MERCADO_INTERNO
+                        [e] codigo
+                            [v] 61
+                        [e] title
+                            [e] pt
+                                [v] Crédito presumido: não tributada no mercado interno
+                            [e] en
+                                [v] Presumed credit: untaxed in the domestic market
+                        [e] description
+                            [e] pt
+                                [v] Crédito presumido: operação de aquisição vinculada exclusivamente a receita não tributada no mercado interno. Código gravado: 61.
+                            [e] en
+                                [v] Presumed credit: acquisition operation linked exclusively to revenue not taxed in the domestic market. Stored code: 61.
+                    [e] CREDITO_PRESUMIDO_EXPORTACAO
+                        [e] codigo
+                            [v] 62
+                        [e] title
+                            [e] pt
+                                [v] Crédito presumido: exportação
+                            [e] en
+                                [v] Presumed credit: export
+                        [e] description
+                            [e] pt
+                                [v] Crédito presumido: operação de aquisição vinculada exclusivamente a receita de exportação. Código gravado: 62.
+                            [e] en
+                                [v] Presumed credit: acquisition operation linked exclusively to export revenue. Stored code: 62.
+                    [e] CREDITO_PRESUMIDO_TRIBUTADA_E_NAO_TRIBUTADA_MERCADO_INTERNO
+                        [e] codigo
+                            [v] 63
+                        [e] title
+                            [e] pt
+                                [v] Crédito presumido: tributada e não tributada no mercado interno
+                            [e] en
+                                [v] Presumed credit: taxed and untaxed in the domestic market
+                        [e] description
+                            [e] pt
+                                [v] Crédito presumido: operação de aquisição vinculada a receitas tributadas e não tributadas no mercado interno. Código gravado: 63.
+                            [e] en
+                                [v] Presumed credit: acquisition operation linked to taxed and untaxed revenue in the domestic market. Stored code: 63.
+                    [e] CREDITO_PRESUMIDO_TRIBUTADA_MERCADO_INTERNO_E_EXPORTACAO
+                        [e] codigo
+                            [v] 64
+                        [e] title
+                            [e] pt
+                                [v] Crédito presumido: tributada no mercado interno e exportação
+                            [e] en
+                                [v] Presumed credit: taxed in the domestic market and export
+                        [e] description
+                            [e] pt
+                                [v] Crédito presumido: operação de aquisição vinculada a receitas tributadas no mercado interno e de exportação. Código gravado: 64.
+                            [e] en
+                                [v] Presumed credit: acquisition operation linked to revenue taxed in the domestic market and export revenue. Stored code: 64.
+                    [e] CREDITO_PRESUMIDO_NAO_TRIBUTADA_MERCADO_INTERNO_E_EXPORTACAO
+                        [e] codigo
+                            [v] 65
+                        [e] title
+                            [e] pt
+                                [v] Crédito presumido: não tributada no mercado interno e exportação
+                            [e] en
+                                [v] Presumed credit: untaxed in the domestic market and export
+                        [e] description
+                            [e] pt
+                                [v] Crédito presumido: operação de aquisição vinculada a receitas não tributadas no mercado interno e de exportação. Código gravado: 65.
+                            [e] en
+                                [v] Presumed credit: acquisition operation linked to revenue not taxed in the domestic market and export revenue. Stored code: 65.
+                    [e] CREDITO_PRESUMIDO_TRIBUTADA_E_NAO_TRIBUTADA_MERCADO_INTERNO_E_EXPORTACAO
+                        [e] codigo
+                            [v] 66
+                        [e] title
+                            [e] pt
+                                [v] Crédito presumido: tributada e não tributada no mercado interno e exportação
+                            [e] en
+                                [v] Presumed credit: taxed and untaxed in the domestic market and export
+                        [e] description
+                            [e] pt
+                                [v] Crédito presumido: operação de aquisição vinculada a receitas tributadas e não tributadas no mercado interno e de exportação. Código gravado: 66.
+                            [e] en
+                                [v] Presumed credit: acquisition operation linked to taxed and untaxed revenue in the domestic market and export revenue. Stored code: 66.
+                    [e] CREDITO_PRESUMIDO_OUTRAS_OPERACOES
+                        [e] codigo
+                            [v] 67
+                        [e] title
+                            [e] pt
+                                [v] Crédito presumido: outras operações
+                            [e] en
+                                [v] Presumed credit: other operations
+                        [e] description
+                            [e] pt
+                                [v] Crédito presumido: outras operações. Código gravado: 67.
+                            [e] en
+                                [v] Presumed credit: other operations. Stored code: 67.
+                    [e] AQUISICAO_SEM_CREDITO
+                        [e] codigo
+                            [v] 70
+                        [e] title
+                            [e] pt
+                                [v] Aquisição sem direito a crédito
+                            [e] en
+                                [v] Acquisition without right to credit
+                        [e] description
+                            [e] pt
+                                [v] Operação de aquisição sem direito a crédito. Código gravado: 70.
+                            [e] en
+                                [v] Acquisition operation without right to credit. Stored code: 70.
+                    [e] AQUISICAO_ISENTA
+                        [e] codigo
+                            [v] 71
+                        [e] title
+                            [e] pt
+                                [v] Aquisição com isenção
+                            [e] en
+                                [v] Acquisition with exemption
+                        [e] description
+                            [e] pt
+                                [v] Operação de aquisição com isenção. Código gravado: 71.
+                            [e] en
+                                [v] Acquisition operation with exemption. Stored code: 71.
+                    [e] AQUISICAO_COM_SUSPENSAO
+                        [e] codigo
+                            [v] 72
+                        [e] title
+                            [e] pt
+                                [v] Aquisição com suspensão
+                            [e] en
+                                [v] Acquisition with suspension
+                        [e] description
+                            [e] pt
+                                [v] Operação de aquisição com suspensão. Código gravado: 72.
+                            [e] en
+                                [v] Acquisition operation with suspension. Stored code: 72.
+                    [e] AQUISICAO_ALIQUOTA_ZERO
+                        [e] codigo
+                            [v] 73
+                        [e] title
+                            [e] pt
+                                [v] Aquisição a alíquota zero
+                            [e] en
+                                [v] Acquisition at zero rate
+                        [e] description
+                            [e] pt
+                                [v] Operação de aquisição a alíquota zero. Código gravado: 73.
+                            [e] en
+                                [v] Acquisition operation at zero rate. Stored code: 73.
+                    [e] AQUISICAO_SEM_INCIDENCIA
+                        [e] codigo
+                            [v] 74
+                        [e] title
+                            [e] pt
+                                [v] Aquisição sem incidência
+                            [e] en
+                                [v] Acquisition with no incidence
+                        [e] description
+                            [e] pt
+                                [v] Operação de aquisição sem incidência da contribuição. Código gravado: 74.
+                            [e] en
+                                [v] Acquisition operation with no incidence of the contribution. Stored code: 74.
+                    [e] AQUISICAO_SUBSTITUICAO_TRIBUTARIA
+                        [e] codigo
+                            [v] 75
+                        [e] title
+                            [e] pt
+                                [v] Aquisição por substituição tributária
+                            [e] en
+                                [v] Acquisition by tax substitution
+                        [e] description
+                            [e] pt
+                                [v] Operação de aquisição por substituição tributária. Código gravado: 75.
+                            [e] en
+                                [v] Acquisition operation by tax substitution. Stored code: 75.
+                    [e] OUTRAS_ENTRADAS
+                        [e] codigo
+                            [v] 98
+                        [e] title
+                            [e] pt
+                                [v] Outras operações de entrada
+                            [e] en
+                                [v] Other input operations
+                        [e] description
+                            [e] pt
+                                [v] Outras operações de entrada. Código gravado: 98.
+                            [e] en
+                                [v] Other input operations. Stored code: 98.
+                    [e] OUTRAS_OPERACOES
+                        [e] codigo
+                            [v] 99
+                        [e] title
+                            [e] pt
+                                [v] Outras operações
+                            [e] en
+                                [v] Other operations
+                        [e] description
+                            [e] pt
+                                [v] Outras operações. Código gravado: 99.
+                            [e] en
+                                [v] Other operations. Stored code: 99.
         [d] tipoRetencao: Inteiro(1)
             @
                 [e] cn
@@ -441,11 +915,144 @@
                         [v] Withholding Type
                 [e] description
                     [e] pt
-                        [v] Tipo de retenção dos tributos federais, de 0 a 9 (campo tributos_nacionais.tipo_retencao do envio). Padrão 2.
+                        [v] Tipo de retenção do PIS, da COFINS e da CSLL, de 0 a 9 (campo tributos_nacionais.tipo_retencao do envio). Opcional.
+                          | No JSON vai como texto ("2"), não como número; em branco, o gateway assume 2 (PIS/COFINS não retidos). O código gravado é o número.
+                          | Informado, exige o CST do PIS/COFINS (validar à mão ao enviar).
                     [e] en
-                        [v] Federal tax withholding type, from 0 to 9 (the tributos_nacionais.tipo_retencao field of the submission). Default 2.
-                [e] defaultValue
-                    [v] 2
+                        [v] Withholding type for PIS, COFINS and CSLL, from 0 to 9 (the tributos_nacionais.tipo_retencao field of the submission). Optional.
+                          | In the JSON it goes as text ("2"), not as a number; when blank, the gateway assumes 2 (PIS/COFINS not withheld). The stored code is the number.
+                          | Once given, it requires the PIS/COFINS CST (validate by hand on submission).
+                [e] values
+                    [e] NENHUM_RETIDO
+                        [e] codigo
+                            [v] 0
+                        [e] title
+                            [e] pt
+                                [v] PIS/COFINS/CSLL não retidos
+                            [e] en
+                                [v] PIS/COFINS/CSLL not withheld
+                        [e] description
+                            [e] pt
+                                [v] PIS, COFINS e CSLL não retidos. Código gravado: 0.
+                            [e] en
+                                [v] PIS, COFINS and CSLL not withheld. Stored code: 0.
+                    [e] PIS_COFINS_RETIDOS
+                        [e] codigo
+                            [v] 1
+                        [e] title
+                            [e] pt
+                                [v] PIS/COFINS retido
+                            [e] en
+                                [v] PIS/COFINS withheld
+                        [e] description
+                            [e] pt
+                                [v] PIS e COFINS retidos. Código gravado: 1.
+                            [e] en
+                                [v] PIS and COFINS withheld. Stored code: 1.
+                    [e] PIS_COFINS_NAO_RETIDOS
+                        [e] codigo
+                            [v] 2
+                        [e] title
+                            [e] pt
+                                [v] PIS/COFINS não retido
+                            [e] en
+                                [v] PIS/COFINS not withheld
+                        [e] description
+                            [e] pt
+                                [v] PIS e COFINS não retidos. É o que o gateway assume quando o campo vem em branco. Código gravado: 2.
+                            [e] en
+                                [v] PIS and COFINS not withheld. It is what the gateway assumes when the field is blank. Stored code: 2.
+                    [e] PIS_COFINS_CSLL_RETIDOS
+                        [e] codigo
+                            [v] 3
+                        [e] title
+                            [e] pt
+                                [v] PIS/COFINS/CSLL retidos
+                            [e] en
+                                [v] PIS/COFINS/CSLL withheld
+                        [e] description
+                            [e] pt
+                                [v] PIS, COFINS e CSLL retidos. Código gravado: 3.
+                            [e] en
+                                [v] PIS, COFINS and CSLL withheld. Stored code: 3.
+                    [e] PIS_COFINS_RETIDOS_CSLL_NAO_RETIDA
+                        [e] codigo
+                            [v] 4
+                        [e] title
+                            [e] pt
+                                [v] PIS/COFINS retidos, CSLL não retido
+                            [e] en
+                                [v] PIS/COFINS withheld, CSLL not withheld
+                        [e] description
+                            [e] pt
+                                [v] PIS e COFINS retidos, CSLL não retida. Código gravado: 4.
+                            [e] en
+                                [v] PIS and COFINS withheld, CSLL not withheld. Stored code: 4.
+                    [e] PIS_RETIDO
+                        [e] codigo
+                            [v] 5
+                        [e] title
+                            [e] pt
+                                [v] PIS retido, COFINS/CSLL não retidos
+                            [e] en
+                                [v] PIS withheld, COFINS/CSLL not withheld
+                        [e] description
+                            [e] pt
+                                [v] PIS retido, COFINS e CSLL não retidos. Código gravado: 5.
+                            [e] en
+                                [v] PIS withheld, COFINS and CSLL not withheld. Stored code: 5.
+                    [e] COFINS_RETIDO
+                        [e] codigo
+                            [v] 6
+                        [e] title
+                            [e] pt
+                                [v] COFINS retido, PIS/CSLL não retidos
+                            [e] en
+                                [v] COFINS withheld, PIS/CSLL not withheld
+                        [e] description
+                            [e] pt
+                                [v] COFINS retido, PIS e CSLL não retidos. Código gravado: 6.
+                            [e] en
+                                [v] COFINS withheld, PIS and CSLL not withheld. Stored code: 6.
+                    [e] COFINS_CSLL_RETIDOS
+                        [e] codigo
+                            [v] 7
+                        [e] title
+                            [e] pt
+                                [v] PIS não retido, COFINS/CSLL retidos
+                            [e] en
+                                [v] PIS not withheld, COFINS/CSLL withheld
+                        [e] description
+                            [e] pt
+                                [v] PIS não retido, COFINS e CSLL retidos. Código gravado: 7.
+                            [e] en
+                                [v] PIS not withheld, COFINS and CSLL withheld. Stored code: 7.
+                    [e] CSLL_RETIDO
+                        [e] codigo
+                            [v] 8
+                        [e] title
+                            [e] pt
+                                [v] PIS/COFINS não retidos, CSLL retido
+                            [e] en
+                                [v] PIS/COFINS not withheld, CSLL withheld
+                        [e] description
+                            [e] pt
+                                [v] PIS e COFINS não retidos, CSLL retida. Código gravado: 8.
+                            [e] en
+                                [v] PIS and COFINS not withheld, CSLL withheld. Stored code: 8.
+                    [e] PIS_CSLL_RETIDOS
+                        [e] codigo
+                            [v] 9
+                        [e] title
+                            [e] pt
+                                [v] COFINS não retido, PIS/CSLL retidos
+                            [e] en
+                                [v] COFINS not withheld, PIS/CSLL withheld
+                        [e] description
+                            [e] pt
+                                [v] COFINS não retido, PIS e CSLL retidos. Código gravado: 9.
+                            [e] en
+                                [v] COFINS not withheld, PIS and CSLL withheld. Stored code: 9.
         [d] valorBaseCalculo: ValorMonetario(15,2)
             @
                 [e] cn
@@ -457,9 +1064,11 @@
                         [v] Calculation Base
                 [e] description
                     [e] pt
-                        [v] Base de cálculo do PIS e da COFINS (campo tributos_nacionais.valor_base_calculo do envio). Opcional.
+                        [v] Base de cálculo do PIS e da COFINS (campo tributos_nacionais.valor_base_calculo do envio, obrigatório quando o grupo vai).
+                          | Opcional: em branco vale o valor dos serviços, cheio (sem descontar o desconto incondicionado). Não pode passar do valor dos serviços.
                     [e] en
-                        [v] Calculation base for PIS and COFINS (the tributos_nacionais.valor_base_calculo field of the submission). Optional.
+                        [v] Calculation base for PIS and COFINS (the tributos_nacionais.valor_base_calculo field of the submission, required when the group is sent).
+                          | Optional: blank means the full services amount (without subtracting the unconditional discount). It cannot exceed the services amount.
         [d] aliquotaPis: Decimal(5,2)
             @
                 [e] cn

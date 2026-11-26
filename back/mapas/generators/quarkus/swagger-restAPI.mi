@@ -678,7 +678,7 @@
             [e] defineAttributeStringEnum-start
                 [v]         enum:
             [e] defineAttributeStringEnum-item
-                [v]           - {{ local-name() }}
+                [v]           - {{ if (exists(codigo)) then concat("'", normalize-space(codigo/value), "'") else local-name() }}
             [e] descriptionParagraph
                 [v]           {{ . }}
             [e] defineAttributeDate

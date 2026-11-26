@@ -25,8 +25,12 @@ import java.util.Map;
  * {@code -03:00} (emissao) e {@code yyyy-MM-dd} (competencia). {@code identificacao} = id da nota sem hifens (32 chars, cabe
  * nos 40 do gateway) e e a chave de correlacao com o webhook e com a consulta.
  *
- * <p>NAO enviados por decisao: {@code ibs_cbs}; {@code tributos_nacionais} quando o CST for '00' e nao houver valores (a doc
- * so exige {@code cst} se o bloco for enviado).
+ * <p>NAO enviados por decisao: {@code ibs_cbs}; {@code tributos_municipais.tipo_operacao} (nao existe no schema de
+ * 2026-11-24); {@code valor_previdencia_social}, CNAE, IE e tipo de ente (nao chegam a nota nacional).
+ *
+ * <p>Tributacao (regras em {@link TributacaoNota}; docs/historias-emissao-nota.md, "Tributacao da nota"): cada grupo so vai com
+ * dado. {@code tributos_municipais} segue a regra E0625 e leva sempre {@code aliquota_iss} e {@code valor_base_calculo_iss};
+ * {@code tributos_nacionais} leva sempre {@code cst} e {@code valor_base_calculo}, com {@code tipo_retencao} como TEXTO.
  *
  * <p>{@code servico.tributos_totais.percentual_tributos_simples_nacional}: enviado para optantes do Simples Nacional
  * (CRT 1 e 2) com o percentual do cadastro do servico. CONFIRMADO em homologacao: para ME/EPP o governo recusa o indicador
@@ -149,21 +153,30 @@ final class NfsePayloadMapper {
             s.put("codigo_nbs", n.getCodigoNbs());
         }
         s.put("valor_servicos", dinheiro(n.getValorServicos()));
-
-        ObjectNode tm = s.putObject("tributos_municipais");
-        tm.put("tipo_operacao", n.getTipoOperacaoIss() == null ? 1 : n.getTipoOperacaoIss());
-        if (n.getAliquotaIss() != null) {
-            tm.put("aliquota_iss", n.getAliquotaIss().setScale(2, RoundingMode.HALF_UP));
+        BigDecimal desconto = n.getValorDescontoIncondicionado();
+        if (desconto != null && desconto.signum() > 0) {
+            s.put("valor_desconto_incondicionado", dinheiro(desconto));
         }
-        tm.put("iss_retido", Boolean.TRUE.equals(n.getIssRetido()));
 
-        if (temTributosNacionais(n)) {
-            ObjectNode tn = s.putObject("tributos_nacionais");
-            tn.put("cst", n.getCstPisCofins());
-            if (n.getTipoRetencao() != null) {
-                tn.put("tipo_retencao", n.getTipoRetencao());
+        // E0625: no regime 1 so com ISS retido; aliquota_iss e valor_base_calculo_iss sao obrigatorios no grupo
+        if (TributacaoNota.issVaiNoEnvio(n, n.getRegimeApuracao())) {
+            ObjectNode tm = s.putObject("tributos_municipais");
+            boolean retido = Boolean.TRUE.equals(n.getIssRetido());
+            tm.put("iss_retido", retido);
+            percentual(tm, "aliquota_iss", n.getAliquotaIss());
+            tm.put("valor_base_calculo_iss", dinheiro(TributacaoNota.baseIssParaEnvio(n)));
+            if (retido) {
+                valor(tm, "valor_iss_retido", n.getValorIssRetido());
             }
-            valor(tn, "valor_base_calculo", n.getValorBaseCalculo());
+        }
+
+        if (TributacaoNota.federaisTemDados(n)) {
+            ObjectNode tn = s.putObject("tributos_nacionais");
+            tn.put("cst", TributacaoNota.cst(n));
+            if (n.getTipoRetencao() != null) {
+                tn.put("tipo_retencao", String.valueOf(n.getTipoRetencao())); // texto no schema
+            }
+            tn.put("valor_base_calculo", dinheiro(TributacaoNota.baseFederalParaEnvio(n)));
             percentual(tn, "aliquota_pis", n.getAliquotaPis());
             valor(tn, "valor_pis", n.getValorPis());
             percentual(tn, "aliquota_cofins", n.getAliquotaCofins());
@@ -222,14 +235,6 @@ final class NfsePayloadMapper {
     }
 
     // ------------------------------------------------------------------------------------- helpers
-
-    private static boolean temTributosNacionais(NotaEntity n) {
-        boolean cstZero = n.getCstPisCofins() == null || "00".equals(n.getCstPisCofins());
-        boolean valores = n.getValorBaseCalculo() != null || n.getAliquotaPis() != null || n.getValorPis() != null
-                || n.getAliquotaCofins() != null || n.getValorCofins() != null || n.getValorInss() != null
-                || n.getValorIr() != null || n.getValorCsll() != null || n.getTipoRetencao() != null;
-        return !cstZero || valores;
-    }
 
     static BigDecimal dinheiro(BigDecimal v) {
         return v.setScale(2, RoundingMode.HALF_UP);

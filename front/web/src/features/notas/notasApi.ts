@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { z } from 'zod'
 import type { BadgeTone } from '@/components/ui/badge'
 import { ApiError, api } from '@/lib/api'
+import { cstPisCofinsLabels, cstPisCofinsValues, tipoRetencaoLabels, tipoRetencaoValues } from '@/gen/schemas/servico'
 import { fkSource } from '@/lib/fk-sources'
 import type { FieldLayout } from '@/runtime/AutoForm'
 import type { TableState } from '@/runtime/table-state'
@@ -26,6 +27,9 @@ import type { TableState } from '@/runtime/table-state'
  *   POST /nfse/notas/{id}/descartar -> `descartada`; POST /nfse/notas/{id}/cancelamentos/preparar {codigoMotivo, motivo} -> cancelamento `rascunho`;
  *   POST /nfse/cancelamentos/{id}/aprovar | /descartar -> NotaDetalhe. NotaDetalhe: `podeAprovar`, `podeDescartar`; `cancelamento`: `id`, `podeAprovar`, `podeDescartar`.
  *   GET  /nfse/notas/{id}/pdf                    -> application/pdf (404 pdf_indisponivel)
+ * Tributacao (docs/historias-emissao-nota.md, "Tributacao da nota"): criar/enviar/aprovar levam `tributos` (Tributos). A TELA manda
+ *   SEMPRE o objeto inteiro: campo em branco limpa, inclusive o padrao do servico (a tela ja copia os padroes ao escolher o servico).
+ *   Sem `tributos` o back usa os padroes do servico. NotaDetalhe traz `tributos` gravados. Erros por campo com o nome do Tributos.
  * Erros {codigo, mensagem, detalhes?}: 409 nfse_nao_habilitada|emitente_nao_cadastrado|emitente_de_outro_ambiente|certificado_nao_valido|
  *   servico_inativo|nota_em_processamento|nota_nao_editavel|nota_em_conflito; cancelar: 409 nota_nao_autorizada|
  *   cancelamento_fora_do_mes|cancelamento_em_andamento|cancelamento_recusado (mensagem do gateway)|emissao_producao_bloqueada; 422 tomador_incompleto (detalhes.campos);
@@ -90,7 +94,35 @@ export interface NotaDetalhe extends NotaItem {
   /** Rascunho do assistente: quem pode emitir aprova (envia) ou descarta. */
   podeAprovar: boolean
   podeDescartar: boolean
+  tributos: Tributos
 }
+
+/** Tributacao da nota (ISS e retencoes federais). Dinheiro em reais; aliquotas em pontos percentuais (5 = 5%). */
+export interface Tributos {
+  issRetido: boolean
+  aliquotaIss?: number
+  /** Base do ISS em R$ = valor - desconto (calculada; somente leitura na tela; o governo faz a mesma conta). */
+  valorBaseCalculoIss?: number
+  /** ISS retido em R$ = base x aliquota (calculado; somente leitura na tela). */
+  valorIssRetido?: number
+  cstPisCofins?: string
+  tipoRetencao?: number
+  valorBaseCalculo?: number
+  aliquotaPis?: number
+  aliquotaCofins?: number
+  valorPis?: number
+  valorCofins?: number
+  valorInss?: number
+  valorIr?: number
+  valorCsll?: number
+  valorDescontoIncondicionado?: number
+}
+
+/** Campos numericos de Tributos (todos opcionais). */
+const CAMPOS_NUMERICOS = [
+  'aliquotaIss', 'valorBaseCalculoIss', 'valorIssRetido', 'tipoRetencao', 'valorBaseCalculo', 'aliquotaPis', 'aliquotaCofins',
+  'valorPis', 'valorCofins', 'valorInss', 'valorIr', 'valorCsll', 'valorDescontoIncondicionado',
+] as const
 
 export type EstadoCancelamento = 'RASCUNHO' | 'PROCESSANDO' | 'CONCLUIDO' | 'RECUSADO' | 'EXPIRADO' | 'DESCARTADO'
 
@@ -123,11 +155,20 @@ export interface CorpoNota {
   valorServicos: number
   informacoesComplementares?: string
   discriminacao?: string
+  tributos?: { [K in keyof Tributos]: Tributos[K] | null }
 }
 
 const rec = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' ? (v as Record<string, unknown>) : {})
 const str = (v: unknown): string | undefined => (typeof v === 'string' && v !== '' ? v : undefined)
 const num = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? v : 0)
+const numOpt = (v: unknown): number | undefined => (typeof v === 'number' && Number.isFinite(v) ? v : undefined)
+
+export function lerTributos(raw: unknown): Tributos {
+  const r = rec(raw)
+  const t: Tributos = { issRetido: r.issRetido === true, cstPisCofins: str(r.cstPisCofins) }
+  for (const c of CAMPOS_NUMERICOS) t[c] = numOpt(r[c])
+  return t
+}
 
 export function lerNota(raw: unknown): NotaItem {
   const r = rec(raw)
@@ -192,6 +233,7 @@ export function lerDetalhe(raw: unknown): NotaDetalhe {
     podeCancelar: typeof r.podeCancelar === 'boolean' ? r.podeCancelar : undefined,
     podeAprovar: r.podeAprovar === true,
     podeDescartar: r.podeDescartar === true,
+    tributos: lerTributos(r.tributos),
   }
 }
 
@@ -351,39 +393,182 @@ export const urlPdf = (id: string) => `/nfse/notas/${encodeURIComponent(id)}/pdf
 
 /** Texto padrao do servico (discriminacaoPadrao do cadastro) para preencher a descricao da nota. */
 export async function buscarDiscriminacaoPadrao(servicoId: string): Promise<string> {
-  const s = rec(await api<unknown>(`/Servico/id/${encodeURIComponent(servicoId)}`))
-  return str(s.discriminacaoPadrao) ?? ''
+  return (await buscarPadroesDoServico(servicoId)).discriminacaoPadrao
 }
+
+/** Padroes do cadastro do servico que a nota copia ao escolher o servico. */
+export interface PadroesDoServico {
+  discriminacaoPadrao: string
+  valorPadrao?: number
+  issRetido: boolean
+  aliquotaIss?: number
+  cstPisCofins?: string
+  tipoRetencao?: number
+  aliquotaPis?: number
+  aliquotaCofins?: number
+}
+
+export async function buscarPadroesDoServico(servicoId: string): Promise<PadroesDoServico> {
+  const s = rec(await api<unknown>(`/Servico/id/${encodeURIComponent(servicoId)}`))
+  const cst = str(s.cstPisCofins)
+  return {
+    discriminacaoPadrao: str(s.discriminacaoPadrao) ?? '',
+    valorPadrao: numOpt(s.valorPadrao),
+    issRetido: s.issRetido === true,
+    aliquotaIss: numOpt(s.aliquotaIss),
+    cstPisCofins: cst === '00' ? undefined : cst, // 00 = legado "sem CST"
+    tipoRetencao: numOpt(s.tipoRetencao),
+    aliquotaPis: numOpt(s.aliquotaPis),
+    aliquotaCofins: numOpt(s.aliquotaCofins),
+  }
+}
+
+/**
+ * Valores de tributacao que a tela poe no formulario ao escolher o servico. O % da base do ISS do servico vale para qualquer valor
+ * de nota; valores em reais das retencoes, desconto e ISS retido em reais nunca vem do servico (ficam vazios).
+ */
+export function tributosDoServico(s: PadroesDoServico): Partial<NotaValues> {
+  return {
+    issRetido: s.issRetido,
+    aliquotaIss: s.aliquotaIss,
+    valorIssRetido: undefined,
+    cstPisCofins: s.cstPisCofins as NotaValues['cstPisCofins'],
+    tipoRetencao: s.tipoRetencao,
+    aliquotaPis: s.aliquotaPis,
+    aliquotaCofins: s.aliquotaCofins,
+  }
+}
+
+const centavos = (v: number): number => Math.round(v * 100)
+
+/** Base do ISS em R$ = valor - desconto, minimo 0 (mesma conta do back e do governo: vBC = vServ - vDescIncond). */
+export function baseIssPadrao(valor?: number, desconto?: number): number | undefined {
+  if (valor === undefined) return undefined
+  return Math.max(0, centavos(valor) - centavos(desconto ?? 0)) / 100
+}
+
+/** ISS retido = base x aliquota / 100, meio para cima (mesma conta do back e do governo: vISSQN = vBC x pAliq), em reais. */
+export function issRetidoPadrao(base?: number, aliquota?: number): number | undefined {
+  if (base === undefined || aliquota === undefined) return undefined
+  const c = centavos(base) * Math.round(aliquota * 100) // centavos x centesimos de ponto
+  return Math.floor((c + 5000) / 10000) / 100
+}
+
+const reais = (v: number): string => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 /* ----- formulario (nova nota e edicao para reenvio) ----- */
 
 const fk = z.looseObject({ id: z.string().min(1) })
 
+const dinheiro = z.number().min(0, 'Informe um valor de zero para cima.').optional()
+const percentual = z.number().min(0, 'Use de 0 a 100.').max(100, 'Use de 0 a 100.').optional()
+
 export const notaSchema = z.object({
   pessoa: fk,
   servico: fk,
   valorServicos: z.number().min(0.01, 'O valor deve ser de pelo menos R$ 0,01.'),
+  valorDescontoIncondicionado: dinheiro,
   discriminacao: z.string().trim().min(1, 'Campo obrigatório').max(2000),
   informacoesComplementares: z.string().max(2000).optional(),
+  issRetido: z.boolean().optional(),
+  aliquotaIss: percentual,
+  valorBaseCalculoIss: dinheiro,
+  valorIssRetido: dinheiro,
+  cstPisCofins: z.enum(cstPisCofinsValues).optional(),
+  tipoRetencao: z.number().int().refine((v) => (tipoRetencaoValues as readonly number[]).includes(v)).optional(),
+  valorBaseCalculo: dinheiro,
+  aliquotaPis: percentual,
+  aliquotaCofins: percentual,
+  valorPis: dinheiro,
+  valorCofins: dinheiro,
+  valorInss: dinheiro,
+  valorIr: dinheiro,
+  valorCsll: dinheiro,
 })
 
 export type NotaValues = z.infer<typeof notaSchema>
 
-export const notaLayout: FieldLayout = [
-  { section: 'Nota', description: 'Escolha o cliente e o serviço. A nota só é emitida quando você clica em enviar.' },
-  [
-    { name: 'pessoa', label: 'Cliente', kind: 'fk', fk: fkSource('Cliente'), required: true, size: 'l' },
-    { name: 'servico', label: 'Serviço', kind: 'fk', fk: fkSource('Servico'), required: true, size: 'l' },
-  ],
-  [{ name: 'valorServicos', label: 'Valor dos serviços', kind: 'currency', required: true, size: 'm' }],
-  [{ name: 'discriminacao', label: 'Descrição do serviço', kind: 'textarea', required: true, maxLength: 2000, size: 'full', hint: 'Preenchida com o texto padrão do serviço; você pode editar.' }],
-  [{ name: 'informacoesComplementares', label: 'Informações complementares', kind: 'textarea', maxLength: 2000, size: 'full' }],
-]
+/** Contas que a tela mostra (o back faz as mesmas). Base e ISS so com dado de ISS (retencao ou aliquota). */
+export interface ContasDaNota {
+  baseIss?: number
+  issRetido?: number
+  baseFederal?: number
+}
+
+export function contasDaNota(v: Partial<NotaValues>): ContasDaNota {
+  const temIss = v.issRetido === true || v.aliquotaIss !== undefined
+  const baseIss = temIss ? baseIssPadrao(v.valorServicos, v.valorDescontoIncondicionado) : undefined
+  return {
+    baseIss,
+    issRetido: v.issRetido ? issRetidoPadrao(baseIss, v.aliquotaIss) : undefined,
+    baseFederal: v.valorServicos,
+  }
+}
+
+const emCinza = (v?: number): string | undefined => (v === undefined ? undefined : reais(v))
+
+/** Layout da nota; `contas` poe em cinza (placeholder) o que o sistema calcula quando o campo fica em branco. */
+export function layoutDaNota(contas: ContasDaNota = {}): FieldLayout {
+  return [
+    { section: 'Nota', description: 'Escolha o cliente e o serviço. A nota só é emitida quando você clica em enviar.' },
+    [
+      { name: 'pessoa', label: 'Cliente', kind: 'fk', fk: fkSource('Cliente'), required: true, size: 'l' },
+      { name: 'servico', label: 'Serviço', kind: 'fk', fk: fkSource('Servico'), required: true, size: 'l' },
+    ],
+    [
+      { name: 'valorServicos', label: 'Valor dos serviços', kind: 'currency', required: true, size: 'l' },
+      { name: 'valorDescontoIncondicionado', label: 'Desconto incondicionado', kind: 'currency', size: 'l', hint: 'Opcional. Desconto dado sem condição; diminui a base do ISS.' },
+    ],
+    [{ name: 'discriminacao', label: 'Descrição do serviço', kind: 'textarea', required: true, maxLength: 2000, size: 'full', hint: 'Preenchida com o texto padrão do serviço; você pode editar.' }],
+    [{ name: 'informacoesComplementares', label: 'Informações complementares', kind: 'textarea', maxLength: 2000, size: 'full' }],
+    {
+      section: 'ISS da prefeitura (opcional)',
+      description: 'Vem preenchido com os padrões do serviço. Em branco, nada do ISS vai na nota. Confirme com seu contador.',
+      collapsible: true,
+    },
+    [
+      { name: 'issRetido', label: 'O cliente retém o ISS', kind: 'boolean', size: 's' },
+      { name: 'aliquotaIss', label: 'Alíquota do ISS (%)', kind: 'number', size: 's', hint: 'Ex.: 5,00. No Simples Nacional, só vai na nota quando o cliente retém o ISS (regra do governo).' },
+      { name: 'valorBaseCalculoIss', label: 'Base de cálculo do ISS', kind: 'currency', size: 's', readOnly: true, hint: 'Calculada: valor − desconto (como a prefeitura calcula).' },
+      { name: 'valorIssRetido', label: 'Valor do ISS retido', kind: 'currency', size: 's', readOnly: true, hint: 'Calculado: base × alíquota.' },
+    ],
+    {
+      section: 'Impostos federais retidos pelo cliente (opcional)',
+      description: 'Ex.: uma empresa contrata seu serviço de R$ 1.000,00 e te paga R$ 890,00, porque descontou R$ 110,00 de INSS (11%). Confirme com seu contador.',
+      collapsible: true,
+    },
+    [
+      { name: 'cstPisCofins', label: 'CST do PIS/COFINS', options: cstPisCofinsValues.map((value) => ({ value, label: cstPisCofinsLabels[value] })), size: 'l', hint: 'Obrigatório quando qualquer campo deste quadro tem dado.' },
+      { name: 'tipoRetencao', label: 'Tipo de retenção', options: tipoRetencaoValues.map((value) => ({ value, label: tipoRetencaoLabels[value] })), size: 'l', hint: 'Em branco, vale "PIS/COFINS não retidos".' },
+    ],
+    [
+      { name: 'valorBaseCalculo', label: 'Base de cálculo federal', kind: 'currency', size: 's', placeholder: emCinza(contas.baseFederal), hint: 'Em branco: o valor da nota.' },
+      { name: 'aliquotaPis', label: 'Alíquota do PIS (%)', kind: 'number', size: 's' },
+      { name: 'aliquotaCofins', label: 'Alíquota da COFINS (%)', kind: 'number', size: 's' },
+      { name: 'valorPis', label: 'PIS retido', kind: 'currency', size: 's' },
+    ],
+    [
+      { name: 'valorCofins', label: 'COFINS retida', kind: 'currency', size: 's' },
+      { name: 'valorInss', label: 'INSS retido', kind: 'currency', size: 's' },
+      { name: 'valorIr', label: 'IR retido', kind: 'currency', size: 's' },
+      { name: 'valorCsll', label: 'CSLL retida', kind: 'currency', size: 's' },
+    ],
+  ]
+}
+
+export const notaLayout: FieldLayout = layoutDaNota()
 
 export function corpoDaNota(v: NotaValues): CorpoNota {
   const corpo: CorpoNota = { pessoaId: v.pessoa.id, servicoId: v.servico.id, valorServicos: v.valorServicos, discriminacao: v.discriminacao.trim() }
   const info = (v.informacoesComplementares ?? '').trim()
   if (info !== '') corpo.informacoesComplementares = info
+  // a tela manda SEMPRE todos os campos: em branco limpa (inclusive o padrao do servico)
+  const tributos: NonNullable<CorpoNota['tributos']> = { issRetido: v.issRetido === true, cstPisCofins: v.cstPisCofins ?? null }
+  for (const c of CAMPOS_NUMERICOS) tributos[c] = v[c] ?? null
+  // base e ISS retido sao sempre calculados pelo back (o governo ignora o informado)
+  tributos.valorBaseCalculoIss = null
+  tributos.valorIssRetido = null
+  corpo.tributos = tributos
   return corpo
 }
 
@@ -394,6 +579,8 @@ export function valoresDaNota(n: NotaDetalhe): NotaValues {
     valorServicos: n.valorServicos,
     discriminacao: n.discriminacao,
     informacoesComplementares: n.informacoesComplementares,
+    ...n.tributos,
+    cstPisCofins: n.tributos.cstPisCofins as NotaValues['cstPisCofins'],
   }
 }
 
@@ -417,6 +604,23 @@ const CAMPOS: Record<string, string> = {
   valorServicos: 'valor dos serviços',
   discriminacao: 'descrição do serviço',
   informacoesComplementares: 'informações complementares',
+  tributos: 'tributos',
+  issRetido: 'ISS retido',
+  aliquotaIss: 'alíquota do ISS',
+  valorBaseCalculoIss: 'base de cálculo do ISS',
+  valorIssRetido: 'valor do ISS retido',
+  cstPisCofins: 'CST do PIS/COFINS',
+  tipoRetencao: 'tipo de retenção',
+  valorBaseCalculo: 'base de cálculo federal',
+  aliquotaPis: 'alíquota do PIS',
+  aliquotaCofins: 'alíquota da COFINS',
+  valorPis: 'PIS retido',
+  valorCofins: 'COFINS retida',
+  valorInss: 'INSS retido',
+  valorIr: 'IR retido',
+  valorCsll: 'CSLL retida',
+  valorDescontoIncondicionado: 'desconto incondicionado',
+  codigoTributacaoMunicipio: 'código de tributação municipal do serviço',
   codigoMotivo: 'tipo do motivo',
   motivo: 'justificativa',
 }

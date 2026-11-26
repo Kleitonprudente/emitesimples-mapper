@@ -52,6 +52,17 @@ import br.com.emitesimples.usuarios.domain.ClienteAcesso;
 * serie, numero) deve ser única. O rascunho do assistente tem numero e serie 
 * vazios e não conflita: no PostgreSQL valores nulos não colidem em índice único.
  * O mapa não expressa unicidade composta, ela precisa virar constraint no banco.
+ * Tributação: o grupo tributos_municipais SÓ vai no envio quando há dado de ISS 
+* (ISS retido ligado, alíquota, base ou valor retido; iss_retido = false sozinho 
+* não conta) E (regime de apuração diferente de 1 OU ISS retido); sem regime, vale 
+* 1 (regra E0625). Quando vai, leva sempre aliquota_iss (obrigatória, nunca 
+* deduzida) e valor_base_calculo_iss (em branco = valor dos serviços menos 
+* desconto incondicionado, mínimo 0). Uma nota simples, sem dado de ISS, sai sem o 
+* grupo tributos_municipais (a confirmar em homologação). O campo tipo_operacao 
+* não é mais enviado (não existe no schema de 2026-11-24). O grupo 
+* tributos_nacionais só vai com dado, e então exige o CST. Nenhum agente de IA 
+* informa tributo: só a pessoa, pela tela. As validações de coerência estão nas 
+* description dos atributos e são implementadas à mão.
  * Fora do modelo por ora, a modelar sob demanda: obra, evento, locação, exterior, 
 * intermediário, deduções, contingência, emissão pelo tomador e o bloco ibs_cbs.
 
@@ -111,12 +122,15 @@ public class Nota {
 
     private BigDecimal aliquotaIss;
 
+    private BigDecimal valorBaseCalculoIss;
+
+    private BigDecimal valorIssRetido;
+
     @NotNull(message = "The attribute issRetido can't be null.")
     private Boolean issRetido;
 
     private Integer responsavelRetencao;
 
-    @NotEmpty(message = "The attribute cstPisCofins can't be empty.")
     @Size(max = 2, message = "Attribute cstPisCofins must have 2 characters maximum.")
     private String cstPisCofins;
 
@@ -234,6 +248,8 @@ public class Nota {
         this.valorDescontoIncondicionado = null;
         this.tipoOperacaoIss = null;
         this.aliquotaIss = null;
+        this.valorBaseCalculoIss = null;
+        this.valorIssRetido = null;
         this.issRetido = null;
         this.responsavelRetencao = null;
         this.cstPisCofins = null;
@@ -293,6 +309,8 @@ public class Nota {
         BigDecimal valorDescontoIncondicionado,
         Integer tipoOperacaoIss,
         BigDecimal aliquotaIss,
+        BigDecimal valorBaseCalculoIss,
+        BigDecimal valorIssRetido,
         Boolean issRetido,
         Integer responsavelRetencao,
         String cstPisCofins,
@@ -351,6 +369,8 @@ public class Nota {
         this.valorDescontoIncondicionado = valorDescontoIncondicionado;
         this.tipoOperacaoIss = tipoOperacaoIss;
         this.aliquotaIss = aliquotaIss;
+        this.valorBaseCalculoIss = valorBaseCalculoIss;
+        this.valorIssRetido = valorIssRetido;
         this.issRetido = issRetido;
         this.responsavelRetencao = responsavelRetencao;
         this.cstPisCofins = cstPisCofins;
@@ -530,6 +550,18 @@ public class Nota {
     }
     public BigDecimal getAliquotaIss() {
         return this.aliquotaIss;
+    }
+    public void setValorBaseCalculoIss(BigDecimal valorBaseCalculoIss) {
+        this.valorBaseCalculoIss = valorBaseCalculoIss;
+    }
+    public BigDecimal getValorBaseCalculoIss() {
+        return this.valorBaseCalculoIss;
+    }
+    public void setValorIssRetido(BigDecimal valorIssRetido) {
+        this.valorIssRetido = valorIssRetido;
+    }
+    public BigDecimal getValorIssRetido() {
+        return this.valorIssRetido;
     }
 
     public void setIssRetido(Boolean issRetido) {
@@ -853,6 +885,8 @@ public class Nota {
             this.valorDescontoIncondicionado != null || 
             this.tipoOperacaoIss != null || 
             this.aliquotaIss != null || 
+            this.valorBaseCalculoIss != null || 
+            this.valorIssRetido != null || 
             this.issRetido != null || 
             this.responsavelRetencao != null || 
             this.cstPisCofins != null || 

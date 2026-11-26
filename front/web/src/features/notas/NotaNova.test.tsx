@@ -160,7 +160,7 @@ describe('NotaNova', () => {
     fireEvent.change(screen.getByLabelText(/Informações complementares/), { target: { value: ' Pedido 7 ' } })
     await user.click(enviar())
     await waitFor(() => expect(posts()).toHaveLength(1))
-    expect(posts()[0]![1].body).toEqual({ pessoaId: 'p1', servicoId: 's1', valorServicos: 150.5, discriminacao: PADRAO, informacoesComplementares: 'Pedido 7' })
+    expect(posts()[0]![1].body).toEqual({ pessoaId: 'p1', servicoId: 's1', valorServicos: 150.5, discriminacao: PADRAO, informacoesComplementares: 'Pedido 7', tributos: { issRetido: false, cstPisCofins: null, aliquotaIss: null, valorBaseCalculoIss: null, valorIssRetido: null, tipoRetencao: null, valorBaseCalculo: null, aliquotaPis: null, aliquotaCofins: null, valorPis: null, valorCofins: null, valorInss: null, valorIr: null, valorCsll: null, valorDescontoIncondicionado: null } })
     await waitFor(() => expect(navegar).toHaveBeenCalledWith({ to: '/notas/$id', params: { id: 'n-novo' } }))
     expect(toastMock.success).toHaveBeenCalledWith('Nota enviada.')
   })

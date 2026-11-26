@@ -41,6 +41,13 @@ if [ -z "${FILE_PATH:-}" ]; then
   exit 0
 fi
 
+# ── Windows: convert C:\... or C:/... to the Git Bash form (/c/...) ───────────
+# Without this, every absolute Windows path is treated as relative and blocked.
+
+if printf '%s' "$FILE_PATH" | grep -qE '^[A-Za-z]:[\\/]' && command -v cygpath &>/dev/null; then
+  FILE_PATH=$(cygpath -u "$FILE_PATH")
+fi
+
 # ── Resolve project root ──────────────────────────────────────────────────────
 # Use the directory this script lives in's parent as the project root,
 # falling back to the current working directory if resolution fails.
@@ -75,10 +82,12 @@ fi
 
 # Normalize: collapse redundant slashes and . components without following symlinks.
 # We use Python if available for reliable normalization, otherwise use a shell approach.
+# posixpath (not os.path): on Windows os.path turns /c/... into \c\... and nothing matches the root.
+# The path goes on stdin (Git Bash rewrites /c/... arguments to C:/... for Windows programs), never inside the code.
 if command -v python3 &>/dev/null 2>&1; then
-  NORMALIZED=$(python3 -c "import os.path; print(os.path.normpath('$RESOLVED'))" 2>/dev/null || echo "$RESOLVED")
+  NORMALIZED=$(printf "%s" "$RESOLVED" | python3 -c "import posixpath,sys; print(posixpath.normpath(sys.stdin.read()))" 2>/dev/null || echo "$RESOLVED")
 elif command -v python &>/dev/null 2>&1; then
-  NORMALIZED=$(python -c "import os.path; print(os.path.normpath('$RESOLVED'))" 2>/dev/null || echo "$RESOLVED")
+  NORMALIZED=$(printf "%s" "$RESOLVED" | python -c "import posixpath,sys; print(posixpath.normpath(sys.stdin.read()))" 2>/dev/null || echo "$RESOLVED")
 else
   # Shell fallback: strip redundant slashes only.
   NORMALIZED=$(printf '%s' "$RESOLVED" | sed 's|/\+|/|g')
