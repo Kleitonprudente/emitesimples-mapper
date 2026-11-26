@@ -2898,6 +2898,17 @@ definitions:
             serie, numero) deve ser única. O rascunho do assistente tem numero e serie 
             vazios e não conflita: no PostgreSQL valores nulos não colidem em índice único.
              O mapa não expressa unicidade composta, ela precisa virar constraint no banco.
+             Tributação: o grupo tributos_municipais SÓ vai no envio quando há dado de ISS 
+            (ISS retido ligado, alíquota, base ou valor retido; iss_retido = false sozinho 
+            não conta) E (regime de apuração diferente de 1 OU ISS retido); sem regime, vale 
+            1 (regra E0625). Quando vai, leva sempre aliquota_iss (obrigatória, nunca 
+            deduzida) e valor_base_calculo_iss (em branco = valor dos serviços menos 
+            desconto incondicionado, mínimo 0). Uma nota simples, sem dado de ISS, sai sem o 
+            grupo tributos_municipais (a confirmar em homologação). O campo tipo_operacao 
+            não é mais enviado (não existe no schema de 2026-11-24). O grupo 
+            tributos_nacionais só vai com dado, e então exige o CST. Nenhum agente de IA 
+            informa tributo: só a pessoa, pela tela. As validações de coerência estão nas 
+            description dos atributos e são implementadas à mão.
              Fora do modelo por ora, a modelar sob demanda: obra, evento, locação, exterior, 
             intermediário, deduções, contingência, emissão pelo tomador e o bloco ibs_cbs.
 
@@ -2908,7 +2919,6 @@ definitions:
       - valorServicos
       - tipoOperacaoIss
       - issRetido
-      - cstPisCofins
       - estado
       - id
       - ambiente
@@ -3073,8 +3083,9 @@ definitions:
         maximum: 9
         format: int32
         description: |
-            Tipo da operação para o ISS (campo tributos_municipais.tipo_operacao do envio). 
-            Padrão 1, tributável.
+            Tipo da operação para o ISS. NÃO vai mais no envio v2: o campo 
+            tributos_municipais.tipo_operacao não existe no schema de 2026-11-24.
+             O atributo é mantido na nota, sem efeito no envio. Padrão 1, tributável.
 
             Valores permitidos: 
               TRIBUTAVEL
@@ -3094,12 +3105,39 @@ definitions:
         minimum: 0
         maximum: 999.99
         description: |
-            Alíquota do ISS em pontos percentuais, de 0 a 100 (5.00 significa 5%). Opcional.
+            Alíquota do ISS em pontos percentuais, de 0 a 100 (5.00 significa 5%; campo 
+            aliquota_iss do envio). Opcional na nota, mas obrigatória quando o grupo
+             tributos_municipais vai no envio (regra E0625); nunca é deduzida pelo sistema. 
+            Validar à mão ao enviar.
+
+      valorBaseCalculoIss:
+        type: number
+        minimum: 0
+        maximum: 9999999999999.99
+        description: |
+            Base de cálculo do ISS em R$ (campo valor_base_calculo_iss do envio, obrigatório 
+            quando o grupo tributos_municipais vai). CALCULADA pelo
+             sistema, nunca digitada: valor dos serviços − desconto incondicionado (mínimo 
+            0), a mesma conta do governo (vBC = vServ − vDescIncond).
+             Decisão do dono (2026-11-25): a homologação mostrou que o governo ignora base 
+            informada e recalcula.
+
+      valorIssRetido:
+        type: number
+        minimum: 0
+        maximum: 9999999999999.99
+        description: |
+            Valor do ISS retido em R$ (campo valor_iss_retido do envio). CALCULADO pelo 
+            sistema, nunca digitado: só com ISS retido ligado e alíquota,
+             base de cálculo × alíquota / 100, 2 casas, meio para cima (vISSQN = vBC × pAliq, 
+            como o governo calcula).
 
       issRetido:
         type: boolean
         description: |
-            Indica se o ISS é retido pelo tomador (campo iss_retido do envio). Padrão não.
+            Indica se o ISS é retido pelo tomador (campo iss_retido do envio). Padrão não. 
+            Sozinho com valor falso não conta como dado de ISS
+             para decidir se o grupo tributos_municipais vai no envio (regra E0625).
 
       responsavelRetencao:
         type: integer
@@ -3122,25 +3160,198 @@ definitions:
         maxLength: 2
         pattern: \w*\W*
         description: |
-            CST do PIS/COFINS, 2 dígitos (campo tributos_nacionais.cst do envio). 
-            Obrigatório na nota.
+            CST do PIS/COFINS, 2 dígitos com zero à esquerda (campo tributos_nacionais.cst 
+            do envio). Lista fechada com os 33 códigos do schema do IntegraNotas
+             (valores em [e] values; o código gravado é o filho codigo). Opcional na nota: o 
+            grupo tributos_nacionais só vai com dado, e então o CST é obrigatório
+             (validar à mão ao enviar). O sistema nunca escolhe o CST.
 
+            Valores permitidos: 
+              ALIQUOTA_NORMAL
+                 Valor: 01
+                 Texto: Alíquota normal - Operação tributável: base de cálculo = valor da operação (alíquota normal, cumulativo ou não cumulativo). Código gravado: 01.
+              ALIQUOTA_DIFERENCIADA
+                 Valor: 02
+                 Texto: Alíquota diferenciada - Operação tributável: base de cálculo = valor da operação (alíquota diferenciada). Código gravado: 02.
+              ALIQUOTA_POR_UNIDADE
+                 Valor: 03
+                 Texto: Alíquota por unidade - Operação tributável: base de cálculo = quantidade vendida × alíquota por unidade de produto. Código gravado: 03.
+              MONOFASICA_ALIQUOTA_ZERO
+                 Valor: 04
+                 Texto: Monofásica (alíquota zero) - Operação tributável: tributação monofásica (alíquota zero). Código gravado: 04.
+              SUBSTITUICAO_TRIBUTARIA
+                 Valor: 05
+                 Texto: Substituição tributária - Operação tributável: substituição tributária. Código gravado: 05.
+              ALIQUOTA_ZERO
+                 Valor: 06
+                 Texto: Alíquota zero - Operação tributável: alíquota zero. Código gravado: 06.
+              ISENTA
+                 Valor: 07
+                 Texto: Isenta da contribuição - Operação isenta da contribuição. Código gravado: 07.
+              SEM_INCIDENCIA
+                 Valor: 08
+                 Texto: Sem incidência - Operação sem incidência da contribuição. Código gravado: 08.
+              COM_SUSPENSAO
+                 Valor: 09
+                 Texto: Com suspensão - Operação com suspensão da contribuição. Código gravado: 09.
+              OUTRAS_SAIDAS
+                 Valor: 49
+                 Texto: Outras operações de saída - Outras operações de saída. Código gravado: 49.
+              CREDITO_TRIBUTADA_MERCADO_INTERNO
+                 Valor: 50
+                 Texto: Crédito: tributada no mercado interno - Operação com direito a crédito: vinculada exclusivamente a receita tributada no mercado interno. Código gravado: 50.
+              CREDITO_NAO_TRIBUTADA_MERCADO_INTERNO
+                 Valor: 51
+                 Texto: Crédito: não tributada no mercado interno - Operação com direito a crédito: vinculada exclusivamente a receita não tributada no mercado interno. Código gravado: 51.
+              CREDITO_EXPORTACAO
+                 Valor: 52
+                 Texto: Crédito: exportação - Operação com direito a crédito: vinculada exclusivamente a receita de exportação. Código gravado: 52.
+              CREDITO_TRIBUTADA_E_NAO_TRIBUTADA_MERCADO_INTERNO
+                 Valor: 53
+                 Texto: Crédito: tributada e não tributada no mercado interno - Operação com direito a crédito: vinculada a receitas tributadas e não tributadas no mercado interno. Código gravado: 53.
+              CREDITO_TRIBUTADA_MERCADO_INTERNO_E_EXPORTACAO
+                 Valor: 54
+                 Texto: Crédito: tributada no mercado interno e exportação - Operação com direito a crédito: vinculada a receitas tributadas no mercado interno e de exportação. Código gravado: 54.
+              CREDITO_NAO_TRIBUTADA_MERCADO_INTERNO_E_EXPORTACAO
+                 Valor: 55
+                 Texto: Crédito: não tributada no mercado interno e exportação - Operação com direito a crédito: vinculada a receitas não tributadas no mercado interno e de exportação. Código gravado: 55.
+              CREDITO_TRIBUTADA_E_NAO_TRIBUTADA_MERCADO_INTERNO_E_EXPORTACAO
+                 Valor: 56
+                 Texto: Crédito: tributada e não tributada no mercado interno e exportação - Operação com direito a crédito: vinculada a receitas tributadas e não tributadas no mercado interno e de exportação. Código gravado: 56.
+              CREDITO_PRESUMIDO_TRIBUTADA_MERCADO_INTERNO
+                 Valor: 60
+                 Texto: Crédito presumido: tributada no mercado interno - Crédito presumido: operação de aquisição vinculada exclusivamente a receita tributada no mercado interno. Código gravado: 60.
+              CREDITO_PRESUMIDO_NAO_TRIBUTADA_MERCADO_INTERNO
+                 Valor: 61
+                 Texto: Crédito presumido: não tributada no mercado interno - Crédito presumido: operação de aquisição vinculada exclusivamente a receita não tributada no mercado interno. Código gravado: 61.
+              CREDITO_PRESUMIDO_EXPORTACAO
+                 Valor: 62
+                 Texto: Crédito presumido: exportação - Crédito presumido: operação de aquisição vinculada exclusivamente a receita de exportação. Código gravado: 62.
+              CREDITO_PRESUMIDO_TRIBUTADA_E_NAO_TRIBUTADA_MERCADO_INTERNO
+                 Valor: 63
+                 Texto: Crédito presumido: tributada e não tributada no mercado interno - Crédito presumido: operação de aquisição vinculada a receitas tributadas e não tributadas no mercado interno. Código gravado: 63.
+              CREDITO_PRESUMIDO_TRIBUTADA_MERCADO_INTERNO_E_EXPORTACAO
+                 Valor: 64
+                 Texto: Crédito presumido: tributada no mercado interno e exportação - Crédito presumido: operação de aquisição vinculada a receitas tributadas no mercado interno e de exportação. Código gravado: 64.
+              CREDITO_PRESUMIDO_NAO_TRIBUTADA_MERCADO_INTERNO_E_EXPORTACAO
+                 Valor: 65
+                 Texto: Crédito presumido: não tributada no mercado interno e exportação - Crédito presumido: operação de aquisição vinculada a receitas não tributadas no mercado interno e de exportação. Código gravado: 65.
+              CREDITO_PRESUMIDO_TRIBUTADA_E_NAO_TRIBUTADA_MERCADO_INTERNO_E_EXPORTACAO
+                 Valor: 66
+                 Texto: Crédito presumido: tributada e não tributada no mercado interno e exportação - Crédito presumido: operação de aquisição vinculada a receitas tributadas e não tributadas no mercado interno e de exportação. Código gravado: 66.
+              CREDITO_PRESUMIDO_OUTRAS_OPERACOES
+                 Valor: 67
+                 Texto: Crédito presumido: outras operações - Crédito presumido: outras operações. Código gravado: 67.
+              AQUISICAO_SEM_CREDITO
+                 Valor: 70
+                 Texto: Aquisição sem direito a crédito - Operação de aquisição sem direito a crédito. Código gravado: 70.
+              AQUISICAO_ISENTA
+                 Valor: 71
+                 Texto: Aquisição com isenção - Operação de aquisição com isenção. Código gravado: 71.
+              AQUISICAO_COM_SUSPENSAO
+                 Valor: 72
+                 Texto: Aquisição com suspensão - Operação de aquisição com suspensão. Código gravado: 72.
+              AQUISICAO_ALIQUOTA_ZERO
+                 Valor: 73
+                 Texto: Aquisição a alíquota zero - Operação de aquisição a alíquota zero. Código gravado: 73.
+              AQUISICAO_SEM_INCIDENCIA
+                 Valor: 74
+                 Texto: Aquisição sem incidência - Operação de aquisição sem incidência da contribuição. Código gravado: 74.
+              AQUISICAO_SUBSTITUICAO_TRIBUTARIA
+                 Valor: 75
+                 Texto: Aquisição por substituição tributária - Operação de aquisição por substituição tributária. Código gravado: 75.
+              OUTRAS_ENTRADAS
+                 Valor: 98
+                 Texto: Outras operações de entrada - Outras operações de entrada. Código gravado: 98.
+              OUTRAS_OPERACOES
+                 Valor: 99
+                 Texto: Outras operações - Outras operações. Código gravado: 99.
+        enum:
+          - '01'
+          - '02'
+          - '03'
+          - '04'
+          - '05'
+          - '06'
+          - '07'
+          - '08'
+          - '09'
+          - '49'
+          - '50'
+          - '51'
+          - '52'
+          - '53'
+          - '54'
+          - '55'
+          - '56'
+          - '60'
+          - '61'
+          - '62'
+          - '63'
+          - '64'
+          - '65'
+          - '66'
+          - '67'
+          - '70'
+          - '71'
+          - '72'
+          - '73'
+          - '74'
+          - '75'
+          - '98'
+          - '99'
       tipoRetencao:
         type: integer
         minimum: 0
         maximum: 9
         format: int32
         description: |
-            Tipo de retenção dos tributos federais, de 0 a 9 (campo 
-            tributos_nacionais.tipo_retencao do envio). Padrão 2.
+            Tipo de retenção do PIS, da COFINS e da CSLL, de 0 a 9 (campo 
+            tributos_nacionais.tipo_retencao do envio). Opcional.
+             No JSON vai como texto ("2"), não como número; em branco, o gateway assume 2 
+            (PIS/COFINS não retidos). O código gravado é o número.
+             Informado, exige o CST do PIS/COFINS (validar à mão ao enviar).
 
+            Valores permitidos: 
+              NENHUM_RETIDO
+                 Valor: 0
+                 Texto: PIS/COFINS/CSLL não retidos - PIS, COFINS e CSLL não retidos. Código gravado: 0.
+              PIS_COFINS_RETIDOS
+                 Valor: 1
+                 Texto: PIS/COFINS retido - PIS e COFINS retidos. Código gravado: 1.
+              PIS_COFINS_NAO_RETIDOS
+                 Valor: 2
+                 Texto: PIS/COFINS não retido - PIS e COFINS não retidos. É o que o gateway assume quando o campo vem em branco. Código gravado: 2.
+              PIS_COFINS_CSLL_RETIDOS
+                 Valor: 3
+                 Texto: PIS/COFINS/CSLL retidos - PIS, COFINS e CSLL retidos. Código gravado: 3.
+              PIS_COFINS_RETIDOS_CSLL_NAO_RETIDA
+                 Valor: 4
+                 Texto: PIS/COFINS retidos, CSLL não retido - PIS e COFINS retidos, CSLL não retida. Código gravado: 4.
+              PIS_RETIDO
+                 Valor: 5
+                 Texto: PIS retido, COFINS/CSLL não retidos - PIS retido, COFINS e CSLL não retidos. Código gravado: 5.
+              COFINS_RETIDO
+                 Valor: 6
+                 Texto: COFINS retido, PIS/CSLL não retidos - COFINS retido, PIS e CSLL não retidos. Código gravado: 6.
+              COFINS_CSLL_RETIDOS
+                 Valor: 7
+                 Texto: PIS não retido, COFINS/CSLL retidos - PIS não retido, COFINS e CSLL retidos. Código gravado: 7.
+              CSLL_RETIDO
+                 Valor: 8
+                 Texto: PIS/COFINS não retidos, CSLL retido - PIS e COFINS não retidos, CSLL retida. Código gravado: 8.
+              PIS_CSLL_RETIDOS
+                 Valor: 9
+                 Texto: COFINS não retido, PIS/CSLL retidos - COFINS não retido, PIS e CSLL retidos. Código gravado: 9.
       valorBaseCalculo:
         type: number
         minimum: 0
         maximum: 9999999999999.99
         description: |
             Base de cálculo do PIS e da COFINS (campo tributos_nacionais.valor_base_calculo 
-            do envio). Opcional.
+            do envio, obrigatório quando o grupo vai).
+             Opcional: em branco vale o valor dos serviços, cheio (sem descontar o desconto 
+            incondicionado). Não pode passar do valor dos serviços.
 
       aliquotaPis:
         type: number
@@ -4044,6 +4255,12 @@ definitions:
              Vive no contexto cadastros (domain.cadastros), que referencia a Empresa 
             (configuracao) e tem dependência mútua com ele, pois a Empresa referencia o 
             Municipio, que está em cadastros.
+             Os padrões tributários (ISS, PIS/COFINS, retenções) são só sugestão para a nota 
+            e todos opcionais. Nenhum agente de IA informa tributo: esses campos só se 
+            preenchem pela tela. Dinheiro em ValorMonetario(15,2) e alíquotas em 
+            Decimal(5,2); deduções, previdência, CNAE, inscrição estadual e tipo de ente não 
+            existem aqui. As validações de coerência estão nas description dos atributos e 
+            são implementadas à mão.
 
     type: object
     required:
@@ -4110,8 +4327,10 @@ definitions:
         maxLength: 3
         pattern: \w*\W*
         description: |
-            Código de tributação do município, 3 dígitos (campo codigo_tributacao_municipio 
-            do envio). Opcional.
+            Código de tributação do município, exatamente 3 dígitos (campo 
+            codigo_tributacao_municipio do envio). Opcional:
+             só se a prefeitura tiver código próprio; se não tiver, fica em branco. "000" é 
+            recusado (o governo devolve E0315).
 
       codigoNbs:
         type: string
@@ -4153,11 +4372,15 @@ definitions:
         description: |
             Alíquota do ISS em pontos percentuais, de 0 a 100 (5.00 significa 5%). Campo 
             aliquota_iss do envio. Opcional.
+             Coerência (validar à mão ao salvar): com ISS retido ligado ou com base de 
+            cálculo informada, a alíquota é obrigatória. Nunca é deduzida pelo sistema.
 
       issRetido:
         type: boolean
         description: |
-            Indica se o ISS é retido pelo tomador (campo iss_retido do envio). Padrão não.
+            Indica se o ISS é retido pelo tomador (campo iss_retido do envio). Padrão não. 
+            Com ISS retido ligado, a alíquota do ISS é obrigatória no serviço (validar à 
+            mão).
 
       tipoOperacaoIss:
         type: integer
@@ -4165,8 +4388,9 @@ definitions:
         maximum: 9
         format: int32
         description: |
-            Tipo da operação para o ISS (campo tributos_municipais.tipo_operacao do envio). 
-            Padrão 1, tributável.
+            Tipo da operação para o ISS. NÃO vai mais no envio v2: o campo 
+            tributos_municipais.tipo_operacao não existe no schema de 2026-11-24.
+             O atributo é mantido no cadastro, sem efeito no envio. Padrão 1, tributável.
 
             Valores permitidos: 
               TRIBUTAVEL
@@ -4187,9 +4411,208 @@ definitions:
         pattern: \w*\W*
         description: |
             CST do PIS/COFINS, 2 dígitos (campo tributos_nacionais.cst do envio, obrigatório 
-            na nota). Texto porque a lista é longa
-             e vem da tabela de CST PIS/COFINS da documentação do IntegraNotas. Opcional no 
-            cadastro, a nota informa se faltar.
+            na nota quando o grupo federal vai). Texto, com zero à esquerda,
+             de lista fechada com os 33 códigos do schema do IntegraNotas (valores em [e] 
+            values; o código gravado é o filho codigo). Opcional no cadastro, a nota informa 
+            se faltar.
+             O sistema nunca escolhe o CST. Coerência (validar à mão ao salvar): com tipo de 
+            retenção ou alíquota de PIS/COFINS informados, o CST é obrigatório.
+
+            Valores permitidos: 
+              ALIQUOTA_NORMAL
+                 Valor: 01
+                 Texto: Alíquota normal - Operação tributável: base de cálculo = valor da operação (alíquota normal, cumulativo ou não cumulativo). Código gravado: 01.
+              ALIQUOTA_DIFERENCIADA
+                 Valor: 02
+                 Texto: Alíquota diferenciada - Operação tributável: base de cálculo = valor da operação (alíquota diferenciada). Código gravado: 02.
+              ALIQUOTA_POR_UNIDADE
+                 Valor: 03
+                 Texto: Alíquota por unidade - Operação tributável: base de cálculo = quantidade vendida × alíquota por unidade de produto. Código gravado: 03.
+              MONOFASICA_ALIQUOTA_ZERO
+                 Valor: 04
+                 Texto: Monofásica (alíquota zero) - Operação tributável: tributação monofásica (alíquota zero). Código gravado: 04.
+              SUBSTITUICAO_TRIBUTARIA
+                 Valor: 05
+                 Texto: Substituição tributária - Operação tributável: substituição tributária. Código gravado: 05.
+              ALIQUOTA_ZERO
+                 Valor: 06
+                 Texto: Alíquota zero - Operação tributável: alíquota zero. Código gravado: 06.
+              ISENTA
+                 Valor: 07
+                 Texto: Isenta da contribuição - Operação isenta da contribuição. Código gravado: 07.
+              SEM_INCIDENCIA
+                 Valor: 08
+                 Texto: Sem incidência - Operação sem incidência da contribuição. Código gravado: 08.
+              COM_SUSPENSAO
+                 Valor: 09
+                 Texto: Com suspensão - Operação com suspensão da contribuição. Código gravado: 09.
+              OUTRAS_SAIDAS
+                 Valor: 49
+                 Texto: Outras operações de saída - Outras operações de saída. Código gravado: 49.
+              CREDITO_TRIBUTADA_MERCADO_INTERNO
+                 Valor: 50
+                 Texto: Crédito: tributada no mercado interno - Operação com direito a crédito: vinculada exclusivamente a receita tributada no mercado interno. Código gravado: 50.
+              CREDITO_NAO_TRIBUTADA_MERCADO_INTERNO
+                 Valor: 51
+                 Texto: Crédito: não tributada no mercado interno - Operação com direito a crédito: vinculada exclusivamente a receita não tributada no mercado interno. Código gravado: 51.
+              CREDITO_EXPORTACAO
+                 Valor: 52
+                 Texto: Crédito: exportação - Operação com direito a crédito: vinculada exclusivamente a receita de exportação. Código gravado: 52.
+              CREDITO_TRIBUTADA_E_NAO_TRIBUTADA_MERCADO_INTERNO
+                 Valor: 53
+                 Texto: Crédito: tributada e não tributada no mercado interno - Operação com direito a crédito: vinculada a receitas tributadas e não tributadas no mercado interno. Código gravado: 53.
+              CREDITO_TRIBUTADA_MERCADO_INTERNO_E_EXPORTACAO
+                 Valor: 54
+                 Texto: Crédito: tributada no mercado interno e exportação - Operação com direito a crédito: vinculada a receitas tributadas no mercado interno e de exportação. Código gravado: 54.
+              CREDITO_NAO_TRIBUTADA_MERCADO_INTERNO_E_EXPORTACAO
+                 Valor: 55
+                 Texto: Crédito: não tributada no mercado interno e exportação - Operação com direito a crédito: vinculada a receitas não tributadas no mercado interno e de exportação. Código gravado: 55.
+              CREDITO_TRIBUTADA_E_NAO_TRIBUTADA_MERCADO_INTERNO_E_EXPORTACAO
+                 Valor: 56
+                 Texto: Crédito: tributada e não tributada no mercado interno e exportação - Operação com direito a crédito: vinculada a receitas tributadas e não tributadas no mercado interno e de exportação. Código gravado: 56.
+              CREDITO_PRESUMIDO_TRIBUTADA_MERCADO_INTERNO
+                 Valor: 60
+                 Texto: Crédito presumido: tributada no mercado interno - Crédito presumido: operação de aquisição vinculada exclusivamente a receita tributada no mercado interno. Código gravado: 60.
+              CREDITO_PRESUMIDO_NAO_TRIBUTADA_MERCADO_INTERNO
+                 Valor: 61
+                 Texto: Crédito presumido: não tributada no mercado interno - Crédito presumido: operação de aquisição vinculada exclusivamente a receita não tributada no mercado interno. Código gravado: 61.
+              CREDITO_PRESUMIDO_EXPORTACAO
+                 Valor: 62
+                 Texto: Crédito presumido: exportação - Crédito presumido: operação de aquisição vinculada exclusivamente a receita de exportação. Código gravado: 62.
+              CREDITO_PRESUMIDO_TRIBUTADA_E_NAO_TRIBUTADA_MERCADO_INTERNO
+                 Valor: 63
+                 Texto: Crédito presumido: tributada e não tributada no mercado interno - Crédito presumido: operação de aquisição vinculada a receitas tributadas e não tributadas no mercado interno. Código gravado: 63.
+              CREDITO_PRESUMIDO_TRIBUTADA_MERCADO_INTERNO_E_EXPORTACAO
+                 Valor: 64
+                 Texto: Crédito presumido: tributada no mercado interno e exportação - Crédito presumido: operação de aquisição vinculada a receitas tributadas no mercado interno e de exportação. Código gravado: 64.
+              CREDITO_PRESUMIDO_NAO_TRIBUTADA_MERCADO_INTERNO_E_EXPORTACAO
+                 Valor: 65
+                 Texto: Crédito presumido: não tributada no mercado interno e exportação - Crédito presumido: operação de aquisição vinculada a receitas não tributadas no mercado interno e de exportação. Código gravado: 65.
+              CREDITO_PRESUMIDO_TRIBUTADA_E_NAO_TRIBUTADA_MERCADO_INTERNO_E_EXPORTACAO
+                 Valor: 66
+                 Texto: Crédito presumido: tributada e não tributada no mercado interno e exportação - Crédito presumido: operação de aquisição vinculada a receitas tributadas e não tributadas no mercado interno e de exportação. Código gravado: 66.
+              CREDITO_PRESUMIDO_OUTRAS_OPERACOES
+                 Valor: 67
+                 Texto: Crédito presumido: outras operações - Crédito presumido: outras operações. Código gravado: 67.
+              AQUISICAO_SEM_CREDITO
+                 Valor: 70
+                 Texto: Aquisição sem direito a crédito - Operação de aquisição sem direito a crédito. Código gravado: 70.
+              AQUISICAO_ISENTA
+                 Valor: 71
+                 Texto: Aquisição com isenção - Operação de aquisição com isenção. Código gravado: 71.
+              AQUISICAO_COM_SUSPENSAO
+                 Valor: 72
+                 Texto: Aquisição com suspensão - Operação de aquisição com suspensão. Código gravado: 72.
+              AQUISICAO_ALIQUOTA_ZERO
+                 Valor: 73
+                 Texto: Aquisição a alíquota zero - Operação de aquisição a alíquota zero. Código gravado: 73.
+              AQUISICAO_SEM_INCIDENCIA
+                 Valor: 74
+                 Texto: Aquisição sem incidência - Operação de aquisição sem incidência da contribuição. Código gravado: 74.
+              AQUISICAO_SUBSTITUICAO_TRIBUTARIA
+                 Valor: 75
+                 Texto: Aquisição por substituição tributária - Operação de aquisição por substituição tributária. Código gravado: 75.
+              OUTRAS_ENTRADAS
+                 Valor: 98
+                 Texto: Outras operações de entrada - Outras operações de entrada. Código gravado: 98.
+              OUTRAS_OPERACOES
+                 Valor: 99
+                 Texto: Outras operações - Outras operações. Código gravado: 99.
+        enum:
+          - '01'
+          - '02'
+          - '03'
+          - '04'
+          - '05'
+          - '06'
+          - '07'
+          - '08'
+          - '09'
+          - '49'
+          - '50'
+          - '51'
+          - '52'
+          - '53'
+          - '54'
+          - '55'
+          - '56'
+          - '60'
+          - '61'
+          - '62'
+          - '63'
+          - '64'
+          - '65'
+          - '66'
+          - '67'
+          - '70'
+          - '71'
+          - '72'
+          - '73'
+          - '74'
+          - '75'
+          - '98'
+          - '99'
+      tipoRetencao:
+        type: integer
+        minimum: 0
+        maximum: 9
+        format: int32
+        description: |
+            Tipo de retenção do PIS, da COFINS e da CSLL, de 0 a 9 (campo 
+            tributos_nacionais.tipo_retencao do envio). Opcional.
+             No JSON vai como texto ("2"), não como número; em branco, o gateway assume 2 
+            (PIS/COFINS não retidos). O código gravado é o número.
+             Coerência (validar à mão ao salvar): informado o tipo de retenção, o CST do 
+            PIS/COFINS é obrigatório.
+
+            Valores permitidos: 
+              NENHUM_RETIDO
+                 Valor: 0
+                 Texto: PIS/COFINS/CSLL não retidos - PIS, COFINS e CSLL não retidos. Código gravado: 0.
+              PIS_COFINS_RETIDOS
+                 Valor: 1
+                 Texto: PIS/COFINS retido - PIS e COFINS retidos. Código gravado: 1.
+              PIS_COFINS_NAO_RETIDOS
+                 Valor: 2
+                 Texto: PIS/COFINS não retido - PIS e COFINS não retidos. É o que o gateway assume quando o campo vem em branco. Código gravado: 2.
+              PIS_COFINS_CSLL_RETIDOS
+                 Valor: 3
+                 Texto: PIS/COFINS/CSLL retidos - PIS, COFINS e CSLL retidos. Código gravado: 3.
+              PIS_COFINS_RETIDOS_CSLL_NAO_RETIDA
+                 Valor: 4
+                 Texto: PIS/COFINS retidos, CSLL não retido - PIS e COFINS retidos, CSLL não retida. Código gravado: 4.
+              PIS_RETIDO
+                 Valor: 5
+                 Texto: PIS retido, COFINS/CSLL não retidos - PIS retido, COFINS e CSLL não retidos. Código gravado: 5.
+              COFINS_RETIDO
+                 Valor: 6
+                 Texto: COFINS retido, PIS/CSLL não retidos - COFINS retido, PIS e CSLL não retidos. Código gravado: 6.
+              COFINS_CSLL_RETIDOS
+                 Valor: 7
+                 Texto: PIS não retido, COFINS/CSLL retidos - PIS não retido, COFINS e CSLL retidos. Código gravado: 7.
+              CSLL_RETIDO
+                 Valor: 8
+                 Texto: PIS/COFINS não retidos, CSLL retido - PIS e COFINS não retidos, CSLL retida. Código gravado: 8.
+              PIS_CSLL_RETIDOS
+                 Valor: 9
+                 Texto: COFINS não retido, PIS/CSLL retidos - COFINS não retido, PIS e CSLL retidos. Código gravado: 9.
+      aliquotaPis:
+        type: number
+        minimum: 0
+        maximum: 999.99
+        description: |
+            Alíquota do PIS em pontos percentuais (5.00 significa 5%; campo 
+            tributos_nacionais.aliquota_pis do envio). Opcional.
+             Informada, exige o CST do PIS/COFINS (validar à mão ao salvar).
+
+      aliquotaCofins:
+        type: number
+        minimum: 0
+        maximum: 999.99
+        description: |
+            Alíquota da COFINS em pontos percentuais (5.00 significa 5%; campo 
+            tributos_nacionais.aliquota_cofins do envio). Opcional.
+             Informada, exige o CST do PIS/COFINS (validar à mão ao salvar).
 
       percentualTributosSimples:
         type: number

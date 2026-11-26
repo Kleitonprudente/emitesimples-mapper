@@ -55,6 +55,9 @@ public class ServicoResource {
         @QueryParam("issRetido") String issRetido,
         @QueryParam("tipoOperacaoIss") String tipoOperacaoIss,
         @QueryParam("cstPisCofins") String cstPisCofins,
+        @QueryParam("tipoRetencao") String tipoRetencao,
+        @QueryParam("aliquotaPis") String aliquotaPis,
+        @QueryParam("aliquotaCofins") String aliquotaCofins,
         @QueryParam("percentualTributosSimples") String percentualTributosSimples,
         @QueryParam("id") String id,
         @QueryParam("dataCriacao") String dataCriacao,
@@ -68,7 +71,7 @@ public class ServicoResource {
         Sort sort = Sort.by(sortBy != null ? sortBy : "id")
                         .direction(sortDirection.equalsIgnoreCase("desc") ?
                                    Sort.Direction.Descending : Sort.Direction.Ascending);
-        List<ServicoEntity> entityList = repository.findWithFilters(0, 100, sort, nome, codigoInterno, ativo, codigoServico, codigoTributacaoMunicipio, codigoNbs, descricaoCurta, discriminacaoPadrao, valorPadrao, aliquotaIss, issRetido, tipoOperacaoIss, cstPisCofins, percentualTributosSimples, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId);
+        List<ServicoEntity> entityList = repository.findWithFilters(0, 100, sort, nome, codigoInterno, ativo, codigoServico, codigoTributacaoMunicipio, codigoNbs, descricaoCurta, discriminacaoPadrao, valorPadrao, aliquotaIss, issRetido, tipoOperacaoIss, cstPisCofins, tipoRetencao, aliquotaPis, aliquotaCofins, percentualTributosSimples, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId);
 
         return mapper.entityListToApiList(entityList);
     }
@@ -109,6 +112,9 @@ public class ServicoResource {
         @QueryParam("issRetido") String issRetido,
         @QueryParam("tipoOperacaoIss") String tipoOperacaoIss,
         @QueryParam("cstPisCofins") String cstPisCofins,
+        @QueryParam("tipoRetencao") String tipoRetencao,
+        @QueryParam("aliquotaPis") String aliquotaPis,
+        @QueryParam("aliquotaCofins") String aliquotaCofins,
         @QueryParam("percentualTributosSimples") String percentualTributosSimples,
         @QueryParam("id") String id,
         @QueryParam("dataCriacao") String dataCriacao,
@@ -121,7 +127,7 @@ public class ServicoResource {
     ) {
 
         CountResult countResult = new CountResult();
-        countResult.setCount(repository.countWithFilters( nome, codigoInterno, ativo, codigoServico, codigoTributacaoMunicipio, codigoNbs, descricaoCurta, discriminacaoPadrao, valorPadrao, aliquotaIss, issRetido, tipoOperacaoIss, cstPisCofins, percentualTributosSimples, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId));
+        countResult.setCount(repository.countWithFilters( nome, codigoInterno, ativo, codigoServico, codigoTributacaoMunicipio, codigoNbs, descricaoCurta, discriminacaoPadrao, valorPadrao, aliquotaIss, issRetido, tipoOperacaoIss, cstPisCofins, tipoRetencao, aliquotaPis, aliquotaCofins, percentualTributosSimples, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId));
         return countResult;
     }
 
@@ -148,6 +154,9 @@ public class ServicoResource {
         @QueryParam("issRetido") String issRetido,
         @QueryParam("tipoOperacaoIss") String tipoOperacaoIss,
         @QueryParam("cstPisCofins") String cstPisCofins,
+        @QueryParam("tipoRetencao") String tipoRetencao,
+        @QueryParam("aliquotaPis") String aliquotaPis,
+        @QueryParam("aliquotaCofins") String aliquotaCofins,
         @QueryParam("percentualTributosSimples") String percentualTributosSimples,
         @QueryParam("id") String id,
         @QueryParam("dataCriacao") String dataCriacao,
@@ -169,7 +178,7 @@ public class ServicoResource {
         Sort sort = Sort.by(sortBy != null ? sortBy : "id")
                         .direction(sortDirection.equalsIgnoreCase("desc") ?
                                    Sort.Direction.Descending : Sort.Direction.Ascending);
-        List<ServicoEntity> entityList = repository.findWithFilters(from, limit, sort, nome, codigoInterno, ativo, codigoServico, codigoTributacaoMunicipio, codigoNbs, descricaoCurta, discriminacaoPadrao, valorPadrao, aliquotaIss, issRetido, tipoOperacaoIss, cstPisCofins, percentualTributosSimples, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId);
+        List<ServicoEntity> entityList = repository.findWithFilters(from, limit, sort, nome, codigoInterno, ativo, codigoServico, codigoTributacaoMunicipio, codigoNbs, descricaoCurta, discriminacaoPadrao, valorPadrao, aliquotaIss, issRetido, tipoOperacaoIss, cstPisCofins, tipoRetencao, aliquotaPis, aliquotaCofins, percentualTributosSimples, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId);
 
         return mapper.entityListToApiList(entityList);
     }

@@ -193,10 +193,14 @@ continua sendo o label da acao `primary` da lista ("Novo cliente").
 ## Servico (cadastro da empresa, menu Cadastros)
 
 - `GestaoServicos` (`/servicos`, OPERADOR, icone `package`, order 20; colunas nome, codigoServico, codigoNbs, percentualTributosSimples,
-  ativo como booleano; busca por nome) e `FormularioServico` (`/servicos/$id`). Secao unica "Servico": `[nome xl | ativo s]`,
-  `[codigoServico m | codigoNbs m | percentualTributosSimples m]`, `[discriminacaoPadrao full]` (rotulos e dicas no mapa).
-- Fora do formulario: `codigoInterno`, `codigoTributacaoMunicipio`, `descricaoCurta`, `valorPadrao`, `aliquotaIss`, `cstPisCofins` (opcionais
-  no dominio) e `issRetido`/`tipoOperacaoIss` (obrigatorios, mas com `defaultValue`). Nenhum obrigatorio sem default fica sem tela.
+  ativo como booleano; busca por nome) e `FormularioServico` (`/servicos/$id`). Secao "Servico": `[nome xl | ativo s]`,
+  `[codigoServico s | codigoNbs s | percentualTributosSimples s | valorPadrao s]`, `[discriminacaoPadrao full]`. Tributacao
+  (docs/historias-emissao-nota.md, "Tributacao da nota"), duas secoes `collapsible` (abrem sozinhas quando ha dado):
+  "ISS da prefeitura (opcional)" `[issRetido m | aliquotaIss m | codigoTributacaoMunicipio m]` e
+  "Impostos federais retidos pelo cliente (opcional)" `[cstPisCofins l | tipoRetencao l]`, `[aliquotaPis l | aliquotaCofins l]`
+  (CST = enum Texto de codigo, `'01'`..`'99'`). Rotulos e dicas no mapa.
+- Fora do formulario: `codigoInterno`, `descricaoCurta` (opcionais) e `tipoOperacaoIss` (obrigatorio com `defaultValue`; nao vai
+  mais no envio v2). Nenhum obrigatorio sem default fica sem tela.
 - `gerar.sh`: `entidade Servico cadastros servico servicos GestaoServicos FormularioServico`. Nao validado ate o primeiro push/generate.
 
 ## Lista de detalhes 1-N no formulario (`list`)
@@ -278,16 +282,19 @@ Regras:
 
 ## Formatos de `values` (enums)
 
-Os geradores aceitam as TRES formas de `properties/values`; o formato novo (secao 9.7 de `docs/domain-modeling-guide.md`)
+Os geradores aceitam as QUATRO formas de `properties/values`; o formato novo (secao 9.7 de `docs/domain-modeling-guide.md`)
 e o alvo, e o legado sai identico ate cada enum ser migrado.
 - Legado: filho com `value[1]` (valor persistido) e `value[2]` (rotulo).
 - Novo Texto: o nome do elemento filho e o valor (`SOCIO`), com `title/pt|en/value` e `description/pt|en/value`.
 - Novo Inteiro (Integer/Long): o nome do elemento e o rotulo tecnico (`SIMPLES_NACIONAL`); `codigo/value` e o codigo
   numerico gravado; mais `title`/`description`.
+- Novo Texto com codigo (CST "01", "49"): atributo `Texto(n)`; o nome do elemento e o rotulo tecnico
+  (`TRIBUTAVEL_ALIQUOTA_NORMAL`) e `codigo/value` e o valor gravado como TEXTO exato, com zero a esquerda; mais
+  `title`/`description`. O tipo do atributo decide: String => `'01'` em `Values` e chave `'01'` em `Labels`; Integer => numero.
 - Deteccao: `exists(<filho>/codigo)` => valor = `normalize-space(codigo/value)`; senao `exists(<filho>/title)` => valor =
   `local-name()`; senao `normalize-space(value[1])`. Rotulo = `title/pt/value` (cai para `en`) ou `normalize-space(value[2])`.
 - Afeta `frontend-zodSchema` (`<campo>Values` e `<campo>Labels`); `screenColumns/Form/Page` so testam `exists(properties/values)`.
-- No back, `swagger-restAPI` emite `enum:` (e a descricao dos valores) para atributo String so no formato novo.
+- No back, `swagger-restAPI` emite `enum:` (e a descricao dos valores) para atributo String so no formato novo; com `codigo` o item sai como string YAML entre aspas (`- '01'`).
 
 ## Lacunas encontradas
 

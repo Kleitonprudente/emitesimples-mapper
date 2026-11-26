@@ -10,6 +10,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -277,12 +278,11 @@ class NfseEmissaoTest extends BaseApiTest {
         assertEquals("Desenvolvimento", s.path("descricao").asText());
         assertEquals("123", s.path("codigo_tributacao_municipio").asText());
         assertEquals(0, new BigDecimal("150.50").compareTo(s.path("valor_servicos").decimalValue()));
-        assertEquals(1, s.path("tributos_municipais").path("tipo_operacao").asInt());
-        assertEquals(0, new BigDecimal("2.50").compareTo(s.path("tributos_municipais").path("aliquota_iss").decimalValue()));
-        assertFalse(s.path("tributos_municipais").path("iss_retido").asBoolean());
+        // E0625: regime de apuracao 1 (Simples) e ISS NAO retido => o grupo do ISS nao vai, mesmo com aliquota no servico
+        assertTrue(s.path("tributos_municipais").isMissingNode(), s.toString());
         // Simples Nacional: tributos_totais com o percentual do servico (E0712 confirmado em homologacao)
         assertEquals(0, new BigDecimal("13.75").compareTo(s.path("tributos_totais").path("percentual_tributos_simples_nacional").decimalValue()), s.toString());
-        // sem tributos_nacionais (CST 00), sem ibs_cbs, sem prestador
+        // sem tributos_nacionais (servico sem CST nem retencoes), sem ibs_cbs, sem prestador
         for (String ausente : new String[] {"tributos_nacionais", "ibs_cbs"}) {
             assertTrue(s.path(ausente).isMissingNode(), ausente);
             assertTrue(p.path(ausente).isMissingNode(), ausente);
@@ -290,9 +290,119 @@ class NfseEmissaoTest extends BaseApiTest {
         assertTrue(p.path("prestador").isMissingNode() && p.path("emitente").isMissingNode());
         // snapshot na nota
         NotaEntity n = nota(id);
-        assertEquals("00", n.getCstPisCofins());
+        assertNull(n.getCstPisCofins());
         assertEquals(Integer.valueOf(1), n.getTipoOperacaoIss());
         assertEquals("HOMOLOGACAO", n.getAmbiente());
+    }
+
+    // ------------------------------------------------------------------------------------------ tributacao (TributacaoNota)
+
+    private static Map<String, Object> tributos(Object... kv) {
+        Map<String, Object> t = new HashMap<>();
+        for (int i = 0; i < kv.length; i += 2) {
+            t.put((String) kv[i], kv[i + 1]);
+        }
+        return t;
+    }
+
+    @Test
+    void tributosDaTelaComIssRetidoEFederaisVaoNoJsonEFicamNaNota() throws Exception {
+        Cen c = cenario();
+        Map<String, Object> b = corpo(c, "1000.00");
+        b.put("tributos", tributos("issRetido", true, "aliquotaIss", new BigDecimal("5.00"),
+                "valorDescontoIncondicionado", new BigDecimal("50.00"), "cstPisCofins", "01", "tipoRetencao", 2,
+                "valorInss", new BigDecimal("110.00")));
+        Response r = chamar("POST", URL, c.adm(), b);
+        r.then().statusCode(200).body("tributos.valorBaseCalculoIss", equalTo(950.00f)).body("tributos.valorIssRetido", equalTo(47.50f))
+                .body("tributos.cstPisCofins", equalTo("01"));
+        JsonNode s = estadoStub().path("ultimoEnvio").path("corpo").path("servico");
+        JsonNode tm = s.path("tributos_municipais");
+        assertTrue(tm.path("iss_retido").asBoolean(), s.toString());
+        assertEquals(0, new BigDecimal("5.00").compareTo(tm.path("aliquota_iss").decimalValue()));
+        assertEquals(0, new BigDecimal("950.00").compareTo(tm.path("valor_base_calculo_iss").decimalValue()));
+        assertEquals(0, new BigDecimal("47.50").compareTo(tm.path("valor_iss_retido").decimalValue()));
+        assertTrue(tm.path("tipo_operacao").isMissingNode());
+        JsonNode tn = s.path("tributos_nacionais");
+        assertEquals("01", tn.path("cst").asText());
+        assertTrue(tn.path("tipo_retencao").isTextual(), tn.toString());
+        assertEquals("2", tn.path("tipo_retencao").asText());
+        assertEquals(0, new BigDecimal("1000.00").compareTo(tn.path("valor_base_calculo").decimalValue()));
+        assertEquals(0, new BigDecimal("110.00").compareTo(tn.path("valor_inss").decimalValue()));
+        assertTrue(tn.path("valor_previdencia_social").isMissingNode());
+        assertEquals(0, new BigDecimal("50.00").compareTo(s.path("valor_desconto_incondicionado").decimalValue()));
+    }
+
+    @Test
+    void padroesDoServicoVaoParaANotaEQuadroEmBrancoDaTelaLimpa() throws Exception {
+        Cen c = cenario();
+        QuarkusTransaction.requiringNew().run(() -> {
+            ServicoEntity s = em.find(ServicoEntity.class, c.servico());
+            s.setIssRetido(true);
+            s.setCstPisCofins("01");
+            s.setTipoRetencao(1);
+        });
+        // sem "tributos": padroes do servico; base e ISS sempre calculados (200; 200 x 2,5% = 5,00)
+        String id = chamar("POST", URL, c.adm(), corpo(c, "200.00")).then().statusCode(200).extract().jsonPath().getString("id");
+        NotaEntity n = nota(id);
+        assertTrue(n.getIssRetido());
+        assertEquals(0, new BigDecimal("2.50").compareTo(n.getAliquotaIss()));
+        assertEquals(0, new BigDecimal("200.00").compareTo(n.getValorBaseCalculoIss()));
+        assertEquals(0, new BigDecimal("5.00").compareTo(n.getValorIssRetido()));
+        assertEquals("01", n.getCstPisCofins());
+        assertEquals(Integer.valueOf(1), n.getTipoRetencao());
+        // a tela manda base e ISS (ou valores quaisquer): ignorados e recalculados: (1000 - 50) = 950; 950 x 5% = 47,50
+        Map<String, Object> tela = corpo(c, "1000.00");
+        tela.put("tributos", tributos("issRetido", true, "aliquotaIss", new BigDecimal("5"), "valorBaseCalculoIss", new BigDecimal("800"),
+                "valorIssRetido", new BigDecimal("40"), "valorDescontoIncondicionado", new BigDecimal("50.00")));
+        chamar("POST", URL, c.adm(), tela).then().statusCode(200).body("tributos.valorBaseCalculoIss", equalTo(950.00f))
+                .body("tributos.valorIssRetido", equalTo(47.50f));
+        assertEquals(0, new BigDecimal("950.00").compareTo(estadoStub().path("ultimoEnvio").path("corpo").path("servico")
+                .path("tributos_municipais").path("valor_base_calculo_iss").decimalValue()));
+        // "tributos" presente e vazio: nada de tributo, nem o padrao do servico
+        Map<String, Object> b = corpo(c, "200.00");
+        b.put("tributos", tributos());
+        id = chamar("POST", URL, c.adm(), b).then().statusCode(200).extract().jsonPath().getString("id");
+        n = nota(id);
+        assertFalse(n.getIssRetido());
+        assertNull(n.getAliquotaIss());
+        assertNull(n.getCstPisCofins());
+    }
+
+    @Test
+    void validacoesDaTributacaoDao400NoCampoESemConsumirNumero() {
+        Cen c = cenario();
+        int antes = ultimo(c.emp());
+        Object[][] casos = {
+            {"aliquotaIss", tributos("issRetido", true)},
+            {"cstPisCofins", tributos("valorInss", new BigDecimal("1.00"))},
+            {"cstPisCofins", tributos("cstPisCofins", "1")},
+            {"valorServicos", tributos("valorDescontoIncondicionado", new BigDecimal("60.00"), "cstPisCofins", "01", "valorInss", new BigDecimal("50.00"))},
+            {"tipoRetencao", tributos("cstPisCofins", "01", "tipoRetencao", 12)},
+            {"aliquotaPis", tributos("cstPisCofins", "01", "aliquotaPis", new BigDecimal("100.01"))},
+        };
+        for (Object[] caso : casos) {
+            Map<String, Object> b = corpo(c, "100.00");
+            b.put("tributos", caso[1]);
+            chamar("POST", URL, c.adm(), b).then().statusCode(400).body("codigo", equalTo("requisicao_invalida"))
+                    .body("detalhes.campos.campo", org.hamcrest.Matchers.hasItem((String) caso[0]));
+        }
+        // codigo municipal 000 num servico antigo (gravado antes da validacao do cadastro, por isso via SQL): recusado ao preparar a nota
+        QuarkusTransaction.requiringNew().run(() -> em.createNativeQuery("update SERVICO set CODIGO_TRIBUTACAO_MUNICIPIO = '000' where ID = :id")
+                .setParameter("id", c.servico()).executeUpdate());
+        chamar("POST", URL, c.adm(), corpo(c, "100.00")).then().statusCode(400)
+                .body("detalhes.campos.campo", org.hamcrest.Matchers.hasItem("codigoTributacaoMunicipio"));
+        assertEquals(antes, ultimo(c.emp()));
+    }
+
+    @Test
+    void assistenteNaoInformaTributo() {
+        Cen c = cenario();
+        Map<String, Object> b = corpo(c, "100.00");
+        b.put("tributos", tributos("issRetido", true, "aliquotaIss", new BigDecimal("5")));
+        long antes = contarNotas(c.emp());
+        chamar("POST", URL + "/preparar", c.adm(), b).then().statusCode(400)
+                .body("detalhes.campos.campo", org.hamcrest.Matchers.hasItem("tributos"));
+        assertEquals(antes, contarNotas(c.emp()));
     }
 
     @Test

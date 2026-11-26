@@ -35,7 +35,22 @@ public final class NfseEmissaoDtos {
                               String descricao, String codigoServico, List<ErroRetorno> errosRetorno, String linkPdf,
                               String codigoVerificacao, LocalDateTime dataHoraEvento, boolean editavel,
                               boolean podeReenviar, boolean podeAtualizar, CancelamentoInfo cancelamento,
-                              boolean podeCancelar, boolean podeAprovar, boolean podeDescartar) {
+                              boolean podeCancelar, boolean podeAprovar, boolean podeDescartar, Tributos tributos) {
+    }
+
+    /**
+     * Tributacao da nota (ISS e retencoes federais): docs/historias-emissao-nota.md, secao "Tributacao da nota". Na ENTRADA
+     * ({@code tributos} de criar/enviar/aprovar): ausente ({@code null}) = vale o padrao do servico; presente = vale exatamente o
+     * que veio, e campo em branco limpa (a tela manda sempre todos os campos). O preparo pelo assistente nao aceita
+     * {@code tributos}: tributo so pela tela, por uma pessoa. No DETALHE: os valores gravados na nota.
+     * Dinheiro em reais com ate 2 casas; aliquotas em pontos percentuais (5.00 = 5%); {@code cstPisCofins} texto de 2 digitos
+     * da lista fechada; {@code tipoRetencao} 0 a 9. {@code valorBaseCalculoIss} e {@code valorIssRetido} sao SO calculados pelo
+     * back (valor - desconto; base x aliquota): na entrada sao ignorados, no detalhe trazem o calculado.
+     */
+    public record Tributos(Boolean issRetido, BigDecimal aliquotaIss, BigDecimal valorBaseCalculoIss, BigDecimal valorIssRetido,
+                           String cstPisCofins, Integer tipoRetencao, BigDecimal valorBaseCalculo, BigDecimal aliquotaPis,
+                           BigDecimal aliquotaCofins, BigDecimal valorPis, BigDecimal valorCofins, BigDecimal valorInss,
+                           BigDecimal valorIr, BigDecimal valorCsll, BigDecimal valorDescontoIncondicionado) {
     }
 
     /**
@@ -53,12 +68,12 @@ public final class NfseEmissaoDtos {
 
     /** Corpo de POST /api/nfse/notas (pessoaId, servicoId e valorServicos obrigatorios). */
     public record CriarEntrada(String pessoaId, String servicoId, BigDecimal valorServicos,
-                               String informacoesComplementares, String discriminacao) {
+                               String informacoesComplementares, String discriminacao, Tributos tributos) {
     }
 
     /** Corpo opcional de POST /api/nfse/notas/{id}/enviar: o que vier (nao nulo) altera a nota antes de reenviar. */
     public record EnviarEntrada(String pessoaId, String servicoId, BigDecimal valorServicos,
-                                String informacoesComplementares, String discriminacao) {
+                                String informacoesComplementares, String discriminacao, Tributos tributos) {
     }
 
     public record Contagem(long count) {

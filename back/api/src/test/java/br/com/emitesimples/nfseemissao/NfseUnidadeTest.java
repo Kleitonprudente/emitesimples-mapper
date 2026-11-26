@@ -50,7 +50,6 @@ class NfseUnidadeTest {
         n.setCodigoServico("010101");
         n.setDiscriminacao("d");
         n.setValorServicos(new BigDecimal("10"));
-        n.setCstPisCofins("00");
         return n;
     }
 
@@ -176,16 +175,15 @@ class NfseUnidadeTest {
     }
 
     @Test
-    void tributosNacionaisSoComCstDiferenteDeZeroOuValores() {
+    void tributosNacionaisSoComDadoECstLegado00ContaComoAusente() {
         NotaEntity n = nota("PROCESSANDO");
         n.setServico(new ServicoEntity());
+        n.setCstPisCofins("00"); // notas antigas gravavam 00 no lugar de "sem CST"
         assertTrue(NfsePayloadMapper.montar(n, pessoa(), false).corpo().path("servico").path("tributos_nacionais").isMissingNode());
         n.setCstPisCofins("01");
         var tn = NfsePayloadMapper.montar(n, pessoa(), false).corpo().path("servico").path("tributos_nacionais");
         assertEquals("01", tn.path("cst").asText());
-        n.setCstPisCofins("00");
-        n.setValorPis(new BigDecimal("1.5"));
-        assertEquals("00", NfsePayloadMapper.montar(n, pessoa(), false).corpo().path("servico").path("tributos_nacionais").path("cst").asText());
+        assertEquals(0, new BigDecimal("10.00").compareTo(tn.path("valor_base_calculo").decimalValue())); // base em branco = valor
     }
 
     @Test

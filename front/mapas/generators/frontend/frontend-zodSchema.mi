@@ -24,7 +24,7 @@
             [v] import { z } from 'zod'
         [e] enum-values-string
             [v] {{ '' }}
-            [v] export const {{ @name }}Values = [{{ string-join(for $c in properties/values/* return concat("'", replace(if (exists($c/title)) then local-name($c) else normalize-space($c/value[1]), "'", "\\'"), "'"), ', ') }}] as const
+            [v] export const {{ @name }}Values = [{{ string-join(for $c in properties/values/* return concat("'", replace(if (exists($c/codigo)) then normalize-space($c/codigo/value) else if (exists($c/title)) then local-name($c) else normalize-space($c/value[1]), "'", "\\'"), "'"), ', ') }}] as const
             [v] export const {{ @name }}Labels: Record<string, string> = {
         [e] enum-values-number
             [v] {{ '' }}

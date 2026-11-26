@@ -204,6 +204,23 @@ confirmado para a v2. Envelope comum: `origem`, `cnpj_cpf`, `signature`, `tipo`.
 está pendente. As páginas de DF-e (documentos e eventos, com `nsu`) tratam de distribuição/captura de documentos em que a
 empresa é destinatária (`dfe_nfse`); não são o resultado da emissão própria.
 
+## Divergências com o schema de 2026-11-24
+
+O usuário colou em 2026-11-24 o schema do envio v2 (`docs/integranotas-nfse-v2-schema.md`). Ele **não traz**
+`regime_apuracao` nem `nacional`, já confirmados em homologação: parece o schema genérico/municipal. Onde contradiz o
+homologado, vale o homologado. Divergências com o projeto:
+
+| Campo | Schema de 2026-11-24 | Projeto | Decisão |
+|---|---|---|---|
+| `servico.tributos_municipais.tipo_operacao` | não existe | era enviado em toda nota | **Deixa de ser enviado** (etapa da tributação). |
+| `tributos_municipais.aliquota_iss` e `valor_base_calculo_iss` | obrigatórios no grupo | o grupo ia sem eles | O grupo **só vai com dado** e (regime de apuração ≠ 1 ou ISS retido), sempre com alíquota e base (regra E0625). |
+| `tributos_nacionais.tipo_retencao` | texto (`"2"`) | `Inteiro(1)`, enviado como número | Continua `Inteiro(1)` no mapa; **no JSON vai como texto** (etapa da tributação). |
+| `tributos_nacionais.cst` | texto, lista fechada 01…99 | `Texto(2)` sem lista | Lista fechada no mapa (enum Texto de código, guia 9.7). |
+| `regime_tributacao` | obrigatório, texto, códigos 0–10, 14, 15 | `Inteiro(1)` (não cabe 10, 14, 15) e não enviado | **Pendente**: tarefa separada. |
+| `servico.discriminacao` e `informacoes_complementares` | até 1000 caracteres | `Texto(2000)` | **Pendente**: tarefa separada. |
+| `serie` | 1 a 2 dígitos | `Texto(5)` | **Pendente**: tarefa separada. |
+| `valor_previdencia_social`, `codigo_cnae`, `tomador.ie`, `tipo_ente_governamental` | existem | não enviados | Continuam fora: a homologação mostrou que não chegam à nota nacional. |
+
 ## Não confirmado — perguntar ao usuário
 
 Corpo do webhook de emissão e das opções `origem`/`tipo`/`relacao`; versão e parâmetros das rotas auxiliares (`pdf`,

@@ -1,2 +1,10 @@
 .claude/logs/
 node_modules/
+
+# Testes criados na tributação da NFS-e e material de homologação: só no ambiente local (repositório público)
+back/api/src/test/java/br/com/emitesimples/nfseemissao/RoteiroTributacaoTest.java
+back/api/src/test/java/br/com/emitesimples/nfseemissao/ServicoTributacaoTest.java
+back/api/src/test/java/br/com/emitesimples/nfseemissao/TributacaoNotaTest.java
+back/api/src/test/java/br/com/emitesimples/plataforma/TokenEmitenteAdminTest.java
+front/web/src/features/notas/NotaNovaTributacao.test.tsx
+docs/homologacao/

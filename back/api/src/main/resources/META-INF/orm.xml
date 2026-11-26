@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Mapeamento JPA ESCRITO A MAO (o codigo das entidades e gerado e nunca se edita). So acrescenta listeners a entidades geradas;
+  nao muda colunas nem relacoes (metadata-complete="false": as anotacoes das entidades continuam valendo).
+  - ServicoEntity: coerencia da tributacao ao salvar o servico (nfseemissao/ServicoTributacaoListener; roteiro H5 e H6).
+-->
+<entity-mappings xmlns="https://jakarta.ee/xml/ns/persistence/orm"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xsi:schemaLocation="https://jakarta.ee/xml/ns/persistence/orm https://jakarta.ee/xml/ns/persistence/orm/orm_3_1.xsd"
+                 version="3.1">
+    <entity class="br.com.emitesimples.cadastros.entity.ServicoEntity" metadata-complete="false">
+        <entity-listeners>
+            <entity-listener class="br.com.emitesimples.nfseemissao.ServicoTributacaoListener"/>
+        </entity-listeners>
+    </entity>
+</entity-mappings>

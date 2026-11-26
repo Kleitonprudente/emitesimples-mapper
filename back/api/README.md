@@ -43,6 +43,8 @@ devolve 0 mesmo quando falha.
 | `br.com.emitesimples.gateway` | cliente HTTP do IntegraNotas (`IntegraNotasCliente`) e webhook público (`WebhookIntegraNotasResource`, `WebhookToken`, `LimiteWebhook`) (à mão) |
 | `br.com.emitesimples.nfseconfig` | `GET/PUT /api/configuracao/nfse`: habilitar a NFS-e e cadastrar o emitente (à mão) |
 | `br.com.emitesimples.security` | emissão do JWT, erros uniformes (`ErrosHandler`), 401 em JSON (`DesafioJsonMechanism`) (à mão) |
+| `br.com.emitesimples.nfseemissao` | emissão da NFS-e e tributação (à mão): `TributacaoNota` (regras da nota: E0625, base e ISS só calculados, validações), `NfsePayloadMapper` (JSON do IntegraNotas) e `ServicoTributacaoListener` (coerência da tributação ao salvar o serviço) |
+| `src/main/resources/META-INF/orm.xml` | mapeamento JPA **escrito à mão** que só acrescenta listeners a entidades geradas (hoje: `ServicoEntity` → `ServicoTributacaoListener`), sem editar o código gerado |
 | `docs/openapi/` | OpenAPI gerado por contexto |
 
 ## Autenticação e segurança
@@ -680,6 +682,14 @@ Mesmas defesas e códigos estáveis do `criarEmitente`; decide pelo `codigo`, nu
 
 Nas falhas de transporte (3 últimas linhas) o certificado **segue guardado** (`detalhes.certificadoGuardado:true`) para nova tentativa (basta enviar de novo, ou habilitar a NFS-e).
 Nas recusas do gateway a situação grava o motivo e o certificado também segue guardado.
+
+**Token do emitente informado pela plataforma** (`POST /api/admin/empresas/{empresaId}/integranotas/token-emitente`, corpo `{token}`, 204; só
+`PLATAFORMA_ADMIN`; classe `plataforma/TokenEmitenteAdminResource`). Para empresa que JÁ é emitente no IntegraNotas (ex.: migrada de outro sistema)
+quando não há token da softhouse para recuperá-la pela lista. Guarda o JWT no cofre como o token do emitente no **ambiente ativo** (substitui o
+anterior do mesmo ambiente), deixa `statusCadastro=NAO_CADASTRADO` e o certificado guardado como `NAO_ENVIADO`: a próxima habilitação
+(`PUT /api/configuracao/nfse`) sincroniza com esse token (`PUT /v1/emitente`, sem criar emitente) e envia o certificado. Token vazio ou fora do formato
+JWT: 400 (`detalhes.campos` com `token`); empresa inexistente: 404 `empresa_nao_encontrada`. O valor nunca volta em resposta nem vai a log.
+POST e não PUT porque `PUT /api/admin/empresas/*` é negado pela configuração de segurança.
 
 **Envio pendente ao habilitar a NFS-e** (`PUT /api/configuracao/nfse` com `habilitada:true`): depois de habilitar com sucesso, se há certificado guardado com situação gravada ≠ `VALIDO`, envia-o
 (lê do cofre só nesse instante). Falha **não desfaz** a habilitação: a resposta é 200 com o estado atual e o campo opcional novo `avisos` (ausente quando vazio): `certificado_nao_enviado`

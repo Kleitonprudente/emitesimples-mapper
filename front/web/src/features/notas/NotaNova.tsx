@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { Info, TriangleAlert } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -6,12 +6,15 @@ import { Badge } from '@/components/ui/badge'
 import { Spinner } from '@/components/ui/spinner'
 import { useConfigNfse } from '@/features/empresa-config/nfseApi'
 import {
-  buscarDiscriminacaoPadrao,
+  buscarPadroesDoServico,
+  contasDaNota,
   corpoDaNota,
   erroAmigavel,
-  notaLayout,
+  layoutDaNota,
   notaSchema,
+  tributosDoServico,
   useCriarNota,
+  type ContasDaNota,
   type NotaValues,
 } from '@/features/notas/notasApi'
 import { canAct, useSession } from '@/lib/auth'
@@ -24,9 +27,15 @@ import { ErrorState, LoadingState } from '@/runtime/states'
  * (decisao explicita do usuario). O botao Enviar e a aprovacao da pessoa: nada emite nota sozinho.
  * ------------------------------------------------------------------------- */
 
-const DEFAULTS = { valorServicos: undefined, discriminacao: '', informacoesComplementares: '' } as unknown as NotaValues
+const DEFAULTS = { valorServicos: undefined, discriminacao: '', informacoesComplementares: '', issRetido: false } as unknown as NotaValues
 
-/** Formulario da nota (nova e reenvio). Ao escolher o servico, preenche a descricao com o texto padrao, se a pessoa ainda nao a editou. */
+const mesmasContas = (a: ContasDaNota, b: ContasDaNota) => a.baseIss === b.baseIss && a.issRetido === b.issRetido && a.baseFederal === b.baseFederal
+
+/**
+ * Formulario da nota (nova e reenvio). Ao escolher o servico: preenche a descricao com o texto padrao (se a pessoa ainda nao a
+ * editou), o valor com o valor padrao (se estiver vazio) e os quadros de tributacao com os padroes do servico. Os campos de base e
+ * de ISS retido em branco mostram em cinza a conta que o sistema faz.
+ */
 export function FormularioNota({
   values,
   submitLabel,
@@ -45,7 +54,16 @@ export function FormularioNota({
   const editada = useRef(!!values?.discriminacao)
   const automatica = useRef('')
   const sequencia = useRef(0)
+  const [contas, setContas] = useState<ContasDaNota>(() => contasDaNota(values ?? {}))
+  const layout = useMemo(() => layoutDaNota(contas), [contas])
   const aoMudar = useCallback((v: Partial<NotaValues>, ctx: { name?: string; setValue: (n: string, val: unknown) => void }) => {
+    const novas = contasDaNota(v)
+    setContas((atuais) => (mesmasContas(atuais, novas) ? atuais : novas))
+    // base e ISS retido sao so calculados: a tela mostra o mesmo numero que o back e o governo vao usar
+    if (ctx.name !== 'valorBaseCalculoIss' && ctx.name !== 'valorIssRetido') {
+      if (v.valorBaseCalculoIss !== novas.baseIss) ctx.setValue('valorBaseCalculoIss', novas.baseIss)
+      if (v.valorIssRetido !== novas.issRetido) ctx.setValue('valorIssRetido', novas.issRetido)
+    }
     if (ctx.name === 'discriminacao') {
       const d = v.discriminacao ?? ''
       editada.current = d.trim() !== '' && d !== automatica.current
@@ -53,11 +71,15 @@ export function FormularioNota({
     }
     if (ctx.name !== 'servico' || !v.servico?.id) return
     const minha = ++sequencia.current
-    void buscarDiscriminacaoPadrao(v.servico.id).then(
-      (padrao) => {
-        if (minha !== sequencia.current || !padrao || editada.current) return
-        automatica.current = padrao
-        ctx.setValue('discriminacao', padrao)
+    const valorAtual = v.valorServicos
+    void buscarPadroesDoServico(v.servico.id).then(
+      (s) => {
+        if (minha !== sequencia.current) return
+        if (valorAtual === undefined && s.valorPadrao !== undefined) ctx.setValue('valorServicos', s.valorPadrao)
+        for (const [campo, valor] of Object.entries(tributosDoServico(s))) ctx.setValue(campo, valor)
+        if (!s.discriminacaoPadrao || editada.current) return
+        automatica.current = s.discriminacaoPadrao
+        ctx.setValue('discriminacao', s.discriminacaoPadrao)
       },
       () => {},
     )
@@ -71,7 +93,7 @@ export function FormularioNota({
       )}
       <AutoForm
         schema={notaSchema}
-        fields={notaLayout}
+        fields={layout}
         defaults={DEFAULTS}
         values={values}
         isSubmitting={isSubmitting}

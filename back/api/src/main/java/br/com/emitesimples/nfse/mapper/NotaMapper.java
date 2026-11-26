@@ -71,6 +71,8 @@ public class NotaMapper {
         nota.setValorDescontoIncondicionado( entity.getValorDescontoIncondicionado() );
         nota.setTipoOperacaoIss( entity.getTipoOperacaoIss() );
         nota.setAliquotaIss( entity.getAliquotaIss() );
+        nota.setValorBaseCalculoIss( entity.getValorBaseCalculoIss() );
+        nota.setValorIssRetido( entity.getValorIssRetido() );
         nota.setIssRetido( entity.getIssRetido() );
         nota.setResponsavelRetencao( entity.getResponsavelRetencao() );
         nota.setCstPisCofins( entity.getCstPisCofins() );
@@ -147,6 +149,8 @@ public class NotaMapper {
             notaBuilder.valorDescontoIncondicionado = api.getValorDescontoIncondicionado();
             notaBuilder.tipoOperacaoIss = api.getTipoOperacaoIss();
             notaBuilder.aliquotaIss = api.getAliquotaIss();
+            notaBuilder.valorBaseCalculoIss = api.getValorBaseCalculoIss();
+            notaBuilder.valorIssRetido = api.getValorIssRetido();
             notaBuilder.issRetido = api.getIssRetido();
             notaBuilder.responsavelRetencao = api.getResponsavelRetencao();
             notaBuilder.cstPisCofins = api.getCstPisCofins();
@@ -242,6 +246,8 @@ public class NotaMapper {
         api.setValorDescontoIncondicionado( entity.getValorDescontoIncondicionado() );
         api.setTipoOperacaoIss( entity.getTipoOperacaoIss() );
         api.setAliquotaIss( entity.getAliquotaIss() );
+        api.setValorBaseCalculoIss( entity.getValorBaseCalculoIss() );
+        api.setValorIssRetido( entity.getValorIssRetido() );
         api.setIssRetido( entity.getIssRetido() );
         api.setResponsavelRetencao( entity.getResponsavelRetencao() );
         api.setCstPisCofins( entity.getCstPisCofins() );
@@ -373,6 +379,8 @@ public class NotaMapper {
             entity.setValorDescontoIncondicionado( api.getValorDescontoIncondicionado() );
             entity.setTipoOperacaoIss( api.getTipoOperacaoIss() );
             entity.setAliquotaIss( api.getAliquotaIss() );
+            entity.setValorBaseCalculoIss( api.getValorBaseCalculoIss() );
+            entity.setValorIssRetido( api.getValorIssRetido() );
             entity.setIssRetido( api.getIssRetido() );
             entity.setResponsavelRetencao( api.getResponsavelRetencao() );
             entity.setCstPisCofins( api.getCstPisCofins() );
@@ -489,6 +497,8 @@ public class NotaMapper {
         if (api.getValorDescontoIncondicionado() != null) entity.setValorDescontoIncondicionado( api.getValorDescontoIncondicionado() ); 
         if (api.getTipoOperacaoIss() != null) entity.setTipoOperacaoIss( api.getTipoOperacaoIss() ); 
         if (api.getAliquotaIss() != null) entity.setAliquotaIss( api.getAliquotaIss() ); 
+        if (api.getValorBaseCalculoIss() != null) entity.setValorBaseCalculoIss( api.getValorBaseCalculoIss() ); 
+        if (api.getValorIssRetido() != null) entity.setValorIssRetido( api.getValorIssRetido() ); 
         if (api.getIssRetido() != null) entity.setIssRetido( api.getIssRetido() ); 
         if (api.getResponsavelRetencao() != null) entity.setResponsavelRetencao( api.getResponsavelRetencao() ); 
         if (api.getCstPisCofins() != null) entity.setCstPisCofins( api.getCstPisCofins() ); 
@@ -575,9 +585,6 @@ public class NotaMapper {
         if (entity.getIssRetido() == null) {
             entity.setIssRetido(false);
         }
-        if (entity.getTipoRetencao() == null) {
-            entity.setTipoRetencao(2);
-        }
         if (entity.getEstado() == null) {
             entity.setEstado("PROCESSANDO");
         }
@@ -601,9 +608,6 @@ public class NotaMapper {
         }
         if (api.getIssRetido() == null) {
             api.setIssRetido(false);
-        }
-        if (api.getTipoRetencao() == null) {
-            api.setTipoRetencao(2);
         }
         if (api.getEstado() == null) {
             api.setEstado("PROCESSANDO");

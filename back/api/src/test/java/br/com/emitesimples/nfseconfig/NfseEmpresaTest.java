@@ -298,6 +298,24 @@ class NfseEmpresaTest extends BaseApiTest {
     }
 
     @Test
+    void tokenDoEmitenteInformadoPelaPlataformaSincronizaEMarcaCadastrado() throws Exception {
+        String emp = empresa();
+        String doc = ler(emp).getDocumento().replaceAll("[^0-9]", "");
+        String jwt = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJlbXAiOjEsInRwIjoyfQ." + java.util.UUID.randomUUID().toString().replace("-", "");
+        given().get(urlStub + "/_semear?doc=" + doc + "&token=" + jwt).then().statusCode(200); // ja e emitente no gateway
+        chamar("POST", "/api/admin/empresas/" + emp + "/integranotas/token-emitente", plataforma(), Map.of("token", jwt))
+                .then().statusCode(204);
+        assertEquals("NAO_CADASTRADO", ler(emp).getStatusCadastro());
+        put(admin(emp), habilitar("99", 0)).then().statusCode(200).body("habilitada", equalTo(true))
+                .body("statusCadastro", equalTo("CADASTRADO")).body("emitenteTokenConfigurado", equalTo(true));
+        // sincronizou com o token do emitente (PUT /v1/emitente), sem cadastrar emitente novo
+        assertEquals(jwt, JSON.readTree(given().get(urlStub + "/_ultimo_put").asString()).path("authorization").asText());
+        EmpresaEntity e = ler(emp);
+        assertEquals(jwt, segredos.ler(e.getReferenciaTokenEmpresa()));
+        assertNotNull(e.getDataCadastroGateway());
+    }
+
+    @Test
     void segundoPutNaoRecriaOEmitente() {
         String emp = empresa();
         String tk = admin(emp);
