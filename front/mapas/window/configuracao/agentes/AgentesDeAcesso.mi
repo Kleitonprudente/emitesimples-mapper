@@ -1,0 +1,22 @@
+[Descriptor.window.custom] AgentesDeAcesso
+    @
+        [e] title
+            [e] pt
+                [v] Agentes
+        [e] description
+            [e] pt
+                [v] Credenciais de máquina (cliente de acesso) dos agentes do próprio usuário: criar (o segredo aparece uma vez só), ver o último uso e revogar. O agente só prepara rascunhos e lê; nunca aprova, baixa, estorna nem cancela (docs/financeiro/README.md, 9.4, B3; window.custom).
+        [e] route
+            [v] /agentes
+        [e] role
+            [v] ADMINISTRADOR
+        [e] icon
+            [v] user-cog
+        [e] group
+            [v] Administração
+        [e] order
+            [v] 80
+        [e] component
+            [v] AgentesDeAcessoScreen
+        [e] from
+            [v] @/features/configuracao/agentes/AgentesDeAcesso

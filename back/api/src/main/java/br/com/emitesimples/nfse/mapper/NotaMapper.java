@@ -60,6 +60,7 @@ public class NotaMapper {
         nota.setInformacoesComplementares( entity.getInformacoesComplementares() );
         nota.setRegimeApuracao( entity.getRegimeApuracao() );
         nota.setRegimeTributacao( entity.getRegimeTributacao() );
+        nota.setIdCondicaoPagamento( entity.getIdCondicaoPagamento() );
         nota.setCodigoServico( entity.getCodigoServico() );
         nota.setCodigoTributacaoMunicipio( entity.getCodigoTributacaoMunicipio() );
         nota.setCodigoNbs( entity.getCodigoNbs() );
@@ -138,6 +139,7 @@ public class NotaMapper {
             notaBuilder.informacoesComplementares = api.getInformacoesComplementares();
             notaBuilder.regimeApuracao = api.getRegimeApuracao();
             notaBuilder.regimeTributacao = api.getRegimeTributacao();
+            notaBuilder.idCondicaoPagamento = api.getIdCondicaoPagamento();
             notaBuilder.codigoServico = api.getCodigoServico();
             notaBuilder.codigoTributacaoMunicipio = api.getCodigoTributacaoMunicipio();
             notaBuilder.codigoNbs = api.getCodigoNbs();
@@ -235,6 +237,7 @@ public class NotaMapper {
         api.setInformacoesComplementares( entity.getInformacoesComplementares() );
         api.setRegimeApuracao( entity.getRegimeApuracao() );
         api.setRegimeTributacao( entity.getRegimeTributacao() );
+        api.setIdCondicaoPagamento( entity.getIdCondicaoPagamento() );
         api.setCodigoServico( entity.getCodigoServico() );
         api.setCodigoTributacaoMunicipio( entity.getCodigoTributacaoMunicipio() );
         api.setCodigoNbs( entity.getCodigoNbs() );
@@ -368,6 +371,7 @@ public class NotaMapper {
             entity.setInformacoesComplementares( api.getInformacoesComplementares() );
             entity.setRegimeApuracao( api.getRegimeApuracao() );
             entity.setRegimeTributacao( api.getRegimeTributacao() );
+            entity.setIdCondicaoPagamento( api.getIdCondicaoPagamento() );
             entity.setCodigoServico( api.getCodigoServico() );
             entity.setCodigoTributacaoMunicipio( api.getCodigoTributacaoMunicipio() );
             entity.setCodigoNbs( api.getCodigoNbs() );
@@ -415,55 +419,49 @@ public class NotaMapper {
             repository.conferirEmpresaImutavel(entity, api.getEmpresa() == null ? null : api.getEmpresa().getId());
 
             if ( api.getPessoa() != null ) {
-                if ( entity.getPessoa() == null ) {
-                    entity.setPessoa( new PessoaEntity() );
-                }
-                entity.setPessoa(pessoaMapper.updateApiToEntity( api.getPessoa(), entity.getPessoa()));
+                // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+                // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+                entity.setPessoa(pessoaMapper.updateApiToEntity( api.getPessoa(), entity.getPessoa() != null ? entity.getPessoa() : new PessoaEntity()));
             } else {
                 entity.setPessoa( null );
             }
 
             if ( api.getServico() != null ) {
-                if ( entity.getServico() == null ) {
-                    entity.setServico( new ServicoEntity() );
-                }
-                entity.setServico(servicoMapper.updateApiToEntity( api.getServico(), entity.getServico()));
+                // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+                // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+                entity.setServico(servicoMapper.updateApiToEntity( api.getServico(), entity.getServico() != null ? entity.getServico() : new ServicoEntity()));
             } else {
                 entity.setServico( null );
             }
 
             if ( api.getPreparadoPorUsuario() != null ) {
-                if ( entity.getPreparadoPorUsuario() == null ) {
-                    entity.setPreparadoPorUsuario( new UsuarioEntity() );
-                }
-                entity.setPreparadoPorUsuario(usuarioMapper.updateApiToEntity( api.getPreparadoPorUsuario(), entity.getPreparadoPorUsuario()));
+                // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+                // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+                entity.setPreparadoPorUsuario(usuarioMapper.updateApiToEntity( api.getPreparadoPorUsuario(), entity.getPreparadoPorUsuario() != null ? entity.getPreparadoPorUsuario() : new UsuarioEntity()));
             } else {
                 entity.setPreparadoPorUsuario( null );
             }
 
             if ( api.getPreparadoPorCliente() != null ) {
-                if ( entity.getPreparadoPorCliente() == null ) {
-                    entity.setPreparadoPorCliente( new ClienteAcessoEntity() );
-                }
-                entity.setPreparadoPorCliente(clienteAcessoMapper.updateApiToEntity( api.getPreparadoPorCliente(), entity.getPreparadoPorCliente()));
+                // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+                // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+                entity.setPreparadoPorCliente(clienteAcessoMapper.updateApiToEntity( api.getPreparadoPorCliente(), entity.getPreparadoPorCliente() != null ? entity.getPreparadoPorCliente() : new ClienteAcessoEntity()));
             } else {
                 entity.setPreparadoPorCliente( null );
             }
 
             if ( api.getAprovadoPor() != null ) {
-                if ( entity.getAprovadoPor() == null ) {
-                    entity.setAprovadoPor( new UsuarioEntity() );
-                }
-                entity.setAprovadoPor(usuarioMapper.updateApiToEntity( api.getAprovadoPor(), entity.getAprovadoPor()));
+                // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+                // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+                entity.setAprovadoPor(usuarioMapper.updateApiToEntity( api.getAprovadoPor(), entity.getAprovadoPor() != null ? entity.getAprovadoPor() : new UsuarioEntity()));
             } else {
                 entity.setAprovadoPor( null );
             }
 
             if ( api.getDescartadoPor() != null ) {
-                if ( entity.getDescartadoPor() == null ) {
-                    entity.setDescartadoPor( new UsuarioEntity() );
-                }
-                entity.setDescartadoPor(usuarioMapper.updateApiToEntity( api.getDescartadoPor(), entity.getDescartadoPor()));
+                // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+                // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+                entity.setDescartadoPor(usuarioMapper.updateApiToEntity( api.getDescartadoPor(), entity.getDescartadoPor() != null ? entity.getDescartadoPor() : new UsuarioEntity()));
             } else {
                 entity.setDescartadoPor( null );
             }
@@ -486,6 +484,7 @@ public class NotaMapper {
         if (api.getInformacoesComplementares() != null) entity.setInformacoesComplementares( api.getInformacoesComplementares() ); 
         if (api.getRegimeApuracao() != null) entity.setRegimeApuracao( api.getRegimeApuracao() ); 
         if (api.getRegimeTributacao() != null) entity.setRegimeTributacao( api.getRegimeTributacao() ); 
+        if (api.getIdCondicaoPagamento() != null) entity.setIdCondicaoPagamento( api.getIdCondicaoPagamento() ); 
         if (api.getCodigoServico() != null) entity.setCodigoServico( api.getCodigoServico() ); 
         if (api.getCodigoTributacaoMunicipio() != null) entity.setCodigoTributacaoMunicipio( api.getCodigoTributacaoMunicipio() ); 
         if (api.getCodigoNbs() != null) entity.setCodigoNbs( api.getCodigoNbs() ); 
@@ -532,40 +531,34 @@ public class NotaMapper {
         if (api.getDataAtualizacao() != null) entity.setDataAtualizacao( api.getDataAtualizacao() ); 
         repository.conferirEmpresaImutavel(entity, api.getEmpresa() == null ? null : api.getEmpresa().getId());
         if ( api.getPessoa() != null ) {
-            if ( entity.getPessoa() == null ) {
-                entity.setPessoa( new PessoaEntity() );
-            }
-            entity.setPessoa(pessoaMapper.updateApiToEntity( api.getPessoa(), entity.getPessoa()));
+            // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+            // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+            entity.setPessoa(pessoaMapper.updateApiToEntity( api.getPessoa(), entity.getPessoa() != null ? entity.getPessoa() : new PessoaEntity()));
         }
         if ( api.getServico() != null ) {
-            if ( entity.getServico() == null ) {
-                entity.setServico( new ServicoEntity() );
-            }
-            entity.setServico(servicoMapper.updateApiToEntity( api.getServico(), entity.getServico()));
+            // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+            // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+            entity.setServico(servicoMapper.updateApiToEntity( api.getServico(), entity.getServico() != null ? entity.getServico() : new ServicoEntity()));
         }
         if ( api.getPreparadoPorUsuario() != null ) {
-            if ( entity.getPreparadoPorUsuario() == null ) {
-                entity.setPreparadoPorUsuario( new UsuarioEntity() );
-            }
-            entity.setPreparadoPorUsuario(usuarioMapper.updateApiToEntity( api.getPreparadoPorUsuario(), entity.getPreparadoPorUsuario()));
+            // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+            // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+            entity.setPreparadoPorUsuario(usuarioMapper.updateApiToEntity( api.getPreparadoPorUsuario(), entity.getPreparadoPorUsuario() != null ? entity.getPreparadoPorUsuario() : new UsuarioEntity()));
         }
         if ( api.getPreparadoPorCliente() != null ) {
-            if ( entity.getPreparadoPorCliente() == null ) {
-                entity.setPreparadoPorCliente( new ClienteAcessoEntity() );
-            }
-            entity.setPreparadoPorCliente(clienteAcessoMapper.updateApiToEntity( api.getPreparadoPorCliente(), entity.getPreparadoPorCliente()));
+            // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+            // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+            entity.setPreparadoPorCliente(clienteAcessoMapper.updateApiToEntity( api.getPreparadoPorCliente(), entity.getPreparadoPorCliente() != null ? entity.getPreparadoPorCliente() : new ClienteAcessoEntity()));
         }
         if ( api.getAprovadoPor() != null ) {
-            if ( entity.getAprovadoPor() == null ) {
-                entity.setAprovadoPor( new UsuarioEntity() );
-            }
-            entity.setAprovadoPor(usuarioMapper.updateApiToEntity( api.getAprovadoPor(), entity.getAprovadoPor()));
+            // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+            // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+            entity.setAprovadoPor(usuarioMapper.updateApiToEntity( api.getAprovadoPor(), entity.getAprovadoPor() != null ? entity.getAprovadoPor() : new UsuarioEntity()));
         }
         if ( api.getDescartadoPor() != null ) {
-            if ( entity.getDescartadoPor() == null ) {
-                entity.setDescartadoPor( new UsuarioEntity() );
-            }
-            entity.setDescartadoPor(usuarioMapper.updateApiToEntity( api.getDescartadoPor(), entity.getDescartadoPor()));
+            // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+            // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+            entity.setDescartadoPor(usuarioMapper.updateApiToEntity( api.getDescartadoPor(), entity.getDescartadoPor() != null ? entity.getDescartadoPor() : new UsuarioEntity()));
         }
 
         return entity;

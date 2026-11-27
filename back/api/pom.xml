@@ -76,6 +76,11 @@
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-arc</artifactId>
     </dependency>
+    <!-- cobranca por e-mail do financeiro (Fase 6, docs/financeiro/README.md 9.3): SMTP, credenciais so por variavel de ambiente -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-mailer</artifactId>
+    </dependency>
     <!-- job de acompanhamento das NFS-e (@Scheduled) -->
     <dependency>
       <groupId>io.quarkus</groupId>

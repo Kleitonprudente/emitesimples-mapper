@@ -29,6 +29,8 @@
             [v] import { {{ $labelImports }} } from '@/gen/schemas/{{ $entity }}'
         [e] import-row
             [v] import type { {{ $bean }}Row } from '@/gen/api/{{ $entity }}'
+        [e] import-computed
+            [v] import { ComputedCell } from '@/runtime/ComputedCell'
         [e] icon-const
             [v] const {{ mi:first-upper(normalize-space(value)) }}Icon = resolveIcon('{{ normalize-space(properties/icon/value) }}')
         [e] actions-type-start
@@ -69,6 +71,12 @@
             [v]     { id: '{{ $fname }}', accessorKey: '{{ $fname }}', header: '{{ $header }}'{{ f#[sortOpt] }}, cell: (c) => formatDateTime(c.getValue() as string) },
         [e] col-boolean
             [v]     { id: '{{ $fname }}', accessorKey: '{{ $fname }}', header: '{{ $header }}'{{ f#[sortOpt] }}, cell: (c) => (c.getValue() ? 'Sim' : 'Não') },
+        [e] col-computed
+            [v]     { id: '{{ normalize-space(value) }}', header: '{{ $header }}', enableSorting: false, cell: ({ row }) => <ComputedCell source="{{ $source }}" id={row.original.id} /> },
+        [e] err-computed-source
+            [v]     // ERRO NO MODELO: coluna calculada {{ normalize-space(value) }} sem source em {{ $janela }} (declare a fonte registrada em lib/computed-sources.ts)
+        [e] err-computed-label
+            [v]     // ERRO NO MODELO: coluna calculada {{ normalize-space(value) }} sem label/pt em {{ $janela }} (declare o titulo da coluna)
         [e] col-plain
             [v]     { id: '{{ $fname }}', accessorKey: '{{ $fname }}', header: '{{ $header }}'{{ f#[sortOpt] }} },
         [e] actions-col-start
@@ -156,6 +164,11 @@
             [e] write-pattern
                 [v] import-row
             [e] if
+                [v] exists(columns/computed)
+                [e] then
+                    [e] write-pattern
+                        [v] import-computed
+            [e] if
                 [v] exists($rowActions)
                 [e] then
                     [e] apply-templates
@@ -190,6 +203,9 @@
                     [e] bean
                         [e] expr
                             [v] $bean
+                    [e] janela
+                        [e] expr
+                            [v] string(@name)
                 [e] mode
                     [v] column
             [e] if
@@ -241,6 +257,8 @@
                     [v] field
                 [e] parameters
                     [e] bean
+                        [v] NOT_DEFINED
+                    [e] janela
                         [v] NOT_DEFINED
                 [e] body
                     [e] vars
@@ -305,9 +323,42 @@
                                 [v] col-plain
             [e] template
                 [e] match
+                    [v] computed
+                [e] parameters
+                    [e] bean
+                        [v] NOT_DEFINED
+                    [e] janela
+                        [v] NOT_DEFINED
+                [e] body
+                    [e] vars
+                        [e] var
+                            [v] source
+                            [e] expr
+                                [v] normalize-space(properties/source/value)
+                        [e] var
+                            [v] header
+                            [e] expr
+                                [v] replace(normalize-space(properties/label/pt/value), "'", "\\'")
+                    [e] if
+                        [v] $source = ''
+                        [e] then
+                            [e] write-pattern
+                                [v] err-computed-source
+                        [e] else-if
+                            [v] $header = ''
+                            [e] then
+                                [e] write-pattern
+                                    [v] err-computed-label
+                        [e] else
+                            [e] write-pattern
+                                [v] col-computed
+            [e] template
+                [e] match
                     [v] *
                 [e] parameters
                     [e] bean
+                        [v] NOT_DEFINED
+                    [e] janela
                         [v] NOT_DEFINED
                 [e] body
                     [e] write-pattern

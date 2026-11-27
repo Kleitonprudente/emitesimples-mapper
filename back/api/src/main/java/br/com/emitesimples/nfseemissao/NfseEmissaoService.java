@@ -16,6 +16,7 @@ import br.com.emitesimples.plataforma.SegredoService;
 import br.com.emitesimples.security.ApiException;
 import br.com.emitesimples.security.Papeis;
 import br.com.emitesimples.tenant.EscopoTenant;
+import br.com.emitesimples.usuarios.entity.ClienteAcessoEntity;
 import br.com.emitesimples.usuarios.entity.UsuarioEntity;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -86,8 +87,9 @@ public class NfseEmissaoService {
     NfseChamadaLog chamadas;
 
     /** Campos ja validados; {@code null} = nao informado (na criacao, so info/discriminacao podem faltar). */
+    /** {@code condicao}: null = nao veio (mantem); em branco = limpa; senao, o id da condicao de pagamento (E1). */
     private record Campos(String pessoaId, String servicoId, BigDecimal valor, String info, String discriminacao,
-            Tributos tributos) {
+            Tributos tributos, String condicao) {
     }
 
     private record Pre(NfsePayloadMapper.Montado montado, String tokenRef, String ambiente) {
@@ -102,7 +104,7 @@ public class NfseEmissaoService {
             throw invalido(List.of(erro("corpo", "Informe os dados da nota.")));
         }
         Campos c = validar(in.pessoaId(), in.servicoId(), in.valorServicos(), in.informacoesComplementares(),
-                in.discriminacao(), in.tributos(), true);
+                in.discriminacao(), in.tributos(), in.idCondicaoPagamento(), true);
         String ativo = config.ambienteAtivo();
         String usuarioId = jwt.getSubject();
         String notaId = QuarkusTransaction.requiringNew().call(() -> criarNota(emp, c, ativo, usuarioId));
@@ -112,9 +114,9 @@ public class NfseEmissaoService {
     public NotaDetalhe enviar(String id, EnviarEntrada in) {
         limite.consumir(jwt.getSubject());
         String emp = empresaDaSessao();
-        Campos c = in == null ? new Campos(null, null, null, null, null, null)
+        Campos c = in == null ? new Campos(null, null, null, null, null, null, null)
                 : validar(in.pessoaId(), in.servicoId(), in.valorServicos(), in.informacoesComplementares(),
-                        in.discriminacao(), in.tributos(), false);
+                        in.discriminacao(), in.tributos(), in.idCondicaoPagamento(), false);
         String ativo = config.ambienteAtivo();
         String usuarioId = jwt.getSubject();
         QuarkusTransaction.requiringNew().run(() -> prepararReenvio(emp, id, c, ativo, usuarioId));
@@ -143,6 +145,7 @@ public class NfseEmissaoService {
                 .withDataEmissao(LocalDateTime.now(NfsePayloadMapper.SAO_PAULO))
                 .withDataCompetencia(LocalDate.now(NfsePayloadMapper.SAO_PAULO))
                 .withInformacoesComplementares(c.info() == null || c.info().isBlank() ? null : c.info().strip())
+                .withIdCondicaoPagamento(blank(c.condicao()))
                 .withEstado(EstadosNfse.PROCESSANDO).withDataHoraAprovacao(agora)
                 .withEmpresa(e).withPessoa(p).withServico(s)
                 .withPreparadoPorUsuario(usuario(usuarioId)).withAprovadoPor(usuario(usuarioId))
@@ -210,6 +213,9 @@ public class NfseEmissaoService {
         if (c.info() != null) {
             n.setInformacoesComplementares(c.info().isBlank() ? null : c.info().strip());
         }
+        if (c.condicao() != null) {
+            n.setIdCondicaoPagamento(blank(c.condicao()));
+        }
         tributar(n, e, c.tributos());
     }
 
@@ -256,13 +262,15 @@ public class NfseEmissaoService {
             throw invalido(List.of(erro("tributos", "Os tributos só podem ser informados pela tela, por uma pessoa.")));
         }
         Campos c = validar(in.pessoaId(), in.servicoId(), in.valorServicos(), in.informacoesComplementares(),
-                in.discriminacao(), null, true);
+                in.discriminacao(), null, in.idCondicaoPagamento(), true);
         String usuarioId = jwt.getSubject();
-        String notaId = QuarkusTransaction.requiringNew().call(() -> gravarRascunho(emp, c, usuarioId));
+        Object claim = jwt.getClaim(br.com.emitesimples.security.JwtEmissor.CLAIM_CLIENTE_ACESSO);
+        String cliente = claim == null ? null : String.valueOf(claim).replace("\"", "");
+        String notaId = QuarkusTransaction.requiringNew().call(() -> gravarRascunho(emp, c, usuarioId, cliente));
         return detalhe(emp, notaId);
     }
 
-    private String gravarRascunho(String emp, Campos c, String usuarioId) {
+    private String gravarRascunho(String emp, Campos c, String usuarioId, String cliente) {
         EmpresaEntity e = em.find(EmpresaEntity.class, emp);
         if (e == null) {
             throw naoEncontrado("Empresa não encontrada.");
@@ -276,8 +284,11 @@ public class NfseEmissaoService {
         var agora = AuthService.agora();
         NotaEntity n = NotaEntity.builderOf()
                 .withInformacoesComplementares(c.info() == null || c.info().isBlank() ? null : c.info().strip())
+                .withIdCondicaoPagamento(blank(c.condicao()))
                 .withEstado(EstadosNfse.RASCUNHO).withEmpresa(e).withPessoa(p).withServico(s)
-                .withPreparadoPorUsuario(usuario(usuarioId)) // preparadoPorCliente: sem autenticacao do assistente ainda (README)
+                .withPreparadoPorUsuario(usuario(usuarioId))
+                // B3 (docs/financeiro/README.md 9.4): preparado por agente grava o cliente de acesso; por pessoa, fica vazio
+                .withPreparadoPorCliente(cliente == null ? null : em.getReference(ClienteAcessoEntity.class, cliente))
                 .withDataCriacao(agora).withDataAtualizacao(agora)
                 .build();
         snapshot(n, s, discriminacao, c.valor());
@@ -292,9 +303,9 @@ public class NfseEmissaoService {
     public NotaDetalhe aprovar(String id, EnviarEntrada in) {
         limite.consumir(jwt.getSubject());
         String emp = empresaDaSessao();
-        Campos c = in == null ? new Campos(null, null, null, null, null, null)
+        Campos c = in == null ? new Campos(null, null, null, null, null, null, null)
                 : validar(in.pessoaId(), in.servicoId(), in.valorServicos(), in.informacoesComplementares(),
-                        in.discriminacao(), in.tributos(), false);
+                        in.discriminacao(), in.tributos(), in.idCondicaoPagamento(), false);
         String ativo = config.ambienteAtivo();
         String usuarioId = jwt.getSubject();
         QuarkusTransaction.requiringNew().run(() -> aprovarRascunho(emp, id, c, ativo, usuarioId));
@@ -778,7 +789,7 @@ public class NfseEmissaoService {
     private static final String SELECT = "select n.id, n.numero, n.serie, n.estado, n.dataEmissao, n.valorServicos, p.id, p.nome, "
             + "p.documento, s.id, s.nome, n.chave, n.numeroNfse, n.codigoRetorno, n.mensagemRetorno, "
             + "case when n.pdf is null then false else true end, n.dataCriacao, n.informacoesComplementares, n.discriminacao, "
-            + "n.descricao, n.codigoServico, n.errosRetorno, n.linkPdf, n.codigoVerificacao, n.dataHoraEvento "
+            + "n.descricao, n.codigoServico, n.errosRetorno, n.linkPdf, n.codigoVerificacao, n.dataHoraEvento, n.idCondicaoPagamento "
             + "from NotaEntity n join n.pessoa p join n.servico s where n.empresa.id = :emp";
 
     public List<NotaItem> listar(int from, int to, String estado, String busca) {
@@ -899,7 +910,8 @@ public class NfseEmissaoService {
         return new NotaDetalhe(i.id(), i.numero(), i.serie(), estado, i.dataEmissao(), i.valorServicos(), i.pessoa(),
                 i.servico(), i.chave(), i.numeroNfse(), i.codigoRetorno(), i.mensagemRetorno(), i.temPdf(),
                 i.dataCriacao(), (String) l[17], (String) l[18], (String) l[19], (String) l[20], erros((String) l[21]),
-                (String) l[22], (String) l[23], (LocalDateTime) l[24], editavel, editavel, atualizar, info, podeCancelar, rascunho, rascunho, tributos);
+                (String) l[22], (String) l[23], (LocalDateTime) l[24], editavel, editavel, atualizar, info, podeCancelar, rascunho, rascunho, tributos,
+                (String) l[25]);
     }
 
     /** Parse tolerante do texto salvo: array JSON de {campo, erro, descricao}; qualquer outro texto vira uma descricao. */
@@ -926,7 +938,7 @@ public class NfseEmissaoService {
     // ------------------------------------------------------------------------------------------- validacao
 
     private Campos validar(String pessoaId, String servicoId, BigDecimal valor, String info, String discriminacao,
-            Tributos tributos, boolean criacao) {
+            Tributos tributos, String condicao, boolean criacao) {
         List<Map<String, String>> f = new ArrayList<>();
         if (criacao && (pessoaId == null || pessoaId.isBlank())) {
             f.add(erro("pessoaId", "Informe o tomador."));
@@ -948,11 +960,14 @@ public class NfseEmissaoService {
         if (discriminacao != null && discriminacao.length() > 2000) {
             f.add(erro("discriminacao", "Use no máximo 2000 caracteres."));
         }
+        if (condicao != null && condicao.strip().length() > 36) {
+            f.add(erro("idCondicaoPagamento", "Condição de pagamento não encontrada."));
+        }
         if (!f.isEmpty()) {
             throw invalido(f);
         }
         return new Campos(blank(pessoaId), blank(servicoId), valor == null ? null : valor.setScale(2), info, discriminacao,
-                tributos);
+                tributos, condicao);
     }
 
     private static String discriminacaoFinal(String informada, ServicoEntity s) {

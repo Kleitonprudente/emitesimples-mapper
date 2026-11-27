@@ -18,6 +18,9 @@ import { Route as AuthenticatedAdminIntegranotasRouteImport } from './routes/_au
 import { Route as AuthenticatedAdminMunicipiosRouteImport } from './routes/_authenticated/admin/municipios'
 import { Route as AuthenticatedAdminThemeRouteImport } from './routes/_authenticated/admin/theme'
 import { Route as AuthenticatedAdminUsuariosRouteImport } from './routes/_authenticated/admin/usuarios'
+import { Route as AuthenticatedAgentesIndexRouteImport } from './routes/_authenticated/agentes/index'
+import { Route as AuthenticatedBancosIndexRouteImport } from './routes/_authenticated/bancos/index'
+import { Route as AuthenticatedBancosIdRouteImport } from './routes/_authenticated/bancos/$id'
 import { Route as AuthenticatedClientesIndexRouteImport } from './routes/_authenticated/clientes/index'
 import { Route as AuthenticatedClientesIdRouteImport } from './routes/_authenticated/clientes/$id'
 import { Route as AuthenticatedConfiguracaoEmpresaRouteImport } from './routes/_authenticated/configuracao/empresa'
@@ -35,6 +38,19 @@ import { Route as AuthenticatedPessoasIndexRouteImport } from './routes/_authent
 import { Route as AuthenticatedPessoasIdRouteImport } from './routes/_authenticated/pessoas/$id'
 import { Route as AuthenticatedServicosIndexRouteImport } from './routes/_authenticated/servicos/index'
 import { Route as AuthenticatedServicosIdRouteImport } from './routes/_authenticated/servicos/$id'
+import { Route as AuthenticatedFinanceiroCategoriasIndexRouteImport } from './routes/_authenticated/financeiro/categorias/index'
+import { Route as AuthenticatedFinanceiroCategoriasIdRouteImport } from './routes/_authenticated/financeiro/categorias/$id'
+import { Route as AuthenticatedFinanceiroCobrancaIndexRouteImport } from './routes/_authenticated/financeiro/cobranca/index'
+import { Route as AuthenticatedFinanceiroCondicoesIndexRouteImport } from './routes/_authenticated/financeiro/condicoes/index'
+import { Route as AuthenticatedFinanceiroCondicoesIdRouteImport } from './routes/_authenticated/financeiro/condicoes/$id'
+import { Route as AuthenticatedFinanceiroConfiguracaoIndexRouteImport } from './routes/_authenticated/financeiro/configuracao/index'
+import { Route as AuthenticatedFinanceiroContasIndexRouteImport } from './routes/_authenticated/financeiro/contas/index'
+import { Route as AuthenticatedFinanceiroContasIdRouteImport } from './routes/_authenticated/financeiro/contas/$id'
+import { Route as AuthenticatedFinanceiroCsvIndexRouteImport } from './routes/_authenticated/financeiro/csv/index'
+import { Route as AuthenticatedFinanceiroExtratoIndexRouteImport } from './routes/_authenticated/financeiro/extrato/index'
+import { Route as AuthenticatedFinanceiroPagarIndexRouteImport } from './routes/_authenticated/financeiro/pagar/index'
+import { Route as AuthenticatedFinanceiroReceberIndexRouteImport } from './routes/_authenticated/financeiro/receber/index'
+import { Route as AuthenticatedFinanceiroTitulosIdRouteImport } from './routes/_authenticated/financeiro/titulos/$id'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
@@ -84,6 +100,23 @@ const AuthenticatedAdminUsuariosRoute =
     path: '/admin/usuarios',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedAgentesIndexRoute =
+  AuthenticatedAgentesIndexRouteImport.update({
+    id: '/agentes/',
+    path: '/agentes/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedBancosIndexRoute =
+  AuthenticatedBancosIndexRouteImport.update({
+    id: '/bancos/',
+    path: '/bancos/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedBancosIdRoute = AuthenticatedBancosIdRouteImport.update({
+  id: '/bancos/$id',
+  path: '/bancos/$id',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedClientesIndexRoute =
   AuthenticatedClientesIndexRouteImport.update({
     id: '/clientes/',
@@ -179,6 +212,84 @@ const AuthenticatedServicosIdRoute = AuthenticatedServicosIdRouteImport.update({
   path: '/servicos/$id',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedFinanceiroCategoriasIndexRoute =
+  AuthenticatedFinanceiroCategoriasIndexRouteImport.update({
+    id: '/financeiro/categorias/',
+    path: '/financeiro/categorias/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedFinanceiroCategoriasIdRoute =
+  AuthenticatedFinanceiroCategoriasIdRouteImport.update({
+    id: '/financeiro/categorias/$id',
+    path: '/financeiro/categorias/$id',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedFinanceiroCobrancaIndexRoute =
+  AuthenticatedFinanceiroCobrancaIndexRouteImport.update({
+    id: '/financeiro/cobranca/',
+    path: '/financeiro/cobranca/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedFinanceiroCondicoesIndexRoute =
+  AuthenticatedFinanceiroCondicoesIndexRouteImport.update({
+    id: '/financeiro/condicoes/',
+    path: '/financeiro/condicoes/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedFinanceiroCondicoesIdRoute =
+  AuthenticatedFinanceiroCondicoesIdRouteImport.update({
+    id: '/financeiro/condicoes/$id',
+    path: '/financeiro/condicoes/$id',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedFinanceiroConfiguracaoIndexRoute =
+  AuthenticatedFinanceiroConfiguracaoIndexRouteImport.update({
+    id: '/financeiro/configuracao/',
+    path: '/financeiro/configuracao/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedFinanceiroContasIndexRoute =
+  AuthenticatedFinanceiroContasIndexRouteImport.update({
+    id: '/financeiro/contas/',
+    path: '/financeiro/contas/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedFinanceiroContasIdRoute =
+  AuthenticatedFinanceiroContasIdRouteImport.update({
+    id: '/financeiro/contas/$id',
+    path: '/financeiro/contas/$id',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedFinanceiroCsvIndexRoute =
+  AuthenticatedFinanceiroCsvIndexRouteImport.update({
+    id: '/financeiro/csv/',
+    path: '/financeiro/csv/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedFinanceiroExtratoIndexRoute =
+  AuthenticatedFinanceiroExtratoIndexRouteImport.update({
+    id: '/financeiro/extrato/',
+    path: '/financeiro/extrato/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedFinanceiroPagarIndexRoute =
+  AuthenticatedFinanceiroPagarIndexRouteImport.update({
+    id: '/financeiro/pagar/',
+    path: '/financeiro/pagar/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedFinanceiroReceberIndexRoute =
+  AuthenticatedFinanceiroReceberIndexRouteImport.update({
+    id: '/financeiro/receber/',
+    path: '/financeiro/receber/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedFinanceiroTitulosIdRoute =
+  AuthenticatedFinanceiroTitulosIdRouteImport.update({
+    id: '/financeiro/titulos/$id',
+    path: '/financeiro/titulos/$id',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -189,6 +300,7 @@ export interface FileRoutesByFullPath {
   '/admin/municipios': typeof AuthenticatedAdminMunicipiosRoute
   '/admin/theme': typeof AuthenticatedAdminThemeRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
+  '/bancos/$id': typeof AuthenticatedBancosIdRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/configuracao/empresa': typeof AuthenticatedConfiguracaoEmpresaRoute
   '/configuracao/nfse': typeof AuthenticatedConfiguracaoNfseRoute
@@ -199,6 +311,8 @@ export interface FileRoutesByFullPath {
   '/notas/novo': typeof AuthenticatedNotasNovoRoute
   '/pessoas/$id': typeof AuthenticatedPessoasIdRoute
   '/servicos/$id': typeof AuthenticatedServicosIdRoute
+  '/agentes/': typeof AuthenticatedAgentesIndexRoute
+  '/bancos/': typeof AuthenticatedBancosIndexRoute
   '/clientes/': typeof AuthenticatedClientesIndexRoute
   '/empresas/': typeof AuthenticatedEmpresasIndexRoute
   '/fornecedores/': typeof AuthenticatedFornecedoresIndexRoute
@@ -206,6 +320,19 @@ export interface FileRoutesByFullPath {
   '/notas/': typeof AuthenticatedNotasIndexRoute
   '/pessoas/': typeof AuthenticatedPessoasIndexRoute
   '/servicos/': typeof AuthenticatedServicosIndexRoute
+  '/financeiro/categorias/$id': typeof AuthenticatedFinanceiroCategoriasIdRoute
+  '/financeiro/condicoes/$id': typeof AuthenticatedFinanceiroCondicoesIdRoute
+  '/financeiro/contas/$id': typeof AuthenticatedFinanceiroContasIdRoute
+  '/financeiro/titulos/$id': typeof AuthenticatedFinanceiroTitulosIdRoute
+  '/financeiro/categorias/': typeof AuthenticatedFinanceiroCategoriasIndexRoute
+  '/financeiro/cobranca/': typeof AuthenticatedFinanceiroCobrancaIndexRoute
+  '/financeiro/condicoes/': typeof AuthenticatedFinanceiroCondicoesIndexRoute
+  '/financeiro/configuracao/': typeof AuthenticatedFinanceiroConfiguracaoIndexRoute
+  '/financeiro/contas/': typeof AuthenticatedFinanceiroContasIndexRoute
+  '/financeiro/csv/': typeof AuthenticatedFinanceiroCsvIndexRoute
+  '/financeiro/extrato/': typeof AuthenticatedFinanceiroExtratoIndexRoute
+  '/financeiro/pagar/': typeof AuthenticatedFinanceiroPagarIndexRoute
+  '/financeiro/receber/': typeof AuthenticatedFinanceiroReceberIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -216,6 +343,7 @@ export interface FileRoutesByTo {
   '/admin/municipios': typeof AuthenticatedAdminMunicipiosRoute
   '/admin/theme': typeof AuthenticatedAdminThemeRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
+  '/bancos/$id': typeof AuthenticatedBancosIdRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/configuracao/empresa': typeof AuthenticatedConfiguracaoEmpresaRoute
   '/configuracao/nfse': typeof AuthenticatedConfiguracaoNfseRoute
@@ -226,6 +354,8 @@ export interface FileRoutesByTo {
   '/notas/novo': typeof AuthenticatedNotasNovoRoute
   '/pessoas/$id': typeof AuthenticatedPessoasIdRoute
   '/servicos/$id': typeof AuthenticatedServicosIdRoute
+  '/agentes': typeof AuthenticatedAgentesIndexRoute
+  '/bancos': typeof AuthenticatedBancosIndexRoute
   '/clientes': typeof AuthenticatedClientesIndexRoute
   '/empresas': typeof AuthenticatedEmpresasIndexRoute
   '/fornecedores': typeof AuthenticatedFornecedoresIndexRoute
@@ -233,6 +363,19 @@ export interface FileRoutesByTo {
   '/notas': typeof AuthenticatedNotasIndexRoute
   '/pessoas': typeof AuthenticatedPessoasIndexRoute
   '/servicos': typeof AuthenticatedServicosIndexRoute
+  '/financeiro/categorias/$id': typeof AuthenticatedFinanceiroCategoriasIdRoute
+  '/financeiro/condicoes/$id': typeof AuthenticatedFinanceiroCondicoesIdRoute
+  '/financeiro/contas/$id': typeof AuthenticatedFinanceiroContasIdRoute
+  '/financeiro/titulos/$id': typeof AuthenticatedFinanceiroTitulosIdRoute
+  '/financeiro/categorias': typeof AuthenticatedFinanceiroCategoriasIndexRoute
+  '/financeiro/cobranca': typeof AuthenticatedFinanceiroCobrancaIndexRoute
+  '/financeiro/condicoes': typeof AuthenticatedFinanceiroCondicoesIndexRoute
+  '/financeiro/configuracao': typeof AuthenticatedFinanceiroConfiguracaoIndexRoute
+  '/financeiro/contas': typeof AuthenticatedFinanceiroContasIndexRoute
+  '/financeiro/csv': typeof AuthenticatedFinanceiroCsvIndexRoute
+  '/financeiro/extrato': typeof AuthenticatedFinanceiroExtratoIndexRoute
+  '/financeiro/pagar': typeof AuthenticatedFinanceiroPagarIndexRoute
+  '/financeiro/receber': typeof AuthenticatedFinanceiroReceberIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -245,6 +388,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/municipios': typeof AuthenticatedAdminMunicipiosRoute
   '/_authenticated/admin/theme': typeof AuthenticatedAdminThemeRoute
   '/_authenticated/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
+  '/_authenticated/bancos/$id': typeof AuthenticatedBancosIdRoute
   '/_authenticated/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/_authenticated/configuracao/empresa': typeof AuthenticatedConfiguracaoEmpresaRoute
   '/_authenticated/configuracao/nfse': typeof AuthenticatedConfiguracaoNfseRoute
@@ -255,6 +399,8 @@ export interface FileRoutesById {
   '/_authenticated/notas/novo': typeof AuthenticatedNotasNovoRoute
   '/_authenticated/pessoas/$id': typeof AuthenticatedPessoasIdRoute
   '/_authenticated/servicos/$id': typeof AuthenticatedServicosIdRoute
+  '/_authenticated/agentes/': typeof AuthenticatedAgentesIndexRoute
+  '/_authenticated/bancos/': typeof AuthenticatedBancosIndexRoute
   '/_authenticated/clientes/': typeof AuthenticatedClientesIndexRoute
   '/_authenticated/empresas/': typeof AuthenticatedEmpresasIndexRoute
   '/_authenticated/fornecedores/': typeof AuthenticatedFornecedoresIndexRoute
@@ -262,6 +408,19 @@ export interface FileRoutesById {
   '/_authenticated/notas/': typeof AuthenticatedNotasIndexRoute
   '/_authenticated/pessoas/': typeof AuthenticatedPessoasIndexRoute
   '/_authenticated/servicos/': typeof AuthenticatedServicosIndexRoute
+  '/_authenticated/financeiro/categorias/$id': typeof AuthenticatedFinanceiroCategoriasIdRoute
+  '/_authenticated/financeiro/condicoes/$id': typeof AuthenticatedFinanceiroCondicoesIdRoute
+  '/_authenticated/financeiro/contas/$id': typeof AuthenticatedFinanceiroContasIdRoute
+  '/_authenticated/financeiro/titulos/$id': typeof AuthenticatedFinanceiroTitulosIdRoute
+  '/_authenticated/financeiro/categorias/': typeof AuthenticatedFinanceiroCategoriasIndexRoute
+  '/_authenticated/financeiro/cobranca/': typeof AuthenticatedFinanceiroCobrancaIndexRoute
+  '/_authenticated/financeiro/condicoes/': typeof AuthenticatedFinanceiroCondicoesIndexRoute
+  '/_authenticated/financeiro/configuracao/': typeof AuthenticatedFinanceiroConfiguracaoIndexRoute
+  '/_authenticated/financeiro/contas/': typeof AuthenticatedFinanceiroContasIndexRoute
+  '/_authenticated/financeiro/csv/': typeof AuthenticatedFinanceiroCsvIndexRoute
+  '/_authenticated/financeiro/extrato/': typeof AuthenticatedFinanceiroExtratoIndexRoute
+  '/_authenticated/financeiro/pagar/': typeof AuthenticatedFinanceiroPagarIndexRoute
+  '/_authenticated/financeiro/receber/': typeof AuthenticatedFinanceiroReceberIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -274,6 +433,7 @@ export interface FileRouteTypes {
     | '/admin/municipios'
     | '/admin/theme'
     | '/admin/usuarios'
+    | '/bancos/$id'
     | '/clientes/$id'
     | '/configuracao/empresa'
     | '/configuracao/nfse'
@@ -284,6 +444,8 @@ export interface FileRouteTypes {
     | '/notas/novo'
     | '/pessoas/$id'
     | '/servicos/$id'
+    | '/agentes/'
+    | '/bancos/'
     | '/clientes/'
     | '/empresas/'
     | '/fornecedores/'
@@ -291,6 +453,19 @@ export interface FileRouteTypes {
     | '/notas/'
     | '/pessoas/'
     | '/servicos/'
+    | '/financeiro/categorias/$id'
+    | '/financeiro/condicoes/$id'
+    | '/financeiro/contas/$id'
+    | '/financeiro/titulos/$id'
+    | '/financeiro/categorias/'
+    | '/financeiro/cobranca/'
+    | '/financeiro/condicoes/'
+    | '/financeiro/configuracao/'
+    | '/financeiro/contas/'
+    | '/financeiro/csv/'
+    | '/financeiro/extrato/'
+    | '/financeiro/pagar/'
+    | '/financeiro/receber/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -301,6 +476,7 @@ export interface FileRouteTypes {
     | '/admin/municipios'
     | '/admin/theme'
     | '/admin/usuarios'
+    | '/bancos/$id'
     | '/clientes/$id'
     | '/configuracao/empresa'
     | '/configuracao/nfse'
@@ -311,6 +487,8 @@ export interface FileRouteTypes {
     | '/notas/novo'
     | '/pessoas/$id'
     | '/servicos/$id'
+    | '/agentes'
+    | '/bancos'
     | '/clientes'
     | '/empresas'
     | '/fornecedores'
@@ -318,6 +496,19 @@ export interface FileRouteTypes {
     | '/notas'
     | '/pessoas'
     | '/servicos'
+    | '/financeiro/categorias/$id'
+    | '/financeiro/condicoes/$id'
+    | '/financeiro/contas/$id'
+    | '/financeiro/titulos/$id'
+    | '/financeiro/categorias'
+    | '/financeiro/cobranca'
+    | '/financeiro/condicoes'
+    | '/financeiro/configuracao'
+    | '/financeiro/contas'
+    | '/financeiro/csv'
+    | '/financeiro/extrato'
+    | '/financeiro/pagar'
+    | '/financeiro/receber'
   id:
     | '__root__'
     | '/_authenticated'
@@ -329,6 +520,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/municipios'
     | '/_authenticated/admin/theme'
     | '/_authenticated/admin/usuarios'
+    | '/_authenticated/bancos/$id'
     | '/_authenticated/clientes/$id'
     | '/_authenticated/configuracao/empresa'
     | '/_authenticated/configuracao/nfse'
@@ -339,6 +531,8 @@ export interface FileRouteTypes {
     | '/_authenticated/notas/novo'
     | '/_authenticated/pessoas/$id'
     | '/_authenticated/servicos/$id'
+    | '/_authenticated/agentes/'
+    | '/_authenticated/bancos/'
     | '/_authenticated/clientes/'
     | '/_authenticated/empresas/'
     | '/_authenticated/fornecedores/'
@@ -346,6 +540,19 @@ export interface FileRouteTypes {
     | '/_authenticated/notas/'
     | '/_authenticated/pessoas/'
     | '/_authenticated/servicos/'
+    | '/_authenticated/financeiro/categorias/$id'
+    | '/_authenticated/financeiro/condicoes/$id'
+    | '/_authenticated/financeiro/contas/$id'
+    | '/_authenticated/financeiro/titulos/$id'
+    | '/_authenticated/financeiro/categorias/'
+    | '/_authenticated/financeiro/cobranca/'
+    | '/_authenticated/financeiro/condicoes/'
+    | '/_authenticated/financeiro/configuracao/'
+    | '/_authenticated/financeiro/contas/'
+    | '/_authenticated/financeiro/csv/'
+    | '/_authenticated/financeiro/extrato/'
+    | '/_authenticated/financeiro/pagar/'
+    | '/_authenticated/financeiro/receber/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -416,6 +623,27 @@ declare module '@tanstack/react-router' {
       path: '/admin/usuarios'
       fullPath: '/admin/usuarios'
       preLoaderRoute: typeof AuthenticatedAdminUsuariosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/agentes/': {
+      id: '/_authenticated/agentes/'
+      path: '/agentes'
+      fullPath: '/agentes/'
+      preLoaderRoute: typeof AuthenticatedAgentesIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/bancos/': {
+      id: '/_authenticated/bancos/'
+      path: '/bancos'
+      fullPath: '/bancos/'
+      preLoaderRoute: typeof AuthenticatedBancosIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/bancos/$id': {
+      id: '/_authenticated/bancos/$id'
+      path: '/bancos/$id'
+      fullPath: '/bancos/$id'
+      preLoaderRoute: typeof AuthenticatedBancosIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/clientes/': {
@@ -537,6 +765,97 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedServicosIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/financeiro/categorias/': {
+      id: '/_authenticated/financeiro/categorias/'
+      path: '/financeiro/categorias'
+      fullPath: '/financeiro/categorias/'
+      preLoaderRoute: typeof AuthenticatedFinanceiroCategoriasIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/financeiro/categorias/$id': {
+      id: '/_authenticated/financeiro/categorias/$id'
+      path: '/financeiro/categorias/$id'
+      fullPath: '/financeiro/categorias/$id'
+      preLoaderRoute: typeof AuthenticatedFinanceiroCategoriasIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/financeiro/cobranca/': {
+      id: '/_authenticated/financeiro/cobranca/'
+      path: '/financeiro/cobranca'
+      fullPath: '/financeiro/cobranca/'
+      preLoaderRoute: typeof AuthenticatedFinanceiroCobrancaIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/financeiro/condicoes/': {
+      id: '/_authenticated/financeiro/condicoes/'
+      path: '/financeiro/condicoes'
+      fullPath: '/financeiro/condicoes/'
+      preLoaderRoute: typeof AuthenticatedFinanceiroCondicoesIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/financeiro/condicoes/$id': {
+      id: '/_authenticated/financeiro/condicoes/$id'
+      path: '/financeiro/condicoes/$id'
+      fullPath: '/financeiro/condicoes/$id'
+      preLoaderRoute: typeof AuthenticatedFinanceiroCondicoesIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/financeiro/configuracao/': {
+      id: '/_authenticated/financeiro/configuracao/'
+      path: '/financeiro/configuracao'
+      fullPath: '/financeiro/configuracao/'
+      preLoaderRoute: typeof AuthenticatedFinanceiroConfiguracaoIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/financeiro/contas/': {
+      id: '/_authenticated/financeiro/contas/'
+      path: '/financeiro/contas'
+      fullPath: '/financeiro/contas/'
+      preLoaderRoute: typeof AuthenticatedFinanceiroContasIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/financeiro/contas/$id': {
+      id: '/_authenticated/financeiro/contas/$id'
+      path: '/financeiro/contas/$id'
+      fullPath: '/financeiro/contas/$id'
+      preLoaderRoute: typeof AuthenticatedFinanceiroContasIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/financeiro/csv/': {
+      id: '/_authenticated/financeiro/csv/'
+      path: '/financeiro/csv'
+      fullPath: '/financeiro/csv/'
+      preLoaderRoute: typeof AuthenticatedFinanceiroCsvIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/financeiro/extrato/': {
+      id: '/_authenticated/financeiro/extrato/'
+      path: '/financeiro/extrato'
+      fullPath: '/financeiro/extrato/'
+      preLoaderRoute: typeof AuthenticatedFinanceiroExtratoIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/financeiro/pagar/': {
+      id: '/_authenticated/financeiro/pagar/'
+      path: '/financeiro/pagar'
+      fullPath: '/financeiro/pagar/'
+      preLoaderRoute: typeof AuthenticatedFinanceiroPagarIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/financeiro/receber/': {
+      id: '/_authenticated/financeiro/receber/'
+      path: '/financeiro/receber'
+      fullPath: '/financeiro/receber/'
+      preLoaderRoute: typeof AuthenticatedFinanceiroReceberIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/financeiro/titulos/$id': {
+      id: '/_authenticated/financeiro/titulos/$id'
+      path: '/financeiro/titulos/$id'
+      fullPath: '/financeiro/titulos/$id'
+      preLoaderRoute: typeof AuthenticatedFinanceiroTitulosIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
@@ -548,6 +867,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAdminMunicipiosRoute: typeof AuthenticatedAdminMunicipiosRoute
   AuthenticatedAdminThemeRoute: typeof AuthenticatedAdminThemeRoute
   AuthenticatedAdminUsuariosRoute: typeof AuthenticatedAdminUsuariosRoute
+  AuthenticatedBancosIdRoute: typeof AuthenticatedBancosIdRoute
   AuthenticatedClientesIdRoute: typeof AuthenticatedClientesIdRoute
   AuthenticatedConfiguracaoEmpresaRoute: typeof AuthenticatedConfiguracaoEmpresaRoute
   AuthenticatedConfiguracaoNfseRoute: typeof AuthenticatedConfiguracaoNfseRoute
@@ -558,6 +878,8 @@ interface AuthenticatedRouteChildren {
   AuthenticatedNotasNovoRoute: typeof AuthenticatedNotasNovoRoute
   AuthenticatedPessoasIdRoute: typeof AuthenticatedPessoasIdRoute
   AuthenticatedServicosIdRoute: typeof AuthenticatedServicosIdRoute
+  AuthenticatedAgentesIndexRoute: typeof AuthenticatedAgentesIndexRoute
+  AuthenticatedBancosIndexRoute: typeof AuthenticatedBancosIndexRoute
   AuthenticatedClientesIndexRoute: typeof AuthenticatedClientesIndexRoute
   AuthenticatedEmpresasIndexRoute: typeof AuthenticatedEmpresasIndexRoute
   AuthenticatedFornecedoresIndexRoute: typeof AuthenticatedFornecedoresIndexRoute
@@ -565,6 +887,19 @@ interface AuthenticatedRouteChildren {
   AuthenticatedNotasIndexRoute: typeof AuthenticatedNotasIndexRoute
   AuthenticatedPessoasIndexRoute: typeof AuthenticatedPessoasIndexRoute
   AuthenticatedServicosIndexRoute: typeof AuthenticatedServicosIndexRoute
+  AuthenticatedFinanceiroCategoriasIdRoute: typeof AuthenticatedFinanceiroCategoriasIdRoute
+  AuthenticatedFinanceiroCondicoesIdRoute: typeof AuthenticatedFinanceiroCondicoesIdRoute
+  AuthenticatedFinanceiroContasIdRoute: typeof AuthenticatedFinanceiroContasIdRoute
+  AuthenticatedFinanceiroTitulosIdRoute: typeof AuthenticatedFinanceiroTitulosIdRoute
+  AuthenticatedFinanceiroCategoriasIndexRoute: typeof AuthenticatedFinanceiroCategoriasIndexRoute
+  AuthenticatedFinanceiroCobrancaIndexRoute: typeof AuthenticatedFinanceiroCobrancaIndexRoute
+  AuthenticatedFinanceiroCondicoesIndexRoute: typeof AuthenticatedFinanceiroCondicoesIndexRoute
+  AuthenticatedFinanceiroConfiguracaoIndexRoute: typeof AuthenticatedFinanceiroConfiguracaoIndexRoute
+  AuthenticatedFinanceiroContasIndexRoute: typeof AuthenticatedFinanceiroContasIndexRoute
+  AuthenticatedFinanceiroCsvIndexRoute: typeof AuthenticatedFinanceiroCsvIndexRoute
+  AuthenticatedFinanceiroExtratoIndexRoute: typeof AuthenticatedFinanceiroExtratoIndexRoute
+  AuthenticatedFinanceiroPagarIndexRoute: typeof AuthenticatedFinanceiroPagarIndexRoute
+  AuthenticatedFinanceiroReceberIndexRoute: typeof AuthenticatedFinanceiroReceberIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -575,6 +910,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminMunicipiosRoute: AuthenticatedAdminMunicipiosRoute,
   AuthenticatedAdminThemeRoute: AuthenticatedAdminThemeRoute,
   AuthenticatedAdminUsuariosRoute: AuthenticatedAdminUsuariosRoute,
+  AuthenticatedBancosIdRoute: AuthenticatedBancosIdRoute,
   AuthenticatedClientesIdRoute: AuthenticatedClientesIdRoute,
   AuthenticatedConfiguracaoEmpresaRoute: AuthenticatedConfiguracaoEmpresaRoute,
   AuthenticatedConfiguracaoNfseRoute: AuthenticatedConfiguracaoNfseRoute,
@@ -585,6 +921,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedNotasNovoRoute: AuthenticatedNotasNovoRoute,
   AuthenticatedPessoasIdRoute: AuthenticatedPessoasIdRoute,
   AuthenticatedServicosIdRoute: AuthenticatedServicosIdRoute,
+  AuthenticatedAgentesIndexRoute: AuthenticatedAgentesIndexRoute,
+  AuthenticatedBancosIndexRoute: AuthenticatedBancosIndexRoute,
   AuthenticatedClientesIndexRoute: AuthenticatedClientesIndexRoute,
   AuthenticatedEmpresasIndexRoute: AuthenticatedEmpresasIndexRoute,
   AuthenticatedFornecedoresIndexRoute: AuthenticatedFornecedoresIndexRoute,
@@ -592,6 +930,29 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedNotasIndexRoute: AuthenticatedNotasIndexRoute,
   AuthenticatedPessoasIndexRoute: AuthenticatedPessoasIndexRoute,
   AuthenticatedServicosIndexRoute: AuthenticatedServicosIndexRoute,
+  AuthenticatedFinanceiroCategoriasIdRoute:
+    AuthenticatedFinanceiroCategoriasIdRoute,
+  AuthenticatedFinanceiroCondicoesIdRoute:
+    AuthenticatedFinanceiroCondicoesIdRoute,
+  AuthenticatedFinanceiroContasIdRoute: AuthenticatedFinanceiroContasIdRoute,
+  AuthenticatedFinanceiroTitulosIdRoute: AuthenticatedFinanceiroTitulosIdRoute,
+  AuthenticatedFinanceiroCategoriasIndexRoute:
+    AuthenticatedFinanceiroCategoriasIndexRoute,
+  AuthenticatedFinanceiroCobrancaIndexRoute:
+    AuthenticatedFinanceiroCobrancaIndexRoute,
+  AuthenticatedFinanceiroCondicoesIndexRoute:
+    AuthenticatedFinanceiroCondicoesIndexRoute,
+  AuthenticatedFinanceiroConfiguracaoIndexRoute:
+    AuthenticatedFinanceiroConfiguracaoIndexRoute,
+  AuthenticatedFinanceiroContasIndexRoute:
+    AuthenticatedFinanceiroContasIndexRoute,
+  AuthenticatedFinanceiroCsvIndexRoute: AuthenticatedFinanceiroCsvIndexRoute,
+  AuthenticatedFinanceiroExtratoIndexRoute:
+    AuthenticatedFinanceiroExtratoIndexRoute,
+  AuthenticatedFinanceiroPagarIndexRoute:
+    AuthenticatedFinanceiroPagarIndexRoute,
+  AuthenticatedFinanceiroReceberIndexRoute:
+    AuthenticatedFinanceiroReceberIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

@@ -1,0 +1,622 @@
+[b] Titulo
+    @
+        [e] title
+            [e] pt
+                [v] Título
+            [e] en
+                [v] Bill
+        [e] description
+            [e] pt
+                [v] A promessa de receber ou pagar um valor numa data: uma conta a receber ou a pagar. Uma linha por parcela; as parcelas (ou recorrências)
+                  | de um mesmo lançamento manual compartilham o idLancamento. O saldo (valor menos quitado) e o "vencido" são calculados, nunca gravados.
+                  | O título só muda de situação quando o livro de movimentos grava uma baixa (Fase 3) ou quando é cancelado.
+                  | NÃO tem CRUD gerado: só os serviços escritos à mão (pacote financeiroop) gravam aqui, com as regras de docs/financeiro/README.md (F2-H1 a F2-H6):
+                  | parcelado e recorrente excludentes; rateio com o resíduo na última parcela; pessoa com o papel certo; categoria ativa, do tipo certo e sem filhas;
+                  | edição só em aberto ou parcial e valor só em título manual sem baixa; cancelamento recusado com baixa.
+                  | A pessoa é guardada como idPessoa (referência bruta), para o histórico sobreviver a mudanças no cadastro. Nunca se apaga: cancela-se.
+                  | Vive no contexto financeiro (domain.financeiro), que referencia a Empresa (configuracao).
+            [e] en
+                [v] The promise to receive or pay an amount on a date: a receivable or a payable. One row per installment; the installments (or recurrences)
+                  | of the same manual entry share idLancamento. The balance (amount minus settled) and "overdue" are computed, never stored.
+                  | The bill only changes status when the ledger records a settlement (Phase 3) or when it is cancelled.
+                  | It has NO generated CRUD: only the hand-written services (financeiroop package) write here, with the rules of docs/financeiro/README.md (F2-H1 to F2-H6):
+                  | installments and recurrence are exclusive; split with the remainder in the last installment; person with the right role; category active, of the right type and without children;
+                  | editing only while open or partial and amount only on a manual bill without settlement; cancellation refused when settled.
+                  | The person is kept as idPessoa (raw reference), so history survives changes to the registry. Never deleted: it is cancelled.
+                  | Lives in the financeiro context (domain.financeiro), which references Empresa (configuracao).
+    [g] identificacao
+        [d] tipo: Texto(7)
+            @
+                [e] cn
+                    [v] tipo
+                [e] title
+                    [e] pt
+                        [v] Tipo
+                    [e] en
+                        [v] Type
+                [e] description
+                    [e] pt
+                        [v] RECEBER (conta a receber, de um cliente) ou PAGAR (conta a pagar, a um fornecedor). Não muda depois de lançado. Valores documentados em values.
+                    [e] en
+                        [v] RECEBER (receivable, from a customer) or PAGAR (payable, to a supplier). Does not change once posted. Values documented in values.
+                [e] required
+                    [v] true
+                [e] values
+                    [e] RECEBER
+                        [e] title
+                            [e] pt
+                                [v] A receber
+                            [e] en
+                                [v] Receivable
+                        [e] description
+                            [e] pt
+                                [v] Dinheiro que a empresa vai receber; a baixa é um recebimento (entrada) e usa categoria de receita.
+                            [e] en
+                                [v] Money the company will receive; settlement is a receipt (inflow) and uses an income category.
+                    [e] PAGAR
+                        [e] title
+                            [e] pt
+                                [v] A pagar
+                            [e] en
+                                [v] Payable
+                        [e] description
+                            [e] pt
+                                [v] Dinheiro que a empresa vai pagar; a baixa é um pagamento (saída) e usa categoria de despesa.
+                            [e] en
+                                [v] Money the company will pay; settlement is a payment (outflow) and uses an expense category.
+        [d] descricao: Texto(255)
+            @
+                [e] cn
+                    [v] descricao
+                [e] title
+                    [e] pt
+                        [v] Descrição
+                    [e] en
+                        [v] Description
+                [e] description
+                    [e] pt
+                        [v] O que é a conta (ex.: Aluguel de março, Serviço de manutenção).
+                    [e] en
+                        [v] What the bill is (e.g. March rent, Maintenance service).
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+        [d] observacao: Texto(255)
+            @
+                [e] cn
+                    [v] observacao
+                [e] title
+                    [e] pt
+                        [v] Observação
+                    [e] en
+                        [v] Note
+                [e] description
+                    [e] pt
+                        [v] Instruções de pagamento; vai impressa no boleto (Fase 7). Opcional.
+                    [e] en
+                        [v] Payment instructions; printed on the bank slip (Phase 7). Optional.
+        [d] idPessoa: Texto(36)
+            @
+                [e] cn
+                    [v] id_pessoa
+                [e] title
+                    [e] pt
+                        [v] Pessoa
+                    [e] en
+                        [v] Person
+                [e] description
+                    [e] pt
+                        [v] Id do cliente (a receber) ou do fornecedor (a pagar) do cadastro de Pessoa, guardado como referência bruta, sem relação,
+                          | para o histórico sobreviver a mudanças no cadastro. Validado ao lançar: existe na empresa e tem o papel certo. Opcional.
+                    [e] en
+                        [v] Id of the customer (receivable) or supplier (payable) from the Pessoa registry, kept as a raw reference, without relation,
+                          | so history survives changes to the registry. Checked on posting: exists in the company and has the right role. Optional.
+    [g] valores
+        [d] valor: ValorMonetario(15,2)
+            @
+                [e] cn
+                    [v] valor
+                [e] title
+                    [e] pt
+                        [v] Valor
+                    [e] en
+                        [v] Amount
+                [e] description
+                    [e] pt
+                        [v] Valor desta parcela, maior que zero e até R$ 999.999.999,99. Só muda em título manual, aberto e sem baixa.
+                    [e] en
+                        [v] Amount of this installment, above zero and up to R$ 999,999,999.99. Only changes on a manual, open bill without settlement.
+                [e] required
+                    [v] true
+        [d] quitado: ValorMonetario(15,2)
+            @
+                [e] cn
+                    [v] quitado
+                [e] title
+                    [e] pt
+                        [v] Quitado
+                    [e] en
+                        [v] Settled
+                [e] description
+                    [e] pt
+                        [v] Quanto do valor já foi quitado pelas baixas, de zero até o valor. SÓ o livro de movimentos altera (Fase 3).
+                    [e] en
+                        [v] How much of the amount has been settled, from zero up to the amount. ONLY the ledger changes it (Phase 3).
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] 0
+        [d] multaPercentual: Decimal(5,2)
+            @
+                [e] cn
+                    [v] multa_percentual
+                [e] title
+                    [e] pt
+                        [v] Multa Própria (%)
+                    [e] en
+                        [v] Own Late Fee (%)
+                [e] description
+                    [e] pt
+                        [v] Sobrescreve a multa da configuração só para este título, de 0 a 999,99. Vazio = a da configuração.
+                    [e] en
+                        [v] Overrides the configuration fee for this bill only, from 0 to 999.99. Empty = the configuration one.
+        [d] jurosMensalPercentual: Decimal(5,2)
+            @
+                [e] cn
+                    [v] juros_mensal_percentual
+                [e] title
+                    [e] pt
+                        [v] Juros ao Mês Próprios (%)
+                    [e] en
+                        [v] Own Monthly Interest (%)
+                [e] description
+                    [e] pt
+                        [v] Sobrescreve os juros da configuração só para este título, de 0 a 999,99. Vazio = os da configuração.
+                    [e] en
+                        [v] Overrides the configuration interest for this bill only, from 0 to 999.99. Empty = the configuration one.
+    [g] vencimento
+        [d] vencimento: Data()
+            @
+                [e] cn
+                    [v] vencimento
+                [e] title
+                    [e] pt
+                        [v] Vencimento
+                    [e] en
+                        [v] Due Date
+                [e] description
+                    [e] pt
+                        [v] Data em que a parcela vence. Vencido = situação aberta ou parcial e vencimento antes de hoje (fuso America/Sao_Paulo).
+                    [e] en
+                        [v] Date the installment is due. Overdue = open or partial status and due date before today (America/Sao_Paulo time zone).
+                [e] required
+                    [v] true
+        [d] formaPrevista: Texto(20)
+            @
+                [e] cn
+                    [v] forma_prevista
+                [e] title
+                    [e] pt
+                        [v] Forma Prevista
+                    [e] en
+                        [v] Expected Method
+                [e] description
+                    [e] pt
+                        [v] Como se espera receber ou pagar: DINHEIRO, PIX, BOLETO, CARTAO ou TRANSFERENCIA. Informativo (na Fase 7, boleto e Pix podem gerar cobrança). Opcional. Valores documentados em values.
+                    [e] en
+                        [v] How it is expected to be received or paid: DINHEIRO, PIX, BOLETO, CARTAO or TRANSFERENCIA. Informative (in Phase 7, bank slip and Pix may create a charge). Optional. Values documented in values.
+                [e] values
+                    [e] DINHEIRO
+                        [e] title
+                            [e] pt
+                                [v] Dinheiro
+                            [e] en
+                                [v] Cash
+                        [e] description
+                            [e] pt
+                                [v] Pagamento em espécie.
+                            [e] en
+                                [v] Cash payment.
+                    [e] PIX
+                        [e] title
+                            [e] pt
+                                [v] Pix
+                            [e] en
+                                [v] Pix
+                        [e] description
+                            [e] pt
+                                [v] Pagamento instantâneo Pix.
+                            [e] en
+                                [v] Pix instant payment.
+                    [e] BOLETO
+                        [e] title
+                            [e] pt
+                                [v] Boleto
+                            [e] en
+                                [v] Bank slip
+                        [e] description
+                            [e] pt
+                                [v] Boleto bancário.
+                            [e] en
+                                [v] Bank payment slip.
+                    [e] CARTAO
+                        [e] title
+                            [e] pt
+                                [v] Cartão
+                            [e] en
+                                [v] Card
+                        [e] description
+                            [e] pt
+                                [v] Cartão de crédito ou débito.
+                            [e] en
+                                [v] Credit or debit card.
+                    [e] TRANSFERENCIA
+                        [e] title
+                            [e] pt
+                                [v] Transferência
+                            [e] en
+                                [v] Transfer
+                        [e] description
+                            [e] pt
+                                [v] Transferência bancária (TED, DOC ou entre contas).
+                            [e] en
+                                [v] Bank transfer (TED, DOC or between accounts).
+    [g] parcelamento
+        [d] parcela: Inteiro(2)
+            @
+                [e] cn
+                    [v] parcela
+                [e] title
+                    [e] pt
+                        [v] Parcela
+                    [e] en
+                        [v] Installment
+                [e] description
+                    [e] pt
+                        [v] Número desta parcela no lançamento, a partir de 1.
+                    [e] en
+                        [v] Number of this installment in the entry, from 1.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] 1
+        [d] totalParcelas: Inteiro(2)
+            @
+                [e] cn
+                    [v] total_parcelas
+                [e] title
+                    [e] pt
+                        [v] Total de Parcelas
+                    [e] en
+                        [v] Total Installments
+                [e] description
+                    [e] pt
+                        [v] Quantos títulos o lançamento gerou; nunca menor que a parcela. Exibido como "2/3".
+                    [e] en
+                        [v] How many bills the entry created; never less than the installment. Shown as "2/3".
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] 1
+        [d] idLancamento: Texto(36)
+            @
+                [e] cn
+                    [v] id_lancamento
+                [e] title
+                    [e] pt
+                        [v] Lançamento
+                    [e] en
+                        [v] Entry
+                [e] description
+                    [e] pt
+                        [v] UUID comum às parcelas (ou recorrências) geradas num mesmo lançamento. Acréscimo à referência (decisão B1 de docs/financeiro).
+                    [e] en
+                        [v] UUID shared by the installments (or recurrences) created in the same entry. Addition to the reference (decision B1 of docs/financeiro).
+    [g] origem
+        [d] origemTipo: Texto(10)
+            @
+                [e] cn
+                    [v] origem_tipo
+                [e] title
+                    [e] pt
+                        [v] Origem
+                    [e] en
+                        [v] Origin
+                [e] description
+                    [e] pt
+                        [v] De onde o título veio: MANUAL (lançado à mão) ou NFSE (gerado pela nota fiscal, Fase 5). Valores documentados em values.
+                    [e] en
+                        [v] Where the bill came from: MANUAL (posted by hand) or NFSE (created by the invoice, Phase 5). Values documented in values.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] MANUAL
+                [e] values
+                    [e] MANUAL
+                        [e] title
+                            [e] pt
+                                [v] Lançado à mão
+                            [e] en
+                                [v] Posted by hand
+                        [e] description
+                            [e] pt
+                                [v] Lançado por uma pessoa na tela ou pela API. Só título manual tem o valor editável.
+                            [e] en
+                                [v] Posted by a person on the screen or through the API. Only a manual bill has an editable amount.
+                    [e] NFSE
+                        [e] title
+                            [e] pt
+                                [v] Nota fiscal de serviço
+                            [e] en
+                                [v] Service invoice
+                        [e] description
+                            [e] pt
+                                [v] Gerado pela NFS-e autorizada (Fase 5); idOrigem e origemNumero identificam a nota.
+                            [e] en
+                                [v] Created by the authorized NFS-e (Phase 5); idOrigem and origemNumero identify the invoice.
+        [d] idOrigem: Texto(36)
+            @
+                [e] cn
+                    [v] id_origem
+                [e] title
+                    [e] pt
+                        [v] Documento de Origem
+                    [e] en
+                        [v] Source Document
+                [e] description
+                    [e] pt
+                        [v] Id do documento que gerou o título (ex.: a nota). Com ele, (empresa, origem, documento, parcela) é único: o documento não gera duas vezes.
+                    [e] en
+                        [v] Id of the document that created the bill (e.g. the invoice). With it, (company, origin, document, installment) is unique: the document never creates twice.
+        [d] origemNumero: Texto(40)
+            @
+                [e] cn
+                    [v] origem_numero
+                [e] title
+                    [e] pt
+                        [v] Número do Documento
+                    [e] en
+                        [v] Document Number
+                [e] description
+                    [e] pt
+                        [v] Número legível do documento de origem (ex.: número da nota).
+                    [e] en
+                        [v] Readable number of the source document (e.g. invoice number).
+    [g] situacao
+        [d] situacao: Texto(10)
+            @
+                [e] cn
+                    [v] situacao
+                [e] title
+                    [e] pt
+                        [v] Situação
+                    [e] en
+                        [v] Status
+                [e] description
+                    [e] pt
+                        [v] ABERTO (padrão), PARCIAL, PAGO ou CANCELADO. Muda pela baixa ou estorno no livro (Fase 3) ou pelo cancelamento. Valores documentados em values.
+                    [e] en
+                        [v] ABERTO (default), PARCIAL, PAGO or CANCELADO. Changes by settlement or reversal in the ledger (Phase 3) or by cancellation. Values documented in values.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] ABERTO
+                [e] values
+                    [e] ABERTO
+                        [e] title
+                            [e] pt
+                                [v] Aberto
+                            [e] en
+                                [v] Open
+                        [e] description
+                            [e] pt
+                                [v] Nada quitado ainda. Aceita baixa e edição. Cor azul.
+                            [e] en
+                                [v] Nothing settled yet. Accepts settlement and editing. Blue.
+                    [e] PARCIAL
+                        [e] title
+                            [e] pt
+                                [v] Parcial
+                            [e] en
+                                [v] Partial
+                        [e] description
+                            [e] pt
+                                [v] Parte do valor quitada. Aceita nova baixa e edição (menos o valor). Cor âmbar.
+                            [e] en
+                                [v] Part of the amount settled. Accepts further settlement and editing (except the amount). Amber.
+                    [e] PAGO
+                        [e] title
+                            [e] pt
+                                [v] Pago
+                            [e] en
+                                [v] Paid
+                        [e] description
+                            [e] pt
+                                [v] Quitado por inteiro. Não aceita baixa nem edição; volta a aberto ou parcial só pelo estorno. Cor verde.
+                            [e] en
+                                [v] Fully settled. Accepts no settlement nor editing; goes back to open or partial only by reversal. Green.
+                    [e] CANCELADO
+                        [e] title
+                            [e] pt
+                                [v] Cancelado
+                            [e] en
+                                [v] Cancelled
+                        [e] description
+                            [e] pt
+                                [v] Desistiu-se do título (sem baixa). Não aceita baixa nem edição. Cor cinza.
+                            [e] en
+                                [v] The bill was given up (without settlement). Accepts no settlement nor editing. Grey.
+        [d] paraRevisao: Boolean()
+            @
+                [e] cn
+                    [v] para_revisao
+                [e] title
+                    [e] pt
+                        [v] Para Revisão
+                    [e] en
+                        [v] To Review
+                [e] description
+                    [e] pt
+                        [v] O documento de origem foi cancelado com o título já baixado: alguém precisa decidir (estornar ou registrar devolução). Fase 5.
+                    [e] en
+                        [v] The source document was cancelled with the bill already settled: someone must decide (reverse or record a refund). Phase 5.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] false
+        [d] canceladoEm: DataHora()
+            @
+                [e] cn
+                    [v] cancelado_em
+                [e] title
+                    [e] pt
+                        [v] Cancelado em
+                    [e] en
+                        [v] Cancelled at
+                [e] description
+                    [e] pt
+                        [v] Data e hora do cancelamento. Preenchida só com a situação CANCELADO.
+                    [e] en
+                        [v] Date and time of cancellation. Filled only with status CANCELADO.
+    [g] aprovacao
+        [d] aprovadoEm: DataHora()
+            @
+                [e] cn
+                    [v] aprovado_em
+                [e] title
+                    [e] pt
+                        [v] Aprovado em
+                    [e] en
+                        [v] Approved at
+                [e] description
+                    [e] pt
+                        [v] Quando o título foi aprovado. Vazio = aguardando aprovação: não aceita baixa nem entra em lembretes. Lançado por pessoa, nasce aprovado.
+                    [e] en
+                        [v] When the bill was approved. Empty = awaiting approval: accepts no settlement nor goes into reminders. Posted by a person, it is born approved.
+        [d] idAprovadoPor: Texto(36)
+            @
+                [e] cn
+                    [v] id_aprovado_por
+                [e] title
+                    [e] pt
+                        [v] Aprovado por
+                    [e] en
+                        [v] Approved by
+                [e] description
+                    [e] pt
+                        [v] Id do usuário que aprovou (referência bruta de auditoria, sem relação com o contexto usuarios).
+                    [e] en
+                        [v] Id of the user who approved (raw audit reference, no relation to the usuarios context).
+        [d] idCriadoPor: Texto(36)
+            @
+                [e] cn
+                    [v] id_criado_por
+                [e] title
+                    [e] pt
+                        [v] Lançado por
+                    [e] en
+                        [v] Posted by
+                [e] description
+                    [e] pt
+                        [v] Id do usuário que lançou (referência bruta de auditoria, sem relação com o contexto usuarios).
+                    [e] en
+                        [v] Id of the user who posted (raw audit reference, no relation to the usuarios context).
+        [d] idCriadoPorCliente: Texto(36)
+            @
+                [e] cn
+                    [v] id_criado_por_cliente
+                [e] title
+                    [e] pt
+                        [v] Lançado pelo Agente
+                    [e] en
+                        [v] Posted by Agent
+                [e] description
+                    [e] pt
+                        [v] Id do cliente de acesso (agente) que lançou o título, ou vazio quando foi uma pessoa (referência bruta, CN-REL-002; docs/financeiro/README.md, 9.4, B3).
+                          | Título de agente nasce sem aprovação: não aceita baixa até uma pessoa aprovar. No máximo 20 rascunhos pendentes por usuário dono do agente.
+                    [e] en
+                        [v] Id of the access client (agent) that posted the bill, or empty when a person did (raw reference, CN-REL-002; docs/financeiro/README.md, 9.4, B3).
+                          | An agent bill is born unapproved: no settlement until a person approves. At most 20 pending drafts per agent-owner user.
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno do título (UUID).
+                    [e] en
+                        [v] Internal bill identifier (UUID).
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o título foi lançado.
+                    [e] en
+                        [v] Date and time the bill was posted.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true
+    [g] relacionamentos
+        [r] categoria: CategoriaFinanceira()
+            @
+                [e] cn
+                    [v] categoria_id
+                [e] title
+                    [e] pt
+                        [v] Categoria
+                    [e] en
+                        [v] Category
+                [e] description
+                    [e] pt
+                        [v] Categoria do título: ativa, do tipo certo (a receber usa receita; a pagar, despesa) e sem filhas. Opcional.
+                    [e] en
+                        [v] Bill category: active, of the right type (receivable uses income; payable, expense) and without children. Optional.
+        [r] empresa: Empresa()
+            @
+                [e] cn
+                    [v] empresa_id
+                [e] title
+                    [e] pt
+                        [v] Empresa
+                    [e] en
+                        [v] Company
+                [e] description
+                    [e] pt
+                        [v] Empresa dona deste título e tenant do registro. Todo acesso é filtrado por ela.
+                    [e] en
+                        [v] Company that owns this bill and tenant of the record. Every access is filtered by it.
+                [e] required
+                    [v] true
+                [e] tenantKey
+                    [v] true

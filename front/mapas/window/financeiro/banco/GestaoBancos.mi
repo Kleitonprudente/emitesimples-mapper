@@ -1,0 +1,81 @@
+[Descriptor.window.list] GestaoBancos
+    @
+        [e] title
+            [e] pt
+                [v] Bancos
+        [e] route
+            [v] /bancos
+        [e] platformOnly
+            [v] true
+        [e] icon
+            [v] landmark
+        [e] group
+            [v] Administração
+        [e] order
+            [v] 78
+    [g] source
+        [r] object: Banco()
+    [e] columns
+        [e] field
+            [v] .codigo
+        [e] field
+            [v] .nome
+        [e] field
+            [v] .integradoGateway
+    [e] search
+        @
+            [e] placeholder
+                [e] pt
+                    [v] Buscar por nome…
+        [e] field
+            [v] .nome
+    [e] filters
+        [e] filter
+            [v] .integradoGateway
+            @
+                [e] type
+                    [v] faceted
+    [e] actions
+        [e] action
+            [v] importarCsvBancoCentral
+            @
+                [e] type
+                    [v] link
+                [e] label
+                    [e] pt
+                        [v] Importar CSV do Banco Central
+                [e] icon
+                    [v] upload
+                [e] route
+                    [v] /financeiro/csv
+        [e] action
+            [v] criarBanco
+            @
+                [e] type
+                    [v] primary
+                [e] label
+                    [e] pt
+                        [v] Novo banco
+                [e] icon
+                    [v] plus
+                [e] opens
+                    [v] FormularioBanco
+        [e] action
+            [v] editarBanco
+            @
+                [e] type
+                    [v] row
+                [e] label
+                    [e] pt
+                        [v] Editar
+                [e] icon
+                    [v] pencil
+                [e] opens
+                    [v] FormularioBanco
+    [e] emptyState
+        @
+            [e] message
+                [e] pt
+                    [v] Nenhum banco cadastrado ainda.
+            [e] action
+                [v] criarBanco

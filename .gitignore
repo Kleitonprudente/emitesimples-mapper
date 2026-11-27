@@ -8,3 +8,11 @@ back/api/src/test/java/br/com/emitesimples/nfseemissao/TributacaoNotaTest.java
 back/api/src/test/java/br/com/emitesimples/plataforma/TokenEmitenteAdminTest.java
 front/web/src/features/notas/NotaNovaTributacao.test.tsx
 docs/homologacao/
+
+# Testes criados no modulo financeiro (Fase 1): so no ambiente local (repositorio publico)
+back/api/src/test/java/br/com/emitesimples/financeiroop/
+front/web/src/features/financeiro/financeiro.telas.test.tsx
+back/api/src/test/java/br/com/emitesimples/nfseemissao/ValorLiquidoNotaTest.java
+front/web/src/features/financeiro/financeiro.complementos.test.tsx
+front/web/src/features/financeiro/financeiro.fluxos.test.tsx
+front/web/src/features/notas/NotaCondicao.test.ts

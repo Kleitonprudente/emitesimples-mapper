@@ -24,6 +24,7 @@ public class PessoaEntityBuilder {
     public Boolean consumidorFinal;
     public Boolean cliente;
     public Boolean fornecedor;
+    public Boolean naoEnviarCobranca;
     public String telefone;
     public String email;
     public String logradouro;
@@ -96,6 +97,11 @@ public class PessoaEntityBuilder {
 
     public PessoaEntityBuilder withFornecedor(Boolean fornecedor) {
         this.fornecedor = fornecedor;
+        return this;
+    }
+
+    public PessoaEntityBuilder withNaoEnviarCobranca(Boolean naoEnviarCobranca) {
+        this.naoEnviarCobranca = naoEnviarCobranca;
         return this;
     }
 
@@ -200,6 +206,7 @@ public class PessoaEntityBuilder {
                 .withConsumidorFinal(pessoa.getConsumidorFinal())
                 .withCliente(pessoa.getCliente())
                 .withFornecedor(pessoa.getFornecedor())
+                .withNaoEnviarCobranca(pessoa.getNaoEnviarCobranca())
                 .withTelefone(pessoa.getTelefone())
                 .withEmail(pessoa.getEmail())
                 .withLogradouro(pessoa.getLogradouro())

@@ -78,6 +78,8 @@ export interface ErroRetorno {
 
 export interface NotaDetalhe extends NotaItem {
   informacoesComplementares?: string
+  /** Condicao de pagamento do financeiro (so o id; o nome vem de useNomeDaCondicao). */
+  idCondicaoPagamento?: string
   discriminacao: string
   descricao?: string
   codigoServico?: string
@@ -156,6 +158,8 @@ export interface CorpoNota {
   informacoesComplementares?: string
   discriminacao?: string
   tributos?: { [K in keyof Tributos]: Tributos[K] | null }
+  /** Em branco limpa a condicao (reenvio). */
+  idCondicaoPagamento?: string
 }
 
 const rec = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' ? (v as Record<string, unknown>) : {})
@@ -217,6 +221,7 @@ export function lerDetalhe(raw: unknown): NotaDetalhe {
   return {
     ...lerNota(raw),
     informacoesComplementares: str(r.informacoesComplementares),
+    idCondicaoPagamento: str(r.idCondicaoPagamento),
     discriminacao: str(r.discriminacao) ?? '',
     descricao: str(r.descricao),
     codigoServico: str(r.codigoServico),
@@ -470,6 +475,7 @@ export const notaSchema = z.object({
   valorDescontoIncondicionado: dinheiro,
   discriminacao: z.string().trim().min(1, 'Campo obrigatório').max(2000),
   informacoesComplementares: z.string().max(2000).optional(),
+  condicao: fk.optional(),
   issRetido: z.boolean().optional(),
   aliquotaIss: percentual,
   valorBaseCalculoIss: dinheiro,
@@ -521,6 +527,16 @@ export function layoutDaNota(contas: ContasDaNota = {}): FieldLayout {
     ],
     [{ name: 'discriminacao', label: 'Descrição do serviço', kind: 'textarea', required: true, maxLength: 2000, size: 'full', hint: 'Preenchida com o texto padrão do serviço; você pode editar.' }],
     [{ name: 'informacoesComplementares', label: 'Informações complementares', kind: 'textarea', maxLength: 2000, size: 'full' }],
+    [
+      {
+        name: 'condicao',
+        label: 'Condição de pagamento',
+        kind: 'fk',
+        fk: fkSource('CondicaoPagamento'),
+        size: 'l',
+        hint: 'Opcional. Define as parcelas a receber no financeiro quando a nota for autorizada; em branco, um recebimento à vista.',
+      },
+    ],
     {
       section: 'ISS da prefeitura (opcional)',
       description: 'Vem preenchido com os padrões do serviço. Em branco, nada do ISS vai na nota. Confirme com seu contador.',
@@ -562,6 +578,8 @@ export function corpoDaNota(v: NotaValues): CorpoNota {
   const corpo: CorpoNota = { pessoaId: v.pessoa.id, servicoId: v.servico.id, valorServicos: v.valorServicos, discriminacao: v.discriminacao.trim() }
   const info = (v.informacoesComplementares ?? '').trim()
   if (info !== '') corpo.informacoesComplementares = info
+  // sempre vai: em branco limpa a condicao no reenvio (na criacao, em branco e o mesmo que nao ter)
+  corpo.idCondicaoPagamento = v.condicao?.id ?? ''
   // a tela manda SEMPRE todos os campos: em branco limpa (inclusive o padrao do servico)
   const tributos: NonNullable<CorpoNota['tributos']> = { issRetido: v.issRetido === true, cstPisCofins: v.cstPisCofins ?? null }
   for (const c of CAMPOS_NUMERICOS) tributos[c] = v[c] ?? null
@@ -572,8 +590,9 @@ export function corpoDaNota(v: NotaValues): CorpoNota {
   return corpo
 }
 
-export function valoresDaNota(n: NotaDetalhe): NotaValues {
+export function valoresDaNota(n: NotaDetalhe, nomeDaCondicao?: string): NotaValues {
   return {
+    condicao: n.idCondicaoPagamento ? { id: n.idCondicaoPagamento, nome: nomeDaCondicao } : undefined,
     pessoa: { id: n.pessoa.id, nome: n.pessoa.nome, documento: n.pessoa.documento },
     servico: { id: n.servico.id, nome: n.servico.nome },
     valorServicos: n.valorServicos,
@@ -687,4 +706,18 @@ export function mensagemErroNota(e: ApiError): string {
 export function erroAmigavel(e: unknown): unknown {
   if (!(e instanceof ApiError)) return e
   return new ApiError(e.status, e.codigo, mensagemErroNota(e), e.detalhes, e.retryAfter)
+}
+
+/** Nome da condicao de pagamento da nota (o detalhe traz so o id: a nota nao conhece o financeiro). */
+export function useNomeDaCondicao(id?: string) {
+  return useQuery({
+    queryKey: ['CondicaoPagamento', 'nome', id],
+    queryFn: async () => {
+      const c = await api<{ nome?: string }>(`/CondicaoPagamento/id/${id}`)
+      return c.nome ?? ''
+    },
+    enabled: !!id,
+    retry: false,
+    staleTime: 60_000,
+  })
 }

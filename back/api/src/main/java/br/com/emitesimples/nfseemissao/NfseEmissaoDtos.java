@@ -35,7 +35,8 @@ public final class NfseEmissaoDtos {
                               String descricao, String codigoServico, List<ErroRetorno> errosRetorno, String linkPdf,
                               String codigoVerificacao, LocalDateTime dataHoraEvento, boolean editavel,
                               boolean podeReenviar, boolean podeAtualizar, CancelamentoInfo cancelamento,
-                              boolean podeCancelar, boolean podeAprovar, boolean podeDescartar, Tributos tributos) {
+                              boolean podeCancelar, boolean podeAprovar, boolean podeDescartar, Tributos tributos,
+                              String idCondicaoPagamento) {
     }
 
     /**
@@ -66,14 +67,20 @@ public final class NfseEmissaoDtos {
     public record CancelarEntrada(Integer codigoMotivo, String motivo) {
     }
 
-    /** Corpo de POST /api/nfse/notas (pessoaId, servicoId e valorServicos obrigatorios). */
+    /**
+     * Corpo de POST /api/nfse/notas (pessoaId, servicoId e valorServicos obrigatorios). {@code idCondicaoPagamento}: opcional, id da
+     * condicao de pagamento do financeiro (docs/financeiro/README.md, 9.1, E1); a nota so guarda, o financeiro confere ao gerar os titulos.
+     */
     public record CriarEntrada(String pessoaId, String servicoId, BigDecimal valorServicos,
-                               String informacoesComplementares, String discriminacao, Tributos tributos) {
+                               String informacoesComplementares, String discriminacao, Tributos tributos, String idCondicaoPagamento) {
     }
 
-    /** Corpo opcional de POST /api/nfse/notas/{id}/enviar: o que vier (nao nulo) altera a nota antes de reenviar. */
+    /**
+     * Corpo opcional de POST /api/nfse/notas/{id}/enviar: o que vier (nao nulo) altera a nota antes de reenviar.
+     * {@code idCondicaoPagamento} em branco limpa a condicao.
+     */
     public record EnviarEntrada(String pessoaId, String servicoId, BigDecimal valorServicos,
-                                String informacoesComplementares, String discriminacao, Tributos tributos) {
+                                String informacoesComplementares, String discriminacao, Tributos tributos, String idCondicaoPagamento) {
     }
 
     public record Contagem(long count) {

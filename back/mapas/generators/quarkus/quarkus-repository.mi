@@ -732,7 +732,8 @@
             [v]      * Descarrega as gravacoes pendentes <b>dentro</b> do try do resource: a violacao
             [v]      * estoura aqui e nao no commit (onde viraria 500 e vazaria SQL). Unicidade
             [v]      * (SQLState 23505) e conflito de versao viram 409; as demais violacoes viram 400,
-            [v]      * sem expor o SQL.
+            [v]      * sem expor o SQL. O 409 de unicidade leva a causa (nunca exposta) para o tratador de erros
+            [v]      * poder dizer QUAL indice unico foi violado (mensagem no campo; ver ErrosHandler).
             [v]      */
             [v]     public void gravarAgora() {
             [v]         try {
@@ -749,7 +750,7 @@
             [v]         Throwable causa = pe;
             [v]         for (int i = 0; causa != null && i < 10; i++, causa = causa.getCause()) {
             [v]             if (causa instanceof java.sql.SQLException sql && "23505".equals(sql.getSQLState())) {
-            [v]                 return new ClientErrorException("Ja existe um registro com os mesmos dados unicos.", 409);
+            [v]                 return new ClientErrorException("Ja existe um registro com os mesmos dados unicos.", 409, pe);
             [v]             }
             [v]         }
             [v]         return new InvalidInputException("Nao foi possivel gravar o registro: dados invalidos ou em conflito com uma restricao.", pe.getCause());

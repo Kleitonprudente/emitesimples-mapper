@@ -26,7 +26,7 @@ front/mapas/scripts/sincronizar-dominio.sh              # copia back -> front (b
 front/mapas/scripts/sincronizar-dominio.sh --verificar  # nao copia; exit 1 listando divergentes/orfaos
 ```
 
-Cobre os 6 contextos (Configuracao, Cadastros, Usuarios, Nfse, IntegraNotas, Admin) e `generators/struct.mi`. Se o
+Cobre os 7 contextos (Configuracao, Cadastros, Usuarios, Nfse, IntegraNotas, Admin, Financeiro) e `generators/struct.mi`. Se o
 back ganhar ou perder um `[b]`, ajuste tambem o registro em `main.mi` (o script nao edita o `main.mi`). Use `--verificar` em CI.
 
 ## Como validar (passos FUTUROS, so com autorizacao do usuario)
@@ -328,3 +328,94 @@ Dominio/CLI:
 Tudo o que depende de push: `struct` das 4 telas (inclui as de Municipio e o DOM da acao `link`/`platformOnly`) (GestaoPessoas, FormularioPessoa), DOM de `section`/`hint`/`lookup`, resolucao dos `.campo` contra o dominio, aceitacao pelo servidor dos
 estereotipos `Descriptor.window.*`, comentario `//` placeholder em `generators` e DOM real (os nomes de regioes e
 propriedades acima seguem o plano, nao um `struct` real).
+
+## Editor singleton (`window.editor` com `singleton`)
+
+Para o cadastro que tem **um registro só** por empresa (ex.: `ConfiguracaoFinanceira`). Decisão do dono do projeto (2026-11-26,
+docs/financeiro/README.md, D2).
+
+```
+[Descriptor.window.editor] FormularioConfiguracaoFinanceira
+    @
+        [e] route
+            [v] /financeiro/configuracao      <- SEM $id
+        [e] singleton
+            [v] true
+        [e] emptyState
+            @
+                [e] message
+                    [e] pt
+                        [v] Texto quando o registro ainda nao existe.
+```
+
+- `screenEditorById` gera `<Janela>Screen()` **sem props**: lê a primeira linha pela lista gerada (`use<Bean>s`, página 0 de tamanho 1; o
+  back escopa pela empresa) e a edita com o mesmo `Form`, o mesmo merge do PUT (preserva o que o formulário não mostra) e a linha de
+  auditoria. **Não há criar nem voltar:** depois de salvar, fica na página com o aviso "Registro salvo.". Sem registro, mostra
+  `EmptyState` com `emptyState/message/pt` (quem cria o registro é o back).
+- `screenRoute` gera a rota de página (`<route>/index.tsx`), e o manifesto põe a janela no menu como qualquer rota sem `$`.
+- No `scripts/gerar.sh`: `singleton <Entidade> <contexto> <slug-feature> <slug-rota> <Formulario>` (domínio + `screenForm` +
+  `screenEditorById` + `screenRoute`).
+
+| ERRO NO MODELO (screenEditorById) | Como corrigir |
+|---|---|
+| `singleton <Janela> com $ na rota (<route>)` | singleton não tem id na rota: tire o `$id`. |
+| `singleton <Janela> sem emptyState/message/pt` | declare a mensagem do registro ausente. |
+
+Editor sem `$` e sem `singleton` continua saindo como `@TODO` (não há como saber qual registro editar).
+
+## Tela declarada no mapa com componente escrito à mão (`window.custom`)
+
+Estereótipo do plano do front (§5.2, "tela fora do padrão gerável"): a tela **existe no mapa** (rota, título, papel, ícone, grupo e
+ordem do menu), o gerador escreve a **rota** e o **manifesto**, e o componente é escrito à mão em `src/features/`. Decisão do dono do
+projeto (2026-11-26, D2) para as telas operacionais do financeiro (títulos, extrato), que não são cadastro.
+
+```
+[Descriptor.window.custom] ContasAReceber
+    @
+        [e] title / route / role (ou platformOnly) / icon / group / order    <- como as demais janelas
+        [e] component
+            [v] TitulosReceberScreen                                        <- nome exportado
+        [e] from
+            [v] @/features/financeiro/titulos/TitulosLista                   <- so @/features/
+```
+
+- `screenRoute` gera a rota que monta `<component>`. Rota com `$param` passa o parâmetro como prop (`<X param={param} />`).
+- Sem `source`: a tela escrita à mão fala com a API pelo seu próprio módulo (como `features/notas/notasApi.ts`).
+- O componente vale como **tela escrita à mão**: entra em `TELAS_A_MAO` (`web/scripts/verificar-padrao-ui.mjs`) por decisão explícita,
+  usa **só** o catálogo e o runtime, e segue `front/docs/padroes-de-ui.md`.
+- No `scripts/gerar.sh`: `rota_custom <arquivo-da-rota> <Janela> <pacote-da-janela>` (só `screenRoute`).
+
+| ERRO NO MODELO (screenRoute) | Como corrigir |
+|---|---|
+| `window.custom <Janela> sem component` | declare `[e] component` com o nome exportado. |
+| `window.custom <Janela> sem from` | declare `[e] from` com o caminho do módulo. |
+| `window.custom <Janela> com from '<x>' fora de @/features/` | o componente escrito à mão vive em `@/features/`. |
+| `window.custom <Janela> sem route` | declare a rota. |
+
+## Coluna calculada na lista (`[e] computed`)
+
+Coluna que **não é atributo** da entidade, calculada por uma fonte do runtime (ex.: saldo da conta). Decisão do dono do projeto
+(2026-11-26, docs/financeiro/README.md, F4-C2).
+
+```
+    [e] columns
+        [e] field
+            [v] .nome
+        [e] computed
+            [v] saldo                       <- id da coluna
+            @
+                [e] label
+                    [e] pt
+                        [v] Saldo atual
+                [e] source
+                    [v] saldoDaConta        <- fonte registrada em web/src/lib/computed-sources.ts
+```
+
+- `screenColumns` gera `{ id, header, enableSorting: false, cell: ({ row }) => <ComputedCell source="..." id={row.original.id} /> }`.
+- O componente `ComputedCell` (runtime, catalogado) pede à fonte o mapa `id -> texto formatado`; sem valor, mostra "—".
+- A fonte é escrita à mão no runtime (`lib/computed-sources.ts`), como as fontes de FK; o mapa só a referencia pelo nome.
+
+| ERRO NO MODELO (screenColumns) | Como corrigir |
+|---|---|
+| `coluna calculada <id> sem source em <Janela>` | declare `[e] source` com o nome da fonte registrada. |
+| `coluna calculada <id> sem label/pt em <Janela>` | declare o título da coluna. |

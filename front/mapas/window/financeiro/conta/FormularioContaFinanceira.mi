@@ -1,0 +1,123 @@
+[Descriptor.window.editor] FormularioContaFinanceira
+    @
+        [e] title
+            [e] pt
+                [v] Cadastro de conta
+        [e] route
+            [v] /financeiro/contas/$id
+        [e] role
+            [v] ADMINISTRADOR
+        [e] icon
+            [v] wallet
+    [g] source
+        [r] object: ContaFinanceira()
+    [e] form
+        [e] rows
+            [e] section
+                [v] Conta
+            [e] row
+                [e] field
+                    [v] .nome
+                    @
+                        [e] label
+                            [e] pt
+                                [v] Nome da conta
+                        [e] size
+                            [v] l
+                        [e] hint
+                            [e] pt
+                                [v] Ex.: Caixa da loja, Banco do Brasil, Carteira Pix.
+                [e] field
+                    [v] .tipo
+                    @
+                        [e] size
+                            [v] m
+                [e] field
+                    [v] .ativo
+                    @
+                        [e] size
+                            [v] xs
+            [e] row
+                [e] field
+                    [v] .saldoInicial
+                    @
+                        [e] label
+                            [e] pt
+                                [v] Saldo inicial (R$)
+                        [e] size
+                            [v] l
+                        [e] hint
+                            [e] pt
+                                [v] Pode ser negativo (cheque especial). Não muda depois do primeiro movimento.
+                [e] field
+                    [v] .dataSaldoInicial
+                    @
+                        [e] label
+                            [e] pt
+                                [v] Data do saldo inicial
+                        [e] size
+                            [v] l
+                        [e] hint
+                            [e] pt
+                                [v] Não pode ser futura. Não muda depois do primeiro movimento.
+            [e] section
+                [v] Dados bancários
+                @
+                    [e] description
+                        [e] pt
+                            [v] Opcional. Os dados para pagamento aparecem no e-mail de cobrança.
+            [e] row
+                [e] field
+                    [v] .codigoBanco
+                    @
+                        [e] size
+                            [v] s
+                        [e] hint
+                            [e] pt
+                                [v] Código do Banco Central, sem zeros à esquerda (ex.: 1, 341).
+                [e] field
+                    [v] .agencia
+                    @
+                        [e] size
+                            [v] s
+                [e] field
+                    [v] .dadosDoBanco
+                    @
+                        [e] size
+                            [v] l
+                        [e] hint
+                            [e] pt
+                                [v] Número da conta, chave Pix etc.
+            [e] section
+                [v] Conta padrão por forma de pagamento
+                @
+                    [e] description
+                        [e] pt
+                            [v] Cada forma tem no máximo uma conta padrão: marcar esta desmarca a anterior.
+            [e] row
+                [e] field
+                    [v] .padraoDinheiro
+                    @
+                        [e] size
+                            [v] m
+                [e] field
+                    [v] .padraoPix
+                    @
+                        [e] size
+                            [v] m
+                [e] field
+                    [v] .padraoBoleto
+                    @
+                        [e] size
+                            [v] m
+            [e] row
+                [e] field
+                    [v] .padraoCartao
+                    @
+                        [e] size
+                            [v] l
+                [e] field
+                    [v] .padraoTransferencia
+                    @
+                        [e] size
+                            [v] l

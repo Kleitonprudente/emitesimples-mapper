@@ -26,6 +26,7 @@ public class NotaEntityBuilder {
     public String informacoesComplementares;
     public Integer regimeApuracao;
     public Integer regimeTributacao;
+    public String idCondicaoPagamento;
     public String codigoServico;
     public String codigoTributacaoMunicipio;
     public String codigoNbs;
@@ -118,6 +119,11 @@ public class NotaEntityBuilder {
 
     public NotaEntityBuilder withRegimeTributacao(Integer regimeTributacao) {
         this.regimeTributacao = regimeTributacao;
+        return this;
+    }
+
+    public NotaEntityBuilder withIdCondicaoPagamento(String idCondicaoPagamento) {
+        this.idCondicaoPagamento = idCondicaoPagamento;
         return this;
     }
 
@@ -379,6 +385,7 @@ public class NotaEntityBuilder {
                 .withInformacoesComplementares(nota.getInformacoesComplementares())
                 .withRegimeApuracao(nota.getRegimeApuracao())
                 .withRegimeTributacao(nota.getRegimeTributacao())
+                .withIdCondicaoPagamento(nota.getIdCondicaoPagamento())
                 .withCodigoServico(nota.getCodigoServico())
                 .withCodigoTributacaoMunicipio(nota.getCodigoTributacaoMunicipio())
                 .withCodigoNbs(nota.getCodigoNbs())

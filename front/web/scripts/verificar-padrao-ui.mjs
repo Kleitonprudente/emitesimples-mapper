@@ -37,6 +37,17 @@ export const TELAS_A_MAO = new Set([
   'features/empresa-config/EmpresaConfig.tsx',
   // componente à mão montado como aba extra do cadastro de Empresa (gerador extraTabs); decisão explícita do usuário
   'features/admin/VinculosDaEmpresa.tsx',
+  // Financeiro: telas operacionais declaradas no mapa como window.custom (Contas a receber/pagar, Titulo, Extrato); nao sao cadastro
+  // (lista sobre endpoint proprio, baixa, estorno, extrato com saldo corrente). Decisao explicita do usuario (docs/financeiro/README.md, D2).
+  'features/financeiro/titulos/TitulosLista.tsx',
+  'features/financeiro/titulos/TituloPagina.tsx',
+  'features/financeiro/extrato/Extrato.tsx',
+  // Financeiro > Importar e exportar (CSV; window.custom, decisao explicita do usuario: docs/financeiro/README.md, F4-C3).
+  'features/financeiro/csv/CsvFinanceiro.tsx',
+  // Financeiro > Integracao de cobranca e Administracao > Agentes (window.custom; decisao do dono do projeto em 2026-11-27,
+  // docs/financeiro/README.md 9.4 e 9.5): segredos que aparecem uma vez e nunca voltam, fora do padrao de cadastro.
+  'features/financeiro/cobranca/IntegracaoCobranca.tsx',
+  'features/configuracao/agentes/AgentesDeAcesso.tsx',
   // Exemplo de referencia da lista com DataTable.
   'examples/PessoasExample.tsx',
 ])
@@ -49,9 +60,12 @@ export const COMPONENTES_CATALOGADOS = new Set([
   'runtime/AutoForm.tsx',
   'runtime/CardList.tsx',
   'runtime/Combobox.tsx',
+  'runtime/ComputedCell.tsx',
   'runtime/DataTable.tsx',
   'runtime/FormField.tsx',
   'runtime/SearchInput.tsx',
+  // Senha recente (A7, docs/financeiro/README.md 9.2): dialogo global montado no __root, aprovado pelo dono do projeto em 2026-11-27.
+  'runtime/SenhaRecente.tsx',
   'runtime/icons.tsx',
   'runtime/states.tsx',
 ])

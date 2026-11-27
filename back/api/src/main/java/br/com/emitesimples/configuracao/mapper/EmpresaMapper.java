@@ -252,10 +252,9 @@ public class EmpresaMapper {
             entity.setDataAtualizacao( api.getDataAtualizacao() );
 
             if ( api.getMunicipio() != null ) {
-                if ( entity.getMunicipio() == null ) {
-                    entity.setMunicipio( new MunicipioEntity() );
-                }
-                entity.setMunicipio(municipioMapper.updateApiToEntity( api.getMunicipio(), entity.getMunicipio()));
+                // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+                // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+                entity.setMunicipio(municipioMapper.updateApiToEntity( api.getMunicipio(), entity.getMunicipio() != null ? entity.getMunicipio() : new MunicipioEntity()));
             } else {
                 entity.setMunicipio( null );
             }
@@ -303,10 +302,9 @@ public class EmpresaMapper {
         if (api.getDataCriacao() != null) entity.setDataCriacao( api.getDataCriacao() ); 
         if (api.getDataAtualizacao() != null) entity.setDataAtualizacao( api.getDataAtualizacao() ); 
         if ( api.getMunicipio() != null ) {
-            if ( entity.getMunicipio() == null ) {
-                entity.setMunicipio( new MunicipioEntity() );
-            }
-            entity.setMunicipio(municipioMapper.updateApiToEntity( api.getMunicipio(), entity.getMunicipio()));
+            // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+            // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+            entity.setMunicipio(municipioMapper.updateApiToEntity( api.getMunicipio(), entity.getMunicipio() != null ? entity.getMunicipio() : new MunicipioEntity()));
         }
 
         return entity;

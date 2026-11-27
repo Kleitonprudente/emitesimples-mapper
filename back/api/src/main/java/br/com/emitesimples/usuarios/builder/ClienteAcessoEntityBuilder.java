@@ -6,6 +6,7 @@ import br.com.emitesimples.usuarios.entity.ClienteAcessoEntity;
 import java.util.List;
 import java.util.ArrayList;
 import br.com.emitesimples.configuracao.entity.EmpresaEntity;
+import br.com.emitesimples.usuarios.entity.UsuarioEntity;
 
 /*
  * ClienteAcesso entity builder
@@ -23,6 +24,7 @@ public class ClienteAcessoEntityBuilder {
     public LocalDateTime dataCriacao;
     public LocalDateTime dataAtualizacao;
     public EmpresaEntity empresa;
+    public UsuarioEntity usuario;
 
     public ClienteAcessoEntityBuilder() {
     }
@@ -86,6 +88,11 @@ public class ClienteAcessoEntityBuilder {
         return this;
     }
 
+    public ClienteAcessoEntityBuilder withUsuario(UsuarioEntity usuario) {
+        this.usuario = usuario;
+        return this;
+    }
+
     public ClienteAcessoEntity build() {
         return new ClienteAcessoEntity(this);
     }
@@ -101,7 +108,8 @@ public class ClienteAcessoEntityBuilder {
                 .withId(clienteAcesso.getId())
                 .withDataCriacao(clienteAcesso.getDataCriacao())
                 .withDataAtualizacao(clienteAcesso.getDataAtualizacao())
-                .withEmpresa(EmpresaEntity.builderOf().withModel(clienteAcesso.getEmpresa()).build());
+                .withEmpresa(EmpresaEntity.builderOf().withModel(clienteAcesso.getEmpresa()).build())
+                .withUsuario(UsuarioEntity.builderOf().withModel(clienteAcesso.getUsuario()).build());
     }
 
     public List<ClienteAcessoEntity> withModelList(List<ClienteAcesso> clienteAcessoList) {

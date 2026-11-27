@@ -35,8 +35,8 @@ block() {
 }
 
 # 1) back: pacotes inteiramente gerados (o gerar.sh apaga e recria; o que e escrito a mao vive em outros pacotes)
-printf '%s' "$FP" | grep -qE '/back/api/src/main/java/br/com/emitesimples/(configuracao|cadastros|usuarios|nfse|integranotas|admin)/' \
-  && block "pacote Java gerado (configuracao, cadastros, usuarios, nfse, integranotas, admin)"
+printf '%s' "$FP" | grep -qE '/back/api/src/main/java/br/com/emitesimples/(configuracao|cadastros|usuarios|nfse|integranotas|admin|financeiro)/' \
+  && block "pacote Java gerado (configuracao, cadastros, usuarios, nfse, integranotas, admin, financeiro)"
 
 # 2) back: OpenAPI gerado
 printf '%s' "$FP" | grep -qE '/back/api/docs/openapi/' && block "OpenAPI gerado (back/api/docs/openapi)"

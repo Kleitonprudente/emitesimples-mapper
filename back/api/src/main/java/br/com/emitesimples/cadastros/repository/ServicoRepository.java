@@ -38,7 +38,8 @@ public class ServicoRepository implements PanacheRepositoryBase<ServicoEntity, S
      * Descarrega as gravacoes pendentes <b>dentro</b> do try do resource: a violacao
      * estoura aqui e nao no commit (onde viraria 500 e vazaria SQL). Unicidade
      * (SQLState 23505) e conflito de versao viram 409; as demais violacoes viram 400,
-     * sem expor o SQL.
+     * sem expor o SQL. O 409 de unicidade leva a causa (nunca exposta) para o tratador de erros
+     * poder dizer QUAL indice unico foi violado (mensagem no campo; ver ErrosHandler).
      */
     public void gravarAgora() {
         try {
@@ -54,7 +55,7 @@ public class ServicoRepository implements PanacheRepositoryBase<ServicoEntity, S
         Throwable causa = pe;
         for (int i = 0; causa != null && i < 10; i++, causa = causa.getCause()) {
             if (causa instanceof java.sql.SQLException sql && "23505".equals(sql.getSQLState())) {
-                return new ClientErrorException("Ja existe um registro com os mesmos dados unicos.", 409);
+                return new ClientErrorException("Ja existe um registro com os mesmos dados unicos.", 409, pe);
             }
         }
         return new InvalidInputException("Nao foi possivel gravar o registro: dados invalidos ou em conflito com uma restricao.", pe.getCause());

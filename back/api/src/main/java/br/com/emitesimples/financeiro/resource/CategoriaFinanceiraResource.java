@@ -1,4 +1,4 @@
-package br.com.emitesimples.usuarios.resource;
+package br.com.emitesimples.financeiro.resource;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -15,42 +15,42 @@ import br.com.emitesimples.exceptions.InvalidInputException;
 import br.com.emitesimples.exceptions.NotFoundException;
 import java.time.LocalDateTime;
 
-import br.com.emitesimples.usuarios.domain.ClienteAcesso;
-import br.com.emitesimples.usuarios.entity.ClienteAcessoEntity;
-import br.com.emitesimples.usuarios.repository.ClienteAcessoRepository;
-import br.com.emitesimples.usuarios.mapper.ClienteAcessoMapper;
+import br.com.emitesimples.financeiro.domain.CategoriaFinanceira;
+import br.com.emitesimples.financeiro.entity.CategoriaFinanceiraEntity;
+import br.com.emitesimples.financeiro.repository.CategoriaFinanceiraRepository;
+import br.com.emitesimples.financeiro.mapper.CategoriaFinanceiraMapper;
 import br.com.emitesimples.results.CountResult;
 
-@Path("/ClienteAcesso")
+@Path("/CategoriaFinanceira")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-public class ClienteAcessoResource {
+public class CategoriaFinanceiraResource {
 
     @Inject
-    ClienteAcessoRepository repository;
+    CategoriaFinanceiraRepository repository;
 
     @Inject
-    ClienteAcessoMapper mapper;
+    CategoriaFinanceiraMapper mapper;
 
     @Inject
     JsonWebToken jwt;
 
     /**
-     * Lista todos os registros de ClienteAcesso.
+     * Lista todos os registros de CategoriaFinanceira.
      */
     @GET
-    public List<ClienteAcesso> listAll(
+    public List<CategoriaFinanceira> listAll(
         @QueryParam("sortBy") String sortBy,
         @QueryParam("sortDirection") @DefaultValue("asc") String sortDirection,
         @QueryParam("nome") String nome,
-        @QueryParam("clientId") String clientId,
-        @QueryParam("scopes") String scopes,
+        @QueryParam("tipo") String tipo,
+        @QueryParam("dicas") String dicas,
         @QueryParam("ativo") String ativo,
-        @QueryParam("dataUltimoUso") String dataUltimoUso,
-        @QueryParam("dataExpiracao") String dataExpiracao,
         @QueryParam("id") String id,
         @QueryParam("dataCriacao") String dataCriacao,
         @QueryParam("dataAtualizacao") String dataAtualizacao,
+        @QueryParam("nome") String categoriaPaiNome,
+        @QueryParam("categoriaPai.id") String categoriaPaiId,
         @QueryParam("nomeFantasia") String empresaNomeFantasia,
         @QueryParam("razaoSocial") String empresaRazaoSocial,
         @QueryParam("documento") String empresaDocumento,
@@ -60,19 +60,19 @@ public class ClienteAcessoResource {
         Sort sort = Sort.by(sortBy != null ? sortBy : "id")
                         .direction(sortDirection.equalsIgnoreCase("desc") ?
                                    Sort.Direction.Descending : Sort.Direction.Ascending);
-        List<ClienteAcessoEntity> entityList = repository.findWithFilters(0, 100, sort, nome, clientId, scopes, ativo, dataUltimoUso, dataExpiracao, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId);
+        List<CategoriaFinanceiraEntity> entityList = repository.findWithFilters(0, 100, sort, nome, tipo, dicas, ativo, id, dataCriacao, dataAtualizacao, categoriaPaiNome, categoriaPaiId, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId);
 
         return mapper.entityListToApiList(entityList);
     }
 
     /**
-     * Cria um registro de ClienteAcesso.
+     * Cria um registro de CategoriaFinanceira.
      */
     @POST
     @Transactional
-    public ClienteAcesso create(ClienteAcesso body) {
+    public CategoriaFinanceira create(CategoriaFinanceira body) {
       try {
-        ClienteAcessoEntity entity = mapper.apiToEntity(body);
+        CategoriaFinanceiraEntity entity = mapper.apiToEntity(body);
         repository.persist(entity);
         repository.gravarAgora();
         return mapper.entityToApi(entity);
@@ -83,20 +83,20 @@ public class ClienteAcessoResource {
     }
 
     /**
-     * Retorna contagem dos registros de ClienteAcesso.
+     * Retorna contagem dos registros de CategoriaFinanceira.
      */
     @GET
     @Path("/count")
     public CountResult count(
         @QueryParam("nome") String nome,
-        @QueryParam("clientId") String clientId,
-        @QueryParam("scopes") String scopes,
+        @QueryParam("tipo") String tipo,
+        @QueryParam("dicas") String dicas,
         @QueryParam("ativo") String ativo,
-        @QueryParam("dataUltimoUso") String dataUltimoUso,
-        @QueryParam("dataExpiracao") String dataExpiracao,
         @QueryParam("id") String id,
         @QueryParam("dataCriacao") String dataCriacao,
         @QueryParam("dataAtualizacao") String dataAtualizacao,
+        @QueryParam("nome") String categoriaPaiNome,
+        @QueryParam("categoriaPai.id") String categoriaPaiId,
         @QueryParam("nomeFantasia") String empresaNomeFantasia,
         @QueryParam("razaoSocial") String empresaRazaoSocial,
         @QueryParam("documento") String empresaDocumento,
@@ -105,29 +105,29 @@ public class ClienteAcessoResource {
     ) {
 
         CountResult countResult = new CountResult();
-        countResult.setCount(repository.countWithFilters( nome, clientId, scopes, ativo, dataUltimoUso, dataExpiracao, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId));
+        countResult.setCount(repository.countWithFilters( nome, tipo, dicas, ativo, id, dataCriacao, dataAtualizacao, categoriaPaiNome, categoriaPaiId, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId));
         return countResult;
     }
 
     /**
-     * Lista os registros de ClienteAcesso por faixa de posição.
+     * Lista os registros de CategoriaFinanceira por faixa de posição.
      */
     @GET
     @Path("/{from}/{to}")
-    public List<ClienteAcesso> listRange(
+    public List<CategoriaFinanceira> listRange(
         @PathParam("from") int from,
         @PathParam("to") int to,
         @QueryParam("sortBy") @DefaultValue("id") String sortBy,
         @QueryParam("sortDirection") @DefaultValue("asc") String sortDirection,
         @QueryParam("nome") String nome,
-        @QueryParam("clientId") String clientId,
-        @QueryParam("scopes") String scopes,
+        @QueryParam("tipo") String tipo,
+        @QueryParam("dicas") String dicas,
         @QueryParam("ativo") String ativo,
-        @QueryParam("dataUltimoUso") String dataUltimoUso,
-        @QueryParam("dataExpiracao") String dataExpiracao,
         @QueryParam("id") String id,
         @QueryParam("dataCriacao") String dataCriacao,
         @QueryParam("dataAtualizacao") String dataAtualizacao,
+        @QueryParam("nome") String categoriaPaiNome,
+        @QueryParam("categoriaPai.id") String categoriaPaiId,
         @QueryParam("nomeFantasia") String empresaNomeFantasia,
         @QueryParam("razaoSocial") String empresaRazaoSocial,
         @QueryParam("documento") String empresaDocumento,
@@ -145,53 +145,53 @@ public class ClienteAcessoResource {
         Sort sort = Sort.by(sortBy != null ? sortBy : "id")
                         .direction(sortDirection.equalsIgnoreCase("desc") ?
                                    Sort.Direction.Descending : Sort.Direction.Ascending);
-        List<ClienteAcessoEntity> entityList = repository.findWithFilters(from, limit, sort, nome, clientId, scopes, ativo, dataUltimoUso, dataExpiracao, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId);
+        List<CategoriaFinanceiraEntity> entityList = repository.findWithFilters(from, limit, sort, nome, tipo, dicas, ativo, id, dataCriacao, dataAtualizacao, categoriaPaiNome, categoriaPaiId, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId);
 
         return mapper.entityListToApiList(entityList);
     }
 
     /**
-     * Retorna o respectivo registro de ClienteAcesso usando o ID da API.
+     * Retorna o respectivo registro de CategoriaFinanceira usando o ID da API.
      */
     @GET
     @Path("/id/{value}")
-    public ClienteAcesso getById(@PathParam("value") String value) {
-      ClienteAcessoEntity entity = repository.findByIdOptional(value)
-            .orElseThrow(() -> new NotFoundException("No clienteAcesso found for Id: " + value));
+    public CategoriaFinanceira getById(@PathParam("value") String value) {
+      CategoriaFinanceiraEntity entity = repository.findByIdOptional(value)
+            .orElseThrow(() -> new NotFoundException("No categoriaFinanceira found for Id: " + value));
 
       return mapper.entityToApi(entity);
     }
 
     /**
-     * Altera o respectivo registro de ClienteAcesso.
+     * Altera o respectivo registro de CategoriaFinanceira.
      */
     @PUT
     @Path("/id/{value}")
     @Transactional
-    public void updateById(@PathParam("value") String value, ClienteAcesso body) {
-        ClienteAcessoEntity entity = repository.findByIdOptional(value)
-            .orElseThrow(() -> new NotFoundException("No clienteAcesso found for Id: " + value));
+    public void updateById(@PathParam("value") String value, CategoriaFinanceira body) {
+        CategoriaFinanceiraEntity entity = repository.findByIdOptional(value)
+            .orElseThrow(() -> new NotFoundException("No categoriaFinanceira found for Id: " + value));
         body.setId(value);
         mapper.updateApiToEntity(body, entity);
         repository.gravarAgora();
     }
 
     /**
-     * Atualiza parcialmente um registro de ClienteAcesso pelo ID.
+     * Atualiza parcialmente um registro de CategoriaFinanceira pelo ID.
      */
     @PATCH
     @Path("/id/{value}")
     @Transactional
-    public void patchById(@PathParam("value") String value, ClienteAcesso body) {
-        ClienteAcessoEntity entity = repository.findByIdOptional(value)
-            .orElseThrow(() -> new NotFoundException("No clienteAcesso found with ID: " + value));
+    public void patchById(@PathParam("value") String value, CategoriaFinanceira body) {
+        CategoriaFinanceiraEntity entity = repository.findByIdOptional(value)
+            .orElseThrow(() -> new NotFoundException("No categoriaFinanceira found with ID: " + value));
         body.setId(value);
         mapper.patchApiToEntity(body, entity);
         repository.gravarAgora();
     }
 
     /**
-     * Deleta um registro de ClienteAcesso pelo ID.
+     * Deleta um registro de CategoriaFinanceira pelo ID.
      */
     @DELETE
     @Path("/id/{value}")

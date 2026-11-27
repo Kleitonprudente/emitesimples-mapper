@@ -200,3 +200,19 @@
                     [v] true
                 [e] tenantKey
                     [v] true
+        [r] usuario: Usuario()
+            @
+                [e] cn
+                    [v] usuario_id
+                [e] title
+                    [e] pt
+                        [v] Usuário Dono
+                    [e] en
+                        [v] Owner User
+                [e] description
+                    [e] pt
+                        [v] Usuário que criou o agente e por quem ele age, só com os escopos dados (docs/financeiro/README.md, 9.4, B3). Revogar o vínculo do usuário derruba o agente.
+                    [e] en
+                        [v] User who created the agent and on whose behalf it acts, only with the given scopes (docs/financeiro/README.md, 9.4, B3). Revoking the user link stops the agent.
+                [e] required
+                    [v] true

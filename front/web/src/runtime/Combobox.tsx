@@ -9,6 +9,8 @@ import { cn } from '@/lib/utils'
 export interface FkOption {
   id: string
   label: string
+  /** Titulo do grupo da opcao (ex.: a categoria pai). Opcoes seguidas do mesmo grupo aparecem sob um titulo, que nao se escolhe. */
+  group?: string
 }
 
 /** Fonte de uma chave estrangeira: busca assincrona + como rotular um valor ja carregado. */
@@ -139,7 +141,14 @@ export function Combobox({
             <li className="px-2 py-2 text-sm text-muted-foreground">Nenhum resultado.</li>
           )}
           {!query.isFetching &&
-            options.map((o, i) => (
+            options.flatMap((o, i) => [
+              ...(o.group && o.group !== options[i - 1]?.group
+                ? [
+                    <li key={`grupo-${o.group}-${i}`} role="presentation" className="px-2 pt-2 pb-1 text-xs font-medium text-muted-foreground">
+                      {o.group}
+                    </li>,
+                  ]
+                : []),
               <li
                 key={o.id}
                 role="option"
@@ -148,10 +157,10 @@ export function Combobox({
                 onClick={() => pick(o)}
                 className={cn('flex cursor-pointer items-center justify-between rounded-sm px-2 py-1.5 text-sm', i === active && 'bg-accent text-accent-foreground')}
               >
-                {o.label}
+                <span className={o.group ? 'pl-2' : undefined}>{o.label}</span>
                 {value?.id === o.id && <Check className="size-4" aria-hidden />}
-              </li>
-            ))}
+              </li>,
+            ])}
         </ul>
       </PopoverContent>
     </Popover>

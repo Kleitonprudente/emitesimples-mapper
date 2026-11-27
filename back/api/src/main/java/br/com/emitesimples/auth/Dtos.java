@@ -17,6 +17,10 @@ public final class Dtos {
     }
 
 
+    /** Corpo de POST /api/auth/reautenticar (A7): a senha do usuario da sessao. */
+    public record ReautenticarRequest(@Size(max = 1000, message = "Senha longa demais.") String senha) {
+    }
+
     public record SenhaRequest(
             @Size(max = 1000, message = "Senha longa demais.") String senhaAtual,
             @Size(max = 1000, message = "Senha longa demais.") String novaSenha) {

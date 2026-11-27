@@ -254,6 +254,54 @@
             [b] HistoricoSituacaoEmpresa
                 #
                     dominio/Admin/HistoricoSituacaoEmpresa.mi
+        [p] financeiro
+            @
+                [e] title
+                    [e] pt
+                        [v] Financeiro
+                    [e] en
+                        [v] Finance
+                [e] description
+                    [e] pt
+                        [v] Contexto de contas a receber, contas a pagar, caixa/bancos e extrato (copia do back; docs/financeiro). Depende só de configuracao (Empresa).
+                    [e] en
+                        [v] Context for receivables, payables, cash/banks and statements (copy of the back end; docs/financeiro). Depends only on configuracao (Empresa).
+            [b] Banco
+                #
+                    dominio/Financeiro/Banco.mi
+            [b] ContaFinanceira
+                #
+                    dominio/Financeiro/ContaFinanceira.mi
+            [b] CategoriaFinanceira
+                #
+                    dominio/Financeiro/CategoriaFinanceira.mi
+            [b] CondicaoPagamento
+                #
+                    dominio/Financeiro/CondicaoPagamento.mi
+            [b] ConfiguracaoFinanceira
+                #
+                    dominio/Financeiro/ConfiguracaoFinanceira.mi
+            [b] Titulo
+                #
+                    dominio/Financeiro/Titulo.mi
+            [b] Movimento
+                #
+                    dominio/Financeiro/Movimento.mi
+            [b] LembreteCobranca
+                #
+                    dominio/Financeiro/LembreteCobranca.mi
+            [b] CobrancaEnviada
+                #
+                    dominio/Financeiro/CobrancaEnviada.mi
+            [b] CredencialCobranca
+                #
+                    dominio/Financeiro/CredencialCobranca.mi
+            [b] CobrancaDestino
+                #
+                    dominio/Financeiro/CobrancaDestino.mi
+            [b] Cobranca
+                #
+                    dominio/Financeiro/Cobranca.mi
     [p] window
         @
             [e] title
@@ -303,6 +351,10 @@
                     #
                         window/cadastros/servico/FormularioServico.mi
         [p] configuracao
+            [p] agentes
+                [Descriptor.window.custom] AgentesDeAcesso
+                    #
+                        window/configuracao/agentes/AgentesDeAcesso.mi
             [p] empresa
                 [Descriptor.window.list] GestaoEmpresas
                     #
@@ -310,3 +362,58 @@
                 [Descriptor.window.editor] FormularioEmpresa
                     #
                         window/configuracao/empresa/FormularioEmpresa.mi
+        [p] financeiro
+            [p] conta
+                [Descriptor.window.list] GestaoContasFinanceiras
+                    #
+                        window/financeiro/conta/GestaoContasFinanceiras.mi
+                [Descriptor.window.editor] FormularioContaFinanceira
+                    #
+                        window/financeiro/conta/FormularioContaFinanceira.mi
+            [p] categoria
+                [Descriptor.window.list] GestaoCategoriasFinanceiras
+                    #
+                        window/financeiro/categoria/GestaoCategoriasFinanceiras.mi
+                [Descriptor.window.editor] FormularioCategoriaFinanceira
+                    #
+                        window/financeiro/categoria/FormularioCategoriaFinanceira.mi
+            [p] condicao
+                [Descriptor.window.list] GestaoCondicoesPagamento
+                    #
+                        window/financeiro/condicao/GestaoCondicoesPagamento.mi
+                [Descriptor.window.editor] FormularioCondicaoPagamento
+                    #
+                        window/financeiro/condicao/FormularioCondicaoPagamento.mi
+            [p] banco
+                [Descriptor.window.list] GestaoBancos
+                    #
+                        window/financeiro/banco/GestaoBancos.mi
+                [Descriptor.window.editor] FormularioBanco
+                    #
+                        window/financeiro/banco/FormularioBanco.mi
+            [p] configuracao
+                [Descriptor.window.editor] FormularioConfiguracaoFinanceira
+                    #
+                        window/financeiro/configuracao/FormularioConfiguracaoFinanceira.mi
+            [p] titulo
+                [Descriptor.window.custom] ContasAReceber
+                    #
+                        window/financeiro/titulo/ContasAReceber.mi
+                [Descriptor.window.custom] ContasAPagar
+                    #
+                        window/financeiro/titulo/ContasAPagar.mi
+                [Descriptor.window.custom] TituloFinanceiro
+                    #
+                        window/financeiro/titulo/TituloFinanceiro.mi
+            [p] extrato
+                [Descriptor.window.custom] ExtratoFinanceiro
+                    #
+                        window/financeiro/extrato/ExtratoFinanceiro.mi
+            [p] csv
+                [Descriptor.window.custom] ImportarExportarCsv
+                    #
+                        window/financeiro/csv/ImportarExportarCsv.mi
+            [p] cobranca
+                [Descriptor.window.custom] IntegracaoCobranca
+                    #
+                        window/financeiro/cobranca/IntegracaoCobranca.mi

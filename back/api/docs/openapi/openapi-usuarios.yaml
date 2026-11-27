@@ -1659,6 +1659,13 @@ paths:
         minimum: 0
         maximum: 2147483647
         format: int32
+      - name: "usuario.id"
+        in: "query"
+        description: "Filtra registros por usuario usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
       produces:
       - "application/json"
       responses:
@@ -1825,6 +1832,13 @@ paths:
         minimum: 0
         maximum: 2147483647
         format: int32
+      - name: "usuario.id"
+        in: "query"
+        description: "Filtra registros por usuario usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
       produces:
       - "application/json"
       responses: 
@@ -1914,6 +1928,13 @@ paths:
       - name: "empresa.id"
         in: "query"
         description: "Filtra registros por empresa usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "usuario.id"
+        in: "query"
+        description: "Filtra registros por usuario usando ID interno da API"
         type: integer
         minimum: 0
         maximum: 2147483647
@@ -2035,6 +2056,13 @@ paths:
       - name: "empresa.id"
         in: "query"
         description: "Filtra registros por empresa usando ID interno da API"
+        type: integer
+        minimum: 0
+        maximum: 2147483647
+        format: int32
+      - name: "usuario.id"
+        in: "query"
+        description: "Filtra registros por usuario usando ID interno da API"
         type: integer
         minimum: 0
         maximum: 2147483647
@@ -4173,6 +4201,7 @@ definitions:
       - dataCriacao
       - dataAtualizacao
       - empresa
+      - usuario
     properties:
       id:
         type: integer
@@ -4256,6 +4285,14 @@ definitions:
         description: |
             Única empresa a que o cliente dá acesso e tenant do registro. Todo acesso é 
             filtrado por ela.
+
+        allOf:
+          - $ref: '#/definitions/IdReference'
+      usuario:
+        description: |
+            Usuário que criou o agente e por quem ele age, só com os escopos dados 
+            (docs/financeiro/README.md, 9.4, B3). Revogar o vínculo do usuário derruba o 
+            agente.
 
         allOf:
           - $ref: '#/definitions/IdReference'

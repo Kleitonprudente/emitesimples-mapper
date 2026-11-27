@@ -1,0 +1,172 @@
+[b] LembreteCobranca
+    @
+        [e] title
+            [e] pt
+                [v] Lembrete de Cobrança
+            [e] en
+                [v] Collection Reminder
+        [e] description
+            [e] pt
+                [v] Marca de que um lembrete automático de cobrança já saiu para um título (docs/financeiro/README.md, 9.3, Fase 6; referência §9.1): cada aviso sai UMA vez.
+                  | O job diário (9h, por empresa, só com lembretesAtivos na configuração) grava aqui antes de enviar; o índice único (título, tipo, dias) impede repetir.
+                  | Não tem CRUD gerado: só o serviço de cobrança (financeiroop) grava. Vive no contexto financeiro (domain.financeiro).
+            [e] en
+                [v] Mark that an automatic collection reminder was already sent for a bill (docs/financeiro/README.md, 9.3, Phase 6; reference §9.1): each notice goes out ONCE.
+                  | The daily job (9 a.m., per company, only with lembretesAtivos in the settings) records here before sending; the unique index (bill, type, days) prevents repeats.
+                  | No generated CRUD: only the collection service (financeiroop) writes. Lives in the financeiro context (domain.financeiro).
+    [g] lembrete
+        [d] tipo: Texto(10)
+            @
+                [e] cn
+                    [v] tipo
+                [e] title
+                    [e] pt
+                        [v] Tipo
+                    [e] en
+                        [v] Type
+                [e] description
+                    [e] pt
+                        [v] ANTES (antes do vencimento) ou DEPOIS (atrasado). Valores documentados em values.
+                    [e] en
+                        [v] ANTES (before due date) or DEPOIS (overdue). Values documented in values.
+                [e] required
+                    [v] true
+                [e] values
+                    [e] ANTES
+                        [e] title
+                            [e] pt
+                                [v] Antes do vencimento
+                            [e] en
+                                [v] Before due date
+                        [e] description
+                            [e] pt
+                                [v] Aviso enviado lembreteDiasAntes dias antes do vencimento.
+                            [e] en
+                                [v] Notice sent lembreteDiasAntes days before the due date.
+                    [e] DEPOIS
+                        [e] title
+                            [e] pt
+                                [v] Depois do vencimento
+                            [e] en
+                                [v] After due date
+                        [e] description
+                            [e] pt
+                                [v] Aviso de atraso, em cada dia de lembreteDiasDepois.
+                            [e] en
+                                [v] Overdue notice, on each day of lembreteDiasDepois.
+        [d] dias: Inteiro(2)
+            @
+                [e] cn
+                    [v] dias
+                [e] title
+                    [e] pt
+                        [v] Dias
+                    [e] en
+                        [v] Days
+                [e] description
+                    [e] pt
+                        [v] Quantos dias antes ou depois do vencimento este aviso corresponde (0 a 99).
+                    [e] en
+                        [v] How many days before or after the due date this notice is for (0 to 99).
+                [e] required
+                    [v] true
+        [d] enviadoEm: DataHora()
+            @
+                [e] cn
+                    [v] enviado_em
+                [e] title
+                    [e] pt
+                        [v] Enviado em
+                    [e] en
+                        [v] Sent at
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o lembrete saiu.
+                    [e] en
+                        [v] Date and time the reminder was sent.
+                [e] required
+                    [v] true
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno do lembrete (UUID).
+                    [e] en
+                        [v] Internal identifier of the reminder (UUID).
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o registro foi criado.
+                    [e] en
+                        [v] Date and time the record was created.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true
+    [g] relacionamentos
+        [r] titulo: Titulo()
+            @
+                [e] cn
+                    [v] titulo_id
+                [e] title
+                    [e] pt
+                        [v] Título
+                    [e] en
+                        [v] Bill
+                [e] description
+                    [e] pt
+                        [v] Título lembrado.
+                    [e] en
+                        [v] Reminded bill.
+                [e] required
+                    [v] true
+        [r] empresa: Empresa()
+            @
+                [e] cn
+                    [v] empresa_id
+                [e] title
+                    [e] pt
+                        [v] Empresa
+                    [e] en
+                        [v] Company
+                [e] description
+                    [e] pt
+                        [v] Empresa dona deste lembrete e tenant do registro. Todo acesso é filtrado por ela.
+                    [e] en
+                        [v] Company that owns this reminder and tenant of the record. Every access is filtered by it.
+                [e] required
+                    [v] true
+                [e] tenantKey
+                    [v] true

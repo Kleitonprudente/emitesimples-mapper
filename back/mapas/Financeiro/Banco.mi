@@ -1,0 +1,185 @@
+[b] Banco
+    @
+        [e] title
+            [e] pt
+                [v] Banco
+            [e] en
+                [v] Bank
+        [e] description
+            [e] pt
+                [v] Banco do cadastro público do Banco Central. Dado de referência GLOBAL, compartilhado por todas as empresas: não tem empresa nem RLS.
+                  | A ContaFinanceira guarda só o código do banco (codigoBanco), que precisa existir aqui.
+                  | Regras documentadas e não expressas no mapa (docs/financeiro/README.md, F1-H5): o código é único, sem zeros à esquerda.
+                  | Mantido pelo administrador da plataforma; a carga pelo CSV do Banco Central (que nunca apaga nem desmarca banco) está pendente.
+                  | Vive no contexto financeiro (domain.financeiro).
+            [e] en
+                [v] Bank from the Central Bank public registry. GLOBAL reference data, shared by all companies: it has no company nor RLS.
+                  | ContaFinanceira keeps only the bank code (codigoBanco), which must exist here.
+                  | Rules documented and not expressed in the map (docs/financeiro/README.md, F1-H5): the code is unique, without leading zeros.
+                  | Maintained by the platform administrator; the load from the Central Bank CSV (which never deletes nor unmarks a bank) is pending.
+                  | Lives in the financeiro context (domain.financeiro).
+    [g] identificacao
+        [d] codigo: Texto(4)
+            @
+                [e] cn
+                    [v] codigo
+                [e] title
+                    [e] pt
+                        [v] Código
+                    [e] en
+                        [v] Code
+                [e] description
+                    [e] pt
+                        [v] Código do banco no Banco Central (COMPE), sem zeros à esquerda (ex.: 1, 341). Único.
+                    [e] en
+                        [v] Bank code at the Central Bank (COMPE), without leading zeros (e.g. 1, 341). Unique.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+        [d] ispb: Texto(8)
+            @
+                [e] cn
+                    [v] ispb
+                [e] title
+                    [e] pt
+                        [v] ISPB
+                    [e] en
+                        [v] ISPB
+                [e] description
+                    [e] pt
+                        [v] Identificador do banco no Sistema de Pagamentos Brasileiro, 8 dígitos.
+                    [e] en
+                        [v] Bank identifier in the Brazilian Payment System, 8 digits.
+        [d] nome: Texto(120)
+            @
+                [e] cn
+                    [v] nome
+                [e] title
+                    [e] pt
+                        [v] Nome
+                    [e] en
+                        [v] Name
+                [e] description
+                    [e] pt
+                        [v] Nome reduzido do banco.
+                    [e] en
+                        [v] Short bank name.
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+        [d] nomeExtenso: Texto(200)
+            @
+                [e] cn
+                    [v] nome_extenso
+                [e] title
+                    [e] pt
+                        [v] Nome Completo
+                    [e] en
+                        [v] Full Name
+                [e] description
+                    [e] pt
+                        [v] Nome completo do banco no cadastro do Banco Central.
+                    [e] en
+                        [v] Full bank name in the Central Bank registry.
+    [g] participacao
+        [d] participaCompe: Boolean()
+            @
+                [e] cn
+                    [v] participa_compe
+                [e] title
+                    [e] pt
+                        [v] Participa da COMPE
+                    [e] en
+                        [v] Takes Part in COMPE
+                [e] description
+                    [e] pt
+                        [v] Se o banco participa da compensação de cheques e boletos (COMPE).
+                    [e] en
+                        [v] Whether the bank takes part in the check and bank slip clearing (COMPE).
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] false
+        [d] integradoGateway: Boolean()
+            @
+                [e] cn
+                    [v] integrado_gateway
+                [e] title
+                    [e] pt
+                        [v] Aceita Cobrança Integrada
+                    [e] en
+                        [v] Supports Integrated Collection
+                [e] description
+                    [e] pt
+                        [v] Se o banco aceita cobrança pelo gateway de cobrança (Fase 7).
+                    [e] en
+                        [v] Whether the bank supports collection through the collection gateway (Phase 7).
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] false
+        [d] urlPassoAPasso: Texto(500)
+            @
+                [e] cn
+                    [v] url_passo_a_passo
+                [e] title
+                    [e] pt
+                        [v] Link do Passo a Passo
+                    [e] en
+                        [v] Step-by-step Link
+                [e] description
+                    [e] pt
+                        [v] Link https de ajuda para integrar a cobrança deste banco. Opcional.
+                    [e] en
+                        [v] https help link to integrate collection with this bank. Optional.
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno do banco (UUID).
+                    [e] en
+                        [v] Internal bank identifier (UUID).
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o banco foi cadastrado.
+                    [e] en
+                        [v] Date and time the bank was registered.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true

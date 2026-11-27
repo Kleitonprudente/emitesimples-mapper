@@ -1,0 +1,500 @@
+[b] Movimento
+    @
+        [e] title
+            [e] pt
+                [v] Movimento
+            [e] en
+                [v] Ledger Entry
+        [e] description
+            [e] pt
+                [v] O livro de movimentos: o dinheiro de fato entrando ou saindo de uma conta numa data (uma linha do extrato). O coração do financeiro.
+                  | IMUTÁVEL: o banco recusa UPDATE e DELETE; erro se corrige com estorno (uma linha nova, de sentido inverso). Não tem CRUD gerado:
+                  | só o LivroDeMovimentos (pacote financeiroop) grava aqui (baixar, estornar, lançar avulso, transferir), com as regras de
+                  | docs/financeiro/README.md (F3-H1 a F3-H8). O valor é sempre maior que zero e o sentido dá o sinal; numa linha de baixa,
+                  | valor = quitado + juros + multa − desconto; numa linha sem título, as quatro são zero. A data nunca é futura nem anterior à abertura da conta.
+                  | O saldo de uma conta é sempre calculado: saldo inicial mais a soma do livro. Vive no contexto financeiro (domain.financeiro).
+            [e] en
+                [v] The ledger: money actually coming into or leaving an account on a date (a statement line). The heart of finance.
+                  | IMMUTABLE: the database refuses UPDATE and DELETE; a mistake is fixed by a reversal (a new row, opposite direction). It has no generated CRUD:
+                  | only LivroDeMovimentos (financeiroop package) writes here (settle, reverse, standalone entry, transfer), with the rules of
+                  | docs/financeiro/README.md (F3-H1 to F3-H8). The amount is always above zero and the direction gives the sign; on a settlement row,
+                  | amount = settled + interest + fee − discount; on a row without bill, the four are zero. The date is never in the future nor before the account opening.
+                  | An account balance is always computed: opening balance plus the sum of the ledger. Lives in the financeiro context (domain.financeiro).
+    [g] lancamento
+        [d] tipo: Texto(24)
+            @
+                [e] cn
+                    [v] tipo
+                [e] title
+                    [e] pt
+                        [v] Tipo
+                    [e] en
+                        [v] Type
+                [e] description
+                    [e] pt
+                        [v] O que a linha é: baixa de título, dinheiro avulso, perna de transferência ou estorno. Valores documentados em values.
+                    [e] en
+                        [v] What the row is: bill settlement, standalone money, transfer leg or reversal. Values documented in values.
+                [e] required
+                    [v] true
+                [e] values
+                    [e] RECEBIMENTO
+                        [e] title
+                            [e] pt
+                                [v] Recebimento
+                            [e] en
+                                [v] Receipt
+                        [e] description
+                            [e] pt
+                                [v] Baixa de título a receber (entrada); sempre com título.
+                            [e] en
+                                [v] Settlement of a receivable (inflow); always with a bill.
+                    [e] PAGAMENTO
+                        [e] title
+                            [e] pt
+                                [v] Pagamento
+                            [e] en
+                                [v] Payment
+                        [e] description
+                            [e] pt
+                                [v] Baixa de título a pagar (saída); sempre com título.
+                            [e] en
+                                [v] Settlement of a payable (outflow); always with a bill.
+                    [e] ENTRADA_AVULSA
+                        [e] title
+                            [e] pt
+                                [v] Entrada avulsa
+                            [e] en
+                                [v] Standalone inflow
+                        [e] description
+                            [e] pt
+                                [v] Dinheiro que entra sem título (ex.: aporte do sócio).
+                            [e] en
+                                [v] Money coming in without a bill (e.g. partner contribution).
+                    [e] SAIDA_AVULSA
+                        [e] title
+                            [e] pt
+                                [v] Saída avulsa
+                            [e] en
+                                [v] Standalone outflow
+                        [e] description
+                            [e] pt
+                                [v] Dinheiro que sai sem título (ex.: tarifa bancária).
+                            [e] en
+                                [v] Money going out without a bill (e.g. bank fee).
+                    [e] TRANSFERENCIA_ENTRADA
+                        [e] title
+                            [e] pt
+                                [v] Transferência recebida
+                            [e] en
+                                [v] Transfer in
+                        [e] description
+                            [e] pt
+                                [v] Perna de entrada de uma transferência entre contas; sempre com idTransferencia.
+                            [e] en
+                                [v] Inflow leg of a transfer between accounts; always with idTransferencia.
+                    [e] TRANSFERENCIA_SAIDA
+                        [e] title
+                            [e] pt
+                                [v] Transferência enviada
+                            [e] en
+                                [v] Transfer out
+                        [e] description
+                            [e] pt
+                                [v] Perna de saída de uma transferência entre contas; sempre com idTransferencia.
+                            [e] en
+                                [v] Outflow leg of a transfer between accounts; always with idTransferencia.
+                    [e] ESTORNO
+                        [e] title
+                            [e] pt
+                                [v] Estorno
+                            [e] en
+                                [v] Reversal
+                        [e] description
+                            [e] pt
+                                [v] Anula uma linha anterior (idEstornoDe), com o sentido inverso e os mesmos valores. Não se estorna.
+                            [e] en
+                                [v] Cancels a previous row (idEstornoDe), with the opposite direction and the same amounts. Cannot be reversed.
+        [d] sentido: Texto(7)
+            @
+                [e] cn
+                    [v] sentido
+                [e] title
+                    [e] pt
+                        [v] Sentido
+                    [e] en
+                        [v] Direction
+                [e] description
+                    [e] pt
+                        [v] ENTRADA soma no saldo, SAIDA subtrai. Valores documentados em values.
+                    [e] en
+                        [v] ENTRADA adds to the balance, SAIDA subtracts. Values documented in values.
+                [e] required
+                    [v] true
+                [e] values
+                    [e] ENTRADA
+                        [e] title
+                            [e] pt
+                                [v] Entrada
+                            [e] en
+                                [v] Inflow
+                        [e] description
+                            [e] pt
+                                [v] Dinheiro que entra na conta (sinal +).
+                            [e] en
+                                [v] Money coming into the account (sign +).
+                    [e] SAIDA
+                        [e] title
+                            [e] pt
+                                [v] Saída
+                            [e] en
+                                [v] Outflow
+                        [e] description
+                            [e] pt
+                                [v] Dinheiro que sai da conta (sinal −).
+                            [e] en
+                                [v] Money leaving the account (sign −).
+        [d] data: Data()
+            @
+                [e] cn
+                    [v] data
+                [e] title
+                    [e] pt
+                        [v] Data
+                    [e] en
+                        [v] Date
+                [e] description
+                    [e] pt
+                        [v] Dia em que o dinheiro entrou ou saiu. Nunca futura (fuso America/Sao_Paulo) nem anterior à data do saldo inicial da conta.
+                    [e] en
+                        [v] Day the money came in or left. Never in the future (America/Sao_Paulo time zone) nor before the account opening balance date.
+                [e] required
+                    [v] true
+        [d] descricao: Texto(255)
+            @
+                [e] cn
+                    [v] descricao
+                [e] title
+                    [e] pt
+                        [v] Descrição
+                    [e] en
+                        [v] Description
+                [e] description
+                    [e] pt
+                        [v] Texto da linha no extrato (na baixa, a descrição do título; no estorno, "Estorno: " e a original).
+                    [e] en
+                        [v] Statement line text (on settlement, the bill description; on reversal, "Estorno: " and the original).
+                [e] searchable
+                    [v] true
+        [d] forma: Texto(20)
+            @
+                [e] cn
+                    [v] forma
+                [e] title
+                    [e] pt
+                        [v] Forma
+                    [e] en
+                        [v] Method
+                [e] description
+                    [e] pt
+                        [v] Como o dinheiro entrou ou saiu: DINHEIRO, PIX, BOLETO, CARTAO ou TRANSFERENCIA. Obrigatória na baixa; opcional no avulso. Valores documentados em values.
+                    [e] en
+                        [v] How the money came in or left: DINHEIRO, PIX, BOLETO, CARTAO or TRANSFERENCIA. Required on settlement; optional on standalone entries. Values documented in values.
+                [e] values
+                    [e] DINHEIRO
+                        [e] title
+                            [e] pt
+                                [v] Dinheiro
+                            [e] en
+                                [v] Cash
+                        [e] description
+                            [e] pt
+                                [v] Pagamento em espécie.
+                            [e] en
+                                [v] Cash payment.
+                    [e] PIX
+                        [e] title
+                            [e] pt
+                                [v] Pix
+                            [e] en
+                                [v] Pix
+                        [e] description
+                            [e] pt
+                                [v] Pagamento instantâneo Pix.
+                            [e] en
+                                [v] Pix instant payment.
+                    [e] BOLETO
+                        [e] title
+                            [e] pt
+                                [v] Boleto
+                            [e] en
+                                [v] Bank slip
+                        [e] description
+                            [e] pt
+                                [v] Boleto bancário.
+                            [e] en
+                                [v] Bank payment slip.
+                    [e] CARTAO
+                        [e] title
+                            [e] pt
+                                [v] Cartão
+                            [e] en
+                                [v] Card
+                        [e] description
+                            [e] pt
+                                [v] Cartão de crédito ou débito.
+                            [e] en
+                                [v] Credit or debit card.
+                    [e] TRANSFERENCIA
+                        [e] title
+                            [e] pt
+                                [v] Transferência
+                            [e] en
+                                [v] Transfer
+                        [e] description
+                            [e] pt
+                                [v] Transferência bancária (TED, DOC ou entre contas).
+                            [e] en
+                                [v] Bank transfer (TED, DOC or between accounts).
+    [g] valores
+        [d] valor: ValorMonetario(15,2)
+            @
+                [e] cn
+                    [v] valor
+                [e] title
+                    [e] pt
+                        [v] Valor
+                    [e] en
+                        [v] Amount
+                [e] description
+                    [e] pt
+                        [v] Valor da linha, sempre maior que zero (o sentido dá o sinal). Na baixa: quitado + juros + multa − desconto.
+                    [e] en
+                        [v] Row amount, always above zero (the direction gives the sign). On settlement: settled + interest + fee − discount.
+                [e] required
+                    [v] true
+        [d] quitado: ValorMonetario(15,2)
+            @
+                [e] cn
+                    [v] quitado
+                [e] title
+                    [e] pt
+                        [v] Quitado
+                    [e] en
+                        [v] Settled
+                [e] description
+                    [e] pt
+                        [v] Quanto do principal do título esta linha quitou. Zero em linha sem título.
+                    [e] en
+                        [v] How much of the bill principal this row settled. Zero on a row without bill.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] 0
+        [d] juros: ValorMonetario(15,2)
+            @
+                [e] cn
+                    [v] juros
+                [e] title
+                    [e] pt
+                        [v] Juros
+                    [e] en
+                        [v] Interest
+                [e] description
+                    [e] pt
+                        [v] Juros cobrados ou pagos nesta baixa. Zero em linha sem título.
+                    [e] en
+                        [v] Interest charged or paid on this settlement. Zero on a row without bill.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] 0
+        [d] multa: ValorMonetario(15,2)
+            @
+                [e] cn
+                    [v] multa
+                [e] title
+                    [e] pt
+                        [v] Multa
+                    [e] en
+                        [v] Late Fee
+                [e] description
+                    [e] pt
+                        [v] Multa cobrada ou paga nesta baixa. Zero em linha sem título.
+                    [e] en
+                        [v] Late fee charged or paid on this settlement. Zero on a row without bill.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] 0
+        [d] desconto: ValorMonetario(15,2)
+            @
+                [e] cn
+                    [v] desconto
+                [e] title
+                    [e] pt
+                        [v] Desconto
+                    [e] en
+                        [v] Discount
+                [e] description
+                    [e] pt
+                        [v] Desconto dado ou recebido nesta baixa; não pode zerar a baixa. Zero em linha sem título.
+                    [e] en
+                        [v] Discount given or received on this settlement; cannot zero the settlement. Zero on a row without bill.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] 0
+    [g] ligacoes
+        [d] idLote: Texto(36)
+            @
+                [e] cn
+                    [v] id_lote
+                [e] title
+                    [e] pt
+                        [v] Lote
+                    [e] en
+                        [v] Batch
+                [e] description
+                    [e] pt
+                        [v] UUID comum às baixas feitas juntas numa baixa em lote.
+                    [e] en
+                        [v] UUID shared by the settlements made together in a batch settlement.
+        [d] idTransferencia: Texto(36)
+            @
+                [e] cn
+                    [v] id_transferencia
+                [e] title
+                    [e] pt
+                        [v] Transferência
+                    [e] en
+                        [v] Transfer
+                [e] description
+                    [e] pt
+                        [v] UUID que liga as duas pernas de uma transferência entre contas (obrigatório nelas).
+                    [e] en
+                        [v] UUID linking the two legs of a transfer between accounts (required on them).
+        [d] idEstornoDe: Texto(36)
+            @
+                [e] cn
+                    [v] id_estorno_de
+                [e] title
+                    [e] pt
+                        [v] Estorno de
+                    [e] en
+                        [v] Reversal of
+                [e] description
+                    [e] pt
+                        [v] A linha que este estorno anula. Único: uma linha só se estorna uma vez.
+                    [e] en
+                        [v] The row this reversal cancels. Unique: a row is reversed only once.
+        [d] idCriadoPor: Texto(36)
+            @
+                [e] cn
+                    [v] id_criado_por
+                [e] title
+                    [e] pt
+                        [v] Lançado por
+                    [e] en
+                        [v] Posted by
+                [e] description
+                    [e] pt
+                        [v] Id do usuário que gravou a linha (referência bruta de auditoria, sem relação com o contexto usuarios).
+                    [e] en
+                        [v] Id of the user who recorded the row (raw audit reference, no relation to the usuarios context).
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno do movimento (UUID).
+                    [e] en
+                        [v] Internal ledger entry identifier (UUID).
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que a linha foi gravada. Não há data de atualização: a linha é imutável.
+                    [e] en
+                        [v] Date and time the row was recorded. There is no update date: the row is immutable.
+                [e] required
+                    [v] true
+    [g] relacionamentos
+        [r] conta: ContaFinanceira()
+            @
+                [e] cn
+                    [v] conta_id
+                [e] title
+                    [e] pt
+                        [v] Conta
+                    [e] en
+                        [v] Account
+                [e] description
+                    [e] pt
+                        [v] Conta onde o dinheiro entrou ou saiu, da mesma empresa (chave estrangeira composta com a empresa). Ativa ao gravar.
+                    [e] en
+                        [v] Account where the money came in or left, from the same company (composite foreign key with the company). Active on recording.
+                [e] required
+                    [v] true
+        [r] titulo: Titulo()
+            @
+                [e] cn
+                    [v] titulo_id
+                [e] title
+                    [e] pt
+                        [v] Título
+                    [e] en
+                        [v] Bill
+                [e] description
+                    [e] pt
+                        [v] Título baixado por esta linha (obrigatório em recebimento e pagamento; no estorno, o da linha anulada).
+                    [e] en
+                        [v] Bill settled by this row (required on receipt and payment; on reversal, the one of the cancelled row).
+        [r] categoria: CategoriaFinanceira()
+            @
+                [e] cn
+                    [v] categoria_id
+                [e] title
+                    [e] pt
+                        [v] Categoria
+                    [e] en
+                        [v] Category
+                [e] description
+                    [e] pt
+                        [v] Categoria da linha (no avulso, folha ativa do tipo certo; na baixa, a do título). Opcional.
+                    [e] en
+                        [v] Row category (on standalone entries, active leaf of the right type; on settlement, the bill one). Optional.
+        [r] empresa: Empresa()
+            @
+                [e] cn
+                    [v] empresa_id
+                [e] title
+                    [e] pt
+                        [v] Empresa
+                    [e] en
+                        [v] Company
+                [e] description
+                    [e] pt
+                        [v] Empresa dona desta linha e tenant do registro. Todo acesso é filtrado por ela.
+                    [e] en
+                        [v] Company that owns this row and tenant of the record. Every access is filtered by it.
+                [e] required
+                    [v] true
+                [e] tenantKey
+                    [v] true

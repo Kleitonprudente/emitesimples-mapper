@@ -201,10 +201,9 @@ public class EventoWebhookMapper {
             repository.conferirEmpresaImutavel(entity, api.getEmpresa() == null ? null : api.getEmpresa().getId());
 
             if ( api.getNota() != null ) {
-                if ( entity.getNota() == null ) {
-                    entity.setNota( new NotaEntity() );
-                }
-                entity.setNota(notaMapper.updateApiToEntity( api.getNota(), entity.getNota()));
+                // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+                // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+                entity.setNota(notaMapper.updateApiToEntity( api.getNota(), entity.getNota() != null ? entity.getNota() : new NotaEntity()));
             } else {
                 entity.setNota( null );
             }
@@ -238,10 +237,9 @@ public class EventoWebhookMapper {
         if (api.getDataAtualizacao() != null) entity.setDataAtualizacao( api.getDataAtualizacao() ); 
         repository.conferirEmpresaImutavel(entity, api.getEmpresa() == null ? null : api.getEmpresa().getId());
         if ( api.getNota() != null ) {
-            if ( entity.getNota() == null ) {
-                entity.setNota( new NotaEntity() );
-            }
-            entity.setNota(notaMapper.updateApiToEntity( api.getNota(), entity.getNota()));
+            // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+            // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+            entity.setNota(notaMapper.updateApiToEntity( api.getNota(), entity.getNota() != null ? entity.getNota() : new NotaEntity()));
         }
 
         return entity;

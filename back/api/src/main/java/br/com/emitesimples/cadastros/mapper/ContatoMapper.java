@@ -165,10 +165,9 @@ public class ContatoMapper {
             entity.setDataAtualizacao( api.getDataAtualizacao() );
 
             if ( api.getPessoa() != null ) {
-                if ( entity.getPessoa() == null ) {
-                    entity.setPessoa( new PessoaEntity() );
-                }
-                entity.setPessoa(pessoaMapper.updateApiToEntity( api.getPessoa(), entity.getPessoa()));
+                // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+                // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+                entity.setPessoa(pessoaMapper.updateApiToEntity( api.getPessoa(), entity.getPessoa() != null ? entity.getPessoa() : new PessoaEntity()));
             } else {
                 entity.setPessoa( null );
             }
@@ -193,10 +192,9 @@ public class ContatoMapper {
         if (api.getDataCriacao() != null) entity.setDataCriacao( api.getDataCriacao() ); 
         if (api.getDataAtualizacao() != null) entity.setDataAtualizacao( api.getDataAtualizacao() ); 
         if ( api.getPessoa() != null ) {
-            if ( entity.getPessoa() == null ) {
-                entity.setPessoa( new PessoaEntity() );
-            }
-            entity.setPessoa(pessoaMapper.updateApiToEntity( api.getPessoa(), entity.getPessoa()));
+            // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+            // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+            entity.setPessoa(pessoaMapper.updateApiToEntity( api.getPessoa(), entity.getPessoa() != null ? entity.getPessoa() : new PessoaEntity()));
         }
         repository.conferirEmpresaImutavel(entity, api.getEmpresa() == null ? null : api.getEmpresa().getId());
 

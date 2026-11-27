@@ -1,0 +1,22 @@
+[Descriptor.window.custom] ExtratoFinanceiro
+    @
+        [e] title
+            [e] pt
+                [v] Extrato
+        [e] description
+            [e] pt
+                [v] Movimentação das contas com saldo corrente e totais por forma, saldo das contas, fluxo de caixa por mês, lançamento avulso e transferência (window.custom, decisão D2).
+        [e] route
+            [v] /financeiro/extrato
+        [e] role
+            [v] CONSULTA
+        [e] icon
+            [v] list
+        [e] group
+            [v] Financeiro
+        [e] order
+            [v] 3
+        [e] component
+            [v] ExtratoScreen
+        [e] from
+            [v] @/features/financeiro/extrato/Extrato

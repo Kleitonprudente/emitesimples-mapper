@@ -137,6 +137,20 @@
                         [v] Special taxation regime, from 0 to 9 (the regime_tributacao field of the submission). Default 0, none. Optional.
                 [e] defaultValue
                     [v] 0
+        [d] idCondicaoPagamento: Texto(36)
+            @
+                [e] cn
+                    [v] id_condicao_pagamento
+                [e] title
+                    [e] pt
+                        [v] Condição de Pagamento
+                    [e] en
+                        [v] Payment Term
+                [e] description
+                    [e] pt
+                        [v] Id da condição de pagamento do financeiro (CN-REL-002, sem relação de objeto: nfse não depende de financeiro). Não vai ao IntegraNotas: o financeiro usa para gerar as parcelas a receber quando a nota é autorizada. Opcional; sem ela, 1 título à vista.
+                    [e] en
+                        [v] Id of the financeiro payment term (CN-REL-002, no object relation: nfse does not depend on financeiro). Not sent to IntegraNotas: financeiro uses it to generate the receivable installments when the note is authorized. Optional; without it, 1 single receivable.
     [g] servico
         [d] codigoServico: Texto(6)
             @

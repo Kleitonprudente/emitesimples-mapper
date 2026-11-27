@@ -1,0 +1,61 @@
+[Descriptor.window.editor] FormularioBanco
+    @
+        [e] title
+            [e] pt
+                [v] Cadastro de banco
+        [e] route
+            [v] /bancos/$id
+        [e] platformOnly
+            [v] true
+        [e] icon
+            [v] landmark
+    [g] source
+        [r] object: Banco()
+    [e] form
+        [e] rows
+            [e] section
+                [v] Banco
+            [e] row
+                [e] field
+                    [v] .codigo
+                    @
+                        [e] size
+                            [v] s
+                        [e] hint
+                            [e] pt
+                                [v] Sem zeros à esquerda (ex.: 1, 341).
+                [e] field
+                    [v] .ispb
+                    @
+                        [e] size
+                            [v] s
+                [e] field
+                    [v] .nome
+                    @
+                        [e] size
+                            [v] l
+            [e] row
+                [e] field
+                    [v] .nomeExtenso
+                    @
+                        [e] size
+                            [v] xl
+                [e] field
+                    [v] .participaCompe
+                    @
+                        [e] size
+                            [v] m
+            [e] row
+                [e] field
+                    [v] .integradoGateway
+                    @
+                        [e] size
+                            [v] m
+                [e] field
+                    [v] .urlPassoAPasso
+                    @
+                        [e] size
+                            [v] xl
+                        [e] hint
+                            [e] pt
+                                [v] Link https de ajuda para integrar a cobrança.

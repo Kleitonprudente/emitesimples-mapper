@@ -1,0 +1,96 @@
+[Descriptor.window.list] GestaoContasFinanceiras
+    @
+        [e] title
+            [e] pt
+                [v] Contas
+        [e] route
+            [v] /financeiro/contas
+        [e] role
+            [v] ADMINISTRADOR
+        [e] icon
+            [v] wallet
+        [e] group
+            [v] Financeiro
+        [e] order
+            [v] 10
+    [g] source
+        [r] object: ContaFinanceira()
+    [e] columns
+        [e] field
+            [v] .nome
+        [e] field
+            [v] .tipo
+        [e] field
+            [v] .codigoBanco
+        [e] computed
+            [v] saldo
+            @
+                [e] label
+                    [e] pt
+                        [v] Saldo atual
+                [e] source
+                    [v] saldoDaConta
+        [e] field
+            [v] .ativo
+    [e] search
+        @
+            [e] placeholder
+                [e] pt
+                    [v] Buscar por nome…
+        [e] field
+            [v] .nome
+    [e] filters
+        [e] filter
+            [v] .tipo
+            @
+                [e] type
+                    [v] faceted
+        [e] filter
+            [v] .ativo
+            @
+                [e] type
+                    [v] faceted
+    [e] actions
+        [e] action
+            [v] importarExportarCsv
+            @
+                [e] type
+                    [v] link
+                [e] label
+                    [e] pt
+                        [v] Importar ou exportar CSV
+                [e] icon
+                    [v] upload
+                [e] route
+                    [v] /financeiro/csv
+        [e] action
+            [v] criarContaFinanceira
+            @
+                [e] type
+                    [v] primary
+                [e] label
+                    [e] pt
+                        [v] Nova conta
+                [e] icon
+                    [v] plus
+                [e] opens
+                    [v] FormularioContaFinanceira
+        [e] action
+            [v] editarContaFinanceira
+            @
+                [e] type
+                    [v] row
+                [e] label
+                    [e] pt
+                        [v] Editar
+                [e] icon
+                    [v] pencil
+                [e] opens
+                    [v] FormularioContaFinanceira
+    [e] emptyState
+        @
+            [e] message
+                [e] pt
+                    [v] Nenhuma conta cadastrada ainda.
+            [e] action
+                [v] criarContaFinanceira

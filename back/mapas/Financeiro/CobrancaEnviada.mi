@@ -1,0 +1,218 @@
+[b] CobrancaEnviada
+    @
+        [e] title
+            [e] pt
+                [v] Cobrança Enviada
+            [e] en
+                [v] Sent Collection
+        [e] description
+            [e] pt
+                [v] Registro de cada cobrança por e-mail (manual ou lembrete) mandada a um cliente (docs/financeiro/README.md, 9.3, Fase 6; referência §9.1).
+                  | No máximo UMA por cliente por dia: o índice único (empresa, idPessoa, dia) reserva o dia ANTES de mandar o e-mail; se o envio falha, a reserva é apagada.
+                  | Não tem CRUD gerado: só o serviço de cobrança (financeiroop) grava. A pessoa é guardada como idPessoa (como no Título).
+            [e] en
+                [v] Record of each e-mail collection (manual or reminder) sent to a customer (docs/financeiro/README.md, 9.3, Phase 6; reference §9.1).
+                  | At most ONE per customer per day: the unique index (company, idPessoa, day) reserves the day BEFORE sending the e-mail; if sending fails, the reservation is deleted.
+                  | No generated CRUD: only the collection service (financeiroop) writes. The person is kept as idPessoa (as in Titulo).
+    [g] envio
+        [d] idPessoa: Texto(36)
+            @
+                [e] cn
+                    [v] id_pessoa
+                [e] title
+                    [e] pt
+                        [v] Cliente
+                    [e] en
+                        [v] Customer
+                [e] description
+                    [e] pt
+                        [v] Id da pessoa cobrada (referência bruta, CN-REL-002, como no Título).
+                    [e] en
+                        [v] Id of the charged person (raw reference, CN-REL-002, as in Titulo).
+                [e] required
+                    [v] true
+        [d] origem: Texto(10)
+            @
+                [e] cn
+                    [v] origem
+                [e] title
+                    [e] pt
+                        [v] Origem
+                    [e] en
+                        [v] Origin
+                [e] description
+                    [e] pt
+                        [v] MANUAL (botão Enviar cobrança) ou LEMBRETE (job diário). Valores documentados em values.
+                    [e] en
+                        [v] MANUAL (Send collection button) or LEMBRETE (daily job). Values documented in values.
+                [e] required
+                    [v] true
+                [e] values
+                    [e] MANUAL
+                        [e] title
+                            [e] pt
+                                [v] Manual
+                            [e] en
+                                [v] Manual
+                        [e] description
+                            [e] pt
+                                [v] Enviada por uma pessoa pelo botão Enviar cobrança.
+                            [e] en
+                                [v] Sent by a person with the Send collection button.
+                    [e] LEMBRETE
+                        [e] title
+                            [e] pt
+                                [v] Lembrete
+                            [e] en
+                                [v] Reminder
+                        [e] description
+                            [e] pt
+                                [v] Enviada pelo job diário de lembretes.
+                            [e] en
+                                [v] Sent by the daily reminder job.
+        [d] dia: Data()
+            @
+                [e] cn
+                    [v] dia
+                [e] title
+                    [e] pt
+                        [v] Dia
+                    [e] en
+                        [v] Day
+                [e] description
+                    [e] pt
+                        [v] Dia (fuso de São Paulo) da cobrança; um por cliente.
+                    [e] en
+                        [v] Day (São Paulo time zone) of the collection; one per customer.
+                [e] required
+                    [v] true
+        [d] email: Texto(255)
+            @
+                [e] cn
+                    [v] email
+                [e] title
+                    [e] pt
+                        [v] E-mail
+                    [e] en
+                        [v] E-mail
+                [e] description
+                    [e] pt
+                        [v] Endereço para onde o e-mail foi mandado (o da pessoa no momento do envio).
+                    [e] en
+                        [v] Address the e-mail was sent to (the person address at sending time).
+                [e] required
+                    [v] true
+        [d] enviadoEm: DataHora()
+            @
+                [e] cn
+                    [v] enviado_em
+                [e] title
+                    [e] pt
+                        [v] Enviado em
+                    [e] en
+                        [v] Sent at
+                [e] description
+                    [e] pt
+                        [v] Data e hora do envio.
+                    [e] en
+                        [v] Date and time of sending.
+                [e] required
+                    [v] true
+        [d] idEnviadoPor: Texto(36)
+            @
+                [e] cn
+                    [v] id_enviado_por
+                [e] title
+                    [e] pt
+                        [v] Enviado por
+                    [e] en
+                        [v] Sent by
+                [e] description
+                    [e] pt
+                        [v] Id do usuário que mandou a cobrança manual; vazio no lembrete (referência de auditoria, CN-REL-002).
+                    [e] en
+                        [v] Id of the user who sent the manual collection; empty for reminders (audit reference, CN-REL-002).
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno da cobrança enviada (UUID).
+                    [e] en
+                        [v] Internal identifier of the sent collection (UUID).
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o registro foi criado.
+                    [e] en
+                        [v] Date and time the record was created.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true
+    [g] relacionamentos
+        [r] titulo: Titulo()
+            @
+                [e] cn
+                    [v] titulo_id
+                [e] title
+                    [e] pt
+                        [v] Título
+                    [e] en
+                        [v] Bill
+                [e] description
+                    [e] pt
+                        [v] Título cobrado.
+                    [e] en
+                        [v] Charged bill.
+                [e] required
+                    [v] true
+        [r] empresa: Empresa()
+            @
+                [e] cn
+                    [v] empresa_id
+                [e] title
+                    [e] pt
+                        [v] Empresa
+                    [e] en
+                        [v] Company
+                [e] description
+                    [e] pt
+                        [v] Empresa dona desta cobrança e tenant do registro. Todo acesso é filtrado por ela.
+                    [e] en
+                        [v] Company that owns this collection and tenant of the record. Every access is filtered by it.
+                [e] required
+                    [v] true
+                [e] tenantKey
+                    [v] true

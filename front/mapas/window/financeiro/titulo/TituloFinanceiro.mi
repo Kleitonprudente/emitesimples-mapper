@@ -1,0 +1,16 @@
+[Descriptor.window.custom] TituloFinanceiro
+    @
+        [e] title
+            [e] pt
+                [v] Título
+        [e] description
+            [e] pt
+                [v] Lançar (id novo, com ?tipo=RECEBER ou PAGAR) e detalhar um título: dados, baixas com estorno, editar, cancelar, aprovar e baixar (window.custom, decisão D2).
+        [e] route
+            [v] /financeiro/titulos/$id
+        [e] role
+            [v] CONSULTA
+        [e] component
+            [v] TituloScreen
+        [e] from
+            [v] @/features/financeiro/titulos/TituloPagina

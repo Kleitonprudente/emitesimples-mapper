@@ -23,11 +23,18 @@ ENTIDADES=(
   nfse:Nota nfse:Cancelamento
   integranotas:ChamadaGateway integranotas:EventoWebhook
   admin:Plano admin:AssinaturaEmpresa admin:FaturaCrm admin:HistoricoSituacaoEmpresa
+  financeiro:Banco financeiro:ContaFinanceira financeiro:CategoriaFinanceira financeiro:CondicaoPagamento financeiro:ConfiguracaoFinanceira
+  financeiro:Titulo financeiro:Movimento
+  financeiro:LembreteCobranca financeiro:CobrancaEnviada financeiro:CredencialCobranca financeiro:CobrancaDestino financeiro:Cobranca
 )
-CONTEXTOS=(configuracao cadastros usuarios nfse integranotas admin)
+CONTEXTOS=(configuracao cadastros usuarios nfse integranotas admin financeiro)
 
-# Entidades SEM recurso REST gerado (guardam hash de token; o endpoint publico de confirmacao e o de refresh sao escritos a mao)
-SEM_RESOURCE="TokenRenovacao ConfirmacaoCadastro"
+# Entidades SEM recurso REST gerado: as que guardam hash de token (o endpoint publico de confirmacao e o de refresh sao escritos a
+# mao) e o Titulo e o Movimento do financeiro (so os servicos da financeiroop gravam neles; docs/financeiro/README.md, A9, B4 e C3)
+# Fase 6 e 7 do financeiro (docs/financeiro/README.md, 9.3 e 9.5): lembretes, cobrancas enviadas, credencial (referencias a segredo),
+# destino de webhook (global) e cobranca: so os servicos da financeiroop gravam.
+# ClienteAcesso (B3, 9.4): guarda o hash do segredo; criar e revogar so pelo endpoint a mao.
+SEM_RESOURCE="TokenRenovacao ConfirmacaoCadastro Titulo Movimento LembreteCobranca CobrancaEnviada CredencialCobranca CobrancaDestino Cobranca ClienteAcesso"
 
 # limpa so o que e gerado (pacotes de contexto), nunca exceptions/results/tenant
 for ctx in "${CONTEXTOS[@]}"; do rm -rf "$OUT/$ctx"; done
@@ -66,5 +73,5 @@ if [ -n "$VAZIOS" ]; then
 fi
 
 N_JAVA="$(find "$OUT" -name '*.java' | wc -l)"
-echo "Gerados: $N_JAVA arquivos Java (esperado: 21 entidades x 6 camadas, menos 2 resources = 124, mais 4 escritas a mao = 128) e $(ls "$YAML" | wc -l) OpenAPI."
+echo "Gerados: $N_JAVA arquivos Java (gerados esperados: 28 entidades x 6 camadas, menos 4 resources = 164; o total inclui os pacotes escritos a mao) e $(ls "$YAML" | wc -l) OpenAPI."
 exit "$FALHOU"

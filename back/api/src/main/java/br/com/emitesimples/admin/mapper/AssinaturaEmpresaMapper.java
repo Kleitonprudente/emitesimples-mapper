@@ -180,19 +180,17 @@ public class AssinaturaEmpresaMapper {
             repository.conferirEmpresaImutavel(entity, api.getEmpresa() == null ? null : api.getEmpresa().getId());
 
             if ( api.getPlano() != null ) {
-                if ( entity.getPlano() == null ) {
-                    entity.setPlano( new PlanoEntity() );
-                }
-                entity.setPlano(planoMapper.updateApiToEntity( api.getPlano(), entity.getPlano()));
+                // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+                // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+                entity.setPlano(planoMapper.updateApiToEntity( api.getPlano(), entity.getPlano() != null ? entity.getPlano() : new PlanoEntity()));
             } else {
                 entity.setPlano( null );
             }
 
             if ( api.getVinculadaPor() != null ) {
-                if ( entity.getVinculadaPor() == null ) {
-                    entity.setVinculadaPor( new UsuarioEntity() );
-                }
-                entity.setVinculadaPor(usuarioMapper.updateApiToEntity( api.getVinculadaPor(), entity.getVinculadaPor()));
+                // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+                // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+                entity.setVinculadaPor(usuarioMapper.updateApiToEntity( api.getVinculadaPor(), entity.getVinculadaPor() != null ? entity.getVinculadaPor() : new UsuarioEntity()));
             } else {
                 entity.setVinculadaPor( null );
             }
@@ -217,16 +215,14 @@ public class AssinaturaEmpresaMapper {
         if (api.getDataAtualizacao() != null) entity.setDataAtualizacao( api.getDataAtualizacao() ); 
         repository.conferirEmpresaImutavel(entity, api.getEmpresa() == null ? null : api.getEmpresa().getId());
         if ( api.getPlano() != null ) {
-            if ( entity.getPlano() == null ) {
-                entity.setPlano( new PlanoEntity() );
-            }
-            entity.setPlano(planoMapper.updateApiToEntity( api.getPlano(), entity.getPlano()));
+            // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+            // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+            entity.setPlano(planoMapper.updateApiToEntity( api.getPlano(), entity.getPlano() != null ? entity.getPlano() : new PlanoEntity()));
         }
         if ( api.getVinculadaPor() != null ) {
-            if ( entity.getVinculadaPor() == null ) {
-                entity.setVinculadaPor( new UsuarioEntity() );
-            }
-            entity.setVinculadaPor(usuarioMapper.updateApiToEntity( api.getVinculadaPor(), entity.getVinculadaPor()));
+            // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+            // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+            entity.setVinculadaPor(usuarioMapper.updateApiToEntity( api.getVinculadaPor(), entity.getVinculadaPor() != null ? entity.getVinculadaPor() : new UsuarioEntity()));
         }
 
         return entity;

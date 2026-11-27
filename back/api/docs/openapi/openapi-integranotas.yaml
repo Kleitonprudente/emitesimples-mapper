@@ -3009,6 +3009,16 @@ definitions:
             Regime especial de tributação, de 0 a 9 (campo regime_tributacao do envio). 
             Padrão 0, nenhum. Opcional.
 
+      idCondicaoPagamento:
+        type: string
+        maxLength: 36
+        pattern: \w*\W*
+        description: |
+            Id da condição de pagamento do financeiro (CN-REL-002, sem relação de objeto: 
+            nfse não depende de financeiro). Não vai ao IntegraNotas: o financeiro usa para 
+            gerar as parcelas a receber quando a nota é autorizada. Opcional; sem ela, 1 
+            título à vista.
+
       codigoServico:
         type: string
         maxLength: 6
@@ -4116,6 +4126,12 @@ definitions:
             aparece no menu Fornecedores). Padrão não (false). Uma mesma pessoa pode ser 
             cliente e fornecedor ao mesmo tempo.
 
+      naoEnviarCobranca:
+        type: boolean
+        description: |
+            Marcado, a pessoa não recebe cobrança por e-mail nem lembrete do financeiro 
+            (docs/financeiro/README.md, 9.3, Fase 6). Padrão não (false).
+
       telefone:
         type: string
         maxLength: 20
@@ -4768,6 +4784,7 @@ definitions:
       - dataCriacao
       - dataAtualizacao
       - empresa
+      - usuario
     properties:
       id:
         type: integer
@@ -4851,6 +4868,14 @@ definitions:
         description: |
             Única empresa a que o cliente dá acesso e tenant do registro. Todo acesso é 
             filtrado por ela.
+
+        allOf:
+          - $ref: '#/definitions/IdReference'
+      usuario:
+        description: |
+            Usuário que criou o agente e por quem ele age, só com os escopos dados 
+            (docs/financeiro/README.md, 9.4, B3). Revogar o vínculo do usuário derruba o 
+            agente.
 
         allOf:
           - $ref: '#/definitions/IdReference'

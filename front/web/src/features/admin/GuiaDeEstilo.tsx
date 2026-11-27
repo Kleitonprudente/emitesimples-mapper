@@ -9,6 +9,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Label } from '@/components/ui/label'
 import { Combobox, type FkSource, type FkValue } from '@/runtime/Combobox'
+import { ComputedCell } from '@/runtime/ComputedCell'
 import { SearchInput } from '@/runtime/SearchInput'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AutoForm } from '@/runtime/AutoForm'
@@ -33,6 +34,22 @@ const DEMO_MUNICIPIOS: FkSource = {
   key: 'demo-municipio',
   search: async (term) => DEMO_CIDADES.filter((c) => c.label.toLowerCase().includes(term.toLowerCase())),
   labelOf: (v) => DEMO_CIDADES.find((c) => c.id === v.id)?.label,
+}
+
+/** Opcoes com grupo: o titulo do grupo (a categoria pai) aparece e nao se escolhe (docs/financeiro/README.md, F4-C1). */
+const DEMO_CATEGORIAS_OPCOES = [
+  { id: 'c1', label: 'Aluguel', group: 'Moradia' },
+  { id: 'c2', label: 'Condomínio', group: 'Moradia' },
+  { id: 'c3', label: 'Energia', group: 'Contas de consumo' },
+  { id: 'c4', label: 'Internet', group: 'Contas de consumo' },
+]
+const DEMO_CATEGORIAS: FkSource = {
+  key: 'demo-categoria',
+  search: async (term) => DEMO_CATEGORIAS_OPCOES.filter((c) => `${c.group} ${c.label}`.toLowerCase().includes(term.toLowerCase())),
+  labelOf: (v) => {
+    const c = DEMO_CATEGORIAS_OPCOES.find((x) => x.id === v.id)
+    return c ? `${c.group} › ${c.label}` : undefined
+  },
 }
 
 const PALETTE = ['neutral-0', 'neutral-50', 'neutral-100', 'neutral-200', 'neutral-300', 'neutral-500', 'neutral-700', 'neutral-800', 'neutral-900', 'neutral-950', 'blue-300', 'blue-500', 'blue-600', 'teal-400', 'teal-500', 'green-400', 'green-600', 'amber-400', 'amber-500', 'red-400', 'red-600', 'sky-400', 'sky-600']
@@ -82,6 +99,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export function GuiaDeEstilo() {
   const [ultimaBusca, setUltimaBusca] = useState<string | null>(null)
   const [municipio, setMunicipio] = useState<FkValue | null>(null)
+  const [categoria, setCategoria] = useState<FkValue | null>(null)
   const [mode, setMode] = useState<'ok' | 'loading' | 'empty' | 'error'>('ok')
   const [state, update] = useTableState({ pageSize: 10 })
   const result: TableResult<Demo> = {
@@ -307,6 +325,23 @@ export function GuiaDeEstilo() {
             <Label htmlFor="demo-municipio">Município</Label>
             <Combobox id="demo-municipio" source={DEMO_MUNICIPIOS} value={municipio} onChange={setMunicipio} />
             <p className="text-sm text-muted-foreground">Busca no servidor enquanto digita, rótulo “Cidade - UF” e botão para limpar.</p>
+            <Label htmlFor="demo-categoria">Categoria (opções agrupadas)</Label>
+            <Combobox id="demo-categoria" source={DEMO_CATEGORIAS} value={categoria} onChange={setCategoria} />
+            <p className="text-sm text-muted-foreground">Opção com grupo aparece sob o título do grupo, que não se escolhe.</p>
+          </CardContent>
+        </Card>
+      </Section>
+
+      <Section title="ComputedCell (coluna calculada)">
+        <Card>
+          <CardContent className="flex flex-col gap-2 text-sm">
+            <span>
+              Linha 1: <ComputedCell source="exemplo" id="1" />
+            </span>
+            <span>
+              Linha 3 (sem valor): <ComputedCell source="exemplo" id="3" />
+            </span>
+            <p className="text-muted-foreground">Valor calculado de uma fonte registrada (ex.: saldo da conta); sem valor, mostra um travessão.</p>
           </CardContent>
         </Card>
       </Section>
