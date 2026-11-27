@@ -72,6 +72,37 @@ let onUnauthorized: (redirect: string) => void = (redirect) => {
   window.location.assign(`/login?redirect=${encodeURIComponent(redirect)}`)
 }
 
+/**
+ * Senha recente (docs/financeiro/README.md, 9.2, A7): quando o back responde 403 senha_recente_exigida, a api pede a senha por este
+ * handler (o runtime/SenhaRecente.tsx, montado no __root) e repete a chamada UMA vez. O handler recebe `confirmar`, que chama
+ * /auth/reautenticar e devolve a mensagem de erro (senha errada) ou null (ok); ele resolve true quando confirmou e false se a pessoa
+ * desistiu. Sem handler (testes), a api so lanca o erro.
+ */
+export type PedirSenha = (confirmar: (senha: string) => Promise<string | null>) => Promise<boolean>
+let pedirSenha: PedirSenha | null = null
+
+export function configurarSenhaRecente(fn: PedirSenha | null): void {
+  pedirSenha = fn
+}
+
+async function reautenticar(senha: string): Promise<string | null> {
+  const res = await send('/auth/reautenticar', { method: 'POST', body: { senha } }, accessToken)
+  if (!res.ok) return (await toError(res)).message
+  const data = await parse<LoginResponse>(res)
+  setAccessToken(data.accessToken)
+  return null
+}
+
+async function exigeSenhaRecente(res: Response): Promise<boolean> {
+  if (res.status !== 403) return false
+  try {
+    const body = (await res.clone().json()) as { codigo?: string }
+    return body?.codigo === 'senha_recente_exigida'
+  } catch {
+    return false
+  }
+}
+
 export function configureApi(handlers: {
   onSession?: (s: SessionData) => void
   onSessionEnd?: () => void
@@ -210,6 +241,10 @@ export async function api<T = unknown>(path: string, opts: RequestOptions = {}):
       endSession()
       throw await toError(res)
     }
+  }
+
+  if (!opts.skipAuth && pedirSenha && (await exigeSenhaRecente(res))) {
+    if (await pedirSenha(reautenticar)) res = await send(path, opts, accessToken)
   }
 
   if (!res.ok) throw await toError(res)

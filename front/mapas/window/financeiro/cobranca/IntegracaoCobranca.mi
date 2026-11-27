@@ -1,0 +1,22 @@
+[Descriptor.window.custom] IntegracaoCobranca
+    @
+        [e] title
+            [e] pt
+                [v] Integração de cobrança
+        [e] description
+            [e] pt
+                [v] Liga uma conta financeira a um provedor de cobrança (boleto, Pix, link): provedor, identificação no provedor, token e segredo do webhook (vão para o cofre de segredos e nunca voltam à tela). Uma credencial por conta (docs/financeiro/README.md, 9.5, Fase 7; window.custom).
+        [e] route
+            [v] /financeiro/cobranca
+        [e] role
+            [v] ADMINISTRADOR
+        [e] icon
+            [v] landmark
+        [e] group
+            [v] Financeiro
+        [e] order
+            [v] 96
+        [e] component
+            [v] IntegracaoCobrancaScreen
+        [e] from
+            [v] @/features/financeiro/cobranca/IntegracaoCobranca

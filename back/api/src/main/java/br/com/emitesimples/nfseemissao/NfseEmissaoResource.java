@@ -31,14 +31,14 @@ public class NfseEmissaoResource {
 
     @GET
     @Path("/count")
-    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "CONSULTA", "PLATAFORMA_ADMIN"})
+    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "CONSULTA", "PLATAFORMA_ADMIN", "AGENTE"})
     public Contagem contar(@QueryParam("estado") String estado, @QueryParam("busca") String busca) {
         return service.contar(estado, busca);
     }
 
     @GET
     @Path("/{from}/{to}")
-    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "CONSULTA", "PLATAFORMA_ADMIN"})
+    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "CONSULTA", "PLATAFORMA_ADMIN", "AGENTE"})
     public List<NotaItem> listar(@PathParam("from") int from, @PathParam("to") int to,
             @QueryParam("estado") String estado, @QueryParam("busca") String busca) {
         return service.listar(from, to, estado, busca);
@@ -46,7 +46,7 @@ public class NfseEmissaoResource {
 
     @GET
     @Path("/{id}")
-    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "CONSULTA", "PLATAFORMA_ADMIN"})
+    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "CONSULTA", "PLATAFORMA_ADMIN", "AGENTE"})
     public NotaDetalhe detalhe(@PathParam("id") String id) {
         return service.detalhe(id);
     }
@@ -54,7 +54,7 @@ public class NfseEmissaoResource {
     @GET
     @Path("/{id}/pdf")
     @Produces({"application/pdf", "application/json"})
-    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "CONSULTA", "PLATAFORMA_ADMIN"})
+    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "CONSULTA", "PLATAFORMA_ADMIN", "AGENTE"})
     public Response pdf(@PathParam("id") String id) {
         return Response.ok(service.pdf(id)).type("application/pdf").header("Content-Disposition", "inline").build();
     }
@@ -74,7 +74,7 @@ public class NfseEmissaoResource {
 
     @POST
     @Path("/preparar")
-    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "PLATAFORMA_ADMIN"})
+    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "PLATAFORMA_ADMIN", "AGENTE"})
     public NotaDetalhe preparar(CriarEntrada corpo) {
         return service.preparar(corpo);
     }
@@ -110,7 +110,7 @@ public class NfseEmissaoResource {
     @GET
     @Path("/{id}/cancelamento/pdf")
     @Produces({"application/pdf", "application/json"})
-    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "CONSULTA", "PLATAFORMA_ADMIN"})
+    @RolesAllowed({"ADMINISTRADOR", "OPERADOR", "CONSULTA", "PLATAFORMA_ADMIN", "AGENTE"})
     public Response pdfCancelamento(@PathParam("id") String id) {
         return Response.ok(service.pdfCancelamento(id)).type("application/pdf").header("Content-Disposition", "inline").build();
     }

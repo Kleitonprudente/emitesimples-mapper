@@ -50,6 +50,7 @@ public class NotaResource {
         @QueryParam("informacoesComplementares") String informacoesComplementares,
         @QueryParam("regimeApuracao") String regimeApuracao,
         @QueryParam("regimeTributacao") String regimeTributacao,
+        @QueryParam("idCondicaoPagamento") String idCondicaoPagamento,
         @QueryParam("codigoServico") String codigoServico,
         @QueryParam("codigoTributacaoMunicipio") String codigoTributacaoMunicipio,
         @QueryParam("codigoNbs") String codigoNbs,
@@ -120,7 +121,7 @@ public class NotaResource {
         Sort sort = Sort.by(sortBy != null ? sortBy : "id")
                         .direction(sortDirection.equalsIgnoreCase("desc") ?
                                    Sort.Direction.Descending : Sort.Direction.Ascending);
-        List<NotaEntity> entityList = repository.findWithFilters(0, 100, sort, numero, serie, dataEmissao, dataCompetencia, informacoesComplementares, regimeApuracao, regimeTributacao, codigoServico, codigoTributacaoMunicipio, codigoNbs, discriminacao, descricao, valorServicos, valorRecebido, valorDescontoCondicionado, valorDescontoIncondicionado, tipoOperacaoIss, aliquotaIss, valorBaseCalculoIss, valorIssRetido, issRetido, responsavelRetencao, cstPisCofins, tipoRetencao, valorBaseCalculo, aliquotaPis, valorPis, aliquotaCofins, valorCofins, valorInss, valorIr, valorCsll, dataHoraAprovacao, dataHoraDescarte, estado, codigoRetorno, mensagemRetorno, errosRetorno, chave, numeroNfse, rpsNumero, rpsSerie, codigoVerificacao, dataHoraEvento, linkPdf, id, ambiente, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, pessoaDocumento, pessoaNome, pessoaNomeFantasia, pessoaId, servicoNome, servicoCodigoServico, servicoId, preparadoPorUsuarioNome, preparadoPorUsuarioEmail, preparadoPorUsuarioId, preparadoPorClienteNome, preparadoPorClienteClientId, preparadoPorClienteId, aprovadoPorNome, aprovadoPorEmail, aprovadoPorId, descartadoPorNome, descartadoPorEmail, descartadoPorId);
+        List<NotaEntity> entityList = repository.findWithFilters(0, 100, sort, numero, serie, dataEmissao, dataCompetencia, informacoesComplementares, regimeApuracao, regimeTributacao, idCondicaoPagamento, codigoServico, codigoTributacaoMunicipio, codigoNbs, discriminacao, descricao, valorServicos, valorRecebido, valorDescontoCondicionado, valorDescontoIncondicionado, tipoOperacaoIss, aliquotaIss, valorBaseCalculoIss, valorIssRetido, issRetido, responsavelRetencao, cstPisCofins, tipoRetencao, valorBaseCalculo, aliquotaPis, valorPis, aliquotaCofins, valorCofins, valorInss, valorIr, valorCsll, dataHoraAprovacao, dataHoraDescarte, estado, codigoRetorno, mensagemRetorno, errosRetorno, chave, numeroNfse, rpsNumero, rpsSerie, codigoVerificacao, dataHoraEvento, linkPdf, id, ambiente, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, pessoaDocumento, pessoaNome, pessoaNomeFantasia, pessoaId, servicoNome, servicoCodigoServico, servicoId, preparadoPorUsuarioNome, preparadoPorUsuarioEmail, preparadoPorUsuarioId, preparadoPorClienteNome, preparadoPorClienteClientId, preparadoPorClienteId, aprovadoPorNome, aprovadoPorEmail, aprovadoPorId, descartadoPorNome, descartadoPorEmail, descartadoPorId);
 
         return mapper.entityListToApiList(entityList);
     }
@@ -155,6 +156,7 @@ public class NotaResource {
         @QueryParam("informacoesComplementares") String informacoesComplementares,
         @QueryParam("regimeApuracao") String regimeApuracao,
         @QueryParam("regimeTributacao") String regimeTributacao,
+        @QueryParam("idCondicaoPagamento") String idCondicaoPagamento,
         @QueryParam("codigoServico") String codigoServico,
         @QueryParam("codigoTributacaoMunicipio") String codigoTributacaoMunicipio,
         @QueryParam("codigoNbs") String codigoNbs,
@@ -224,7 +226,7 @@ public class NotaResource {
     ) {
 
         CountResult countResult = new CountResult();
-        countResult.setCount(repository.countWithFilters( numero, serie, dataEmissao, dataCompetencia, informacoesComplementares, regimeApuracao, regimeTributacao, codigoServico, codigoTributacaoMunicipio, codigoNbs, discriminacao, descricao, valorServicos, valorRecebido, valorDescontoCondicionado, valorDescontoIncondicionado, tipoOperacaoIss, aliquotaIss, valorBaseCalculoIss, valorIssRetido, issRetido, responsavelRetencao, cstPisCofins, tipoRetencao, valorBaseCalculo, aliquotaPis, valorPis, aliquotaCofins, valorCofins, valorInss, valorIr, valorCsll, dataHoraAprovacao, dataHoraDescarte, estado, codigoRetorno, mensagemRetorno, errosRetorno, chave, numeroNfse, rpsNumero, rpsSerie, codigoVerificacao, dataHoraEvento, linkPdf, id, ambiente, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, pessoaDocumento, pessoaNome, pessoaNomeFantasia, pessoaId, servicoNome, servicoCodigoServico, servicoId, preparadoPorUsuarioNome, preparadoPorUsuarioEmail, preparadoPorUsuarioId, preparadoPorClienteNome, preparadoPorClienteClientId, preparadoPorClienteId, aprovadoPorNome, aprovadoPorEmail, aprovadoPorId, descartadoPorNome, descartadoPorEmail, descartadoPorId));
+        countResult.setCount(repository.countWithFilters( numero, serie, dataEmissao, dataCompetencia, informacoesComplementares, regimeApuracao, regimeTributacao, idCondicaoPagamento, codigoServico, codigoTributacaoMunicipio, codigoNbs, discriminacao, descricao, valorServicos, valorRecebido, valorDescontoCondicionado, valorDescontoIncondicionado, tipoOperacaoIss, aliquotaIss, valorBaseCalculoIss, valorIssRetido, issRetido, responsavelRetencao, cstPisCofins, tipoRetencao, valorBaseCalculo, aliquotaPis, valorPis, aliquotaCofins, valorCofins, valorInss, valorIr, valorCsll, dataHoraAprovacao, dataHoraDescarte, estado, codigoRetorno, mensagemRetorno, errosRetorno, chave, numeroNfse, rpsNumero, rpsSerie, codigoVerificacao, dataHoraEvento, linkPdf, id, ambiente, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, pessoaDocumento, pessoaNome, pessoaNomeFantasia, pessoaId, servicoNome, servicoCodigoServico, servicoId, preparadoPorUsuarioNome, preparadoPorUsuarioEmail, preparadoPorUsuarioId, preparadoPorClienteNome, preparadoPorClienteClientId, preparadoPorClienteId, aprovadoPorNome, aprovadoPorEmail, aprovadoPorId, descartadoPorNome, descartadoPorEmail, descartadoPorId));
         return countResult;
     }
 
@@ -245,6 +247,7 @@ public class NotaResource {
         @QueryParam("informacoesComplementares") String informacoesComplementares,
         @QueryParam("regimeApuracao") String regimeApuracao,
         @QueryParam("regimeTributacao") String regimeTributacao,
+        @QueryParam("idCondicaoPagamento") String idCondicaoPagamento,
         @QueryParam("codigoServico") String codigoServico,
         @QueryParam("codigoTributacaoMunicipio") String codigoTributacaoMunicipio,
         @QueryParam("codigoNbs") String codigoNbs,
@@ -323,7 +326,7 @@ public class NotaResource {
         Sort sort = Sort.by(sortBy != null ? sortBy : "id")
                         .direction(sortDirection.equalsIgnoreCase("desc") ?
                                    Sort.Direction.Descending : Sort.Direction.Ascending);
-        List<NotaEntity> entityList = repository.findWithFilters(from, limit, sort, numero, serie, dataEmissao, dataCompetencia, informacoesComplementares, regimeApuracao, regimeTributacao, codigoServico, codigoTributacaoMunicipio, codigoNbs, discriminacao, descricao, valorServicos, valorRecebido, valorDescontoCondicionado, valorDescontoIncondicionado, tipoOperacaoIss, aliquotaIss, valorBaseCalculoIss, valorIssRetido, issRetido, responsavelRetencao, cstPisCofins, tipoRetencao, valorBaseCalculo, aliquotaPis, valorPis, aliquotaCofins, valorCofins, valorInss, valorIr, valorCsll, dataHoraAprovacao, dataHoraDescarte, estado, codigoRetorno, mensagemRetorno, errosRetorno, chave, numeroNfse, rpsNumero, rpsSerie, codigoVerificacao, dataHoraEvento, linkPdf, id, ambiente, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, pessoaDocumento, pessoaNome, pessoaNomeFantasia, pessoaId, servicoNome, servicoCodigoServico, servicoId, preparadoPorUsuarioNome, preparadoPorUsuarioEmail, preparadoPorUsuarioId, preparadoPorClienteNome, preparadoPorClienteClientId, preparadoPorClienteId, aprovadoPorNome, aprovadoPorEmail, aprovadoPorId, descartadoPorNome, descartadoPorEmail, descartadoPorId);
+        List<NotaEntity> entityList = repository.findWithFilters(from, limit, sort, numero, serie, dataEmissao, dataCompetencia, informacoesComplementares, regimeApuracao, regimeTributacao, idCondicaoPagamento, codigoServico, codigoTributacaoMunicipio, codigoNbs, discriminacao, descricao, valorServicos, valorRecebido, valorDescontoCondicionado, valorDescontoIncondicionado, tipoOperacaoIss, aliquotaIss, valorBaseCalculoIss, valorIssRetido, issRetido, responsavelRetencao, cstPisCofins, tipoRetencao, valorBaseCalculo, aliquotaPis, valorPis, aliquotaCofins, valorCofins, valorInss, valorIr, valorCsll, dataHoraAprovacao, dataHoraDescarte, estado, codigoRetorno, mensagemRetorno, errosRetorno, chave, numeroNfse, rpsNumero, rpsSerie, codigoVerificacao, dataHoraEvento, linkPdf, id, ambiente, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, pessoaDocumento, pessoaNome, pessoaNomeFantasia, pessoaId, servicoNome, servicoCodigoServico, servicoId, preparadoPorUsuarioNome, preparadoPorUsuarioEmail, preparadoPorUsuarioId, preparadoPorClienteNome, preparadoPorClienteClientId, preparadoPorClienteId, aprovadoPorNome, aprovadoPorEmail, aprovadoPorId, descartadoPorNome, descartadoPorEmail, descartadoPorId);
 
         return mapper.entityListToApiList(entityList);
     }

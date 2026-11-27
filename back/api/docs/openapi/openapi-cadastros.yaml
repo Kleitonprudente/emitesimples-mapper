@@ -886,6 +886,10 @@ paths:
         in: "query"
         description: "Filtra registros por fornecedor"
         type: boolean
+      - name: "naoEnviarCobranca"
+        in: "query"
+        description: "Filtra registros por naoEnviarCobranca"
+        type: boolean
       - name: "telefone"
         in: "query"
         description: "Filtra registros por telefone"
@@ -1129,6 +1133,10 @@ paths:
         in: "query"
         description: "Filtra registros por fornecedor"
         type: boolean
+      - name: "naoEnviarCobranca"
+        in: "query"
+        description: "Filtra registros por naoEnviarCobranca"
+        type: boolean
       - name: "telefone"
         in: "query"
         description: "Filtra registros por telefone"
@@ -1298,6 +1306,10 @@ paths:
       - name: "fornecedor"
         in: "query"
         description: "Filtra registros por fornecedor"
+        type: boolean
+      - name: "naoEnviarCobranca"
+        in: "query"
+        description: "Filtra registros por naoEnviarCobranca"
         type: boolean
       - name: "telefone"
         in: "query"
@@ -1496,6 +1508,10 @@ paths:
       - name: "fornecedor"
         in: "query"
         description: "Filtra registros por fornecedor"
+        type: boolean
+      - name: "naoEnviarCobranca"
+        in: "query"
+        description: "Filtra registros por naoEnviarCobranca"
         type: boolean
       - name: "telefone"
         in: "query"
@@ -4755,6 +4771,12 @@ definitions:
             Indica se a pessoa é fornecedora da empresa (presta serviços ou vende à empresa; 
             aparece no menu Fornecedores). Padrão não (false). Uma mesma pessoa pode ser 
             cliente e fornecedor ao mesmo tempo.
+
+      naoEnviarCobranca:
+        type: boolean
+        description: |
+            Marcado, a pessoa não recebe cobrança por e-mail nem lembrete do financeiro 
+            (docs/financeiro/README.md, 9.3, Fase 6). Padrão não (false).
 
       telefone:
         type: string

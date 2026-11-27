@@ -47,6 +47,7 @@ public class PessoaMapper {
         pessoa.setConsumidorFinal( entity.getConsumidorFinal() );
         pessoa.setCliente( entity.getCliente() );
         pessoa.setFornecedor( entity.getFornecedor() );
+        pessoa.setNaoEnviarCobranca( entity.getNaoEnviarCobranca() );
         pessoa.setTelefone( entity.getTelefone() );
         pessoa.setEmail( entity.getEmail() );
         pessoa.setLogradouro( entity.getLogradouro() );
@@ -93,6 +94,7 @@ public class PessoaMapper {
             pessoaBuilder.consumidorFinal = api.getConsumidorFinal();
             pessoaBuilder.cliente = api.getCliente();
             pessoaBuilder.fornecedor = api.getFornecedor();
+            pessoaBuilder.naoEnviarCobranca = api.getNaoEnviarCobranca();
             pessoaBuilder.telefone = api.getTelefone();
             pessoaBuilder.email = api.getEmail();
             pessoaBuilder.logradouro = api.getLogradouro();
@@ -158,6 +160,7 @@ public class PessoaMapper {
         api.setConsumidorFinal( entity.getConsumidorFinal() );
         api.setCliente( entity.getCliente() );
         api.setFornecedor( entity.getFornecedor() );
+        api.setNaoEnviarCobranca( entity.getNaoEnviarCobranca() );
         api.setTelefone( entity.getTelefone() );
         api.setEmail( entity.getEmail() );
         api.setLogradouro( entity.getLogradouro() );
@@ -219,6 +222,7 @@ public class PessoaMapper {
             entity.setConsumidorFinal( api.getConsumidorFinal() );
             entity.setCliente( api.getCliente() );
             entity.setFornecedor( api.getFornecedor() );
+            entity.setNaoEnviarCobranca( api.getNaoEnviarCobranca() );
             entity.setTelefone( api.getTelefone() );
             entity.setEmail( api.getEmail() );
             entity.setLogradouro( api.getLogradouro() );
@@ -236,10 +240,9 @@ public class PessoaMapper {
             repository.conferirEmpresaImutavel(entity, api.getEmpresa() == null ? null : api.getEmpresa().getId());
 
             if ( api.getCidade() != null ) {
-                if ( entity.getCidade() == null ) {
-                    entity.setCidade( new MunicipioEntity() );
-                }
-                entity.setCidade(municipioMapper.updateApiToEntity( api.getCidade(), entity.getCidade()));
+                // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+                // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+                entity.setCidade(municipioMapper.updateApiToEntity( api.getCidade(), entity.getCidade() != null ? entity.getCidade() : new MunicipioEntity()));
             } else {
                 entity.setCidade( null );
             }
@@ -265,6 +268,7 @@ public class PessoaMapper {
         if (api.getConsumidorFinal() != null) entity.setConsumidorFinal( api.getConsumidorFinal() ); 
         if (api.getCliente() != null) entity.setCliente( api.getCliente() ); 
         if (api.getFornecedor() != null) entity.setFornecedor( api.getFornecedor() ); 
+        if (api.getNaoEnviarCobranca() != null) entity.setNaoEnviarCobranca( api.getNaoEnviarCobranca() ); 
         if (api.getTelefone() != null) entity.setTelefone( api.getTelefone() ); 
         if (api.getEmail() != null) entity.setEmail( api.getEmail() ); 
         if (api.getLogradouro() != null) entity.setLogradouro( api.getLogradouro() ); 
@@ -281,10 +285,9 @@ public class PessoaMapper {
         if (api.getDataAtualizacao() != null) entity.setDataAtualizacao( api.getDataAtualizacao() ); 
         repository.conferirEmpresaImutavel(entity, api.getEmpresa() == null ? null : api.getEmpresa().getId());
         if ( api.getCidade() != null ) {
-            if ( entity.getCidade() == null ) {
-                entity.setCidade( new MunicipioEntity() );
-            }
-            entity.setCidade(municipioMapper.updateApiToEntity( api.getCidade(), entity.getCidade()));
+            // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+            // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+            entity.setCidade(municipioMapper.updateApiToEntity( api.getCidade(), entity.getCidade() != null ? entity.getCidade() : new MunicipioEntity()));
         }
 
         return entity;
@@ -304,6 +307,9 @@ public class PessoaMapper {
         if (entity.getFornecedor() == null) {
             entity.setFornecedor(false);
         }
+        if (entity.getNaoEnviarCobranca() == null) {
+            entity.setNaoEnviarCobranca(false);
+        }
 
         return entity;
     }
@@ -321,6 +327,9 @@ public class PessoaMapper {
         }
         if (api.getFornecedor() == null) {
             api.setFornecedor(false);
+        }
+        if (api.getNaoEnviarCobranca() == null) {
+            api.setNaoEnviarCobranca(false);
         }
 
         return api;

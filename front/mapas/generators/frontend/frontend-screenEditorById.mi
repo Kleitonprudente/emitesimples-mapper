@@ -219,7 +219,36 @@
             [v]   )
             [v] }
         [e] todo-route
-            [v] // @TODO {{ @name }}: rota sem $id ({{ $route }}); screenEditorById so trata window.editor com parametro de rota.
+            [v] // @TODO {{ @name }}: rota sem $id ({{ $route }}); screenEditorById so trata window.editor com parametro de rota ou com singleton.
+        [e] err-singleton-route
+            [v] // ERRO NO MODELO: singleton {{ @name }} com $ na rota ({{ $route }}); singleton nao tem id na rota: tire o $id
+        [e] err-singleton-empty
+            [v] // ERRO NO MODELO: singleton {{ @name }} sem emptyState/message/pt (declare a mensagem do registro ausente)
+        [e] singleton-imports
+            [v] import { formatDateTime } from '@/runtime/format'
+            [v] import { initialTableState } from '@/runtime/table-state'
+            [v] import { useAtualizar{{ $bean }}, use{{ $bean }}, use{{ $bean }}s } from '@/gen/api/{{ $entity }}'
+            [v] import { mutationFeedback } from '@/runtime/feedback'
+            [v] import { EmptyState, ErrorState, LoadingState } from '@/runtime/states'
+            [v] import { {{ @name }}Form, {{ @name }}FieldNames, type {{ @name }}Values } from './{{ @name }}'
+        [e] singleton-start
+            [v] {{ '' }}
+            [v] // Registro UNICO (singleton): a lista gerada, escopada pelo back, traz no maximo um registro; ele e editado aqui.
+            [v] // Nao ha criar nem voltar (front/mapas/README.md, "Editor singleton").
+            [v] const PRIMEIRO = initialTableState({ pageSize: 1 })
+            [v] {{ '' }}
+            [v] export function {{ @name }}Screen() {
+            [v]   const lista = use{{ $bean }}s(PRIMEIRO)
+            [v]   if (lista.isLoading) return <LoadingState />
+            [v]   if (lista.isError) return <ErrorState error={lista.error} onRetry={lista.refetch} />
+            [v]   const id = lista.data?.[0]?.id
+            [v]   if (!id) return <EmptyState title="{{ $title }}" description="{{ $emptyMsg }}" />
+            [v]   return <{{ @name }}Editar id={id} />
+            [v] }
+            [v] {{ '' }}
+            [v] function {{ @name }}Editar({ id }: { id: string }) {
+            [v]   const loaded = use{{ $bean }}(id)
+            [v]   const salvar = useAtualizar{{ $bean }}(id)
     [e] start
         [e] match
             [v] /classes/class[@name = $modelName and @package = $package]
@@ -253,6 +282,14 @@
                     [v] listRoute
                     [e] expr
                         [v] normalize-space((for $c in $classes/class[@mode = 'window.list' and exists(actions/action/properties/opens/value[normalize-space(.) = $modelName])] return $c/properties/route/value)[1])
+                [e] var
+                    [v] singleton
+                    [e] expr
+                        [v] normalize-space(properties/singleton/value)
+                [e] var
+                    [v] emptyMsg
+                    [e] expr
+                        [v] replace(normalize-space(emptyState/properties/message/pt/value), '"', "'")
                 [e] var
                     [v] hasAudit
                     [e] expr
@@ -389,7 +426,7 @@
                 [e] mode
                     [v] fixedErro
             [e] if
-                [v] contains($route, '$')
+                [v] contains($route, '$') and $singleton != 'true'
                 [e] then
                     [e] if
                         [v] $listRoute != '' or $hasList
@@ -594,6 +631,41 @@
                                 [v] audit-line
                     [e] write-pattern
                         [v] editar-close
+                [e] else-if
+                    [v] $singleton = 'true'
+                    [e] then
+                        [e] if
+                            [v] contains($route, '$')
+                            [e] then
+                                [e] write-pattern
+                                    [v] err-singleton-route
+                            [e] else-if
+                                [v] $emptyMsg = ''
+                                [e] then
+                                    [e] write-pattern
+                                        [v] err-singleton-empty
+                            [e] else
+                                [e] write-pattern
+                                    [v] singleton-imports
+                                [e] write-pattern
+                                    [v] singleton-start
+                                [e] write-pattern
+                                    [v] back-none
+                                [e] write-pattern
+                                    [v] body
+                                [e] write-pattern
+                                    [v] body-head
+                                [e] write-pattern
+                                    [v] body-form
+                                [e] write-pattern
+                                    [v] body-end
+                                [e] if
+                                    [v] $hasAudit
+                                    [e] then
+                                        [e] write-pattern
+                                            [v] audit-line
+                                [e] write-pattern
+                                    [v] editar-close
                 [e] else
                     [e] write-pattern
                         [v] todo-route

@@ -1,0 +1,205 @@
+[b] CredencialCobranca
+    @
+        [e] title
+            [e] pt
+                [v] Credencial de Cobrança
+            [e] en
+                [v] Collection Credential
+        [e] description
+            [e] pt
+                [v] Integração de uma conta financeira com um provedor de cobrança (boleto, Pix, link): docs/financeiro/README.md, 9.5, Fase 7; referência §9.2.
+                  | Uma por conta. O token e o segredo do webhook NUNCA ficam aqui: só a referência ao cofre de segredos (SegredoService), como o token da Empresa.
+                  | O sellerId é único no sistema inteiro: o dinheiro nunca pode cair na conta errada. Não tem CRUD gerado: a tela de integração (financeiroop) grava.
+            [e] en
+                [v] Integration of a financial account with a collection provider (bank slip, Pix, link): docs/financeiro/README.md, 9.5, Phase 7; reference §9.2.
+                  | One per account. The token and the webhook secret are NEVER kept here: only the reference to the secret vault (SegredoService), like the Empresa token.
+                  | The sellerId is unique in the whole system: money must never land in the wrong account. No generated CRUD: the integration screen (financeiroop) writes.
+    [g] integracao
+        [d] provedor: Texto(20)
+            @
+                [e] cn
+                    [v] provedor
+                [e] title
+                    [e] pt
+                        [v] Provedor
+                    [e] en
+                        [v] Provider
+                [e] description
+                    [e] pt
+                        [v] Provedor de cobrança. Por ora só FALSO (o adaptador de teste); cada provedor real entra com o seu adaptador. Valores documentados em values.
+                    [e] en
+                        [v] Collection provider. For now only FALSO (the test adapter); each real provider comes with its adapter. Values documented in values.
+                [e] required
+                    [v] true
+                [e] values
+                    [e] FALSO
+                        [e] title
+                            [e] pt
+                                [v] Provedor de teste
+                            [e] en
+                                [v] Test provider
+                        [e] description
+                            [e] pt
+                                [v] GatewayFalso: responde na hora, sem chamar ninguém. Só para testes e homologação interna.
+                            [e] en
+                                [v] GatewayFalso: answers at once, calling no one. Only for tests and internal staging.
+        [d] endpoint: Texto(255)
+            @
+                [e] cn
+                    [v] endpoint
+                [e] title
+                    [e] pt
+                        [v] Endereço da API
+                    [e] en
+                        [v] API Address
+                [e] description
+                    [e] pt
+                        [v] URL https da API do provedor (sandbox ou produção).
+                    [e] en
+                        [v] https URL of the provider API (sandbox or production).
+        [d] sellerId: Texto(100)
+            @
+                [e] cn
+                    [v] seller_id
+                [e] title
+                    [e] pt
+                        [v] Identificação no Provedor
+                    [e] en
+                        [v] Provider Account Id
+                [e] description
+                    [e] pt
+                        [v] Identificação da conta no provedor (seller, carteira). Única no sistema inteiro.
+                    [e] en
+                        [v] Account identification at the provider (seller, wallet). Unique in the whole system.
+                [e] required
+                    [v] true
+        [d] referenciaToken: Texto(36)
+            @
+                [e] cn
+                    [v] referencia_token
+                [e] title
+                    [e] pt
+                        [v] Referência do Token
+                    [e] en
+                        [v] Token Reference
+                [e] description
+                    [e] pt
+                        [v] Referência ao token da API no cofre de segredos. O token nunca vai para entidade, resposta ou log.
+                    [e] en
+                        [v] Reference to the API token in the secret vault. The token never goes to entity, response or log.
+        [d] referenciaSegredoWebhook: Texto(36)
+            @
+                [e] cn
+                    [v] referencia_segredo_webhook
+                [e] title
+                    [e] pt
+                        [v] Referência do Segredo do Webhook
+                    [e] en
+                        [v] Webhook Secret Reference
+                [e] description
+                    [e] pt
+                        [v] Referência ao segredo que autentica o webhook do provedor, no cofre de segredos.
+                    [e] en
+                        [v] Reference to the secret that authenticates the provider webhook, in the secret vault.
+        [d] ativo: Boolean()
+            @
+                [e] cn
+                    [v] ativo
+                [e] title
+                    [e] pt
+                        [v] Ativa
+                    [e] en
+                        [v] Active
+                [e] description
+                    [e] pt
+                        [v] Integração ligada. Desligada, a conta não gera cobrança nova (as vivas seguem sendo sincronizadas).
+                    [e] en
+                        [v] Integration on. When off, the account creates no new collection (live ones keep being synced).
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] true
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno da credencial (UUID).
+                    [e] en
+                        [v] Internal identifier of the credential (UUID).
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o registro foi criado.
+                    [e] en
+                        [v] Date and time the record was created.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true
+    [g] relacionamentos
+        [r] conta: ContaFinanceira()
+            @
+                [e] cn
+                    [v] conta_id
+                [e] title
+                    [e] pt
+                        [v] Conta
+                    [e] en
+                        [v] Account
+                [e] description
+                    [e] pt
+                        [v] Conta financeira onde o dinheiro da cobrança cai. Uma credencial por conta.
+                    [e] en
+                        [v] Financial account where the collection money lands. One credential per account.
+                [e] required
+                    [v] true
+        [r] empresa: Empresa()
+            @
+                [e] cn
+                    [v] empresa_id
+                [e] title
+                    [e] pt
+                        [v] Empresa
+                    [e] en
+                        [v] Company
+                [e] description
+                    [e] pt
+                        [v] Empresa dona desta credencial e tenant do registro. Todo acesso é filtrado por ela.
+                    [e] en
+                        [v] Company that owns this credential and tenant of the record. Every access is filtered by it.
+                [e] required
+                    [v] true
+                [e] tenantKey
+                    [v] true

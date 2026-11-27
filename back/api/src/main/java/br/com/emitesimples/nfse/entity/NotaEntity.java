@@ -104,6 +104,9 @@ public class NotaEntity {
     @Column(name="REGIME_TRIBUTACAO", precision = 1)
     private Integer regimeTributacao;
 
+    @Column(name="ID_CONDICAO_PAGAMENTO", length=36)
+    private String idCondicaoPagamento;
+
     @Column(name="CODIGO_SERVICO", length=6)
     private String codigoServico;
 
@@ -309,6 +312,7 @@ public class NotaEntity {
         String informacoesComplementares,
         Integer regimeApuracao,
         Integer regimeTributacao,
+        String idCondicaoPagamento,
         String codigoServico,
         String codigoTributacaoMunicipio,
         String codigoNbs,
@@ -369,6 +373,7 @@ public class NotaEntity {
         this.informacoesComplementares = informacoesComplementares;
         this.regimeApuracao = regimeApuracao;
         this.regimeTributacao = regimeTributacao;
+        this.idCondicaoPagamento = idCondicaoPagamento;
         this.codigoServico = codigoServico;
         this.codigoTributacaoMunicipio = codigoTributacaoMunicipio;
         this.codigoNbs = codigoNbs;
@@ -432,6 +437,7 @@ public class NotaEntity {
         this.informacoesComplementares = builder.informacoesComplementares;
         this.regimeApuracao = builder.regimeApuracao;
         this.regimeTributacao = builder.regimeTributacao;
+        this.idCondicaoPagamento = builder.idCondicaoPagamento;
         this.codigoServico = builder.codigoServico;
         this.codigoTributacaoMunicipio = builder.codigoTributacaoMunicipio;
         this.codigoNbs = builder.codigoNbs;
@@ -551,6 +557,14 @@ public class NotaEntity {
 
     public Integer getRegimeTributacao() {
         return this.regimeTributacao;
+    }
+
+    public void setIdCondicaoPagamento(String idCondicaoPagamento) {
+        this.idCondicaoPagamento = idCondicaoPagamento;
+    }
+
+    public String getIdCondicaoPagamento() {
+        return this.idCondicaoPagamento;
     }
 
     public void setCodigoServico(String codigoServico) {

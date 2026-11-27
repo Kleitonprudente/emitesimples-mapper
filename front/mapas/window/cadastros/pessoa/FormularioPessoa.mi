@@ -103,6 +103,18 @@
                             [v] phone
                         [e] size
                             [v] m
+            [e] row
+                [e] field
+                    [v] .naoEnviarCobranca
+                    @
+                        [e] label
+                            [e] pt
+                                [v] Não enviar cobrança por e-mail
+                        [e] hint
+                            [e] pt
+                                [v] Marcado, o financeiro não manda cobrança nem lembrete de vencimento para esta pessoa.
+                        [e] size
+                            [v] full
             [e] section
                 [v] Endereço
             [e] row

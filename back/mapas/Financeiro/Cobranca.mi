@@ -1,0 +1,603 @@
+[b] Cobranca
+    @
+        [e] title
+            [e] pt
+                [v] Cobrança
+            [e] en
+                [v] Collection
+        [e] description
+            [e] pt
+                [v] Uma cobrança gerada num provedor (boleto, Pix ou link de pagamento) para o saldo de um título a receber (docs/financeiro/README.md, 9.5, Fase 7; referência §9.2).
+                  | UMA cobrança viva por título (índice parcial em CRIANDO, AGUARDANDO e INCERTA). A chamada ao provedor fica FORA da transação e nunca é repetida sozinha: sem resposta, INCERTA.
+                  | Só o sincronizador muda o estado depois de criada; o pagamento dá a baixa pelo livro (idempotente por idBaixaMovimento), excedente vira juros e a tarifa vira saída avulsa.
+                  | Não tem CRUD gerado: só os serviços da financeiroop gravam.
+            [e] en
+                [v] A collection created at a provider (bank slip, Pix or payment link) for the balance of a receivable (docs/financeiro/README.md, 9.5, Phase 7; reference §9.2).
+                  | ONE live collection per bill (partial index on CRIANDO, AGUARDANDO and INCERTA). The provider call is OUTSIDE the transaction and never retried on its own: no answer, INCERTA.
+                  | Only the syncer changes state after creation; payment settles through the ledger (idempotent by idBaixaMovimento), surplus becomes interest and the fee becomes a manual outflow.
+                  | No generated CRUD: only financeiroop services write.
+    [g] cobranca
+        [d] provedor: Texto(20)
+            @
+                [e] cn
+                    [v] provedor
+                [e] title
+                    [e] pt
+                        [v] Provedor
+                    [e] en
+                        [v] Provider
+                [e] description
+                    [e] pt
+                        [v] Provedor que gerou a cobrança (o da credencial da conta, no momento).
+                    [e] en
+                        [v] Provider that created the collection (the account credential one, at the time).
+                [e] required
+                    [v] true
+        [d] tipo: Texto(10)
+            @
+                [e] cn
+                    [v] tipo
+                [e] title
+                    [e] pt
+                        [v] Tipo
+                    [e] en
+                        [v] Type
+                [e] description
+                    [e] pt
+                        [v] BOLETO, PIX ou LINK. Valores documentados em values.
+                    [e] en
+                        [v] BOLETO, PIX or LINK. Values documented in values.
+                [e] required
+                    [v] true
+                [e] values
+                    [e] BOLETO
+                        [e] title
+                            [e] pt
+                                [v] Boleto
+                            [e] en
+                                [v] Bank slip
+                        [e] description
+                            [e] pt
+                                [v] Vencimento de hoje em diante.
+                            [e] en
+                                [v] Due date from today on.
+                    [e] PIX
+                        [e] title
+                            [e] pt
+                                [v] Pix
+                            [e] en
+                                [v] Pix
+                        [e] description
+                            [e] pt
+                                [v] Para pagar agora.
+                            [e] en
+                                [v] To pay now.
+                    [e] LINK
+                        [e] title
+                            [e] pt
+                                [v] Link de pagamento
+                            [e] en
+                                [v] Payment link
+                        [e] description
+                            [e] pt
+                                [v] Vale de 1 a 30 dias.
+                            [e] en
+                                [v] Valid for 1 to 30 days.
+        [d] estado: Texto(20)
+            @
+                [e] cn
+                    [v] estado
+                [e] title
+                    [e] pt
+                        [v] Situação
+                    [e] en
+                        [v] Status
+                [e] description
+                    [e] pt
+                        [v] Situação da cobrança; viva = CRIANDO, AGUARDANDO ou INCERTA. Valores documentados em values.
+                    [e] en
+                        [v] Collection status; live = CRIANDO, AGUARDANDO or INCERTA. Values documented in values.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] CRIANDO
+                [e] values
+                    [e] CRIANDO
+                        [e] title
+                            [e] pt
+                                [v] Gerando
+                            [e] en
+                                [v] Creating
+                        [e] description
+                            [e] pt
+                                [v] Pedido ao provedor em andamento.
+                            [e] en
+                                [v] Request to the provider in progress.
+                    [e] AGUARDANDO
+                        [e] title
+                            [e] pt
+                                [v] Aguardando pagamento
+                            [e] en
+                                [v] Awaiting payment
+                        [e] description
+                            [e] pt
+                                [v] Gerada no provedor; espera o pagamento.
+                            [e] en
+                                [v] Created at the provider; waits for payment.
+                    [e] INCERTA
+                        [e] title
+                            [e] pt
+                                [v] Confira no portal
+                            [e] en
+                                [v] Check the portal
+                        [e] description
+                            [e] pt
+                                [v] A resposta do provedor se perdeu: nunca reenviar sem consultar.
+                            [e] en
+                                [v] The provider answer was lost: never resend without querying.
+                    [e] PAGA
+                        [e] title
+                            [e] pt
+                                [v] Paga
+                            [e] en
+                                [v] Paid
+                        [e] description
+                            [e] pt
+                                [v] Pagamento confirmado; o título foi baixado pelo livro.
+                            [e] en
+                                [v] Payment confirmed; the bill was settled through the ledger.
+                    [e] PAGA_PARA_REVISAR
+                        [e] title
+                            [e] pt
+                                [v] Paga: revisar
+                            [e] en
+                                [v] Paid: review
+                        [e] description
+                            [e] pt
+                                [v] Pagamento fora do esperado; não baixa sozinho.
+                            [e] en
+                                [v] Unexpected payment; does not settle on its own.
+                    [e] RECUSADA
+                        [e] title
+                            [e] pt
+                                [v] Recusada
+                            [e] en
+                                [v] Refused
+                        [e] description
+                            [e] pt
+                                [v] O provedor recusou (motivo em português no campo motivo).
+                            [e] en
+                                [v] The provider refused (reason in Portuguese in motivo).
+                    [e] CANCELADA
+                        [e] title
+                            [e] pt
+                                [v] Cancelada
+                            [e] en
+                                [v] Cancelled
+                        [e] description
+                            [e] pt
+                                [v] Cancelada (título cancelado ou baixa estornada).
+                            [e] en
+                                [v] Cancelled (bill cancelled or settlement reversed).
+                    [e] EXPIRADA
+                        [e] title
+                            [e] pt
+                                [v] Expirada
+                            [e] en
+                                [v] Expired
+                        [e] description
+                            [e] pt
+                                [v] Venceu sem pagamento.
+                            [e] en
+                                [v] Expired without payment.
+                    [e] DESCARTADA
+                        [e] title
+                            [e] pt
+                                [v] Descartada
+                            [e] en
+                                [v] Discarded
+                        [e] description
+                            [e] pt
+                                [v] Descartada por uma pessoa (ex.: incerta conferida no portal).
+                            [e] en
+                                [v] Discarded by a person (e.g. uncertain one checked at the portal).
+        [d] valor: ValorMonetario(15,2)
+            @
+                [e] cn
+                    [v] valor
+                [e] title
+                    [e] pt
+                        [v] Valor
+                    [e] en
+                        [v] Amount
+                [e] description
+                    [e] pt
+                        [v] Valor cobrado: o saldo do título na criação (maior que zero).
+                    [e] en
+                        [v] Charged amount: the bill balance at creation (greater than zero).
+                [e] required
+                    [v] true
+        [d] vencimento: Data()
+            @
+                [e] cn
+                    [v] vencimento
+                [e] title
+                    [e] pt
+                        [v] Vencimento
+                    [e] en
+                        [v] Due Date
+                [e] description
+                    [e] pt
+                        [v] Vencimento da cobrança.
+                    [e] en
+                        [v] Collection due date.
+                [e] required
+                    [v] true
+        [d] multaPercentual: Decimal(5,2)
+            @
+                [e] cn
+                    [v] multa_percentual
+                [e] title
+                    [e] pt
+                        [v] Multa (%)
+                    [e] en
+                        [v] Fine (%)
+                [e] description
+                    [e] pt
+                        [v] Multa por atraso, do título ou da configuração.
+                    [e] en
+                        [v] Late fine, from the bill or the settings.
+        [d] jurosMensalPercentual: Decimal(5,2)
+            @
+                [e] cn
+                    [v] juros_mensal_percentual
+                [e] title
+                    [e] pt
+                        [v] Juros ao Mês (%)
+                    [e] en
+                        [v] Monthly Interest (%)
+                [e] description
+                    [e] pt
+                        [v] Juros por atraso, do título ou da configuração.
+                    [e] en
+                        [v] Late interest, from the bill or the settings.
+        [d] idExterno: Texto(100)
+            @
+                [e] cn
+                    [v] id_externo
+                [e] title
+                    [e] pt
+                        [v] Id no Provedor
+                    [e] en
+                        [v] Provider Id
+                [e] description
+                    [e] pt
+                        [v] Identificador da cobrança no provedor. Único por empresa.
+                    [e] en
+                        [v] Collection identifier at the provider. Unique per company.
+    [g] pagamento
+        [d] linhaDigitavel: Texto(60)
+            @
+                [e] cn
+                    [v] linha_digitavel
+                [e] title
+                    [e] pt
+                        [v] Linha Digitável
+                    [e] en
+                        [v] Typeable Line
+                [e] description
+                    [e] pt
+                        [v] Linha digitável do boleto.
+                    [e] en
+                        [v] Bank slip typeable line.
+        [d] codigoDeBarras: Texto(60)
+            @
+                [e] cn
+                    [v] codigo_de_barras
+                [e] title
+                    [e] pt
+                        [v] Código de Barras
+                    [e] en
+                        [v] Barcode
+                [e] description
+                    [e] pt
+                        [v] Código de barras do boleto.
+                    [e] en
+                        [v] Bank slip barcode.
+        [d] urlDoBoleto: Texto(500)
+            @
+                [e] cn
+                    [v] url_do_boleto
+                [e] title
+                    [e] pt
+                        [v] Link do Boleto
+                    [e] en
+                        [v] Bank Slip Link
+                [e] description
+                    [e] pt
+                        [v] Link https do boleto (só https vira link na tela).
+                    [e] en
+                        [v] https link of the bank slip (only https becomes a link on screen).
+        [d] pixCopiaECola: Texto(500)
+            @
+                [e] cn
+                    [v] pix_copia_e_cola
+                [e] title
+                    [e] pt
+                        [v] Pix Copia e Cola
+                    [e] en
+                        [v] Pix Copy and Paste
+                [e] description
+                    [e] pt
+                        [v] Código Pix copia e cola.
+                    [e] en
+                        [v] Pix copy-and-paste code.
+        [d] urlDoPix: Texto(500)
+            @
+                [e] cn
+                    [v] url_do_pix
+                [e] title
+                    [e] pt
+                        [v] Link do Pix
+                    [e] en
+                        [v] Pix Link
+                [e] description
+                    [e] pt
+                        [v] Link https do Pix.
+                    [e] en
+                        [v] https link of the Pix.
+        [d] urlDoLink: Texto(500)
+            @
+                [e] cn
+                    [v] url_do_link
+                [e] title
+                    [e] pt
+                        [v] Link de Pagamento
+                    [e] en
+                        [v] Payment Link
+                [e] description
+                    [e] pt
+                        [v] Link https de pagamento.
+                    [e] en
+                        [v] https payment link.
+        [d] pagoEm: DataHora()
+            @
+                [e] cn
+                    [v] pago_em
+                [e] title
+                    [e] pt
+                        [v] Pago em
+                    [e] en
+                        [v] Paid at
+                [e] description
+                    [e] pt
+                        [v] Quando o provedor confirmou o pagamento.
+                    [e] en
+                        [v] When the provider confirmed the payment.
+        [d] valorPago: ValorMonetario(15,2)
+            @
+                [e] cn
+                    [v] valor_pago
+                [e] title
+                    [e] pt
+                        [v] Valor Pago
+                    [e] en
+                        [v] Paid Amount
+                [e] description
+                    [e] pt
+                        [v] Valor pago informado pelo provedor.
+                    [e] en
+                        [v] Paid amount informed by the provider.
+        [d] meioPago: Texto(10)
+            @
+                [e] cn
+                    [v] meio_pago
+                [e] title
+                    [e] pt
+                        [v] Meio de Pagamento
+                    [e] en
+                        [v] Payment Means
+                [e] description
+                    [e] pt
+                        [v] Como foi pago (BOLETO, PIX, CARTAO), segundo o provedor.
+                    [e] en
+                        [v] How it was paid (BOLETO, PIX, CARTAO), per the provider.
+        [d] tarifa: ValorMonetario(15,2)
+            @
+                [e] cn
+                    [v] tarifa
+                [e] title
+                    [e] pt
+                        [v] Tarifa
+                    [e] en
+                        [v] Fee
+                [e] description
+                    [e] pt
+                        [v] Tarifa do provedor. Vazio = o provedor não informou (nunca inventar).
+                    [e] en
+                        [v] Provider fee. Empty = the provider did not inform (never make it up).
+        [d] idBaixaMovimento: Texto(36)
+            @
+                [e] cn
+                    [v] id_baixa_movimento
+                [e] title
+                    [e] pt
+                        [v] Movimento da Baixa
+                    [e] en
+                        [v] Settlement Entry
+                [e] description
+                    [e] pt
+                        [v] Id do movimento de baixa gerado (idempotência; CN-REL-002).
+                    [e] en
+                        [v] Id of the settlement ledger entry generated (idempotency; CN-REL-002).
+        [d] idTarifaMovimento: Texto(36)
+            @
+                [e] cn
+                    [v] id_tarifa_movimento
+                [e] title
+                    [e] pt
+                        [v] Movimento da Tarifa
+                    [e] en
+                        [v] Fee Entry
+                [e] description
+                    [e] pt
+                        [v] Id do movimento da tarifa (saída avulsa em Tarifas; CN-REL-002).
+                    [e] en
+                        [v] Id of the fee ledger entry (manual outflow in Tarifas; CN-REL-002).
+    [g] retorno
+        [d] motivo: Texto(200)
+            @
+                [e] cn
+                    [v] motivo
+                [e] title
+                    [e] pt
+                        [v] Motivo
+                    [e] en
+                        [v] Reason
+                [e] description
+                    [e] pt
+                        [v] Frase nossa (português) da recusa, pelo código do provedor.
+                    [e] en
+                        [v] Our sentence (Portuguese) for the refusal, by the provider code.
+        [d] respostaDoProvedor: Texto(200)
+            @
+                [e] cn
+                    [v] resposta_do_provedor
+                [e] title
+                    [e] pt
+                        [v] Resposta do Provedor
+                    [e] en
+                        [v] Provider Answer
+                [e] description
+                    [e] pt
+                        [v] Texto do provedor FILTRADO (sem CPF/CNPJ, e-mail, telefone, links). Nunca vai a log.
+                    [e] en
+                        [v] Provider text FILTERED (no CPF/CNPJ, e-mail, phone, links). Never goes to log.
+        [d] ultimaConsultaEm: DataHora()
+            @
+                [e] cn
+                    [v] ultima_consulta_em
+                [e] title
+                    [e] pt
+                        [v] Última Consulta
+                    [e] en
+                        [v] Last Query
+                [e] description
+                    [e] pt
+                        [v] Última vez que o sincronizador consultou o provedor.
+                    [e] en
+                        [v] Last time the syncer queried the provider.
+        [d] idCriadoPor: Texto(36)
+            @
+                [e] cn
+                    [v] id_criado_por
+                [e] title
+                    [e] pt
+                        [v] Criada por
+                    [e] en
+                        [v] Created by
+                [e] description
+                    [e] pt
+                        [v] Id do usuário que gerou (vazio na cobrança automática; CN-REL-002).
+                    [e] en
+                        [v] Id of the user who created it (empty in automatic collection; CN-REL-002).
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno da cobrança (UUID).
+                    [e] en
+                        [v] Internal identifier of the collection (UUID).
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o registro foi criado.
+                    [e] en
+                        [v] Date and time the record was created.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true
+    [g] relacionamentos
+        [r] titulo: Titulo()
+            @
+                [e] cn
+                    [v] titulo_id
+                [e] title
+                    [e] pt
+                        [v] Título
+                    [e] en
+                        [v] Bill
+                [e] description
+                    [e] pt
+                        [v] Título a receber cobrado.
+                    [e] en
+                        [v] Charged receivable.
+                [e] required
+                    [v] true
+        [r] conta: ContaFinanceira()
+            @
+                [e] cn
+                    [v] conta_id
+                [e] title
+                    [e] pt
+                        [v] Conta
+                    [e] en
+                        [v] Account
+                [e] description
+                    [e] pt
+                        [v] Conta onde o dinheiro cai (a da credencial usada).
+                    [e] en
+                        [v] Account where the money lands (the one of the credential used).
+                [e] required
+                    [v] true
+        [r] empresa: Empresa()
+            @
+                [e] cn
+                    [v] empresa_id
+                [e] title
+                    [e] pt
+                        [v] Empresa
+                    [e] en
+                        [v] Company
+                [e] description
+                    [e] pt
+                        [v] Empresa dona desta cobrança e tenant do registro. Todo acesso é filtrado por ela.
+                    [e] en
+                        [v] Company that owns this collection and tenant of the record. Every access is filtered by it.
+                [e] required
+                    [v] true
+                [e] tenantKey
+                    [v] true

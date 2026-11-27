@@ -344,30 +344,27 @@
                         [e] updateApiToEntity-setOneToOne
                             [v] 
                             [v]             if ( api.get{{ mi:first-upper(@name) }}() != null ) {
-                            [v]                 if ( entity.get{{ mi:first-upper(@name) }}() == null ) {
-                            [v]                     entity.set{{ mi:first-upper(@name) }}( new {{ mi:first-upper($typeName) }}Entity() );
-                            [v]                 }
-                            [v]                 entity.set{{ mi:first-upper(@name) }}({{ mi:if-else($typeName = $modelName,'this', concat(mi:first-lower($typeName),'Mapper')) }}.updateApiToEntity( api.get{{ mi:first-upper(@name) }}(), entity.get{{ mi:first-upper(@name) }}()));
+                            [v]                 // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+                            [v]                 // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+                            [v]                 entity.set{{ mi:first-upper(@name) }}({{ mi:if-else($typeName = $modelName,'this', concat(mi:first-lower($typeName),'Mapper')) }}.updateApiToEntity( api.get{{ mi:first-upper(@name) }}(), entity.get{{ mi:first-upper(@name) }}() != null ? entity.get{{ mi:first-upper(@name) }}() : new {{ mi:first-upper($typeName) }}Entity()));
                             [v]             } else {
                             [v]                 entity.set{{ mi:first-upper(@name) }}( null );
                             [v]             }
                         [e] updateApiToEntity-setManyToOne
                             [v] 
                             [v]             if ( api.get{{ mi:first-upper(@name) }}() != null ) {
-                            [v]                 if ( entity.get{{ mi:first-upper(@name) }}() == null ) {
-                            [v]                     entity.set{{ mi:first-upper(@name) }}( new {{ mi:first-upper($typeName) }}Entity() );
-                            [v]                 }
-                            [v]                 entity.set{{ mi:first-upper(@name) }}({{ mi:if-else($typeName = $modelName,'this', concat(mi:first-lower($typeName),'Mapper')) }}.updateApiToEntity( api.get{{ mi:first-upper(@name) }}(), entity.get{{ mi:first-upper(@name) }}()));
+                            [v]                 // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+                            [v]                 // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+                            [v]                 entity.set{{ mi:first-upper(@name) }}({{ mi:if-else($typeName = $modelName,'this', concat(mi:first-lower($typeName),'Mapper')) }}.updateApiToEntity( api.get{{ mi:first-upper(@name) }}(), entity.get{{ mi:first-upper(@name) }}() != null ? entity.get{{ mi:first-upper(@name) }}() : new {{ mi:first-upper($typeName) }}Entity()));
                             [v]             } else {
                             [v]                 entity.set{{ mi:first-upper(@name) }}( null );
                             [v]             }
                         [e] updateApiToEntity-setComposite
                             [v] 
                             [v]             if ( api.get{{ mi:first-upper(@name) }}() != null ) {
-                            [v]                 if ( entity.get{{ mi:first-upper(@name) }}() == null ) {
-                            [v]                     entity.set{{ mi:first-upper(@name) }}( new {{ mi:first-upper($typeName) }}Entity() );
-                            [v]                 }
-                            [v]                 entity.set{{ mi:first-upper(@name) }}({{ mi:if-else($typeName = $modelName,'this', concat(mi:first-lower($typeName),'Mapper')) }}.updateApiToEntity( api.get{{ mi:first-upper(@name) }}(), entity.get{{ mi:first-upper(@name) }}()));
+                            [v]                 // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+                            [v]                 // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+                            [v]                 entity.set{{ mi:first-upper(@name) }}({{ mi:if-else($typeName = $modelName,'this', concat(mi:first-lower($typeName),'Mapper')) }}.updateApiToEntity( api.get{{ mi:first-upper(@name) }}(), entity.get{{ mi:first-upper(@name) }}() != null ? entity.get{{ mi:first-upper(@name) }}() : new {{ mi:first-upper($typeName) }}Entity()));
                             [v]             } else {
                             [v]                 entity.set{{ mi:first-upper(@name) }}( null );
                             [v]             }
@@ -407,18 +404,16 @@
                         [e] patchApiToEntity-setOneToOne
                             [v]
                             [v]         if ( api.get{{ mi:first-upper(@name) }}() != null ) {
-                            [v]             if ( entity.get{{ mi:first-upper(@name) }}() == null ) {
-                            [v]                 entity.set{{ mi:first-upper(@name) }}( new {{ mi:first-upper($typeName) }}Entity() );
-                            [v]             }
-                            [v]             entity.set{{ mi:first-upper(@name) }}({{ mi:if-else($typeName = $modelName,'this', concat(mi:first-lower($typeName),'Mapper')) }}.updateApiToEntity( api.get{{ mi:first-upper(@name) }}(), entity.get{{ mi:first-upper(@name) }}()));
+                            [v]             // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+                            [v]             // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+                            [v]             entity.set{{ mi:first-upper(@name) }}({{ mi:if-else($typeName = $modelName,'this', concat(mi:first-lower($typeName),'Mapper')) }}.updateApiToEntity( api.get{{ mi:first-upper(@name) }}(), entity.get{{ mi:first-upper(@name) }}() != null ? entity.get{{ mi:first-upper(@name) }}() : new {{ mi:first-upper($typeName) }}Entity()));
                             [v]         }
                         [e] patchApiToEntity-setManyToOne
                             [v]
                             [v]         if ( api.get{{ mi:first-upper(@name) }}() != null ) {
-                            [v]             if ( entity.get{{ mi:first-upper(@name) }}() == null ) {
-                            [v]                 entity.set{{ mi:first-upper(@name) }}( new {{ mi:first-upper($typeName) }}Entity() );
-                            [v]             }
-                            [v]             entity.set{{ mi:first-upper(@name) }}({{ mi:if-else($typeName = $modelName,'this', concat(mi:first-lower($typeName),'Mapper')) }}.updateApiToEntity( api.get{{ mi:first-upper(@name) }}(), entity.get{{ mi:first-upper(@name) }}()));
+                            [v]             // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+                            [v]             // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+                            [v]             entity.set{{ mi:first-upper(@name) }}({{ mi:if-else($typeName = $modelName,'this', concat(mi:first-lower($typeName),'Mapper')) }}.updateApiToEntity( api.get{{ mi:first-upper(@name) }}(), entity.get{{ mi:first-upper(@name) }}() != null ? entity.get{{ mi:first-upper(@name) }}() : new {{ mi:first-upper($typeName) }}Entity()));
                             [v]         }
                         [e] patchApiToEntity-setOneToMany
                             [v] 
@@ -437,10 +432,9 @@
                         [e] patchApiToEntity-setComposite
                             [v] 
                             [v]         if ( api.get{{ mi:first-upper(@name) }}() != null ) {
-                            [v]             if ( entity.get{{ mi:first-upper(@name) }}() == null ) {
-                            [v]                 entity.set{{ mi:first-upper(@name) }}( new {{ mi:first-upper($typeName) }}Entity() );
-                            [v]             }
-                            [v]             entity.set{{ mi:first-upper(@name) }}({{ mi:if-else($typeName = $modelName,'this', concat(mi:first-lower($typeName),'Mapper')) }}.updateApiToEntity( api.get{{ mi:first-upper(@name) }}(), entity.get{{ mi:first-upper(@name) }}()));
+                            [v]             // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+                            [v]             // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+                            [v]             entity.set{{ mi:first-upper(@name) }}({{ mi:if-else($typeName = $modelName,'this', concat(mi:first-lower($typeName),'Mapper')) }}.updateApiToEntity( api.get{{ mi:first-upper(@name) }}(), entity.get{{ mi:first-upper(@name) }}() != null ? entity.get{{ mi:first-upper(@name) }}() : new {{ mi:first-upper($typeName) }}Entity()));
                             [v]         }
                 [g] setEntityDefaultValues
                     [e] setEntityDefaultValues-start

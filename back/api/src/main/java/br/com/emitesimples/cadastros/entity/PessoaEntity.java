@@ -71,6 +71,9 @@ public class PessoaEntity {
     @Column(name="FORNECEDOR")
     private Boolean fornecedor;
 
+    @Column(name="NAO_ENVIAR_COBRANCA")
+    private Boolean naoEnviarCobranca;
+
     @Column(name="TELEFONE", length=20)
     private String telefone;
 
@@ -139,6 +142,7 @@ public class PessoaEntity {
         Boolean consumidorFinal,
         Boolean cliente,
         Boolean fornecedor,
+        Boolean naoEnviarCobranca,
         String telefone,
         String email,
         String logradouro,
@@ -167,6 +171,7 @@ public class PessoaEntity {
         this.consumidorFinal = consumidorFinal;
         this.cliente = cliente;
         this.fornecedor = fornecedor;
+        this.naoEnviarCobranca = naoEnviarCobranca;
         this.telefone = telefone;
         this.email = email;
         this.logradouro = logradouro;
@@ -198,6 +203,7 @@ public class PessoaEntity {
         this.consumidorFinal = builder.consumidorFinal;
         this.cliente = builder.cliente;
         this.fornecedor = builder.fornecedor;
+        this.naoEnviarCobranca = builder.naoEnviarCobranca;
         this.telefone = builder.telefone;
         this.email = builder.email;
         this.logradouro = builder.logradouro;
@@ -306,6 +312,14 @@ public class PessoaEntity {
 
     public Boolean getFornecedor() {
         return this.fornecedor;
+    }
+
+    public void setNaoEnviarCobranca(Boolean naoEnviarCobranca) {
+        this.naoEnviarCobranca = naoEnviarCobranca;
+    }
+
+    public Boolean getNaoEnviarCobranca() {
+        return this.naoEnviarCobranca;
     }
 
     public void setTelefone(String telefone) {

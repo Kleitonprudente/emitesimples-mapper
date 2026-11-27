@@ -91,6 +91,9 @@ public class Nota {
 
     private Integer regimeTributacao;
 
+    @Size(max = 36, message = "Attribute idCondicaoPagamento must have 36 characters maximum.")
+    private String idCondicaoPagamento;
+
     @NotEmpty(message = "The attribute codigoServico can't be empty.")
     @Size(max = 6, message = "Attribute codigoServico must have 6 characters maximum.")
     private String codigoServico;
@@ -237,6 +240,7 @@ public class Nota {
         this.informacoesComplementares = null;
         this.regimeApuracao = null;
         this.regimeTributacao = null;
+        this.idCondicaoPagamento = null;
         this.codigoServico = null;
         this.codigoTributacaoMunicipio = null;
         this.codigoNbs = null;
@@ -298,6 +302,7 @@ public class Nota {
         String informacoesComplementares,
         Integer regimeApuracao,
         Integer regimeTributacao,
+        String idCondicaoPagamento,
         String codigoServico,
         String codigoTributacaoMunicipio,
         String codigoNbs,
@@ -358,6 +363,7 @@ public class Nota {
         this.informacoesComplementares = informacoesComplementares;
         this.regimeApuracao = regimeApuracao;
         this.regimeTributacao = regimeTributacao;
+        this.idCondicaoPagamento = idCondicaoPagamento;
         this.codigoServico = codigoServico;
         this.codigoTributacaoMunicipio = codigoTributacaoMunicipio;
         this.codigoNbs = codigoNbs;
@@ -472,6 +478,14 @@ public class Nota {
 
     public Integer getRegimeTributacao() {
         return this.regimeTributacao;
+    }
+
+    public void setIdCondicaoPagamento(String idCondicaoPagamento) {
+        this.idCondicaoPagamento = idCondicaoPagamento;
+    }
+
+    public String getIdCondicaoPagamento() {
+        return this.idCondicaoPagamento;
     }
 
     public void setCodigoServico(String codigoServico) {
@@ -874,6 +888,7 @@ public class Nota {
             this.informacoesComplementares != null || 
             this.regimeApuracao != null || 
             this.regimeTributacao != null || 
+            this.idCondicaoPagamento != null || 
             this.codigoServico != null || 
             this.codigoTributacaoMunicipio != null || 
             this.codigoNbs != null || 

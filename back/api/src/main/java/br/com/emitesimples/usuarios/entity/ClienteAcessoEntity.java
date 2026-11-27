@@ -68,6 +68,10 @@ public class ClienteAcessoEntity {
     @JoinColumn(name="EMPRESA_ID", nullable = false)
     private EmpresaEntity empresa;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name="USUARIO_ID", nullable = false)
+    private UsuarioEntity usuario;
+
     public ClienteAcessoEntity() {
     }
 
@@ -82,7 +86,8 @@ public class ClienteAcessoEntity {
         String id,
         LocalDateTime dataCriacao,
         LocalDateTime dataAtualizacao,
-        EmpresaEntity empresa
+        EmpresaEntity empresa,
+        UsuarioEntity usuario
     ) {
         this.nome = nome;
         this.clientId = clientId;
@@ -95,6 +100,7 @@ public class ClienteAcessoEntity {
         this.dataCriacao = dataCriacao;
         this.dataAtualizacao = dataAtualizacao;
         this.empresa = empresa;
+        this.usuario = usuario;
     }
 
     public ClienteAcessoEntity(ClienteAcessoEntityBuilder builder) {
@@ -110,6 +116,7 @@ public class ClienteAcessoEntity {
         this.dataCriacao = builder.dataCriacao;
         this.dataAtualizacao = builder.dataAtualizacao;
         this.empresa = builder.empresa;
+        this.usuario = builder.usuario;
     }
 
     public static ClienteAcessoEntityBuilder builderOf() {
@@ -209,6 +216,14 @@ public class ClienteAcessoEntity {
 
     public EmpresaEntity getEmpresa() {
         return this.empresa;
+    }
+
+    public void setUsuario(UsuarioEntity usuario) {
+        this.usuario = usuario;
+    }
+
+    public UsuarioEntity getUsuario() {
+        return this.usuario;
     }
 
 }

@@ -46,6 +46,7 @@ import {
   useDescartarCancelamento,
   useDescartarNota,
   useNota,
+  useNomeDaCondicao,
   useReenviarNota,
   valoresDaNota,
   type CodigoMotivo,
@@ -74,6 +75,12 @@ function Linha({ rotulo, valor }: { rotulo: string; valor?: string | null }) {
   )
 }
 
+/** Condicao de pagamento da nota (E1): o nome vem do financeiro; sem acesso a ele, mostra so que ha uma condicao. */
+function LinhaDaCondicao({ id }: { id: string }) {
+  const nome = useNomeDaCondicao(id)
+  return <Linha rotulo="Condição de pagamento" valor={nome.data || (nome.isLoading ? '…' : 'Informada')} />
+}
+
 function Dados({ n, somenteLeitura }: { n: Nota; somenteLeitura: boolean }) {
   return (
     <Card>
@@ -91,6 +98,7 @@ function Dados({ n, somenteLeitura }: { n: Nota; somenteLeitura: boolean }) {
           <Linha rotulo="Chave de acesso" valor={n.chave} />
           {somenteLeitura && <Linha rotulo="Descrição do serviço" valor={n.discriminacao} />}
           {somenteLeitura && <Linha rotulo="Informações complementares" valor={n.informacoesComplementares} />}
+          {somenteLeitura && n.idCondicaoPagamento && <LinhaDaCondicao id={n.idCondicaoPagamento} />}
         </dl>
       </CardContent>
     </Card>
@@ -283,6 +291,7 @@ function Conteudo({ id }: { id: string }) {
   const reenviar = useReenviarNota(id)
   const aprovar = useAprovarNota(id)
   const descartar = useDescartarNota(id)
+  const nomeDaCondicao = useNomeDaCondicao(q.data?.idCondicaoPagamento)
   const [modalAberto, setModalAberto] = useState(false)
   const [foraDoMes, setForaDoMes] = useState(false)
   if (q.isLoading) return <LoadingState label="Carregando nota…" />
@@ -479,7 +488,7 @@ function Conteudo({ id }: { id: string }) {
       {reenvio && (
         <div className="flex flex-col gap-2">
           <FormularioNota
-            values={valoresDaNota(n)}
+            values={valoresDaNota(n, nomeDaCondicao.data)}
             submitLabel="Corrigir e reenviar"
             isSubmitting={reenviar.isPending}
             serverError={reenviar.error ? erroAmigavel(reenviar.error) : undefined}

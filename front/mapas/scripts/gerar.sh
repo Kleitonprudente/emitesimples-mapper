@@ -63,6 +63,24 @@ entidade() {
   telas "$2" "$3" "$4" "$5" "$6"
 }
 
+# singleton <Entidade> <contexto> <slug-feature> <slug-rota> <Formulario>
+# Editor de registro UNICO (window.editor com singleton, rota sem $id): dominio + formulario + editor + rota de pagina.
+# Veja front/mapas/README.md, "Editor singleton".
+singleton() {
+  local ent="$1" ctx="$2" slug="$3" rota="$4" form="$5"
+  local jan="$RAIZ.window.$ctx.$slug" f="$WEB/features/$ctx/$slug"
+  dominio "$ent" "$ctx"
+  gerar "$f/$form.tsx"          screenForm       modelName="$form" package="$jan"
+  gerar "$f/${form}Screen.tsx"  screenEditorById modelName="$form" package="$jan"
+  gerar "$WEB/routes/_authenticated/$rota/index.tsx" screenRoute modelName="$form" package="$jan"
+}
+
+# rota_custom <arquivo-da-rota em routes/_authenticated> <Janela> <pacote-da-janela sem a raiz>
+# Tela declarada no mapa com componente escrito a mao (window.custom): so a rota. Veja front/mapas/README.md, "window.custom".
+rota_custom() {
+  gerar "$WEB/routes/_authenticated/$1" screenRoute modelName="$2" package="$RAIZ.window.$3"
+}
+
 # saidas de versoes anteriores do mapa (formulario unico substituiu Criar/Editar; Clientes e Fornecedores
 # substituiram as janelas de Pessoa). O teste escrito a mao (pessoa.gerado.test.tsx) NAO e apagado aqui.
 F="$WEB/features/cadastros/pessoa"
@@ -79,6 +97,22 @@ telas cadastros fornecedor fornecedores GestaoFornecedores FormularioFornecedor
 entidade Municipio cadastros municipio municipios GestaoMunicipios FormularioMunicipio
 entidade Empresa   configuracao empresa empresas   GestaoEmpresas   FormularioEmpresa
 entidade Servico   cadastros servico servicos GestaoServicos FormularioServico
+# Financeiro (docs/financeiro/README.md, secao 5): cadastros com CRUD gerado. Titulo e Movimento nao tem CRUD (o apiClient
+# gerado chamaria endpoints inexistentes): o dominio deles nao e gerado; as telas deles sao window.custom (abaixo).
+entidade ContaFinanceira     financeiro conta     financeiro/contas     GestaoContasFinanceiras     FormularioContaFinanceira
+entidade CategoriaFinanceira financeiro categoria financeiro/categorias GestaoCategoriasFinanceiras FormularioCategoriaFinanceira
+entidade CondicaoPagamento   financeiro condicao  financeiro/condicoes  GestaoCondicoesPagamento    FormularioCondicaoPagamento
+entidade Banco               financeiro banco     bancos                GestaoBancos                FormularioBanco
+# Configuracao (registro unico por empresa) e telas operacionais (window.custom; decisao D2 de docs/financeiro/README.md)
+singleton ConfiguracaoFinanceira financeiro configuracao financeiro/configuracao FormularioConfiguracaoFinanceira
+rota_custom 'financeiro/receber/index.tsx'  ContasAReceber    financeiro.titulo
+rota_custom 'financeiro/pagar/index.tsx'    ContasAPagar      financeiro.titulo
+rota_custom 'financeiro/titulos/$id.tsx'    TituloFinanceiro  financeiro.titulo
+rota_custom 'financeiro/extrato/index.tsx'  ExtratoFinanceiro financeiro.extrato
+rota_custom 'financeiro/csv/index.tsx'      ImportarExportarCsv financeiro.csv
+rota_custom 'financeiro/cobranca/index.tsx' IntegracaoCobranca  financeiro.cobranca
+# Agentes (ClienteAcesso; docs/financeiro/README.md 9.4, B3): window.custom
+rota_custom 'agentes/index.tsx'             AgentesDeAcesso     configuracao.agentes
 
 # manifesto (um para o projeto todo)
 gerar "$WEB/gen/screens.ts" screenManifest

@@ -184,10 +184,9 @@ public class FaturaCrmMapper {
             repository.conferirEmpresaImutavel(entity, api.getEmpresa() == null ? null : api.getEmpresa().getId());
 
             if ( api.getAssinatura() != null ) {
-                if ( entity.getAssinatura() == null ) {
-                    entity.setAssinatura( new AssinaturaEmpresaEntity() );
-                }
-                entity.setAssinatura(assinaturaEmpresaMapper.updateApiToEntity( api.getAssinatura(), entity.getAssinatura()));
+                // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+                // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+                entity.setAssinatura(assinaturaEmpresaMapper.updateApiToEntity( api.getAssinatura(), entity.getAssinatura() != null ? entity.getAssinatura() : new AssinaturaEmpresaEntity()));
             } else {
                 entity.setAssinatura( null );
             }
@@ -217,10 +216,9 @@ public class FaturaCrmMapper {
         if (api.getDataAtualizacao() != null) entity.setDataAtualizacao( api.getDataAtualizacao() ); 
         repository.conferirEmpresaImutavel(entity, api.getEmpresa() == null ? null : api.getEmpresa().getId());
         if ( api.getAssinatura() != null ) {
-            if ( entity.getAssinatura() == null ) {
-                entity.setAssinatura( new AssinaturaEmpresaEntity() );
-            }
-            entity.setAssinatura(assinaturaEmpresaMapper.updateApiToEntity( api.getAssinatura(), entity.getAssinatura()));
+            // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+            // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+            entity.setAssinatura(assinaturaEmpresaMapper.updateApiToEntity( api.getAssinatura(), entity.getAssinatura() != null ? entity.getAssinatura() : new AssinaturaEmpresaEntity()));
         }
 
         return entity;

@@ -276,6 +276,66 @@ public class AuthService {
                 .executeUpdate();
     }
 
+    // ------------------------------------------------------------------------------------- senha recente (A7)
+
+    /** Por quanto tempo a senha confirmada vale para as operacoes criticas (docs/financeiro/README.md, 9.2, A7). */
+    public static final long SENHA_RECENTE_SEGUNDOS = 300;
+
+    /**
+     * Confere a senha do usuario da sessao (com as travas de forca bruta do login) e devolve um token de acesso novo, igual ao atual
+     * (mesma empresa e papel, relidos do vinculo) mais a marca {@code senha_recente_ate} = agora + 5 minutos. Nao cria refresh token.
+     */
+    public Sessao reautenticar(String usuarioId, String empresaId, String senha) {
+        String chaveForca = QuarkusTransaction.requiringNew().call(() -> {
+            UsuarioEntity u = em.find(UsuarioEntity.class, usuarioId);
+            return u == null ? null : normalizarEmail(u.getEmail());
+        });
+        if (chaveForca == null) {
+            throw new ApiException(401, "nao_autenticado", MSG_SESSAO);
+        }
+        forcaBruta.verificar(chaveForca);
+        try {
+            Sessao s = contexto.comoSistema(() -> QuarkusTransaction.requiringNew().call(() -> Tx.ok(reautenticarNaTransacao(usuarioId, empresaId, senha))))
+                    .obter();
+            forcaBruta.registrarSucesso(chaveForca);
+            return s;
+        } catch (ApiException e) {
+            if ("senha_invalida".equals(e.getCodigo())) {
+                forcaBruta.registrarFalha(chaveForca);
+            }
+            throw e;
+        }
+    }
+
+    private Sessao reautenticarNaTransacao(String usuarioId, String empresaId, String senha) {
+        UsuarioEntity u = em.find(UsuarioEntity.class, usuarioId);
+        if (u == null || !Boolean.TRUE.equals(u.getAtivo())) {
+            throw new ApiException(401, "nao_autenticado", MSG_SESSAO);
+        }
+        boolean confere = u.getSenhaHash() != null && senha != null && SenhaPolitica.bytes(senha) <= SenhaPolitica.MAX_BYTES
+                && SenhaPolitica.confere(senha, u.getSenhaHash());
+        if (!confere) {
+            throw new ApiException(400, "senha_invalida", "Senha incorreta.",
+                    Map.of("campos", List.of(Map.of("campo", "senha", "mensagem", "Senha incorreta."))));
+        }
+        boolean admin = Boolean.TRUE.equals(u.getAdministradorPlataforma());
+        EmpresaEntity e = null;
+        String papel = null;
+        boolean podeCancelar = admin;
+        if (empresaId != null) {
+            VinculoUsuarioEntity v = vinculoAtivo(usuarioId, empresaId);
+            if (v == null) {
+                throw new ApiException(401, "nao_autenticado", MSG_SESSAO);
+            }
+            e = v.getEmpresa();
+            papel = v.getPapel();
+            podeCancelar = podeCancelar(v, admin);
+        }
+        long ate = java.time.Instant.now().getEpochSecond() + SENHA_RECENTE_SEGUNDOS;
+        String access = jwt.emitir(u, e, papel, admin, ate);
+        return new Sessao(access, jwt.expiresInSegundos(), resumo(u), resumo(e), papel, admin, podeCancelar);
+    }
+
     // ------------------------------------------------------------------------------------------- internos
 
     /** Permissao efetiva de cancelar NFS-e: plataforma e administrador sempre; operador so com a delegacao do vinculo. */

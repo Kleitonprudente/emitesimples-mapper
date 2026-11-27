@@ -27,8 +27,37 @@
             [v] export const Route = createFileRoute('/_authenticated{{ $route }}')({
             [v]   component: {{ @name }}Page,
             [v] })
+        [e] route-custom
+            [v] import { createFileRoute } from '@tanstack/react-router'
+            [v] import { {{ $comp }} } from '{{ $from }}'
+            [v] {{ '' }}
+            [v] // window.custom: a tela e declarada no mapa e o componente e escrito a mao (front/mapas/README.md, "window.custom").
+            [v] export const Route = createFileRoute('/_authenticated{{ $route }}/')({
+            [v]   component: {{ $comp }},
+            [v] })
+        [e] route-custom-param
+            [v] import { createFileRoute } from '@tanstack/react-router'
+            [v] import { {{ $comp }} } from '{{ $from }}'
+            [v] {{ '' }}
+            [v] // window.custom: a tela e declarada no mapa e o componente e escrito a mao (front/mapas/README.md, "window.custom").
+            [v] function {{ @name }}Page() {
+            [v]   const { {{ $param }} } = Route.useParams()
+            [v]   return <{{ $comp }} {{ $param }}={ {{ $param }} } />
+            [v] }
+            [v] {{ '' }}
+            [v] export const Route = createFileRoute('/_authenticated{{ $route }}')({
+            [v]   component: {{ @name }}Page,
+            [v] })
+        [e] err-custom-component
+            [v] // ERRO NO MODELO: window.custom {{ @name }} sem component (declare o nome exportado do componente escrito a mao)
+        [e] err-custom-from
+            [v] // ERRO NO MODELO: window.custom {{ @name }} sem from (declare o caminho do modulo em @/features/)
+        [e] err-custom-from-invalid
+            [v] // ERRO NO MODELO: window.custom {{ @name }} com from '{{ $from }}' fora de @/features/ (o componente escrito a mao vive em @/features/)
+        [e] err-custom-route
+            [v] // ERRO NO MODELO: window.custom {{ @name }} sem route (declare a rota)
         [e] route-todo
-            [v] // @TODO {{ @name }}: {{ @mode }} sem rota tratavel (route={{ $route }}); screenRoute so trata window.list e window.editor com route.
+            [v] // @TODO {{ @name }}: {{ @mode }} sem rota tratavel (route={{ $route }}); screenRoute trata window.list, window.editor com $id ou singleton e window.custom.
     [e] start
         [e] match
             [v] /classes/class[@name = $modelName and @package = $package]
@@ -47,6 +76,18 @@
                     [e] expr
                         [v] mi:if-else(contains(normalize-space(properties/route/value), '$'), normalize-space(properties/route/value), concat(normalize-space(properties/route/value), '/index'))
                 [e] var
+                    [v] comp
+                    [e] expr
+                        [v] normalize-space(properties/component/value)
+                [e] var
+                    [v] from
+                    [e] expr
+                        [v] normalize-space(properties/from/value)
+                [e] var
+                    [v] singleton
+                    [e] expr
+                        [v] normalize-space(properties/singleton/value)
+                [e] var
                     [v] screenPath
                     [e] expr
                         [v] concat('@/features/', tokenize(@package, '[.]')[last() - 1], '/', tokenize(@package, '[.]')[last()], '/', @name, 'Screen')
@@ -62,6 +103,42 @@
                     [e] then
                         [e] write-pattern
                             [v] route-editor
+                [e] else-if
+                    [v] @mode = 'window.editor' and $singleton = 'true' and $route != '' and not(contains($route, '$'))
+                    [e] then
+                        [e] write-pattern
+                            [v] route-list
+                [e] else-if
+                    [v] @mode = 'window.custom'
+                    [e] then
+                        [e] if
+                            [v] $comp = ''
+                            [e] then
+                                [e] write-pattern
+                                    [v] err-custom-component
+                            [e] else-if
+                                [v] $from = ''
+                                [e] then
+                                    [e] write-pattern
+                                        [v] err-custom-from
+                            [e] else-if
+                                [v] not(starts-with($from, '@/features/'))
+                                [e] then
+                                    [e] write-pattern
+                                        [v] err-custom-from-invalid
+                            [e] else-if
+                                [v] $route = ''
+                                [e] then
+                                    [e] write-pattern
+                                        [v] err-custom-route
+                            [e] else-if
+                                [v] contains($route, '$')
+                                [e] then
+                                    [e] write-pattern
+                                        [v] route-custom-param
+                            [e] else
+                                [e] write-pattern
+                                    [v] route-custom
                 [e] else
                     [e] write-pattern
                         [v] route-todo

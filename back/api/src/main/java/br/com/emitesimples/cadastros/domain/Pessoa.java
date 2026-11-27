@@ -60,6 +60,8 @@ public class Pessoa {
     @NotNull(message = "The attribute fornecedor can't be null.")
     private Boolean fornecedor;
 
+    private Boolean naoEnviarCobranca;
+
     @Size(max = 20, message = "Attribute telefone must have 20 characters maximum.")
     private String telefone;
 
@@ -125,6 +127,7 @@ public class Pessoa {
         this.consumidorFinal = null;
         this.cliente = null;
         this.fornecedor = null;
+        this.naoEnviarCobranca = null;
         this.telefone = null;
         this.email = null;
         this.logradouro = null;
@@ -154,6 +157,7 @@ public class Pessoa {
         Boolean consumidorFinal,
         Boolean cliente,
         Boolean fornecedor,
+        Boolean naoEnviarCobranca,
         String telefone,
         String email,
         String logradouro,
@@ -182,6 +186,7 @@ public class Pessoa {
         this.consumidorFinal = consumidorFinal;
         this.cliente = cliente;
         this.fornecedor = fornecedor;
+        this.naoEnviarCobranca = naoEnviarCobranca;
         this.telefone = telefone;
         this.email = email;
         this.logradouro = logradouro;
@@ -285,6 +290,14 @@ public class Pessoa {
 
     public Boolean getFornecedor() {
         return this.fornecedor;
+    }
+
+    public void setNaoEnviarCobranca(Boolean naoEnviarCobranca) {
+        this.naoEnviarCobranca = naoEnviarCobranca;
+    }
+
+    public Boolean getNaoEnviarCobranca() {
+        return this.naoEnviarCobranca;
     }
 
     public void setTelefone(String telefone) {
@@ -440,6 +453,7 @@ public class Pessoa {
             this.consumidorFinal != null || 
             this.cliente != null || 
             this.fornecedor != null || 
+            this.naoEnviarCobranca != null || 
             this.telefone != null || 
             this.email != null || 
             this.logradouro != null || 

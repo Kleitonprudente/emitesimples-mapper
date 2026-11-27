@@ -1,0 +1,350 @@
+[b] ContaFinanceira
+    @
+        [e] title
+            [e] pt
+                [v] Conta Financeira
+            [e] en
+                [v] Financial Account
+        [e] description
+            [e] pt
+                [v] Onde o dinheiro da empresa está: o caixa da loja, uma conta no banco ou uma carteira digital. Cada movimento do livro (Fase 3) acontece em uma conta.
+                  | O saldo NUNCA é guardado: é sempre calculado como saldo inicial mais a soma do livro até a data.
+                  | Regras documentadas e não expressas no mapa (docs/financeiro/README.md, F1-H1), implementadas na migração e em listener à mão:
+                  | o nome é único por empresa; o código do banco, quando informado, existe no cadastro de Banco; a data do saldo inicial não é futura;
+                  | cada forma tem no máximo uma conta padrão e, ao marcar outra, a anterior é desmarcada na mesma transação;
+                  | conta com movimentos tem saldo inicial e data travados (Fase 3). Nunca se apaga: só se desativa. Escrita só do administrador da empresa.
+                  | Vive no contexto financeiro (domain.financeiro), que referencia a Empresa (configuracao).
+            [e] en
+                [v] Where the company money is: the store cash box, a bank account or a digital wallet. Every ledger entry (Phase 3) happens in an account.
+                  | The balance is NEVER stored: it is always computed as the opening balance plus the sum of the ledger up to the date.
+                  | Rules documented and not expressed in the map (docs/financeiro/README.md, F1-H1), implemented in the migration and in a hand-written listener:
+                  | the name is unique per company; the bank code, when given, exists in the Banco registry; the opening balance date is not in the future;
+                  | each payment method has at most one default account and, when another is marked, the previous one is unmarked in the same transaction;
+                  | an account with entries has its opening balance and date locked (Phase 3). Never deleted: only deactivated. Written only by the company administrator.
+                  | Lives in the financeiro context (domain.financeiro), which references Empresa (configuracao).
+    [g] identificacao
+        [d] nome: Texto(100)
+            @
+                [e] cn
+                    [v] nome
+                [e] title
+                    [e] pt
+                        [v] Nome
+                    [e] en
+                        [v] Name
+                [e] description
+                    [e] pt
+                        [v] Nome da conta, único na empresa (ex.: Caixa, Banco do Brasil, Carteira Pix).
+                    [e] en
+                        [v] Account name, unique within the company (e.g. Cash, Banco do Brasil, Pix Wallet).
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+        [d] tipo: Texto(10)
+            @
+                [e] cn
+                    [v] tipo
+                [e] title
+                    [e] pt
+                        [v] Tipo
+                    [e] en
+                        [v] Type
+                [e] description
+                    [e] pt
+                        [v] Tipo da conta: CAIXA, BANCO ou CARTEIRA. Valores documentados em values.
+                    [e] en
+                        [v] Account type: CAIXA, BANCO or CARTEIRA. Values documented in values.
+                [e] required
+                    [v] true
+                [e] values
+                    [e] CAIXA
+                        [e] title
+                            [e] pt
+                                [v] Caixa
+                            [e] en
+                                [v] Cash box
+                        [e] description
+                            [e] pt
+                                [v] Dinheiro em espécie guardado na empresa.
+                            [e] en
+                                [v] Cash kept at the company.
+                    [e] BANCO
+                        [e] title
+                            [e] pt
+                                [v] Conta em banco
+                            [e] en
+                                [v] Bank account
+                        [e] description
+                            [e] pt
+                                [v] Conta corrente ou de pagamento em um banco; pode informar código do banco e agência.
+                            [e] en
+                                [v] Checking or payment account at a bank; may hold bank code and branch.
+                    [e] CARTEIRA
+                        [e] title
+                            [e] pt
+                                [v] Carteira digital
+                            [e] en
+                                [v] Digital wallet
+                        [e] description
+                            [e] pt
+                                [v] Saldo em carteira digital ou maquininha.
+                            [e] en
+                                [v] Balance in a digital wallet or card machine.
+        [d] ativo: Boolean()
+            @
+                [e] cn
+                    [v] ativo
+                [e] title
+                    [e] pt
+                        [v] Ativa
+                    [e] en
+                        [v] Active
+                [e] description
+                    [e] pt
+                        [v] Conta inativa não recebe movimento novo ("A conta X está inativa."), mas continua no histórico e no extrato.
+                    [e] en
+                        [v] An inactive account takes no new entry ("Account X is inactive."), but stays in history and statements.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] true
+    [g] dadosBancarios
+        [d] codigoBanco: Texto(4)
+            @
+                [e] cn
+                    [v] codigo_banco
+                [e] title
+                    [e] pt
+                        [v] Código do Banco
+                    [e] en
+                        [v] Bank Code
+                [e] description
+                    [e] pt
+                        [v] Código do banco no Banco Central, sem zeros à esquerda (ex.: 1, 341). Opcional; quando informado, precisa existir no cadastro de Banco.
+                    [e] en
+                        [v] Bank code at the Central Bank, without leading zeros (e.g. 1, 341). Optional; when given, it must exist in the Banco registry.
+        [d] agencia: Texto(10)
+            @
+                [e] cn
+                    [v] agencia
+                [e] title
+                    [e] pt
+                        [v] Agência
+                    [e] en
+                        [v] Branch
+                [e] description
+                    [e] pt
+                        [v] Agência bancária, só letras, números e hífen. Opcional.
+                    [e] en
+                        [v] Bank branch, only letters, digits and hyphen. Optional.
+        [d] dadosDoBanco: Texto(150)
+            @
+                [e] cn
+                    [v] dados_do_banco
+                [e] title
+                    [e] pt
+                        [v] Dados para Pagamento
+                    [e] en
+                        [v] Payment Details
+                [e] description
+                    [e] pt
+                        [v] Texto livre com o número da conta, chave Pix etc., usado no "como pagar" do e-mail de cobrança (Fase 6). Opcional.
+                    [e] en
+                        [v] Free text with account number, Pix key etc., used in the "how to pay" part of the collection e-mail (Phase 6). Optional.
+    [g] saldoInicial
+        [d] saldoInicial: ValorMonetario(15,2)
+            @
+                [e] cn
+                    [v] saldo_inicial
+                [e] title
+                    [e] pt
+                        [v] Saldo Inicial
+                    [e] en
+                        [v] Opening Balance
+                [e] description
+                    [e] pt
+                        [v] Saldo na data de abertura. Pode ser negativo (conta no cheque especial); teto de R$ 999.999.999,99 para mais ou para menos.
+                          | Travado quando a conta tiver movimentos (Fase 3).
+                    [e] en
+                        [v] Balance on the opening date. May be negative (overdraft); limit of R$ 999,999,999.99 either way.
+                          | Locked once the account has entries (Phase 3).
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] 0
+        [d] dataSaldoInicial: Data()
+            @
+                [e] cn
+                    [v] data_saldo_inicial
+                [e] title
+                    [e] pt
+                        [v] Data do Saldo Inicial
+                    [e] en
+                        [v] Opening Balance Date
+                [e] description
+                    [e] pt
+                        [v] Data de abertura da conta. Não pode ser futura; nenhum movimento pode ter data anterior a ela. Travada quando a conta tiver movimentos (Fase 3).
+                    [e] en
+                        [v] Account opening date. Cannot be in the future; no entry may be dated before it. Locked once the account has entries (Phase 3).
+                [e] required
+                    [v] true
+    [g] padroes
+        [d] padraoDinheiro: Boolean()
+            @
+                [e] cn
+                    [v] padrao_dinheiro
+                [e] title
+                    [e] pt
+                        [v] Padrão para Dinheiro
+                    [e] en
+                        [v] Default for Cash
+                [e] description
+                    [e] pt
+                        [v] Conta padrão da forma DINHEIRO. No máximo uma conta da empresa por forma; marcar esta desmarca a anterior.
+                    [e] en
+                        [v] Default account for the DINHEIRO method. At most one account of the company per method; marking this one unmarks the previous.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] false
+        [d] padraoPix: Boolean()
+            @
+                [e] cn
+                    [v] padrao_pix
+                [e] title
+                    [e] pt
+                        [v] Padrão para Pix
+                    [e] en
+                        [v] Default for Pix
+                [e] description
+                    [e] pt
+                        [v] Conta padrão da forma PIX. No máximo uma conta da empresa por forma; marcar esta desmarca a anterior.
+                    [e] en
+                        [v] Default account for the PIX method. At most one account of the company per method; marking this one unmarks the previous.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] false
+        [d] padraoBoleto: Boolean()
+            @
+                [e] cn
+                    [v] padrao_boleto
+                [e] title
+                    [e] pt
+                        [v] Padrão para Boleto
+                    [e] en
+                        [v] Default for Bank Slip
+                [e] description
+                    [e] pt
+                        [v] Conta padrão da forma BOLETO. No máximo uma conta da empresa por forma; marcar esta desmarca a anterior.
+                    [e] en
+                        [v] Default account for the BOLETO method. At most one account of the company per method; marking this one unmarks the previous.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] false
+        [d] padraoCartao: Boolean()
+            @
+                [e] cn
+                    [v] padrao_cartao
+                [e] title
+                    [e] pt
+                        [v] Padrão para Cartão
+                    [e] en
+                        [v] Default for Card
+                [e] description
+                    [e] pt
+                        [v] Conta padrão da forma CARTAO. No máximo uma conta da empresa por forma; marcar esta desmarca a anterior.
+                    [e] en
+                        [v] Default account for the CARTAO method. At most one account of the company per method; marking this one unmarks the previous.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] false
+        [d] padraoTransferencia: Boolean()
+            @
+                [e] cn
+                    [v] padrao_transferencia
+                [e] title
+                    [e] pt
+                        [v] Padrão para Transferência
+                    [e] en
+                        [v] Default for Transfer
+                [e] description
+                    [e] pt
+                        [v] Conta padrão da forma TRANSFERENCIA. No máximo uma conta da empresa por forma; marcar esta desmarca a anterior.
+                    [e] en
+                        [v] Default account for the TRANSFERENCIA method. At most one account of the company per method; marking this one unmarks the previous.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] false
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno da conta (UUID).
+                    [e] en
+                        [v] Internal account identifier (UUID).
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que a conta foi cadastrada.
+                    [e] en
+                        [v] Date and time the account was registered.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true
+    [g] relacionamentos
+        [r] empresa: Empresa()
+            @
+                [e] cn
+                    [v] empresa_id
+                [e] title
+                    [e] pt
+                        [v] Empresa
+                    [e] en
+                        [v] Company
+                [e] description
+                    [e] pt
+                        [v] Empresa dona desta conta e tenant do registro. Todo acesso é filtrado por ela.
+                    [e] en
+                        [v] Company that owns this account and tenant of the record. Every access is filtered by it.
+                [e] required
+                    [v] true
+                [e] tenantKey
+                    [v] true

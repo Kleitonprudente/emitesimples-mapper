@@ -13,6 +13,8 @@ import br.com.emitesimples.exceptions.NotFoundException;
 import br.com.emitesimples.configuracao.domain.Empresa;
 import br.com.emitesimples.configuracao.mapper.EmpresaMapper;
 import br.com.emitesimples.configuracao.entity.EmpresaEntity;
+import br.com.emitesimples.usuarios.domain.Usuario;
+import br.com.emitesimples.usuarios.entity.UsuarioEntity;
 
 @ApplicationScoped
 public class ClienteAcessoMapper {
@@ -20,6 +22,8 @@ public class ClienteAcessoMapper {
     @Inject ClienteAcessoRepository repository;
     @Inject 
     EmpresaMapper empresaMapper;
+    @Inject 
+    UsuarioMapper usuarioMapper;
 
     public ClienteAcesso entityToApi(ClienteAcessoEntity entity) {
         if ( entity == null ) {
@@ -39,6 +43,7 @@ public class ClienteAcessoMapper {
         clienteAcesso.setDataCriacao( entity.getDataCriacao() );
         clienteAcesso.setDataAtualizacao( entity.getDataAtualizacao() );
         clienteAcesso.setEmpresa(empresaMapper.entityToApi(entity.getEmpresa() ));
+        clienteAcesso.setUsuario(usuarioMapper.entityToApi(entity.getUsuario() ));
 
         this.setApiDefaultValues(clienteAcesso);
 
@@ -69,6 +74,7 @@ public class ClienteAcessoMapper {
             clienteAcessoBuilder.dataCriacao = api.getDataCriacao();
             clienteAcessoBuilder.dataAtualizacao = api.getDataAtualizacao();
             clienteAcessoBuilder.empresa = repository.empresaEfetiva(api.getEmpresa() == null ? null : api.getEmpresa().getId());
+            clienteAcessoBuilder.usuario = usuarioMapper.apiToEntity(api.getUsuario());
             entity = clienteAcessoBuilder.build();
             this.setEntityDefaultValues(entity);
         }
@@ -127,6 +133,15 @@ public class ClienteAcessoMapper {
             api.setEmpresa( null );
         }
 
+        if ( entity.getUsuario() != null ) {
+            if ( api.getUsuario() == null ) {
+                api.setUsuario( new Usuario() );
+            }
+            usuarioMapper.updateEntityToApi(entity.getUsuario(), api.getUsuario());
+        } else {
+            api.setUsuario( null );
+        }
+
         this.setApiDefaultValues(api);
 
         return api;
@@ -156,6 +171,14 @@ public class ClienteAcessoMapper {
             entity.setDataAtualizacao( api.getDataAtualizacao() );
             repository.conferirEmpresaImutavel(entity, api.getEmpresa() == null ? null : api.getEmpresa().getId());
 
+            if ( api.getUsuario() != null ) {
+                // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+                // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+                entity.setUsuario(usuarioMapper.updateApiToEntity( api.getUsuario(), entity.getUsuario() != null ? entity.getUsuario() : new UsuarioEntity()));
+            } else {
+                entity.setUsuario( null );
+            }
+
             this.setEntityDefaultValues(entity);
         }
 
@@ -177,6 +200,11 @@ public class ClienteAcessoMapper {
         if (api.getDataCriacao() != null) entity.setDataCriacao( api.getDataCriacao() ); 
         if (api.getDataAtualizacao() != null) entity.setDataAtualizacao( api.getDataAtualizacao() ); 
         repository.conferirEmpresaImutavel(entity, api.getEmpresa() == null ? null : api.getEmpresa().getId());
+        if ( api.getUsuario() != null ) {
+            // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+            // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+            entity.setUsuario(usuarioMapper.updateApiToEntity( api.getUsuario(), entity.getUsuario() != null ? entity.getUsuario() : new UsuarioEntity()));
+        }
 
         return entity;
     }

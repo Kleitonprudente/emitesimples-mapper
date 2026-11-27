@@ -1,0 +1,347 @@
+[b] ConfiguracaoFinanceira
+    @
+        [e] title
+            [e] pt
+                [v] Configuração Financeira
+            [e] en
+                [v] Financial Settings
+        [e] description
+            [e] pt
+                [v] Parâmetros do financeiro da empresa: multa, juros e carência dos atrasos, lembretes de cobrança e os padrões que pré-preenchem o título novo.
+                  | Uma linha por empresa, criada pelos padrões iniciais (POST /api/financeiro/padroes); nunca se cria pelo CRUD (POST negado) e nunca se apaga.
+                  | Os padrões só pré-preenchem o formulário: a pessoa pode apagar.
+                  | Regras documentadas e não expressas no mapa (docs/financeiro/README.md, F1-H4), implementadas na migração:
+                  | uma linha por empresa; multa e juros de 0 a 999,99; carência de 0 a 365 dias; lembrete antes de 0 a 30 dias;
+                  | lembretes depois com até 5 números de 1 ou 2 dígitos separados por vírgula; categoria padrão ativa, do tipo certo e sem filhas (trigger).
+                  | Escrita só do administrador da empresa.
+            [e] en
+                [v] Company financial parameters: late fee, interest and grace period, collection reminders and the defaults that prefill a new bill.
+                  | One row per company, created by the initial defaults (POST /api/financeiro/padroes); never created through CRUD (POST denied) and never deleted.
+                  | The defaults only prefill the form: the user may clear them.
+                  | Rules documented and not expressed in the map (docs/financeiro/README.md, F1-H4), implemented in the migration:
+                  | one row per company; fee and interest from 0 to 999.99; grace period from 0 to 365 days; reminder before from 0 to 30 days;
+                  | reminders after with up to 5 numbers of 1 or 2 digits separated by comma; default category active, of the right type and without children (trigger).
+                  | Written only by the company administrator.
+    [g] acrescimos
+        [d] multaPercentual: Decimal(5,2)
+            @
+                [e] cn
+                    [v] multa_percentual
+                [e] title
+                    [e] pt
+                        [v] Multa (%)
+                    [e] en
+                        [v] Late Fee (%)
+                [e] description
+                    [e] pt
+                        [v] Multa única sobre o valor quitado com atraso, de 0 a 999,99. Padrão 2,00. O título pode ter a sua.
+                    [e] en
+                        [v] One-time fee on the amount paid late, from 0 to 999.99. Default 2.00. The bill may have its own.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] 2.00
+        [d] jurosMensalPercentual: Decimal(5,2)
+            @
+                [e] cn
+                    [v] juros_mensal_percentual
+                [e] title
+                    [e] pt
+                        [v] Juros ao Mês (%)
+                    [e] en
+                        [v] Monthly Interest (%)
+                [e] description
+                    [e] pt
+                        [v] Juros simples ao mês (mês de 30 dias) sobre o valor quitado com atraso, de 0 a 999,99. Padrão 1,00. O título pode ter o seu.
+                    [e] en
+                        [v] Simple monthly interest (30-day month) on the amount paid late, from 0 to 999.99. Default 1.00. The bill may have its own.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] 1.00
+        [d] carenciaDias: Inteiro(3)
+            @
+                [e] cn
+                    [v] carencia_dias
+                [e] title
+                    [e] pt
+                        [v] Carência (dias)
+                    [e] en
+                        [v] Grace Period (days)
+                [e] description
+                    [e] pt
+                        [v] Até o vencimento mais estes dias não se cobra multa nem juros, de 0 a 365. Padrão 2.
+                    [e] en
+                        [v] Up to the due date plus these days no fee nor interest is charged, from 0 to 365. Default 2.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] 2
+    [g] lembretes
+        [d] lembretesAtivos: Boolean()
+            @
+                [e] cn
+                    [v] lembretes_ativos
+                [e] title
+                    [e] pt
+                        [v] Lembretes Automáticos
+                    [e] en
+                        [v] Automatic Reminders
+                [e] description
+                    [e] pt
+                        [v] Liga os e-mails automáticos de cobrança (Fase 6). Desligado por padrão.
+                    [e] en
+                        [v] Turns on the automatic collection e-mails (Phase 6). Off by default.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] false
+        [d] lembreteDiasAntes: Inteiro(2)
+            @
+                [e] cn
+                    [v] lembrete_dias_antes
+                [e] title
+                    [e] pt
+                        [v] Avisar Dias Antes
+                    [e] en
+                        [v] Remind Days Before
+                [e] description
+                    [e] pt
+                        [v] Quantos dias antes do vencimento sai o lembrete, de 0 a 30. Padrão 3.
+                    [e] en
+                        [v] How many days before the due date the reminder goes out, from 0 to 30. Default 3.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] 3
+        [d] lembreteDiasDepois: Texto(40)
+            @
+                [e] cn
+                    [v] lembrete_dias_depois
+                [e] title
+                    [e] pt
+                        [v] Avisar Dias Depois
+                    [e] en
+                        [v] Remind Days After
+                [e] description
+                    [e] pt
+                        [v] Dias após o vencimento em que sai um lembrete: até 5 números de 1 ou 2 dígitos separados por vírgula. Padrão "1,7,15".
+                    [e] en
+                        [v] Days after the due date when a reminder goes out: up to 5 numbers of 1 or 2 digits separated by comma. Default "1,7,15".
+                [e] defaultValue
+                    [v] 1,7,15
+    [g] padroesDoTitulo
+        [d] vencimentoPadraoDias: Inteiro(3)
+            @
+                [e] cn
+                    [v] vencimento_padrao_dias
+                [e] title
+                    [e] pt
+                        [v] Vencimento Padrão (dias)
+                    [e] en
+                        [v] Default Due (days)
+                [e] description
+                    [e] pt
+                        [v] Só no título a receber: pré-preenche o vencimento com hoje mais estes dias. Padrão 0.
+                    [e] en
+                        [v] Receivables only: prefills the due date with today plus these days. Default 0.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] 0
+        [d] observacaoPadraoReceber: Texto(255)
+            @
+                [e] cn
+                    [v] observacao_padrao_receber
+                [e] title
+                    [e] pt
+                        [v] Observação Padrão a Receber
+                    [e] en
+                        [v] Default Receivable Note
+                [e] description
+                    [e] pt
+                        [v] Pré-preenche a observação (instruções de pagamento) do título a receber. Opcional.
+                    [e] en
+                        [v] Prefills the note (payment instructions) of a receivable. Optional.
+        [d] formaPrevistaPadraoReceber: Texto(20)
+            @
+                [e] cn
+                    [v] forma_prevista_padrao_receber
+                [e] title
+                    [e] pt
+                        [v] Forma Prevista Padrão a Receber
+                    [e] en
+                        [v] Default Expected Method for Receivables
+                [e] description
+                    [e] pt
+                        [v] Pré-preenche a forma prevista do título a receber: DINHEIRO, PIX, BOLETO, CARTAO ou TRANSFERENCIA. Opcional. Valores documentados em values.
+                    [e] en
+                        [v] Prefills the expected method of a receivable: DINHEIRO, PIX, BOLETO, CARTAO or TRANSFERENCIA. Optional. Values documented in values.
+                [e] values
+                    [e] DINHEIRO
+                        [e] title
+                            [e] pt
+                                [v] Dinheiro
+                            [e] en
+                                [v] Cash
+                        [e] description
+                            [e] pt
+                                [v] Pagamento em espécie.
+                            [e] en
+                                [v] Cash payment.
+                    [e] PIX
+                        [e] title
+                            [e] pt
+                                [v] Pix
+                            [e] en
+                                [v] Pix
+                        [e] description
+                            [e] pt
+                                [v] Pagamento instantâneo Pix.
+                            [e] en
+                                [v] Pix instant payment.
+                    [e] BOLETO
+                        [e] title
+                            [e] pt
+                                [v] Boleto
+                            [e] en
+                                [v] Bank slip
+                        [e] description
+                            [e] pt
+                                [v] Boleto bancário.
+                            [e] en
+                                [v] Bank payment slip.
+                    [e] CARTAO
+                        [e] title
+                            [e] pt
+                                [v] Cartão
+                            [e] en
+                                [v] Card
+                        [e] description
+                            [e] pt
+                                [v] Cartão de crédito ou débito.
+                            [e] en
+                                [v] Credit or debit card.
+                    [e] TRANSFERENCIA
+                        [e] title
+                            [e] pt
+                                [v] Transferência
+                            [e] en
+                                [v] Transfer
+                        [e] description
+                            [e] pt
+                                [v] Transferência bancária (TED, DOC ou entre contas).
+                            [e] en
+                                [v] Bank transfer (TED, DOC or between accounts).
+        [d] padroesCriadosEm: DataHora()
+            @
+                [e] cn
+                    [v] padroes_criados_em
+                [e] title
+                    [e] pt
+                        [v] Padrões Criados em
+                    [e] en
+                        [v] Defaults Created at
+                [e] description
+                    [e] pt
+                        [v] Marca de que os cadastros iniciais (conta Caixa, categorias, condições) já foram criados. Preenchida pelo serviço de padrões.
+                    [e] en
+                        [v] Mark that the initial records (Cash account, categories, terms) were already created. Filled by the defaults service.
+                [e] readOnly
+                    [v] true
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno da configuração (UUID).
+                    [e] en
+                        [v] Internal settings identifier (UUID).
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que a configuração foi criada.
+                    [e] en
+                        [v] Date and time the settings were created.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true
+    [g] relacionamentos
+        [r] categoriaPadraoReceita: CategoriaFinanceira()
+            @
+                [e] cn
+                    [v] categoria_padrao_receita_id
+                [e] title
+                    [e] pt
+                        [v] Categoria Padrão de Receita
+                    [e] en
+                        [v] Default Income Category
+                [e] description
+                    [e] pt
+                        [v] Pré-preenche a categoria do título a receber. Ativa, do tipo RECEITA e sem filhas. Opcional.
+                    [e] en
+                        [v] Prefills the category of a receivable. Active, of type RECEITA and without children. Optional.
+        [r] categoriaPadraoDespesa: CategoriaFinanceira()
+            @
+                [e] cn
+                    [v] categoria_padrao_despesa_id
+                [e] title
+                    [e] pt
+                        [v] Categoria Padrão de Despesa
+                    [e] en
+                        [v] Default Expense Category
+                [e] description
+                    [e] pt
+                        [v] Pré-preenche a categoria do título a pagar. Ativa, do tipo DESPESA e sem filhas. Opcional.
+                    [e] en
+                        [v] Prefills the category of a payable. Active, of type DESPESA and without children. Optional.
+        [r] empresa: Empresa()
+            @
+                [e] cn
+                    [v] empresa_id
+                [e] title
+                    [e] pt
+                        [v] Empresa
+                    [e] en
+                        [v] Company
+                [e] description
+                    [e] pt
+                        [v] Empresa dona desta configuração e tenant do registro (uma linha por empresa). Todo acesso é filtrado por ela.
+                    [e] en
+                        [v] Company that owns these settings and tenant of the record (one row per company). Every access is filtered by it.
+                [e] required
+                    [v] true
+                [e] tenantKey
+                    [v] true

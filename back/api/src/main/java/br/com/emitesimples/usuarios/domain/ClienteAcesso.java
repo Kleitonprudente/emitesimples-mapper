@@ -60,6 +60,9 @@ public class ClienteAcesso {
     @NotNull(message = "The attribute empresa can't be null.")
     private Empresa empresa;
 
+    @NotNull(message = "The attribute usuario can't be null.")
+    private Usuario usuario;
+
     public ClienteAcesso() {
         this.version = null;
         this.nome = null;
@@ -72,6 +75,7 @@ public class ClienteAcesso {
         this.dataCriacao = null;
         this.dataAtualizacao = null;
         this.empresa = null;
+        this.usuario = null;
     }
     public ClienteAcesso(
         LocalDateTime version,
@@ -84,7 +88,8 @@ public class ClienteAcesso {
         String id,
         LocalDateTime dataCriacao,
         LocalDateTime dataAtualizacao,
-        Empresa empresa
+        Empresa empresa,
+        Usuario usuario
     ) {
         this.version = version;
         this.nome = nome;
@@ -97,6 +102,7 @@ public class ClienteAcesso {
         this.dataCriacao = dataCriacao;
         this.dataAtualizacao = dataAtualizacao;
         this.empresa = empresa;
+        this.usuario = usuario;
     }
     public void setVersion(LocalDateTime version) {
         this.version = version;
@@ -186,6 +192,14 @@ public class ClienteAcesso {
         return this.empresa;
     }
 
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
+    }
+
+    public Usuario getUsuario() {
+        return this.usuario;
+    }
+
     @JsonIgnore
     public boolean isWeakReference() {
       return !this.isAnyNotKeyFieldsDefined()
@@ -209,7 +223,8 @@ public class ClienteAcesso {
             this.dataExpiracao != null || 
             this.dataCriacao != null || 
             this.dataAtualizacao != null || 
-            this.empresa != null;
+            this.empresa != null || 
+            this.usuario != null;
     }
 
 }

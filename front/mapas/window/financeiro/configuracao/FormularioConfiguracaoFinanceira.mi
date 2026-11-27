@@ -1,0 +1,131 @@
+[Descriptor.window.editor] FormularioConfiguracaoFinanceira
+    @
+        [e] title
+            [e] pt
+                [v] Configuração do financeiro
+        [e] route
+            [v] /financeiro/configuracao
+        [e] singleton
+            [v] true
+        [e] role
+            [v] ADMINISTRADOR
+        [e] icon
+            [v] settings
+        [e] group
+            [v] Financeiro
+        [e] order
+            [v] 90
+    [g] source
+        [r] object: ConfiguracaoFinanceira()
+    [e] emptyState
+        @
+            [e] message
+                [e] pt
+                    [v] A configuração ainda não foi criada. Abra Contas a receber: os padrões iniciais do financeiro são criados no primeiro acesso.
+    [e] form
+        [e] rows
+            [e] section
+                [v] Multa e juros dos atrasos
+                @
+                    [e] description
+                        [e] pt
+                            [v] Valem para os títulos a receber; cada título pode ter os seus.
+            [e] row
+                [e] field
+                    [v] .multaPercentual
+                    @
+                        [e] size
+                            [v] m
+                        [e] hint
+                            [e] pt
+                                [v] Multa única sobre o valor pago com atraso. Ex.: 2,00.
+                [e] field
+                    [v] .jurosMensalPercentual
+                    @
+                        [e] size
+                            [v] m
+                        [e] hint
+                            [e] pt
+                                [v] Juros simples ao mês. Ex.: 1,00.
+                [e] field
+                    [v] .carenciaDias
+                    @
+                        [e] size
+                            [v] m
+                        [e] hint
+                            [e] pt
+                                [v] Até o vencimento mais estes dias, não se cobra nada.
+            [e] section
+                [v] Lembretes de cobrança
+                @
+                    [e] description
+                        [e] pt
+                            [v] E-mails automáticos ao cliente, antes e depois do vencimento.
+            [e] row
+                [e] field
+                    [v] .lembretesAtivos
+                    @
+                        [e] size
+                            [v] m
+                [e] field
+                    [v] .lembreteDiasAntes
+                    @
+                        [e] size
+                            [v] m
+                        [e] hint
+                            [e] pt
+                                [v] De 0 a 30.
+                [e] field
+                    [v] .lembreteDiasDepois
+                    @
+                        [e] size
+                            [v] m
+                        [e] hint
+                            [e] pt
+                                [v] Até 5 números separados por vírgula. Ex.: 1,7,15.
+            [e] section
+                [v] Padrões do título novo
+                @
+                    [e] description
+                        [e] pt
+                            [v] Só preenchem o formulário de um título novo; a pessoa pode mudar.
+            [e] row
+                [e] field
+                    [v] .vencimentoPadraoDias
+                    @
+                        [e] size
+                            [v] l
+                        [e] hint
+                            [e] pt
+                                [v] Só a receber: vencimento = hoje mais estes dias.
+                [e] field
+                    [v] .formaPrevistaPadraoReceber
+                    @
+                        [e] size
+                            [v] l
+            [e] row
+                [e] field
+                    [v] .categoriaPadraoReceita
+                    @
+                        [e] size
+                            [v] l
+                        [e] hint
+                            [e] pt
+                                [v] Categoria de receita sem filhas.
+                [e] field
+                    [v] .categoriaPadraoDespesa
+                    @
+                        [e] size
+                            [v] l
+                        [e] hint
+                            [e] pt
+                                [v] Categoria de despesa sem filhas.
+            [e] row
+                [e] field
+                    [v] .observacaoPadraoReceber
+                    @
+                        [e] size
+                            [v] full
+                        [e] hint
+                            [e] pt
+                                [v] Instruções de pagamento do título a receber.

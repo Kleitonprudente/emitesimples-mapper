@@ -24,6 +24,7 @@ export const pessoaSchema = z.object({
     consumidorFinal: z.boolean().optional(),
     cliente: z.boolean(),
     fornecedor: z.boolean(),
+    naoEnviarCobranca: z.boolean().optional(),
     telefone: z.string().max(20).optional(),
     email: z.string().max(60).optional(),
     logradouro: z.string().max(255),

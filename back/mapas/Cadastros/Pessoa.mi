@@ -237,6 +237,22 @@
                     [v] true
                 [e] defaultValue
                     [v] false
+        [d] naoEnviarCobranca: Boolean()
+            @
+                [e] cn
+                    [v] nao_enviar_cobranca
+                [e] title
+                    [e] pt
+                        [v] Não Enviar Cobrança
+                    [e] en
+                        [v] Do Not Send Collection
+                [e] description
+                    [e] pt
+                        [v] Marcado, a pessoa não recebe cobrança por e-mail nem lembrete do financeiro (docs/financeiro/README.md, 9.3, Fase 6). Padrão não (false).
+                    [e] en
+                        [v] When checked, the person receives no collection e-mail nor reminder from finance (docs/financeiro/README.md, 9.3, Phase 6). Default no (false).
+                [e] defaultValue
+                    [v] false
     [g] contato
         [d] telefone: Texto(20)
             @

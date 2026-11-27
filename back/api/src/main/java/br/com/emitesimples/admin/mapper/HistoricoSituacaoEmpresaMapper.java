@@ -169,10 +169,9 @@ public class HistoricoSituacaoEmpresaMapper {
             repository.conferirEmpresaImutavel(entity, api.getEmpresa() == null ? null : api.getEmpresa().getId());
 
             if ( api.getResponsavel() != null ) {
-                if ( entity.getResponsavel() == null ) {
-                    entity.setResponsavel( new UsuarioEntity() );
-                }
-                entity.setResponsavel(usuarioMapper.updateApiToEntity( api.getResponsavel(), entity.getResponsavel()));
+                // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+                // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+                entity.setResponsavel(usuarioMapper.updateApiToEntity( api.getResponsavel(), entity.getResponsavel() != null ? entity.getResponsavel() : new UsuarioEntity()));
             } else {
                 entity.setResponsavel( null );
             }
@@ -198,10 +197,9 @@ public class HistoricoSituacaoEmpresaMapper {
         if (api.getDataAtualizacao() != null) entity.setDataAtualizacao( api.getDataAtualizacao() ); 
         repository.conferirEmpresaImutavel(entity, api.getEmpresa() == null ? null : api.getEmpresa().getId());
         if ( api.getResponsavel() != null ) {
-            if ( entity.getResponsavel() == null ) {
-                entity.setResponsavel( new UsuarioEntity() );
-            }
-            entity.setResponsavel(usuarioMapper.updateApiToEntity( api.getResponsavel(), entity.getResponsavel()));
+            // resolve a referencia ANTES de liga-la a entidade gerenciada: uma entidade nova pendurada nela
+            // faria o flush automatico da busca por id falhar (TransientPropertyValueException)
+            entity.setResponsavel(usuarioMapper.updateApiToEntity( api.getResponsavel(), entity.getResponsavel() != null ? entity.getResponsavel() : new UsuarioEntity()));
         }
 
         return entity;

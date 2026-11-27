@@ -1,0 +1,71 @@
+[Descriptor.window.editor] FormularioCondicaoPagamento
+    @
+        [e] title
+            [e] pt
+                [v] Cadastro de condição de pagamento
+        [e] route
+            [v] /financeiro/condicoes/$id
+        [e] role
+            [v] ADMINISTRADOR
+        [e] icon
+            [v] calendar-clock
+    [g] source
+        [r] object: CondicaoPagamento()
+    [e] form
+        [e] rows
+            [e] section
+                [v] Condição
+            [e] row
+                [e] field
+                    [v] .nome
+                    @
+                        [e] size
+                            [v] l
+                        [e] hint
+                            [e] pt
+                                [v] Ex.: Boleto 3x (30/60/90).
+                [e] field
+                    [v] .forma
+                    @
+                        [e] size
+                            [v] m
+                [e] field
+                    [v] .ativo
+                    @
+                        [e] size
+                            [v] xs
+            [e] section
+                [v] Parcelamento
+            [e] row
+                [e] field
+                    [v] .parcelas
+                    @
+                        [e] size
+                            [v] s
+                        [e] hint
+                            [e] pt
+                                [v] De 1 a 48.
+                [e] field
+                    [v] .diasPrimeiroVencimento
+                    @
+                        [e] size
+                            [v] s
+                        [e] hint
+                            [e] pt
+                                [v] 0 = à vista.
+                [e] field
+                    [v] .intervaloDias
+                    @
+                        [e] size
+                            [v] s
+                        [e] hint
+                            [e] pt
+                                [v] De 0 a 365.
+                [e] field
+                    [v] .receberNaEmissao
+                    @
+                        [e] size
+                            [v] s
+                        [e] hint
+                            [e] pt
+                                [v] Só com 1 parcela e 0 dias; exige conta padrão da forma.

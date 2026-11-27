@@ -1,0 +1,115 @@
+[b] CobrancaDestino
+    @
+        [e] title
+            [e] pt
+                [v] Destino de Webhook de Cobrança
+            [e] en
+                [v] Collection Webhook Target
+        [e] description
+            [e] pt
+                [v] Tabela GLOBAL (sem tenant) que acha a empresa quando o webhook do provedor chega sem sessão (docs/financeiro/README.md, 9.5, Fase 7; referência §9.2).
+                  | Guarda só o hash SHA-256 do segredo do webhook, nunca o segredo. O webhook só identifica a cobrança: quem muda o estado é o sincronizador, que sempre consulta o provedor.
+                  | Não tem CRUD gerado: só a integração (financeiroop) grava.
+            [e] en
+                [v] GLOBAL table (no tenant) that finds the company when the provider webhook arrives without a session (docs/financeiro/README.md, 9.5, Phase 7; reference §9.2).
+                  | Keeps only the SHA-256 hash of the webhook secret, never the secret. The webhook only identifies the collection: the syncer changes state, always asking the provider.
+                  | No generated CRUD: only the integration (financeiroop) writes.
+    [g] destino
+        [d] idEmpresa: Texto(36)
+            @
+                [e] cn
+                    [v] id_empresa
+                [e] title
+                    [e] pt
+                        [v] Empresa
+                    [e] en
+                        [v] Company
+                [e] description
+                    [e] pt
+                        [v] Id da empresa dona da credencial (referência bruta: a tabela é global, sem RLS).
+                    [e] en
+                        [v] Id of the company that owns the credential (raw reference: the table is global, no RLS).
+                [e] required
+                    [v] true
+        [d] segredoHash: Texto(64)
+            @
+                [e] cn
+                    [v] segredo_hash
+                [e] title
+                    [e] pt
+                        [v] Hash do Segredo
+                    [e] en
+                        [v] Secret Hash
+                [e] description
+                    [e] pt
+                        [v] SHA-256 (hexadecimal) do segredo do webhook. Único.
+                    [e] en
+                        [v] SHA-256 (hex) of the webhook secret. Unique.
+                [e] required
+                    [v] true
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno do destino (UUID).
+                    [e] en
+                        [v] Internal identifier of the target (UUID).
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que o registro foi criado.
+                    [e] en
+                        [v] Date and time the record was created.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true
+    [g] relacionamentos
+        [r] credencial: CredencialCobranca()
+            @
+                [e] cn
+                    [v] credencial_id
+                [e] title
+                    [e] pt
+                        [v] Credencial
+                    [e] en
+                        [v] Credential
+                [e] description
+                    [e] pt
+                        [v] Credencial de cobrança deste destino.
+                    [e] en
+                        [v] Collection credential of this target.
+                [e] required
+                    [v] true

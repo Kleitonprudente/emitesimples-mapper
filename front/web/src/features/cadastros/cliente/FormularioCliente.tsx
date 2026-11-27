@@ -10,7 +10,7 @@ const SUBMIT_LABEL = 'Salvar'
 /** Item de contatos: so os campos que o formulario edita, mais o id do registro existente (ausente nos itens novos). */
 const contatoItemSchema = contatoSchema.pick({ tipoContato: true, nome: true, whatsapp: true, email: true }).extend({ id: z.string().optional() })
 
-const schema = pessoaSchema.pick({ documento: true, tipoPessoa: true, consumidorFinal: true, nome: true, nomeFantasia: true, inscricaoMunicipal: true, rgInscricaoEstadual: true, tipoDestinatario: true, fornecedor: true, email: true, telefone: true, cep: true, logradouro: true, numeroEndereco: true, complemento: true, bairro: true, cidade: true, codigoPais: true, codigoPostal: true, nomeMunicipioExterior: true, nomeProvincia: true })
+const schema = pessoaSchema.pick({ documento: true, tipoPessoa: true, consumidorFinal: true, nome: true, nomeFantasia: true, inscricaoMunicipal: true, rgInscricaoEstadual: true, tipoDestinatario: true, fornecedor: true, email: true, telefone: true, naoEnviarCobranca: true, cep: true, logradouro: true, numeroEndereco: true, complemento: true, bairro: true, cidade: true, codigoPais: true, codigoPostal: true, nomeMunicipioExterior: true, nomeProvincia: true })
   .extend({ contatos: z.array(contatoItemSchema).max(50) })
 export type FormularioClienteValues = z.infer<typeof schema>
 /** Campos que o formulario edita; o resto do registro e preservado no PUT (que substitui o registro inteiro). */
@@ -19,6 +19,7 @@ export const FormularioClienteFieldNames: readonly string[] = Object.keys(schema
 const DEFAULTS: Partial<FormularioClienteValues> = {
   consumidorFinal: true,
   fornecedor: false,
+  naoEnviarCobranca: false,
   contatos: [],
 }
 
@@ -46,6 +47,9 @@ const FIELDS: FieldLayout = [
   [
     { name: 'email', label: 'E-mail', maxLength: 60, size: 'xl' },
     { name: 'telefone', label: 'Telefone', maxLength: 20, mask: 'phone', size: 'm' },
+  ],
+  [
+    { name: 'naoEnviarCobranca', label: 'Não enviar cobrança por e-mail', kind: 'boolean', size: 'full', hint: 'Marcado, o financeiro não manda cobrança nem lembrete de vencimento para esta pessoa.' },
   ],
   { section: 'Endereço' },
   [

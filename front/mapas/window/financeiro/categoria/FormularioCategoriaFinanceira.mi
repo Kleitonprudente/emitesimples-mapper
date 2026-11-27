@@ -1,0 +1,51 @@
+[Descriptor.window.editor] FormularioCategoriaFinanceira
+    @
+        [e] title
+            [e] pt
+                [v] Cadastro de categoria
+        [e] route
+            [v] /financeiro/categorias/$id
+        [e] role
+            [v] ADMINISTRADOR
+        [e] icon
+            [v] tags
+    [g] source
+        [r] object: CategoriaFinanceira()
+    [e] form
+        [e] rows
+            [e] section
+                [v] Categoria
+            [e] row
+                [e] field
+                    [v] .nome
+                    @
+                        [e] size
+                            [v] l
+                [e] field
+                    [v] .tipo
+                    @
+                        [e] size
+                            [v] m
+                [e] field
+                    [v] .ativo
+                    @
+                        [e] size
+                            [v] xs
+            [e] row
+                [e] field
+                    [v] .categoriaPai
+                    @
+                        [e] size
+                            [v] full
+                        [e] hint
+                            [e] pt
+                                [v] Opcional. Uma categoria de topo, ativa e do mesmo tipo. A categoria pai só agrupa: lançamentos usam as filhas.
+            [e] row
+                [e] field
+                    [v] .dicas
+                    @
+                        [e] size
+                            [v] full
+                        [e] hint
+                            [e] pt
+                                [v] Palavras separadas por vírgula, usadas para sugerir a categoria pela descrição. Não escreva dado pessoal.

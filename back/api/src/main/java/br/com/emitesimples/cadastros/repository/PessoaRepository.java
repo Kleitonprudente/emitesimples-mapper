@@ -38,7 +38,8 @@ public class PessoaRepository implements PanacheRepositoryBase<PessoaEntity, Str
      * Descarrega as gravacoes pendentes <b>dentro</b> do try do resource: a violacao
      * estoura aqui e nao no commit (onde viraria 500 e vazaria SQL). Unicidade
      * (SQLState 23505) e conflito de versao viram 409; as demais violacoes viram 400,
-     * sem expor o SQL.
+     * sem expor o SQL. O 409 de unicidade leva a causa (nunca exposta) para o tratador de erros
+     * poder dizer QUAL indice unico foi violado (mensagem no campo; ver ErrosHandler).
      */
     public void gravarAgora() {
         try {
@@ -54,7 +55,7 @@ public class PessoaRepository implements PanacheRepositoryBase<PessoaEntity, Str
         Throwable causa = pe;
         for (int i = 0; causa != null && i < 10; i++, causa = causa.getCause()) {
             if (causa instanceof java.sql.SQLException sql && "23505".equals(sql.getSQLState())) {
-                return new ClientErrorException("Ja existe um registro com os mesmos dados unicos.", 409);
+                return new ClientErrorException("Ja existe um registro com os mesmos dados unicos.", 409, pe);
             }
         }
         return new InvalidInputException("Nao foi possivel gravar o registro: dados invalidos ou em conflito com uma restricao.", pe.getCause());
@@ -147,6 +148,7 @@ public class PessoaRepository implements PanacheRepositoryBase<PessoaEntity, Str
         String consumidorFinal,
         String cliente,
         String fornecedor,
+        String naoEnviarCobranca,
         String telefone,
         String email,
         String logradouro,
@@ -174,7 +176,7 @@ public class PessoaRepository implements PanacheRepositoryBase<PessoaEntity, Str
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<PessoaEntity> cq = cb.createQuery(PessoaEntity.class);
         Root<PessoaEntity> root = cq.from(PessoaEntity.class);
-        List<Predicate> predicates = buildPredicates(cb, root, tipoPessoa, documento, nome, nomeFantasia, inscricaoMunicipal, rgInscricaoEstadual, tipoDestinatario, consumidorFinal, cliente, fornecedor, telefone, email, logradouro, numeroEndereco, complemento, bairro, cep, codigoPais, codigoPostal, nomeMunicipioExterior, nomeProvincia, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, cidadeCodigoIbge, cidadeNome, cidadeUf, cidadeId);
+        List<Predicate> predicates = buildPredicates(cb, root, tipoPessoa, documento, nome, nomeFantasia, inscricaoMunicipal, rgInscricaoEstadual, tipoDestinatario, consumidorFinal, cliente, fornecedor, naoEnviarCobranca, telefone, email, logradouro, numeroEndereco, complemento, bairro, cep, codigoPais, codigoPostal, nomeMunicipioExterior, nomeProvincia, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, cidadeCodigoIbge, cidadeNome, cidadeUf, cidadeId);
         cq.where(cb.and(predicates.toArray(new Predicate[0])));
 
         if (sort != null) {
@@ -203,6 +205,7 @@ public class PessoaRepository implements PanacheRepositoryBase<PessoaEntity, Str
         String consumidorFinal,
         String cliente,
         String fornecedor,
+        String naoEnviarCobranca,
         String telefone,
         String email,
         String logradouro,
@@ -230,7 +233,7 @@ public class PessoaRepository implements PanacheRepositoryBase<PessoaEntity, Str
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<PessoaEntity> root = cq.from(PessoaEntity.class);
-        List<Predicate> predicates = buildPredicates(cb, root, tipoPessoa, documento, nome, nomeFantasia, inscricaoMunicipal, rgInscricaoEstadual, tipoDestinatario, consumidorFinal, cliente, fornecedor, telefone, email, logradouro, numeroEndereco, complemento, bairro, cep, codigoPais, codigoPostal, nomeMunicipioExterior, nomeProvincia, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, cidadeCodigoIbge, cidadeNome, cidadeUf, cidadeId);
+        List<Predicate> predicates = buildPredicates(cb, root, tipoPessoa, documento, nome, nomeFantasia, inscricaoMunicipal, rgInscricaoEstadual, tipoDestinatario, consumidorFinal, cliente, fornecedor, naoEnviarCobranca, telefone, email, logradouro, numeroEndereco, complemento, bairro, cep, codigoPais, codigoPostal, nomeMunicipioExterior, nomeProvincia, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, cidadeCodigoIbge, cidadeNome, cidadeUf, cidadeId);
         cq.select(cb.count(root)).where(cb.and(predicates.toArray(new Predicate[0])));
 
         return em.createQuery(cq).getSingleResult();
@@ -249,6 +252,7 @@ public class PessoaRepository implements PanacheRepositoryBase<PessoaEntity, Str
         String consumidorFinal,
         String cliente,
         String fornecedor,
+        String naoEnviarCobranca,
         String telefone,
         String email,
         String logradouro,
@@ -289,6 +293,7 @@ public class PessoaRepository implements PanacheRepositoryBase<PessoaEntity, Str
         if (consumidorFinal != null) getPredicateFromField(predicates, "consumidorFinal", consumidorFinal, root, cb, false);
         if (cliente != null) getPredicateFromField(predicates, "cliente", cliente, root, cb, false);
         if (fornecedor != null) getPredicateFromField(predicates, "fornecedor", fornecedor, root, cb, false);
+        if (naoEnviarCobranca != null) getPredicateFromField(predicates, "naoEnviarCobranca", naoEnviarCobranca, root, cb, false);
         if (telefone != null) getPredicateFromField(predicates, "telefone", telefone, root, cb, false);
         if (email != null) getPredicateFromField(predicates, "email", email, root, cb, false);
         if (logradouro != null) getPredicateFromField(predicates, "logradouro", logradouro, root, cb, false);

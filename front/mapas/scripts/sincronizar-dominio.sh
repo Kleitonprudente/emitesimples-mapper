@@ -7,7 +7,7 @@ set -u
 AQUI="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FRONT="$(cd "$AQUI/.." && pwd)"
 BACK="$(cd "$FRONT/../../back/mapas" && pwd)" || { echo "back/mapas nao encontrado" >&2; exit 2; }
-CONTEXTOS="Configuracao Cadastros Usuarios Nfse IntegraNotas Admin"
+CONTEXTOS="Configuracao Cadastros Usuarios Nfse IntegraNotas Admin Financeiro"
 
 MODO=copiar
 case "${1:-}" in

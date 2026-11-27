@@ -127,9 +127,9 @@
                     [v] Domain
             [e] description
                 [e] pt
-                    [v] Modelo de domínio do emissor, organizado por contexto delimitado. Ordem de modelagem: configuracao e cadastros juntos (dependência mútua; cadastros depende só de configuracao), depois usuarios (depende de configuracao), nfse (depende de configuracao, cadastros e usuarios), integranotas (depende de configuracao e nfse) e admin (depende de configuracao e usuarios; nenhum outro contexto o referencia).
+                    [v] Modelo de domínio do emissor, organizado por contexto delimitado. Ordem de modelagem: configuracao e cadastros juntos (dependência mútua; cadastros depende só de configuracao), depois usuarios (depende de configuracao), nfse (depende de configuracao, cadastros e usuarios), integranotas (depende de configuracao e nfse) e admin (depende de configuracao e usuarios; nenhum outro contexto o referencia) e financeiro (depende só de configuracao; nenhum outro contexto o referencia).
                 [e] en
-                    [v] Domain model of the issuer, organized by bounded context. Modeling order: configuracao and cadastros together (mutual dependency; cadastros depends only on configuracao), then usuarios (depends on configuracao), nfse (depends on configuracao, cadastros and usuarios), integranotas (depends on configuracao and nfse) and admin (depends on configuracao and usuarios; no other context references it).
+                    [v] Domain model of the issuer, organized by bounded context. Modeling order: configuracao and cadastros together (mutual dependency; cadastros depends only on configuracao), then usuarios (depends on configuracao), nfse (depends on configuracao, cadastros and usuarios), integranotas (depends on configuracao and nfse) and admin (depends on configuracao and usuarios; no other context references it) and financeiro (depends only on configuracao; no other context references it).
         [p] configuracao
             @
                 [e] title
@@ -271,3 +271,59 @@
             [b] HistoricoSituacaoEmpresa
                 #
                     Admin/HistoricoSituacaoEmpresa.mi
+        [p] financeiro
+            @
+                [e] title
+                    [e] pt
+                        [v] Financeiro
+                    [e] en
+                        [v] Finance
+                [e] description
+                    [e] pt
+                        [v] Contexto de contas a receber, contas a pagar, caixa/bancos e extrato (docs/financeiro). Depende só de configuracao (Empresa); nenhum outro contexto o referencia.
+                          | Fase 1: ContaFinanceira, CategoriaFinanceira, CondicaoPagamento, ConfiguracaoFinanceira (uma por empresa) e Banco (global, sem empresa). Fase 2: Titulo (contas a receber e a pagar). Fase 3: Movimento (livro de movimentos).
+                          | Titulo (Fase 2) e Movimento (livro imutável, Fase 3) não têm CRUD gerado: só serviços escritos à mão (pacote financeiroop) gravam neles.
+                          | Fase 6: LembreteCobranca e CobrancaEnviada (cobrança por e-mail). Fase 7: CredencialCobranca, CobrancaDestino (global, sem empresa) e Cobranca (boleto, Pix, link). Nenhuma tem CRUD gerado.
+                          | A pessoa do título é guardada como idPessoa (referência bruta, sem relação com cadastros), para o histórico sobreviver a mudanças no cadastro.
+                    [e] en
+                        [v] Context for receivables, payables, cash/banks and statements (docs/financeiro). Depends only on configuracao (Empresa); no other context references it.
+                          | Phase 1: ContaFinanceira, CategoriaFinanceira, CondicaoPagamento, ConfiguracaoFinanceira (one per company) and Banco (global, no company). Phase 2: Titulo (receivables and payables). Phase 3: Movimento (ledger).
+                          | Titulo (Phase 2) and Movimento (immutable ledger, Phase 3) have no generated CRUD: only hand-written services (financeiroop package) write to them.
+                          | Phase 6: LembreteCobranca and CobrancaEnviada (e-mail collection). Phase 7: CredencialCobranca, CobrancaDestino (global, no company) and Cobranca (bank slip, Pix, link). None has generated CRUD.
+                          | The bill person is kept as idPessoa (raw reference, no relation to cadastros), so history survives changes to the registry.
+            [b] Banco
+                #
+                    Financeiro/Banco.mi
+            [b] ContaFinanceira
+                #
+                    Financeiro/ContaFinanceira.mi
+            [b] CategoriaFinanceira
+                #
+                    Financeiro/CategoriaFinanceira.mi
+            [b] CondicaoPagamento
+                #
+                    Financeiro/CondicaoPagamento.mi
+            [b] ConfiguracaoFinanceira
+                #
+                    Financeiro/ConfiguracaoFinanceira.mi
+            [b] Titulo
+                #
+                    Financeiro/Titulo.mi
+            [b] Movimento
+                #
+                    Financeiro/Movimento.mi
+            [b] LembreteCobranca
+                #
+                    Financeiro/LembreteCobranca.mi
+            [b] CobrancaEnviada
+                #
+                    Financeiro/CobrancaEnviada.mi
+            [b] CredencialCobranca
+                #
+                    Financeiro/CredencialCobranca.mi
+            [b] CobrancaDestino
+                #
+                    Financeiro/CobrancaDestino.mi
+            [b] Cobranca
+                #
+                    Financeiro/Cobranca.mi

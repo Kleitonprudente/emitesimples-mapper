@@ -90,15 +90,22 @@ public class ErrosHandler {
         if (violacaoPapelDaPessoa(e)) {
             return papelDaPessoaObrigatorio();
         }
+        ApiException financeiro = br.com.emitesimples.financeiroop.RestricoesFinanceiro.traduzir(e);
+        if (financeiro != null) {
+            return apiException(financeiro);
+        }
         if (status >= 500) {
             LOG.error("Erro 5xx em operação da API", e);
             return resposta(500, "erro_interno", "Erro interno. Tente novamente mais tarde.", null);
         }
         String msg = e.getMessage();
         if (e.getCause() != null) {
-            // as exceções geradas embrulham PersistenceException: a mensagem pode trazer SQL, então não sai
+            // as exceções geradas embrulham PersistenceException: a mensagem pode trazer SQL, então não sai.
+            // Exceção: o 409 de unicidade do repositório gerado leva a causa só para a tradução acima; o texto dele é fixo, sem SQL.
             LOG.warn("Requisição recusada pela persistência: " + e.getCause().getClass().getSimpleName());
-            msg = null;
+            if (status != 409) {
+                msg = null;
+            }
         }
         if (msg == null || msg.isBlank() || msg.startsWith("HTTP ")) {
             msg = mensagemPadrao(status);
@@ -117,6 +124,10 @@ public class ErrosHandler {
         }
         if (violacaoPapelDaPessoa(e)) {
             return papelDaPessoaObrigatorio();
+        }
+        ApiException financeiro = br.com.emitesimples.financeiroop.RestricoesFinanceiro.traduzir(e);
+        if (financeiro != null) {
+            return apiException(financeiro);
         }
         LOG.error("Erro inesperado", e);
         return resposta(500, "erro_interno", "Erro interno. Tente novamente mais tarde.", null);

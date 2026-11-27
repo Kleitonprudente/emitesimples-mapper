@@ -38,7 +38,8 @@ public class ClienteAcessoRepository implements PanacheRepositoryBase<ClienteAce
      * Descarrega as gravacoes pendentes <b>dentro</b> do try do resource: a violacao
      * estoura aqui e nao no commit (onde viraria 500 e vazaria SQL). Unicidade
      * (SQLState 23505) e conflito de versao viram 409; as demais violacoes viram 400,
-     * sem expor o SQL.
+     * sem expor o SQL. O 409 de unicidade leva a causa (nunca exposta) para o tratador de erros
+     * poder dizer QUAL indice unico foi violado (mensagem no campo; ver ErrosHandler).
      */
     public void gravarAgora() {
         try {
@@ -54,7 +55,7 @@ public class ClienteAcessoRepository implements PanacheRepositoryBase<ClienteAce
         Throwable causa = pe;
         for (int i = 0; causa != null && i < 10; i++, causa = causa.getCause()) {
             if (causa instanceof java.sql.SQLException sql && "23505".equals(sql.getSQLState())) {
-                return new ClientErrorException("Ja existe um registro com os mesmos dados unicos.", 409);
+                return new ClientErrorException("Ja existe um registro com os mesmos dados unicos.", 409, pe);
             }
         }
         return new InvalidInputException("Nao foi possivel gravar o registro: dados invalidos ou em conflito com uma restricao.", pe.getCause());
@@ -150,12 +151,15 @@ public class ClienteAcessoRepository implements PanacheRepositoryBase<ClienteAce
         String empresaRazaoSocial,
         String empresaDocumento,
         String empresaRgInscricaoEstadual,
-        String empresaId
+        String empresaId,
+        String usuarioNome,
+        String usuarioEmail,
+        String usuarioId
     ) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<ClienteAcessoEntity> cq = cb.createQuery(ClienteAcessoEntity.class);
         Root<ClienteAcessoEntity> root = cq.from(ClienteAcessoEntity.class);
-        List<Predicate> predicates = buildPredicates(cb, root, nome, clientId, scopes, ativo, dataUltimoUso, dataExpiracao, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId);
+        List<Predicate> predicates = buildPredicates(cb, root, nome, clientId, scopes, ativo, dataUltimoUso, dataExpiracao, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, usuarioNome, usuarioEmail, usuarioId);
         cq.where(cb.and(predicates.toArray(new Predicate[0])));
 
         if (sort != null) {
@@ -187,12 +191,15 @@ public class ClienteAcessoRepository implements PanacheRepositoryBase<ClienteAce
         String empresaRazaoSocial,
         String empresaDocumento,
         String empresaRgInscricaoEstadual,
-        String empresaId
+        String empresaId,
+        String usuarioNome,
+        String usuarioEmail,
+        String usuarioId
     ) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<ClienteAcessoEntity> root = cq.from(ClienteAcessoEntity.class);
-        List<Predicate> predicates = buildPredicates(cb, root, nome, clientId, scopes, ativo, dataUltimoUso, dataExpiracao, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId);
+        List<Predicate> predicates = buildPredicates(cb, root, nome, clientId, scopes, ativo, dataUltimoUso, dataExpiracao, id, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, usuarioNome, usuarioEmail, usuarioId);
         cq.select(cb.count(root)).where(cb.and(predicates.toArray(new Predicate[0])));
 
         return em.createQuery(cq).getSingleResult();
@@ -214,7 +221,10 @@ public class ClienteAcessoRepository implements PanacheRepositoryBase<ClienteAce
         String empresaRazaoSocial,
         String empresaDocumento,
         String empresaRgInscricaoEstadual,
-        String empresaId
+        String empresaId,
+        String usuarioNome,
+        String usuarioEmail,
+        String usuarioId
     ) {
         List<Predicate> predicates = new ArrayList<>();
 
@@ -233,6 +243,9 @@ public class ClienteAcessoRepository implements PanacheRepositoryBase<ClienteAce
         if (dataAtualizacao != null) getPredicateFromField(predicates, "dataAtualizacao", dataAtualizacao, root, cb, false);
         if (empresaId != null) {
             predicates.add(cb.equal(root.join("empresa", JoinType.INNER).get("id"), empresaId));
+        }
+        if (usuarioId != null) {
+            predicates.add(cb.equal(root.join("usuario", JoinType.INNER).get("id"), usuarioId));
         }
         return predicates;
     }

@@ -1,0 +1,22 @@
+[Descriptor.window.custom] ContasAReceber
+    @
+        [e] title
+            [e] pt
+                [v] Contas a receber
+        [e] description
+            [e] pt
+                [v] Lista dos títulos a receber com os filtros da referência (§7 e §11), totais do filtro, baixa e baixa em lote. Tela fora do padrão gerável (window.custom, decisão D2).
+        [e] route
+            [v] /financeiro/receber
+        [e] role
+            [v] CONSULTA
+        [e] icon
+            [v] arrow-down-circle
+        [e] group
+            [v] Financeiro
+        [e] order
+            [v] 1
+        [e] component
+            [v] TitulosReceberScreen
+        [e] from
+            [v] @/features/financeiro/titulos/TitulosLista

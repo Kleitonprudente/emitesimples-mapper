@@ -1,5 +1,8 @@
 # Emite Simples: regras do fluxo (valem para todo agente e toda sessão)
 
+> **Todo pedido de funcionalidade, função, alteração ou correção** começa carregando a skill `metodologia-mapper`
+> (`.claude/skills/metodologia-mapper/SKILL.md`) e segue a esteira dela: documentação → mapa → gerador → geração → verificação.
+
 ## Regra de ouro: geradores e documentação mandam
 
 O código deste projeto nasce do **mapa** (`.mi`) passando pelos **geradores** (`.mi`). A ordem de autoridade é:
@@ -7,7 +10,7 @@ O código deste projeto nasce do **mapa** (`.mi`) passando pelos **geradores** (
 
 1. **Nunca edite código gerado**, nem "ajuste" a saída na mão, nem desfaça a saída para esconder uma divergência. Se a saída
    está errada ou incompleta, o conserto é no mapa ou no gerador, e a saída é gerada de novo.
-   - Gerados: `back/api/src/main/java/br/com/emitesimples/{configuracao,cadastros,usuarios,nfse,integranotas,admin}/**`,
+   - Gerados: `back/api/src/main/java/br/com/emitesimples/{configuracao,cadastros,usuarios,nfse,integranotas,admin,financeiro}/**`,
      `back/api/docs/openapi/**`, `front/web/src/gen/**`, `routeTree.gen.ts`, telas e rotas do front com o cabeçalho
      `GERADO por`, e `front/mapas/dominio/**` (cópia do back: use `front/mapas/scripts/sincronizar-dominio.sh`).
    - Um hook (`scripts/bloquear-codigo-gerado.sh`, registrado em `.claude/settings.json`) bloqueia essas edições. Não o
@@ -23,7 +26,7 @@ O código deste projeto nasce do **mapa** (`.mi`) passando pelos **geradores** (
 
 ## Onde vive o código escrito à mão
 
-Só nos pacotes que o `gerar.sh` preserva: `auth, security, cep, plataforma, gateway, nfseconfig, nfseemissao, exceptions,
+Só nos pacotes que o `gerar.sh` preserva: `auth, security, cep, plataforma, gateway, nfseconfig, nfseemissao, financeiroop, exceptions,
 results, tenant` (back) e o runtime/telas à mão do front (`runtime/`, `lib/`, `mocks/`, `features/notas`, `features/admin`,
 `features/empresa-config`, ...). Migrações Flyway são escritas à mão e **nunca** se altera uma já aplicada (crie a seguinte).
 

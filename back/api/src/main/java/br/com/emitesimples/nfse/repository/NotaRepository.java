@@ -38,7 +38,8 @@ public class NotaRepository implements PanacheRepositoryBase<NotaEntity, String>
      * Descarrega as gravacoes pendentes <b>dentro</b> do try do resource: a violacao
      * estoura aqui e nao no commit (onde viraria 500 e vazaria SQL). Unicidade
      * (SQLState 23505) e conflito de versao viram 409; as demais violacoes viram 400,
-     * sem expor o SQL.
+     * sem expor o SQL. O 409 de unicidade leva a causa (nunca exposta) para o tratador de erros
+     * poder dizer QUAL indice unico foi violado (mensagem no campo; ver ErrosHandler).
      */
     public void gravarAgora() {
         try {
@@ -54,7 +55,7 @@ public class NotaRepository implements PanacheRepositoryBase<NotaEntity, String>
         Throwable causa = pe;
         for (int i = 0; causa != null && i < 10; i++, causa = causa.getCause()) {
             if (causa instanceof java.sql.SQLException sql && "23505".equals(sql.getSQLState())) {
-                return new ClientErrorException("Ja existe um registro com os mesmos dados unicos.", 409);
+                return new ClientErrorException("Ja existe um registro com os mesmos dados unicos.", 409, pe);
             }
         }
         return new InvalidInputException("Nao foi possivel gravar o registro: dados invalidos ou em conflito com uma restricao.", pe.getCause());
@@ -144,6 +145,7 @@ public class NotaRepository implements PanacheRepositoryBase<NotaEntity, String>
         String informacoesComplementares,
         String regimeApuracao,
         String regimeTributacao,
+        String idCondicaoPagamento,
         String codigoServico,
         String codigoTributacaoMunicipio,
         String codigoNbs,
@@ -214,7 +216,7 @@ public class NotaRepository implements PanacheRepositoryBase<NotaEntity, String>
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<NotaEntity> cq = cb.createQuery(NotaEntity.class);
         Root<NotaEntity> root = cq.from(NotaEntity.class);
-        List<Predicate> predicates = buildPredicates(cb, root, numero, serie, dataEmissao, dataCompetencia, informacoesComplementares, regimeApuracao, regimeTributacao, codigoServico, codigoTributacaoMunicipio, codigoNbs, discriminacao, descricao, valorServicos, valorRecebido, valorDescontoCondicionado, valorDescontoIncondicionado, tipoOperacaoIss, aliquotaIss, valorBaseCalculoIss, valorIssRetido, issRetido, responsavelRetencao, cstPisCofins, tipoRetencao, valorBaseCalculo, aliquotaPis, valorPis, aliquotaCofins, valorCofins, valorInss, valorIr, valorCsll, dataHoraAprovacao, dataHoraDescarte, estado, codigoRetorno, mensagemRetorno, errosRetorno, chave, numeroNfse, rpsNumero, rpsSerie, codigoVerificacao, dataHoraEvento, linkPdf, id, ambiente, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, pessoaDocumento, pessoaNome, pessoaNomeFantasia, pessoaId, servicoNome, servicoCodigoServico, servicoId, preparadoPorUsuarioNome, preparadoPorUsuarioEmail, preparadoPorUsuarioId, preparadoPorClienteNome, preparadoPorClienteClientId, preparadoPorClienteId, aprovadoPorNome, aprovadoPorEmail, aprovadoPorId, descartadoPorNome, descartadoPorEmail, descartadoPorId);
+        List<Predicate> predicates = buildPredicates(cb, root, numero, serie, dataEmissao, dataCompetencia, informacoesComplementares, regimeApuracao, regimeTributacao, idCondicaoPagamento, codigoServico, codigoTributacaoMunicipio, codigoNbs, discriminacao, descricao, valorServicos, valorRecebido, valorDescontoCondicionado, valorDescontoIncondicionado, tipoOperacaoIss, aliquotaIss, valorBaseCalculoIss, valorIssRetido, issRetido, responsavelRetencao, cstPisCofins, tipoRetencao, valorBaseCalculo, aliquotaPis, valorPis, aliquotaCofins, valorCofins, valorInss, valorIr, valorCsll, dataHoraAprovacao, dataHoraDescarte, estado, codigoRetorno, mensagemRetorno, errosRetorno, chave, numeroNfse, rpsNumero, rpsSerie, codigoVerificacao, dataHoraEvento, linkPdf, id, ambiente, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, pessoaDocumento, pessoaNome, pessoaNomeFantasia, pessoaId, servicoNome, servicoCodigoServico, servicoId, preparadoPorUsuarioNome, preparadoPorUsuarioEmail, preparadoPorUsuarioId, preparadoPorClienteNome, preparadoPorClienteClientId, preparadoPorClienteId, aprovadoPorNome, aprovadoPorEmail, aprovadoPorId, descartadoPorNome, descartadoPorEmail, descartadoPorId);
         cq.where(cb.and(predicates.toArray(new Predicate[0])));
 
         if (sort != null) {
@@ -240,6 +242,7 @@ public class NotaRepository implements PanacheRepositoryBase<NotaEntity, String>
         String informacoesComplementares,
         String regimeApuracao,
         String regimeTributacao,
+        String idCondicaoPagamento,
         String codigoServico,
         String codigoTributacaoMunicipio,
         String codigoNbs,
@@ -310,7 +313,7 @@ public class NotaRepository implements PanacheRepositoryBase<NotaEntity, String>
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<NotaEntity> root = cq.from(NotaEntity.class);
-        List<Predicate> predicates = buildPredicates(cb, root, numero, serie, dataEmissao, dataCompetencia, informacoesComplementares, regimeApuracao, regimeTributacao, codigoServico, codigoTributacaoMunicipio, codigoNbs, discriminacao, descricao, valorServicos, valorRecebido, valorDescontoCondicionado, valorDescontoIncondicionado, tipoOperacaoIss, aliquotaIss, valorBaseCalculoIss, valorIssRetido, issRetido, responsavelRetencao, cstPisCofins, tipoRetencao, valorBaseCalculo, aliquotaPis, valorPis, aliquotaCofins, valorCofins, valorInss, valorIr, valorCsll, dataHoraAprovacao, dataHoraDescarte, estado, codigoRetorno, mensagemRetorno, errosRetorno, chave, numeroNfse, rpsNumero, rpsSerie, codigoVerificacao, dataHoraEvento, linkPdf, id, ambiente, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, pessoaDocumento, pessoaNome, pessoaNomeFantasia, pessoaId, servicoNome, servicoCodigoServico, servicoId, preparadoPorUsuarioNome, preparadoPorUsuarioEmail, preparadoPorUsuarioId, preparadoPorClienteNome, preparadoPorClienteClientId, preparadoPorClienteId, aprovadoPorNome, aprovadoPorEmail, aprovadoPorId, descartadoPorNome, descartadoPorEmail, descartadoPorId);
+        List<Predicate> predicates = buildPredicates(cb, root, numero, serie, dataEmissao, dataCompetencia, informacoesComplementares, regimeApuracao, regimeTributacao, idCondicaoPagamento, codigoServico, codigoTributacaoMunicipio, codigoNbs, discriminacao, descricao, valorServicos, valorRecebido, valorDescontoCondicionado, valorDescontoIncondicionado, tipoOperacaoIss, aliquotaIss, valorBaseCalculoIss, valorIssRetido, issRetido, responsavelRetencao, cstPisCofins, tipoRetencao, valorBaseCalculo, aliquotaPis, valorPis, aliquotaCofins, valorCofins, valorInss, valorIr, valorCsll, dataHoraAprovacao, dataHoraDescarte, estado, codigoRetorno, mensagemRetorno, errosRetorno, chave, numeroNfse, rpsNumero, rpsSerie, codigoVerificacao, dataHoraEvento, linkPdf, id, ambiente, dataCriacao, dataAtualizacao, empresaNomeFantasia, empresaRazaoSocial, empresaDocumento, empresaRgInscricaoEstadual, empresaId, pessoaDocumento, pessoaNome, pessoaNomeFantasia, pessoaId, servicoNome, servicoCodigoServico, servicoId, preparadoPorUsuarioNome, preparadoPorUsuarioEmail, preparadoPorUsuarioId, preparadoPorClienteNome, preparadoPorClienteClientId, preparadoPorClienteId, aprovadoPorNome, aprovadoPorEmail, aprovadoPorId, descartadoPorNome, descartadoPorEmail, descartadoPorId);
         cq.select(cb.count(root)).where(cb.and(predicates.toArray(new Predicate[0])));
 
         return em.createQuery(cq).getSingleResult();
@@ -326,6 +329,7 @@ public class NotaRepository implements PanacheRepositoryBase<NotaEntity, String>
         String informacoesComplementares,
         String regimeApuracao,
         String regimeTributacao,
+        String idCondicaoPagamento,
         String codigoServico,
         String codigoTributacaoMunicipio,
         String codigoNbs,
@@ -406,6 +410,7 @@ public class NotaRepository implements PanacheRepositoryBase<NotaEntity, String>
         if (informacoesComplementares != null) getPredicateFromField(predicates, "informacoesComplementares", informacoesComplementares, root, cb, false);
         if (regimeApuracao != null) getPredicateFromField(predicates, "regimeApuracao", regimeApuracao, root, cb, false);
         if (regimeTributacao != null) getPredicateFromField(predicates, "regimeTributacao", regimeTributacao, root, cb, false);
+        if (idCondicaoPagamento != null) getPredicateFromField(predicates, "idCondicaoPagamento", idCondicaoPagamento, root, cb, false);
         if (codigoServico != null) getPredicateFromField(predicates, "codigoServico", codigoServico, root, cb, false);
         if (codigoTributacaoMunicipio != null) getPredicateFromField(predicates, "codigoTributacaoMunicipio", codigoTributacaoMunicipio, root, cb, false);
         if (codigoNbs != null) getPredicateFromField(predicates, "codigoNbs", codigoNbs, root, cb, false);

@@ -1,0 +1,22 @@
+[Descriptor.window.custom] ContasAPagar
+    @
+        [e] title
+            [e] pt
+                [v] Contas a pagar
+        [e] description
+            [e] pt
+                [v] Lista dos títulos a pagar, a mesma tela das contas a receber com o tipo vindo da rota (window.custom, decisão D2).
+        [e] route
+            [v] /financeiro/pagar
+        [e] role
+            [v] CONSULTA
+        [e] icon
+            [v] arrow-up-circle
+        [e] group
+            [v] Financeiro
+        [e] order
+            [v] 2
+        [e] component
+            [v] TitulosPagarScreen
+        [e] from
+            [v] @/features/financeiro/titulos/TitulosLista

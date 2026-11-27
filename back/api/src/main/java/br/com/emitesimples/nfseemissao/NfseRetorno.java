@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.quarkus.arc.Arc;
 import jakarta.persistence.EntityManager;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -289,9 +290,36 @@ final class NfseRetorno {
         }
         guardarPdf(n, raiz);
         n.setDataAtualizacao(AuthService.agora());
+        publicarAutorizada(n);
+    }
+
+    /**
+     * Publica {@link DocumentoAutorizado} (docs/financeiro/README.md, E3). Dentro da transacao da nota: o observador com AFTER_SUCCESS so
+     * recebe depois do commit. Este modulo nao conhece quem observa (o financeiro).
+     */
+    private static void publicarAutorizada(NotaEntity n) {
+        LocalDateTime emissao = n.getDataEmissao();
+        String usuario = n.getAprovadoPor() != null ? n.getAprovadoPor().getId()
+                : n.getPreparadoPorUsuario() != null ? n.getPreparadoPorUsuario().getId() : null;
+        String numero = n.getNumeroNfse() != null ? n.getNumeroNfse() : n.getNumero();
+        if (Arc.container() == null) {
+            return; // sem container CDI (teste de unidade): nao ha quem observe
+        }
+        Arc.container().beanManager().getEvent().select(DocumentoAutorizado.class).fire(new DocumentoAutorizado("NFSE", n.getEmpresa().getId(),
+                n.getId(), numero, n.getPessoa() == null ? null : n.getPessoa().getId(), TributacaoNota.valorLiquido(n),
+                emissao == null ? AuthService.agora().toLocalDate() : emissao.toLocalDate(), usuario, n.getIdCondicaoPagamento()));
+    }
+
+    /** Publica {@link DocumentoCancelado} (docs/financeiro/README.md, E3), como acima. */
+    private static void publicarCancelada(NotaEntity n) {
+        if (Arc.container() == null) {
+            return; // sem container CDI (teste de unidade): nao ha quem observe
+        }
+        Arc.container().beanManager().getEvent().select(DocumentoCancelado.class).fire(new DocumentoCancelado("NFSE", n.getEmpresa().getId(), n.getId()));
     }
 
     private static void cancelar(NotaEntity n, RetornoNfse r) {
+        publicarCancelada(n);
         n.setEstado(EstadosNfse.CANCELADA);
         n.setCodigoRetorno(101);
         n.setMensagemRetorno(limitar(r.mensagem(), 500));

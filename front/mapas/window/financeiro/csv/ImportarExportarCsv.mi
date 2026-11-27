@@ -1,0 +1,22 @@
+[Descriptor.window.custom] ImportarExportarCsv
+    @
+        [e] title
+            [e] pt
+                [v] Importar e exportar
+        [e] description
+            [e] pt
+                [v] Exportar e importar CSV de contas, categorias e condições de pagamento; para o administrador da plataforma, a carga dos bancos pelo arquivo do Banco Central (docs/financeiro/README.md, F4-C3 e F4-C4; window.custom).
+        [e] route
+            [v] /financeiro/csv
+        [e] role
+            [v] CONSULTA
+        [e] icon
+            [v] upload
+        [e] group
+            [v] Financeiro
+        [e] order
+            [v] 95
+        [e] component
+            [v] CsvFinanceiroScreen
+        [e] from
+            [v] @/features/financeiro/csv/CsvFinanceiro

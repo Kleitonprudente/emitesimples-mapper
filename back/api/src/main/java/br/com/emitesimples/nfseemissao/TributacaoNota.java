@@ -94,6 +94,16 @@ final class TributacaoNota {
         return n.getValorBaseCalculo() != null ? n.getValorBaseCalculo() : dinheiro(zero(n.getValorServicos()));
     }
 
+    /**
+     * Valor LIQUIDO da nota, o que o cliente paga: servicos - desconto incondicionado - ISS retido (so quando retido) - federais retidos.
+     * A mesma conta da validacao abaixo. Usado no titulo a receber gerado pela nota (docs/financeiro/README.md, E2).
+     */
+    static BigDecimal valorLiquido(NotaEntity n) {
+        BigDecimal issRetido = Boolean.TRUE.equals(n.getIssRetido()) ? zero(n.getValorIssRetido()) : BigDecimal.ZERO;
+        return dinheiro(zero(n.getValorServicos()).subtract(zero(n.getValorDescontoIncondicionado())).subtract(issRetido)
+                .subtract(somaRetencoesFederais(n)));
+    }
+
     static BigDecimal somaRetencoesFederais(NotaEntity n) {
         return zero(n.getValorPis()).add(zero(n.getValorCofins())).add(zero(n.getValorInss())).add(zero(n.getValorIr()))
                 .add(zero(n.getValorCsll()));

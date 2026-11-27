@@ -1,0 +1,198 @@
+[b] CategoriaFinanceira
+    @
+        [e] title
+            [e] pt
+                [v] Categoria Financeira
+            [e] en
+                [v] Financial Category
+        [e] description
+            [e] pt
+                [v] Classifica receitas e despesas para relatórios. Hierarquia de UM nível: uma categoria de topo (sem pai) agrupa filhas; o pai é só agrupador.
+                  | Título, movimento avulso e categoria padrão da configuração só usam categoria SEM filhas (folha). Nome exibido "Pai › Filha".
+                  | Regras documentadas e não expressas no mapa (docs/financeiro/README.md, F1-H2), implementadas na migração (trigger) e em listener à mão:
+                  | nome único por empresa e tipo; o pai é da mesma empresa, do mesmo tipo, ativo e de topo; ninguém é pai de si mesmo;
+                  | quem tem filhas não vira filha nem muda de tipo; só vira pai a categoria fora de uso (não é padrão da configuração e, nas Fases 2 e 3,
+                  | não tem título nem movimento); inativar pai com filha ativa e ativar filha sob pai inativo são recusados; as dicas perdem os sinais < e >.
+                  | Nunca se apaga: só se desativa. Escrita só do administrador da empresa.
+            [e] en
+                [v] Classifies income and expenses for reports. ONE-level hierarchy: a top category (no parent) groups children; the parent only groups.
+                  | Bills, standalone entries and the configuration default category only use a category WITHOUT children (leaf). Displayed name "Parent › Child".
+                  | Rules documented and not expressed in the map (docs/financeiro/README.md, F1-H2), implemented in the migration (trigger) and in a hand-written listener:
+                  | name unique per company and type; the parent is from the same company, same type, active and top level; nobody is its own parent;
+                  | a category with children does not become a child nor change type; only a category not in use becomes a parent (not a configuration default and,
+                  | in Phases 2 and 3, no bill nor entry); deactivating a parent with an active child and activating a child under an inactive parent are refused;
+                  | the hints lose the < and > signs. Never deleted: only deactivated. Written only by the company administrator.
+    [g] identificacao
+        [d] nome: Texto(100)
+            @
+                [e] cn
+                    [v] nome
+                [e] title
+                    [e] pt
+                        [v] Nome
+                    [e] en
+                        [v] Name
+                [e] description
+                    [e] pt
+                        [v] Nome da categoria, único na empresa dentro do mesmo tipo (ex.: Aluguel, Prestação de serviços).
+                    [e] en
+                        [v] Category name, unique within the company for the same type (e.g. Rent, Services rendered).
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+        [d] tipo: Texto(10)
+            @
+                [e] cn
+                    [v] tipo
+                [e] title
+                    [e] pt
+                        [v] Tipo
+                    [e] en
+                        [v] Type
+                [e] description
+                    [e] pt
+                        [v] RECEITA ou DESPESA. Título a receber usa receita; título a pagar usa despesa. Valores documentados em values.
+                    [e] en
+                        [v] RECEITA or DESPESA. A receivable uses income; a payable uses expense. Values documented in values.
+                [e] required
+                    [v] true
+                [e] values
+                    [e] RECEITA
+                        [e] title
+                            [e] pt
+                                [v] Receita
+                            [e] en
+                                [v] Income
+                        [e] description
+                            [e] pt
+                                [v] Dinheiro que entra: classifica títulos a receber e entradas avulsas.
+                            [e] en
+                                [v] Money coming in: classifies receivables and standalone income entries.
+                    [e] DESPESA
+                        [e] title
+                            [e] pt
+                                [v] Despesa
+                            [e] en
+                                [v] Expense
+                        [e] description
+                            [e] pt
+                                [v] Dinheiro que sai: classifica títulos a pagar e saídas avulsas.
+                            [e] en
+                                [v] Money going out: classifies payables and standalone expense entries.
+        [d] dicas: Texto(500)
+            @
+                [e] cn
+                    [v] dicas
+                [e] title
+                    [e] pt
+                        [v] Para Quais Contas é Usada
+                    [e] en
+                        [v] Used For
+                [e] description
+                    [e] pt
+                        [v] Palavras separadas por vírgula, ponto e vírgula ou quebra de linha, usadas para sugerir a categoria pela descrição do título.
+                          | Os sinais < e > são removidos ao gravar. Não escreva dado pessoal. Opcional.
+                    [e] en
+                        [v] Words separated by comma, semicolon or line break, used to suggest the category from the bill description.
+                          | The < and > signs are removed on save. Do not write personal data. Optional.
+        [d] ativo: Boolean()
+            @
+                [e] cn
+                    [v] ativo
+                [e] title
+                    [e] pt
+                        [v] Ativa
+                    [e] en
+                        [v] Active
+                [e] description
+                    [e] pt
+                        [v] Categoria inativa não pode ser escolhida em lançamento novo. Pai com filha ativa não se inativa ("Inative as filhas antes.").
+                    [e] en
+                        [v] An inactive category cannot be chosen for a new entry. A parent with an active child cannot be deactivated ("Deactivate the children first.").
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] true
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno da categoria (UUID).
+                    [e] en
+                        [v] Internal category identifier (UUID).
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que a categoria foi cadastrada.
+                    [e] en
+                        [v] Date and time the category was registered.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true
+    [g] relacionamentos
+        [r] categoriaPai: CategoriaFinanceira()
+            @
+                [e] cn
+                    [v] categoria_pai_id
+                [e] title
+                    [e] pt
+                        [v] Categoria Pai
+                    [e] en
+                        [v] Parent Category
+                [e] description
+                    [e] pt
+                        [v] Categoria de topo que agrupa esta. Vazio = categoria de topo. Mesma empresa, mesmo tipo, ativa e sem pai; o pai não se apaga enquanto tiver filha.
+                    [e] en
+                        [v] Top category that groups this one. Empty = top category. Same company, same type, active and without parent; the parent is not deleted while it has a child.
+        [r] empresa: Empresa()
+            @
+                [e] cn
+                    [v] empresa_id
+                [e] title
+                    [e] pt
+                        [v] Empresa
+                    [e] en
+                        [v] Company
+                [e] description
+                    [e] pt
+                        [v] Empresa dona desta categoria e tenant do registro. Todo acesso é filtrado por ela.
+                    [e] en
+                        [v] Company that owns this category and tenant of the record. Every access is filtered by it.
+                [e] required
+                    [v] true
+                [e] tenantKey
+                    [v] true

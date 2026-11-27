@@ -3,6 +3,7 @@ import type { QueryClient } from '@tanstack/react-query'
 import { Toaster } from '@/components/ui/sonner'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/runtime/states'
+import { SenhaRecente } from '@/runtime/SenhaRecente'
 
 export interface RouterContext {
   queryClient: QueryClient
@@ -13,6 +14,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     <>
       <Outlet />
       <Toaster position="top-right" richColors closeButton />
+      <SenhaRecente />
     </>
   ),
   notFoundComponent: () => (

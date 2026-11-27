@@ -1,0 +1,272 @@
+[b] CondicaoPagamento
+    @
+        [e] title
+            [e] pt
+                [v] Condição de Pagamento
+            [e] en
+                [v] Payment Terms
+        [e] description
+            [e] pt
+                [v] Modelo de parcelamento reutilizável: forma, número de parcelas, dias até a primeira parcela e intervalo entre as parcelas.
+                  | Usada principalmente para gerar títulos a partir da nota fiscal (Fase 5). Não existe condição padrão global: quem usa guarda a sua.
+                  | Regras documentadas e não expressas no mapa (docs/financeiro/README.md, F1-H3), implementadas na migração:
+                  | nome único por empresa; parcelas de 1 a 48; intervalo e dias até a primeira parcela de 0 a 365;
+                  | receber na emissão só com 1 parcela e 0 dias, e exige conta padrão ativa da forma (trigger).
+                  | Nunca se apaga: só se desativa. Escrita só do administrador da empresa.
+            [e] en
+                [v] Reusable installment template: payment method, number of installments, days until the first installment and interval between installments.
+                  | Mainly used to generate bills from the invoice (Phase 5). There is no global default: whoever uses it keeps its own.
+                  | Rules documented and not expressed in the map (docs/financeiro/README.md, F1-H3), implemented in the migration:
+                  | name unique per company; 1 to 48 installments; interval and days until the first installment from 0 to 365;
+                  | receive on issue only with 1 installment and 0 days, and requires an active default account for the method (trigger).
+                  | Never deleted: only deactivated. Written only by the company administrator.
+    [g] identificacao
+        [d] nome: Texto(100)
+            @
+                [e] cn
+                    [v] nome
+                [e] title
+                    [e] pt
+                        [v] Nome
+                    [e] en
+                        [v] Name
+                [e] description
+                    [e] pt
+                        [v] Nome da condição, único na empresa (ex.: Boleto 3x 30/60/90).
+                    [e] en
+                        [v] Terms name, unique within the company (e.g. Bank slip 3x 30/60/90).
+                [e] required
+                    [v] true
+                [e] searchable
+                    [v] true
+        [d] forma: Texto(20)
+            @
+                [e] cn
+                    [v] forma
+                [e] title
+                    [e] pt
+                        [v] Forma de Pagamento
+                    [e] en
+                        [v] Payment Method
+                [e] description
+                    [e] pt
+                        [v] Como o dinheiro entra: DINHEIRO, PIX, BOLETO, CARTAO ou TRANSFERENCIA. Vira a forma prevista dos títulos gerados. Valores documentados em values.
+                    [e] en
+                        [v] How the money comes in: DINHEIRO, PIX, BOLETO, CARTAO or TRANSFERENCIA. Becomes the expected method of the generated bills. Values documented in values.
+                [e] required
+                    [v] true
+                [e] values
+                    [e] DINHEIRO
+                        [e] title
+                            [e] pt
+                                [v] Dinheiro
+                            [e] en
+                                [v] Cash
+                        [e] description
+                            [e] pt
+                                [v] Pagamento em espécie.
+                            [e] en
+                                [v] Cash payment.
+                    [e] PIX
+                        [e] title
+                            [e] pt
+                                [v] Pix
+                            [e] en
+                                [v] Pix
+                        [e] description
+                            [e] pt
+                                [v] Pagamento instantâneo Pix.
+                            [e] en
+                                [v] Pix instant payment.
+                    [e] BOLETO
+                        [e] title
+                            [e] pt
+                                [v] Boleto
+                            [e] en
+                                [v] Bank slip
+                        [e] description
+                            [e] pt
+                                [v] Boleto bancário.
+                            [e] en
+                                [v] Bank payment slip.
+                    [e] CARTAO
+                        [e] title
+                            [e] pt
+                                [v] Cartão
+                            [e] en
+                                [v] Card
+                        [e] description
+                            [e] pt
+                                [v] Cartão de crédito ou débito.
+                            [e] en
+                                [v] Credit or debit card.
+                    [e] TRANSFERENCIA
+                        [e] title
+                            [e] pt
+                                [v] Transferência
+                            [e] en
+                                [v] Transfer
+                        [e] description
+                            [e] pt
+                                [v] Transferência bancária (TED, DOC ou entre contas).
+                            [e] en
+                                [v] Bank transfer (TED, DOC or between accounts).
+        [d] ativo: Boolean()
+            @
+                [e] cn
+                    [v] ativo
+                [e] title
+                    [e] pt
+                        [v] Ativa
+                    [e] en
+                        [v] Active
+                [e] description
+                    [e] pt
+                        [v] Condição inativa não é oferecida em documento novo.
+                    [e] en
+                        [v] An inactive term is not offered on a new document.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] true
+    [g] parcelamento
+        [d] parcelas: Inteiro(2)
+            @
+                [e] cn
+                    [v] parcelas
+                [e] title
+                    [e] pt
+                        [v] Parcelas
+                    [e] en
+                        [v] Installments
+                [e] description
+                    [e] pt
+                        [v] Número de parcelas, de 1 a 48.
+                    [e] en
+                        [v] Number of installments, from 1 to 48.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] 1
+        [d] diasPrimeiroVencimento: Inteiro(3)
+            @
+                [e] cn
+                    [v] dias_primeiro_vencimento
+                [e] title
+                    [e] pt
+                        [v] Dias até a 1ª Parcela
+                    [e] en
+                        [v] Days to 1st Installment
+                [e] description
+                    [e] pt
+                        [v] Dias da data-base (emissão do documento) até o vencimento da primeira parcela, de 0 a 365. 0 = à vista.
+                    [e] en
+                        [v] Days from the base date (document issue) to the first installment due date, from 0 to 365. 0 = upfront.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] 0
+        [d] intervaloDias: Inteiro(3)
+            @
+                [e] cn
+                    [v] intervalo_dias
+                [e] title
+                    [e] pt
+                        [v] Intervalo entre Parcelas (dias)
+                    [e] en
+                        [v] Interval between Installments (days)
+                [e] description
+                    [e] pt
+                        [v] Dias entre uma parcela e a próxima, de 0 a 365.
+                    [e] en
+                        [v] Days between one installment and the next, from 0 to 365.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] 30
+        [d] receberNaEmissao: Boolean()
+            @
+                [e] cn
+                    [v] receber_na_emissao
+                [e] title
+                    [e] pt
+                        [v] Receber na Emissão
+                    [e] en
+                        [v] Receive on Issue
+                [e] description
+                    [e] pt
+                        [v] Já dá a baixa no ato (venda à vista), na conta padrão da forma. Só vale com 1 parcela e 0 dias, e exige conta padrão ativa da forma.
+                    [e] en
+                        [v] Settles at once (upfront sale), in the default account of the method. Only valid with 1 installment and 0 days, and requires an active default account for the method.
+                [e] required
+                    [v] true
+                [e] defaultValue
+                    [v] false
+    [g] controle
+        [d] id: Texto(36)
+            @
+                [e] cn
+                    [v] id
+                [e] title
+                    [e] pt
+                        [v] Identificador
+                    [e] en
+                        [v] Identifier
+                [e] description
+                    [e] pt
+                        [v] Identificador interno da condição (UUID).
+                    [e] en
+                        [v] Internal terms identifier (UUID).
+                [e] required
+                    [v] true
+        [d] dataCriacao: DataHora()
+            @
+                [e] cn
+                    [v] data_criacao
+                [e] title
+                    [e] pt
+                        [v] Data de Criação
+                    [e] en
+                        [v] Creation Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora em que a condição foi cadastrada.
+                    [e] en
+                        [v] Date and time the terms were registered.
+                [e] required
+                    [v] true
+        [d] dataAtualizacao: DataHora()
+            @
+                [e] cn
+                    [v] data_atualizacao
+                [e] title
+                    [e] pt
+                        [v] Data de Atualização
+                    [e] en
+                        [v] Update Date
+                [e] description
+                    [e] pt
+                        [v] Data e hora da última alteração do registro.
+                    [e] en
+                        [v] Date and time of the last change to the record.
+                [e] required
+                    [v] true
+    [g] relacionamentos
+        [r] empresa: Empresa()
+            @
+                [e] cn
+                    [v] empresa_id
+                [e] title
+                    [e] pt
+                        [v] Empresa
+                    [e] en
+                        [v] Company
+                [e] description
+                    [e] pt
+                        [v] Empresa dona desta condição e tenant do registro. Todo acesso é filtrado por ela.
+                    [e] en
+                        [v] Company that owns these terms and tenant of the record. Every access is filtered by it.
+                [e] required
+                    [v] true
+                [e] tenantKey
+                    [v] true

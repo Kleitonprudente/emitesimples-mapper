@@ -3,7 +3,9 @@ package br.com.emitesimples.auth;
 import br.com.emitesimples.auth.Dtos.Emitida;
 import br.com.emitesimples.auth.Dtos.LoginRequest;
 import br.com.emitesimples.auth.Dtos.Perfil;
+import br.com.emitesimples.auth.Dtos.ReautenticarRequest;
 import br.com.emitesimples.auth.Dtos.SenhaRequest;
+import br.com.emitesimples.auth.Dtos.Sessao;
 import br.com.emitesimples.security.ApiException;
 import br.com.emitesimples.tenant.EscopoTenant;
 import io.quarkus.security.Authenticated;
@@ -96,6 +98,18 @@ public class AuthResource {
     public Perfil me() {
         Object empresa = jwt.getClaim(EscopoTenant.CLAIM_EMPRESA);
         return service.me(jwt.getSubject(), empresa == null ? null : String.valueOf(empresa));
+    }
+
+    /**
+     * Senha recente (docs/financeiro/README.md, 9.2, A7): confere a senha e devolve a sessao com um token de acesso novo que vale para as
+     * operacoes criticas por 5 minutos. Nao mexe no cookie de refresh.
+     */
+    @POST
+    @Path("/reautenticar")
+    @Authenticated
+    public Sessao reautenticar(ReautenticarRequest body) {
+        Object empresa = jwt.getClaim(EscopoTenant.CLAIM_EMPRESA);
+        return service.reautenticar(jwt.getSubject(), empresa == null ? null : String.valueOf(empresa), body == null ? null : body.senha());
     }
 
     @POST
