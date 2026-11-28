@@ -110,9 +110,9 @@
                     [v] Domain
             [e] description
                 [e] pt
-                    [v] Modelo de domínio do emissor, organizado por contexto delimitado. Ordem de modelagem: configuracao e cadastros juntos (dependência mútua, e cadastros também referencia usuarios por causa da ImportacaoMunicipio, formando o laço cadastros, usuarios, configuracao, cadastros), depois usuarios (depende de configuracao), nfse (depende de configuracao, cadastros e usuarios), integranotas (depende de configuracao e nfse) e admin (depende de configuracao e usuarios; nenhum outro contexto o referencia).
+                    [v] Modelo de domínio do emissor, organizado por contexto delimitado. Ordem de modelagem: configuracao e cadastros juntos (dependência mútua; cadastros depende só de configuracao), depois usuarios (depende de configuracao), nfse (depende de configuracao, cadastros e usuarios), integranotas (depende de configuracao e nfse) e admin (depende de configuracao e usuarios; nenhum outro contexto o referencia).
                 [e] en
-                    [v] Domain model of the issuer, organized by bounded context. Modeling order: configuracao and cadastros together (mutual dependency, and cadastros also references usuarios because of ImportacaoMunicipio, forming the loop cadastros, usuarios, configuracao, cadastros), then usuarios (depends on configuracao), nfse (depends on configuracao, cadastros and usuarios), integranotas (depends on configuracao and nfse) and admin (depends on configuracao and usuarios; no other context references it).
+                    [v] Domain model of the issuer, organized by bounded context. Modeling order: configuracao and cadastros together (mutual dependency; cadastros depends only on configuracao), then usuarios (depends on configuracao), nfse (depends on configuracao, cadastros and usuarios), integranotas (depends on configuracao and nfse) and admin (depends on configuracao and usuarios; no other context references it).
         [p] configuracao
             @
                 [e] title
@@ -143,9 +143,9 @@
                         [v] Registries
                 [e] description
                     [e] pt
-                        [v] Contexto com Municipio (dado de referência compartilhado), Pessoa, Servico, Contato e ImportacaoMunicipio. Depende de configuracao (Empresa) e de usuarios (a ImportacaoMunicipio referencia o Usuario). Tem dependência mútua com configuracao: Pessoa e Servico referenciam a Empresa (configuracao), e a Empresa referencia o Municipio daqui. Forma o laço cadastros, usuarios, configuracao, cadastros. Não é erro, pois a relação entre contextos é sempre referência, mas quebra o princípio de modelar do mais independente para o mais dependente. Municipio e Empresa devem ser modelados juntos.
+                        [v] Contexto com Municipio (dado de referência compartilhado), Pessoa, Servico, Contato e ImportacaoMunicipio. Depende só de configuracao (Empresa); a ImportacaoMunicipio guarda o usuário apenas como idUsuario (referência de auditoria), sem relação com o contexto usuarios. Tem dependência mútua com configuracao: Pessoa e Servico referenciam a Empresa (configuracao), e a Empresa referencia o Municipio daqui. Não é erro, pois a relação entre contextos é sempre referência, mas quebra o princípio de modelar do mais independente para o mais dependente. Municipio e Empresa devem ser modelados juntos.
                     [e] en
-                        [v] Context with Municipio (shared reference data), Pessoa, Servico, Contato and ImportacaoMunicipio. It depends on configuracao (Empresa) and on usuarios (ImportacaoMunicipio references Usuario). It has a mutual dependency with configuracao: Pessoa and Servico reference Empresa (configuracao), and Empresa references the Municipio held here. It forms the loop cadastros, usuarios, configuracao, cadastros. This is not an error, since the relation between contexts is always a reference, but it breaks the principle of modeling from the most independent to the most dependent. Municipio and Empresa must be modeled together.
+                        [v] Context with Municipio (shared reference data), Pessoa, Servico, Contato and ImportacaoMunicipio. It depends only on configuracao (Empresa); ImportacaoMunicipio keeps the user only as idUsuario (audit reference), with no relation to the usuarios context. It has a mutual dependency with configuracao: Pessoa and Servico reference Empresa (configuracao), and Empresa references the Municipio held here. This is not an error, since the relation between contexts is always a reference, but it breaks the principle of modeling from the most independent to the most dependent. Municipio and Empresa must be modeled together.
             [b] Municipio
                 #
                     dominio/Cadastros/Municipio.mi
@@ -170,9 +170,9 @@
                         [v] Users
                 [e] description
                     [e] pt
-                        [v] Contexto que depende de configuracao, com Usuario, VinculoUsuario, ClienteAcesso, TokenRenovacao e ConfirmacaoCadastro (a confirmação do signup por link de e-mail). O contexto cadastros agora o referencia (ImportacaoMunicipio referencia o Usuario), fechando o laço cadastros, usuarios, configuracao, cadastros. Entre contextos a relação é sempre referência.
+                        [v] Contexto que depende de configuracao, com Usuario, VinculoUsuario, ClienteAcesso, TokenRenovacao e ConfirmacaoCadastro (a confirmação do signup por link de e-mail). Nenhum contexto anterior o referencia (a ImportacaoMunicipio, de cadastros, guarda só o idUsuario). Entre contextos a relação é sempre referência.
                     [e] en
-                        [v] Context that depends on configuracao, with Usuario, VinculoUsuario, ClienteAcesso, TokenRenovacao and ConfirmacaoCadastro (the signup confirmation by e-mail link). The cadastros context now references it (ImportacaoMunicipio references Usuario), closing the loop cadastros, usuarios, configuracao, cadastros. Between contexts the relation is always a reference.
+                        [v] Context that depends on configuracao, with Usuario, VinculoUsuario, ClienteAcesso, TokenRenovacao and ConfirmacaoCadastro (the signup confirmation by e-mail link). No earlier context references it (ImportacaoMunicipio, in cadastros, keeps only the idUsuario). Between contexts the relation is always a reference.
             [b] Usuario
                 #
                     dominio/Usuarios/Usuario.mi
@@ -197,15 +197,21 @@
                         [v] NFS-e
                 [e] description
                     [e] pt
-                        [v] Contexto que depende de configuracao, cadastros e usuarios, com Nota e Cancelamento. Entre contextos a relação é sempre referência.
+                        [v] Contexto que depende de configuracao, cadastros e usuarios, com Nota e Cancelamento e os serviços de domínio CicloNota e CicloCancelamento (classes auxiliares sem persistência, com as transições de estado). Entre contextos a relação é sempre referência.
                     [e] en
-                        [v] Context that depends on configuracao, cadastros and usuarios, with Nota and Cancelamento. Between contexts the relation is always a reference.
+                        [v] Context that depends on configuracao, cadastros and usuarios, with Nota and Cancelamento and the domain services CicloNota and CicloCancelamento (auxiliary classes with no persistence, holding the state transitions). Between contexts the relation is always a reference.
             [b] Nota
                 #
                     dominio/Nfse/Nota.mi
             [b] Cancelamento
                 #
                     dominio/Nfse/Cancelamento.mi
+            [c] CicloNota
+                #
+                    dominio/Nfse/CicloNota.mi
+            [c] CicloCancelamento
+                #
+                    dominio/Nfse/CicloCancelamento.mi
         [p] integranotas
             @
                 [e] title
@@ -261,6 +267,13 @@
                 [e] en
                     [v] Front screen maps (dialect of the front methodology plan). Each screen references a domain bean by name, which lives in this project as a read-only copy of the back (dominio folder). The package path maps 1:1 to the generated folder.
         [p] cadastros
+            [p] pessoa
+                [Descriptor.window.list] GestaoPessoas
+                    #
+                        window/cadastros/pessoa/GestaoPessoas.mi
+                [Descriptor.window.editor] FormularioPessoa
+                    #
+                        window/cadastros/pessoa/FormularioPessoa.mi
             [p] cliente
                 [Descriptor.window.list] GestaoClientes
                     #
