@@ -7,23 +7,27 @@
                 [v] Invoice
         [e] description
             [e] pt
-                [v] NFS-e da empresa e o seu ciclo de vida. Nasce como rascunho, preparado por um agente ou por uma pessoa, e só vai ao gateway depois da aprovação de uma pessoa. Aprovada e enviada, fica em processamento: o envio devolve o código 5023 com a chave e só depois vem a autorização.
+                [v] NFS-e da empresa e o seu ciclo de vida. Há dois caminhos de entrada.
+                  | (A) Emissão DIRETA por uma pessoa no sistema: NÃO há rascunho; a nota nasce em processamento, criada e enviada ao gateway numa só ação. (B) Assistente de IA: o assistente só PREPARA a nota como rascunho (preparadoPorCliente) e uma PESSOA aprova (o sistema envia e a nota vira PROCESSANDO) ou descarta (vira DESCARTADA). Aprovar e descartar o rascunho são requisito AINDA NÃO IMPLEMENTADO no código. O estado rascunho só existe no caminho B.
+                  | Depois do envio, o gateway devolve o código 5023 com a chave e só depois vem a autorização. Falha de infraestrutura no envio direto (gateway indisponível, token recusado, aceite sem chave, código 0) leva a FALHA_ENVIO, que pode ser reenviada com o mesmo número, como a REJEITADA. As transições estão em CicloNota.
                   | Vive no contexto nfse (domain.nfse). Depende de configuracao (Empresa), de cadastros (Pessoa e Servico) e de usuarios (Usuario e ClienteAcesso) para o rastro de quem preparou, aprovou e descartou. Usuarios depende só de cadastros e configuracao, então não há ciclo.
                   | Guarda uma CÓPIA dos dados do SERVIÇO enviados (código, discriminação, valores, tributos), porque alterar o cadastro de Servico depois não pode mudar uma nota já emitida.
                   | Da PESSOA guarda só o vínculo: o sistema monta o envio lendo a Pessoa no momento do envio (aprovação). O registro do que de fato foi enviado e autorizado é o XML (e o PDF) que a nota guarda; consultas por nome ou documento da pessoa usam a relação. Custo: se a Pessoa for alterada depois, a nota passa a mostrar o dado novo nas telas e nos relatórios, mas o XML e o PDF guardados preservam o que foi emitido.
                   | Chave única: a nota só tem a chave de 50 caracteres devolvida pelo gateway, única por NFS-e (índice no banco). O campo identificacao do envio (1 a 40 caracteres) é preenchido com o id da nota (UUID de 36 caracteres, cabe nos 40 do gateway, que não aceita mais que isso), então a nota não guarda atributo de correlação à parte.
                   | A numeração da DPS (numero e serie) é atributo da nota, não existe entidade RPS. O prestador não vai no envio, vem do token da empresa (emitente no IntegraNotas).
-                  | Regra de unicidade para a camada de banco: a combinação (empresa, ambiente, serie, numero) deve ser única.
+                  | Regra de unicidade para a camada de banco: a combinação (empresa, ambiente, serie, numero) deve ser única. O rascunho do assistente tem numero e serie vazios e não conflita: no PostgreSQL valores nulos não colidem em índice único.
                   | O mapa não expressa unicidade composta, ela precisa virar constraint no banco.
                   | Fora do modelo por ora, a modelar sob demanda: obra, evento, locação, exterior, intermediário, deduções, contingência, emissão pelo tomador e o bloco ibs_cbs.
             [e] en
-                [v] Company NFS-e and its life cycle. It is born as a draft, prepared by an agent or a person, and only goes to the gateway after a person approves it. Once approved and sent, it is processing: the submission returns code 5023 with the key and authorization comes later.
+                [v] Company NFS-e and its life cycle. There are two entry paths.
+                  | (A) DIRECT issue by a person in the system: there is NO draft; the note is born processing, created and sent to the gateway in a single action. (B) AI assistant: the assistant only PREPARES the note as a draft (preparadoPorCliente) and a PERSON approves (the system sends it and the note becomes PROCESSANDO) or discards it (becomes DESCARTADA). Approving and discarding the draft are a requirement NOT YET IMPLEMENTED in the code. The draft state only exists on path B.
+                  | After sending, the gateway returns code 5023 with the key and authorization comes later. An infrastructure failure on direct sending (gateway unavailable, token refused, accepted without a key, code 0) leads to FALHA_ENVIO, which may be resent with the same number, like REJEITADA. The transitions are in CicloNota.
                   | Lives in the nfse context (domain.nfse). Depends on configuracao (Empresa), cadastros (Pessoa and Servico) and usuarios (Usuario and ClienteAcesso) for the trail of who prepared, approved and discarded. Usuarios depends only on cadastros and configuracao, so there is no cycle.
                   | It keeps a COPY of the submitted SERVICE data (code, breakdown, amounts, taxes), because changing the Servico registry later must not change an issued note.
                   | Of the PERSON it keeps only the link: the system builds the submission by reading the Pessoa at submission time (approval). The record of what was actually sent and authorized is the XML (and PDF) the note keeps; queries by person name or document use the relation. Cost: if the Pessoa is changed later, the note shows the new data on screens and reports, but the stored XML and PDF preserve what was issued.
                   | Single key: the note has only the 50-character key returned by the gateway, unique per NFS-e (database index). The identificacao field of the submission (1 to 40 characters) is filled with the note id (36-character UUID, fits the gateway 40, which accepts no more), so the note keeps no separate correlation attribute.
                   | The DPS numbering (numero and serie) is a note attribute, there is no RPS entity. The provider is not in the submission, it comes from the company token (emitente at IntegraNotas).
-                  | Uniqueness rule for the database layer: the combination (company, environment, serie, numero) must be unique.
+                  | Uniqueness rule for the database layer: the combination (company, environment, serie, numero) must be unique. The assistant draft has empty numero and serie and does not conflict: in PostgreSQL null values do not collide in a unique index.
                   | The map cannot express composite uniqueness, it must become a database constraint.
                   | Out of the model for now, to be modeled on demand: works, event, lease, abroad, intermediary, deductions, contingency, issuing by the taker and the ibs_cbs block.
     [g] envio
@@ -39,10 +43,10 @@
                 [e] description
                     [e] pt
                         [v] Numeração da DPS enviada ao gateway, 1 a 9 dígitos (campo numero do envio). Não é o número da NFS-e devolvido na autorização.
+                          | Vazio no rascunho do assistente: o número só é alocado quando a nota vira PROCESSANDO (criação direta ou aprovação), sem reservar no preparo e sem buracos. Por isso o mapa não marca required. Regra de aplicação, a validar no código: obrigatório fora do rascunho (e a coluna do banco continua exigindo isso por constraint de estado ou validação).
                     [e] en
                         [v] DPS numbering sent to the gateway, 1 to 9 digits (the numero field of the submission). Not the NFS-e number returned on authorization.
-                [e] required
-                    [v] true
+                          | Empty on the assistant draft: the number is only allocated when the note becomes PROCESSANDO (direct creation or approval), with no reservation at preparation and no gaps. That is why the map does not mark required. Application rule, to be validated in the code: mandatory outside draft (and the database must still enforce it).
                 [e] searchable
                     [v] true
         [d] serie: Texto(5)
@@ -56,11 +60,9 @@
                         [v] DPS Series
                 [e] description
                     [e] pt
-                        [v] Série da DPS, 1 a 5 dígitos (campo serie do envio).
+                        [v] Série da DPS, 1 a 5 dígitos (campo serie do envio). Vazia no rascunho do assistente; preenchida obrigatoriamente quando a nota vira PROCESSANDO (criação direta ou aprovação). Regra de aplicação, a validar no código.
                     [e] en
-                        [v] DPS series, 1 to 5 digits (the serie field of the submission).
-                [e] required
-                    [v] true
+                        [v] DPS series, 1 to 5 digits (the serie field of the submission). Empty on the assistant draft; mandatory once the note becomes PROCESSANDO (direct creation or approval). Application rule, to be validated in the code.
         [d] dataEmissao: DataHora()
             @
                 [e] cn
@@ -72,11 +74,9 @@
                         [v] Issue Date
                 [e] description
                     [e] pt
-                        [v] Data e hora de emissão enviadas (campo data_emissao do envio, ISO com fuso).
+                        [v] Data e hora de emissão enviadas (campo data_emissao do envio, ISO com fuso). Regravada a cada reenvio. Define o mês vigente da regra de cancelamento (mês e ano da emissão, fuso America/Sao_Paulo). Vazia no rascunho do assistente; preenchida obrigatoriamente quando a nota vira PROCESSANDO (criação direta ou aprovação). Regra de aplicação, a validar no código.
                     [e] en
-                        [v] Issue date and time sent (the data_emissao field of the submission, ISO with time zone).
-                [e] required
-                    [v] true
+                        [v] Issue date and time sent (the data_emissao field of the submission, ISO with time zone). Rewritten on every resend. Defines the current month of the cancellation rule (month and year of issue, America/Sao_Paulo time zone). Empty on the assistant draft; mandatory once the note becomes PROCESSANDO (direct creation or approval). Application rule, to be validated in the code.
         [d] dataCompetencia: Data()
             @
                 [e] cn
@@ -288,18 +288,58 @@
                 [e] defaultValue
                     [v] 1
                 [e] values
-                    [e] tributavel
-                        [v] 1
-                        [v] Tributável
-                    [e] imunidade
-                        [v] 2
-                        [v] Imunidade
-                    [e] exportacao
-                        [v] 3
-                        [v] Exportação
-                    [e] naoIncidencia
-                        [v] 4
-                        [v] Não incidência
+                    [e] TRIBUTAVEL
+                        [e] codigo
+                            [v] 1
+                        [e] title
+                            [e] pt
+                                [v] Tributável
+                            [e] en
+                                [v] Taxable
+                        [e] description
+                            [e] pt
+                                [v] Operação tributável pelo ISS (padrão). Código gravado: 1.
+                            [e] en
+                                [v] Operation taxable by ISS (default). Stored code: 1.
+                    [e] IMUNIDADE
+                        [e] codigo
+                            [v] 2
+                        [e] title
+                            [e] pt
+                                [v] Imunidade
+                            [e] en
+                                [v] Immunity
+                        [e] description
+                            [e] pt
+                                [v] Operação com imunidade do ISS. Código gravado: 2.
+                            [e] en
+                                [v] Operation with ISS immunity. Stored code: 2.
+                    [e] EXPORTACAO
+                        [e] codigo
+                            [v] 3
+                        [e] title
+                            [e] pt
+                                [v] Exportação
+                            [e] en
+                                [v] Export
+                        [e] description
+                            [e] pt
+                                [v] Exportação de serviço. Código gravado: 3.
+                            [e] en
+                                [v] Service export. Stored code: 3.
+                    [e] NAO_INCIDENCIA
+                        [e] codigo
+                            [v] 4
+                        [e] title
+                            [e] pt
+                                [v] Não incidência
+                            [e] en
+                                [v] Non-incidence
+                        [e] description
+                            [e] pt
+                                [v] Operação em que o ISS não incide. Código gravado: 4.
+                            [e] en
+                                [v] Operation on which ISS does not apply. Stored code: 4.
         [d] aliquotaIss: Decimal(5,2)
             @
                 [e] cn
@@ -347,12 +387,32 @@
                     [e] en
                         [v] Who withholds ISS, when there is withholding (the tributos_municipais.responsavel_retencao field of the submission). Optional.
                 [e] values
-                    [e] tomador
-                        [v] 2
-                        [v] Tomador
-                    [e] intermediario
-                        [v] 3
-                        [v] Intermediário
+                    [e] TOMADOR
+                        [e] codigo
+                            [v] 2
+                        [e] title
+                            [e] pt
+                                [v] Tomador
+                            [e] en
+                                [v] Taker
+                        [e] description
+                            [e] pt
+                                [v] A retenção do ISS é feita pelo tomador. Código gravado: 2.
+                            [e] en
+                                [v] ISS is withheld by the taker. Stored code: 2.
+                    [e] INTERMEDIARIO
+                        [e] codigo
+                            [v] 3
+                        [e] title
+                            [e] pt
+                                [v] Intermediário
+                            [e] en
+                                [v] Intermediary
+                        [e] description
+                            [e] pt
+                                [v] A retenção do ISS é feita pelo intermediário. Código gravado: 3.
+                            [e] en
+                                [v] ISS is withheld by the intermediary. Stored code: 3.
     [g] tributosNacionais
         [d] cstPisCofins: Texto(2)
             @
@@ -510,9 +570,9 @@
                         [v] Approval Date and Time
                 [e] description
                     [e] pt
-                        [v] Momento em que uma pessoa aprovou o rascunho e o sistema o enviou ao gateway. Vazia enquanto rascunho e em nota descartada.
+                        [v] Momento em que a pessoa mandou enviar a nota ao gateway. No fluxo direto é gravada na criação; no fluxo do assistente, na aprovação do rascunho; em qualquer caso é regravada a cada reenvio. Vazia só no rascunho (e na nota descartada, que nunca foi enviada).
                     [e] en
-                        [v] Moment a person approved the draft and the system sent it to the gateway. Empty while draft and on a discarded note.
+                        [v] Moment the person had the note sent to the gateway. On the direct flow it is stored at creation; on the assistant flow, at draft approval; in any case it is rewritten on every resend. Empty only on a draft (and on a discarded note, which was never sent).
         [d] dataHoraDescarte: DataHora()
             @
                 [e] cn
@@ -524,9 +584,9 @@
                         [v] Discard Date and Time
                 [e] description
                     [e] pt
-                        [v] Momento em que uma pessoa recusou o rascunho. Preenchida só no estado descartada.
+                        [v] Momento em que uma pessoa descartou o rascunho do assistente (ainda não implementado no código). Preenchida só no estado DESCARTADA.
                     [e] en
-                        [v] Moment a person refused the draft. Filled only in the discarded state.
+                        [v] Moment a person discarded the assistant draft (not yet implemented in the code). Filled only in the discarded state.
     [g] retorno
         [d] estado: Texto(20)
             @
@@ -539,50 +599,127 @@
                         [v] State
                 [e] description
                     [e] pt
-                        [v] Estado da nota no ciclo de vida, na ordem: rascunho, processando, emitida_offline, autorizada, rejeitada, em_conflito, cancelada, descartada.
-                          | Rascunho é a nota preparada e ainda não enviada ao gateway, aguardando a aprovação; é o estado inicial. Processando é a nota aprovada e enviada ao gateway, aguardando o retorno (código 5023).
-                          | Emitida offline é a nota aceita que aguarda a prefeitura (código 2), sem XML nem protocolo. Autorizada vem do código 100, cancelada do 101, em conflito do 5027 e rejeitada das falhas definitivas.
-                          | Descartada é o rascunho recusado por uma pessoa; nunca foi enviada ao gateway e não tem chave.
-                          | Regra: só o estado rascunho pode ser aprovado ou descartado, e só a aprovação de um usuário envia ao gateway (rascunho vira processando). Um agente apenas prepara.
-                          | Só uma nota autorizada pode ser cancelada. Depois do envio, a decisão é sempre pelo código de retorno, nunca pelo texto da mensagem.
+                        [v] Estado da nota no ciclo de vida, na ordem: RASCUNHO, PROCESSANDO, EMITIDA_OFFLINE, AUTORIZADA, REJEITADA, FALHA_ENVIO, EM_CONFLITO, CANCELADA, DESCARTADA. As transições estão em CicloNota. A semântica de cada valor está em [e] values.
+                          | Rascunho existe SÓ no caminho do assistente de IA: é a nota preparada e ainda não enviada, aguardando uma pessoa aprovar ou descartar (aprovar e descartar: ainda não implementado no código). Na emissão direta pela pessoa não há rascunho: a nota nasce PROCESSANDO.
+                          | Processando é a nota enviada ao gateway, aguardando o retorno (código 5023 com a chave). Emitida offline é a nota aceita que aguarda a prefeitura (código 2), sem XML nem protocolo; vem SÓ da consulta, nunca do envio.
+                          | Autorizada vem do código 100 e cancelada do 101. Em conflito vem do 5027. Rejeitada é a recusa definitiva do governo (5001, 5002, 5005, 5007, 5024, 5025, 5028, 5033 e outras recusas): a nota é editável e reenviável com o mesmo número.
+                          | Falha de envio (FALHA_ENVIO) é a falha de infraestrutura no envio direto (gateway indisponível, token recusado, aceite sem chave, código 0, resposta inesperada): a nota NÃO foi rejeitada pelo governo e pode ser reenviada com o mesmo número, como a rejeitada. Substitui o uso de rascunho como estado de nova tentativa.
+                          | Descartada é o rascunho do assistente recusado por uma pessoa; nunca foi enviada ao gateway e não tem chave.
+                          | Regra: só o estado RASCUNHO pode ser aprovado ou descartado, e só uma pessoa o envia ao gateway. Um agente apenas prepara. Só uma nota autorizada pode ser cancelada. Depois do envio, a decisão é sempre pelo código de retorno, nunca pelo texto da mensagem.
                     [e] en
-                        [v] Note state in the life cycle, in order: rascunho, processando, emitida_offline, autorizada, rejeitada, em_conflito, cancelada, descartada.
-                          | Draft is the note prepared and not yet sent to the gateway, awaiting approval; it is the initial state. Processing is the note approved and sent to the gateway, awaiting the return (code 5023).
-                          | Offline issued is the accepted note awaiting the city hall (code 2), with no XML or protocol. Authorized comes from code 100, canceled from 101, in conflict from 5027 and rejected from final failures.
-                          | Discarded is the draft refused by a person; it was never sent to the gateway and has no key.
-                          | Rule: only the draft state can be approved or discarded, and only a user's approval sends it to the gateway (draft becomes processing). An agent only prepares.
-                          | Only an authorized note can be canceled. After submission, the decision is always by the return code, never by the message text.
+                        [v] Note state in the life cycle, in order: RASCUNHO, PROCESSANDO, EMITIDA_OFFLINE, AUTORIZADA, REJEITADA, FALHA_ENVIO, EM_CONFLITO, CANCELADA, DESCARTADA. The transitions are in CicloNota. The meaning of each value is in [e] values.
+                          | Draft exists ONLY on the AI assistant path: it is the note prepared and not yet sent, awaiting a person to approve or discard it (approve and discard: not yet implemented in the code). On direct issue by a person there is no draft: the note is born PROCESSANDO.
+                          | Processing is the note sent to the gateway, awaiting the return (code 5023 with the key). Offline issued is the accepted note awaiting the city hall (code 2), with no XML or protocol; it comes ONLY from the query, never from the submission.
+                          | Authorized comes from code 100 and canceled from 101. In conflict comes from 5027. Rejected is the final refusal by the government (5001, 5002, 5005, 5007, 5024, 5025, 5028, 5033 and other refusals): the note is editable and can be resent with the same number.
+                          | Submission failure (FALHA_ENVIO) is the infrastructure failure on direct sending (gateway unavailable, token refused, accepted without a key, code 0, unexpected response): the note was NOT rejected by the government and can be resent with the same number, like rejeitada. It replaces the use of draft as a retry state.
+                          | Discarded is the assistant draft refused by a person; it was never sent to the gateway and has no key.
+                          | Rule: only the draft state can be approved or discarded, and only a person sends it to the gateway. An agent only prepares. Only an authorized note can be canceled. After submission, the decision is always by the return code, never by the message text.
                 [e] required
                     [v] true
                 [e] searchable
                     [v] true
                 [e] defaultValue
-                    [v] rascunho
+                    [v] PROCESSANDO
                 [e] values
-                    [e] rascunho
-                        [v] rascunho
-                        [v] Rascunho, aguardando aprovação
-                    [e] processando
-                        [v] processando
-                        [v] Processando
-                    [e] emitida_offline
-                        [v] emitida_offline
-                        [v] Emitida offline
-                    [e] autorizada
-                        [v] autorizada
-                        [v] Autorizada
-                    [e] cancelada
-                        [v] cancelada
-                        [v] Cancelada
-                    [e] rejeitada
-                        [v] rejeitada
-                        [v] Rejeitada
-                    [e] em_conflito
-                        [v] em_conflito
-                        [v] Em conflito
-                    [e] descartada
-                        [v] descartada
-                        [v] Descartada, rascunho recusado
+                    [e] RASCUNHO
+                        [e] title
+                            [e] pt
+                                [v] Rascunho
+                            [e] en
+                                [v] Draft
+                        [e] description
+                            [e] pt
+                                [v] Existe SÓ no caminho do assistente de IA: nota preparada e ainda não enviada ao gateway, aguardando uma pessoa aprovar (vira PROCESSANDO) ou descartar (vira DESCARTADA). Aprovar e descartar ainda não estão implementados no código. Numero e serie ficam vazios. Na emissão direta pela pessoa não há rascunho.
+                            [e] en
+                                [v] Exists ONLY on the AI assistant path: note prepared and not yet sent to the gateway, awaiting a person to approve (becomes PROCESSANDO) or discard (becomes DESCARTADA). Approving and discarding are not yet implemented in the code. Numero and serie stay empty. On direct issue by a person there is no draft.
+                    [e] PROCESSANDO
+                        [e] title
+                            [e] pt
+                                [v] Processando
+                            [e] en
+                                [v] Processing
+                        [e] description
+                            [e] pt
+                                [v] Nota enviada ao gateway, aguardando o retorno (código 5023 com a chave) e depois a autorização. É o padrão: a emissão direta nasce aqui, e o rascunho aprovado vira este estado.
+                            [e] en
+                                [v] Note sent to the gateway, awaiting the return (code 5023 with the key) and then the authorization. It is the default: direct issue is born here, and an approved draft becomes this state.
+                    [e] EMITIDA_OFFLINE
+                        [e] title
+                            [e] pt
+                                [v] Emitida offline
+                            [e] en
+                                [v] Issued offline
+                        [e] description
+                            [e] pt
+                                [v] Nota aceita que aguarda a prefeitura (código 2), sem XML nem protocolo. Vem SÓ da consulta, nunca do envio.
+                            [e] en
+                                [v] Accepted note awaiting the city hall (code 2), with no XML or protocol. Comes ONLY from the query, never from the submission.
+                    [e] AUTORIZADA
+                        [e] title
+                            [e] pt
+                                [v] Autorizada
+                            [e] en
+                                [v] Authorized
+                        [e] description
+                            [e] pt
+                                [v] Nota autorizada pelo governo (código 100). Só uma nota autorizada pode ser cancelada.
+                            [e] en
+                                [v] Note authorized by the government (code 100). Only an authorized note can be canceled.
+                    [e] CANCELADA
+                        [e] title
+                            [e] pt
+                                [v] Cancelada
+                            [e] en
+                                [v] Canceled
+                        [e] description
+                            [e] pt
+                                [v] Nota cancelada (código 101), depois que um Cancelamento é concluído.
+                            [e] en
+                                [v] Canceled note (code 101), after a Cancelamento is completed.
+                    [e] REJEITADA
+                        [e] title
+                            [e] pt
+                                [v] Rejeitada
+                            [e] en
+                                [v] Rejected
+                        [e] description
+                            [e] pt
+                                [v] Recusa definitiva do governo (5001, 5002, 5005, 5007, 5024, 5025, 5028, 5033 e outras recusas). A nota é editável e reenviável com o mesmo número.
+                            [e] en
+                                [v] Final refusal by the government (5001, 5002, 5005, 5007, 5024, 5025, 5028, 5033 and other refusals). The note is editable and can be resent with the same number.
+                    [e] FALHA_ENVIO
+                        [e] title
+                            [e] pt
+                                [v] Falha de envio
+                            [e] en
+                                [v] Submission failure
+                        [e] description
+                            [e] pt
+                                [v] Falha de infraestrutura no envio direto (gateway indisponível, token recusado, aceite sem chave, código 0, resposta inesperada). A nota NÃO foi rejeitada pelo governo e pode ser reenviada com o mesmo número.
+                            [e] en
+                                [v] Infrastructure failure on direct sending (gateway unavailable, token refused, accepted without a key, code 0, unexpected response). The note was NOT rejected by the government and can be resent with the same number.
+                    [e] EM_CONFLITO
+                        [e] title
+                            [e] pt
+                                [v] Em conflito
+                            [e] en
+                                [v] In conflict
+                        [e] description
+                            [e] pt
+                                [v] Nota em conflito, vinda do código 5027 do gateway.
+                            [e] en
+                                [v] Note in conflict, coming from gateway code 5027.
+                    [e] DESCARTADA
+                        [e] title
+                            [e] pt
+                                [v] Descartada
+                            [e] en
+                                [v] Discarded
+                        [e] description
+                            [e] pt
+                                [v] Rascunho do assistente recusado por uma pessoa; nunca foi enviado ao gateway e não tem chave. Estado final.
+                            [e] en
+                                [v] Assistant draft refused by a person; it was never sent to the gateway and has no key. Final state.
         [d] codigoRetorno: Inteiro(4)
             @
                 [e] cn
@@ -716,9 +853,9 @@
                         [v] Event Date and Time
                 [e] description
                     [e] pt
-                        [v] Data e hora do evento devolvida pelo gateway (autorização), no formato AAAA-MM-DD HH:MM:SS, sem fuso. Nula enquanto não autorizada.
+                        [v] Data e hora do evento devolvida pelo gateway, no formato AAAA-MM-DD HH:MM:SS, sem fuso. Gravada na autorização e REGRAVADA ao cancelar (passa a ser a data do evento de cancelamento). Nula enquanto não autorizada.
                     [e] en
-                        [v] Event date and time returned by the gateway (authorization), in the format YYYY-MM-DD HH:MM:SS, without time zone. Null until authorized.
+                        [v] Event date and time returned by the gateway, in the format YYYY-MM-DD HH:MM:SS, without time zone. Stored on authorization and REWRITTEN on cancellation (it becomes the cancellation event date). Null until authorized.
         [d] linkPdf: Texto(500)
             @
                 [e] cn
@@ -745,7 +882,7 @@
                 [e] description
                     [e] pt
                         [v] XML da NFS-e autorizada, decodificado do Base64 e guardado como conteúdo, com limite explícito de 2 MiB.
-                          | Documento fiscal, precisa ser retido. Ausente enquanto processando e na emissão offline.
+                          | Documento fiscal, precisa ser retido. Ausente enquanto PROCESSANDO e na emissão offline.
                     [e] en
                         [v] XML of the authorized NFS-e, decoded from Base64 and kept as content, with an explicit 2 MiB limit.
                           | Tax document, must be retained. Absent while processing and on offline issue.
@@ -799,14 +936,30 @@
                 [e] searchable
                     [v] true
                 [e] defaultValue
-                    [v] homologacao
+                    [v] HOMOLOGACAO
                 [e] values
-                    [e] homologacao
-                        [v] homologacao
-                        [v] Homologação, ambiente de testes
-                    [e] producao
-                        [v] producao
-                        [v] Produção, ambiente real
+                    [e] HOMOLOGACAO
+                        [e] title
+                            [e] pt
+                                [v] Homologação
+                            [e] en
+                                [v] Sandbox
+                        [e] description
+                            [e] pt
+                                [v] Ambiente de testes do gateway. É o padrão. Uma nota de teste nunca se mistura com uma real.
+                            [e] en
+                                [v] Gateway test environment. It is the default. A test note never mixes with a real one.
+                    [e] PRODUCAO
+                        [e] title
+                            [e] pt
+                                [v] Produção
+                            [e] en
+                                [v] Production
+                        [e] description
+                            [e] pt
+                                [v] Ambiente real do gateway. As notas emitidas aqui têm validade fiscal.
+                            [e] en
+                                [v] Real gateway environment. Notes issued here have tax validity.
         [d] dataCriacao: DataHora()
             @
                 [e] cn
@@ -901,9 +1054,9 @@
                         [v] Prepared by User
                 [e] description
                     [e] pt
-                        [v] Pessoa que preparou o rascunho. Regra que o mapa não expressa: preencher este campo OU preparadoPorCliente, no máximo um dos dois, e exatamente um deles na criação.
+                        [v] Pessoa que preparou a nota. Na emissão direta é a própria pessoa que emitiu. Regra que o mapa não expressa: preencher este campo OU preparadoPorCliente, no máximo um dos dois, e exatamente um deles na criação.
                     [e] en
-                        [v] Person who prepared the draft. Rule the map cannot express: fill this field OR preparadoPorCliente, at most one of the two, and exactly one at creation.
+                        [v] Person who prepared the note. On direct issue it is the person who issued it. Rule the map cannot express: fill this field OR preparadoPorCliente, at most one of the two, and exactly one at creation.
         [r] preparadoPorCliente: ClienteAcesso()
             @
                 [e] cn
@@ -915,9 +1068,9 @@
                         [v] Prepared by Access Client
                 [e] description
                     [e] pt
-                        [v] Agente (credencial de máquina, por exemplo o MCP) que preparou o rascunho. Regra que o mapa não expressa: preencher este campo OU preparadoPorUsuario, no máximo um dos dois.
+                        [v] Assistente de IA (credencial de máquina, por exemplo o MCP) que preparou o rascunho. Só existe no caminho do assistente. Regra que o mapa não expressa: preencher este campo OU preparadoPorUsuario, no máximo um dos dois.
                     [e] en
-                        [v] Agent (machine credential, for example the MCP) that prepared the draft. Rule the map cannot express: fill this field OR preparadoPorUsuario, at most one of the two.
+                        [v] AI assistant (machine credential, for example the MCP) that prepared the draft. Only exists on the assistant path. Rule the map cannot express: fill this field OR preparadoPorUsuario, at most one of the two.
         [r] aprovadoPor: Usuario()
             @
                 [e] cn
@@ -929,9 +1082,9 @@
                         [v] Approved by
                 [e] description
                     [e] pt
-                        [v] Pessoa que aprovou o envio ao gateway. Só uma PESSOA aprova, nunca um ClienteAcesso, e só quem tem o scope de emitir na empresa da nota (vínculo ativo com papel administrador ou operador). Quem preparou pode ser quem aprova. Vazio enquanto rascunho e em nota descartada.
+                        [v] Pessoa que mandou enviar a nota ao gateway: na emissão direta, quem emitiu; no caminho do assistente, quem aprovou o rascunho. Regravada a cada reenvio. Só uma PESSOA, nunca um ClienteAcesso, e só quem tem o scope de emitir na empresa da nota (vínculo ativo com papel ADMINISTRADOR ou OPERADOR). Quem preparou pode ser quem aprova. Vazio enquanto RASCUNHO e em nota DESCARTADA.
                     [e] en
-                        [v] Person who approved sending to the gateway. Only a PERSON approves, never a ClienteAcesso, and only someone with the issue scope on the note company (active link with role administrador or operador). The preparer may also be the approver. Empty while draft and on a discarded note.
+                        [v] Person who had the note sent to the gateway: on direct issue, who issued it; on the assistant path, who approved the draft. Rewritten on every resend. Only a PERSON, never a ClienteAcesso, and only someone with the issue scope on the note company (active link with role administrador or operador). The preparer may also be the approver. Empty while draft and on a discarded note.
         [r] descartadoPor: Usuario()
             @
                 [e] cn
@@ -943,9 +1096,9 @@
                         [v] Discarded by
                 [e] description
                     [e] pt
-                        [v] Pessoa que recusou o rascunho. Só uma pessoa descarta, com o mesmo scope de emitir exigido para aprovar. Preenchido só no estado descartada.
+                        [v] Pessoa que descartou o rascunho do assistente (ainda não implementado no código). Só uma pessoa descarta, com o mesmo scope de emitir exigido para aprovar. Preenchido só no estado DESCARTADA.
                     [e] en
-                        [v] Person who refused the draft. Only a person discards, with the same issue scope required to approve. Filled only in the discarded state.
+                        [v] Person who discarded the assistant draft (not yet implemented in the code). Only a person discards, with the same issue scope required to approve. Filled only in the discarded state.
         [o] cancelamentos: Cancelamento()
             @
                 [e] cn
@@ -957,6 +1110,6 @@
                         [v] Cancellations
                 [e] description
                     [e] pt
-                        [v] Pedidos de cancelamento da nota. Só existem dentro da nota, no mesmo contexto. Uma nota rejeitada no cancelamento pode ter novo pedido.
+                        [v] Pedidos de cancelamento da nota. Só existem dentro da nota, no mesmo contexto. Pode haver novo pedido depois de um recusado, expirado ou descartado, nunca enquanto houver outro em processamento. As transições estão em CicloCancelamento.
                     [e] en
-                        [v] Cancellation requests of the note. They only exist within the note, in the same context. A note whose cancellation was rejected may get a new request.
+                        [v] Cancellation requests of the note. They only exist within the note, in the same context. A new request may follow a refused, expired or discarded one, never while another is processing. The transitions are in CicloCancelamento.
